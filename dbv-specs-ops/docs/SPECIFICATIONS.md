@@ -1,7 +1,7 @@
 # 📋 Especificaciones: DBV Typst Editor
 
 > **Fase:** `/spec` (Especificación)
-> **Estado:** En Definición — v2 (incorpora Spec Addendum del usuario)
+> **Estado:** En Definición — v3 (incorpora Spec Addendum, Additional Specification Clarification, TYPST CLI INTEGRATION y el research phase dedicado; ver [`ARCHITECTURE.md`](./ARCHITECTURE.md) y [`TYPST_ECOSYSTEM_RESEARCH.md`](./TYPST_ECOSYSTEM_RESEARCH.md))
 > **Última Revisión:** 2026-09-04
 
 ---
@@ -62,26 +62,28 @@ Toda la aplicación (lanzador, asistente de creación, explorador de ficheros, e
 - [ ] **RF-03 Asistente de creación de proyecto:** Formulario de metadatos por plantilla (título, autor, tutor, universidad, curso...) que genera el proyecto sustituyendo variables automáticamente — el usuario no edita variables a mano si no quiere.
 - [ ] **RF-04 Plantillas básicas (catálogo curado inicial):** Artículo académico, TFG, TFM, Tesis doctoral, Informe técnico, CV, Presentación — instaladas de fábrica, sin marketplace todavía (eso es Beta, §6).
 - [ ] **RF-05 Editor de código Typst:** CodeMirror 6 (decisión y re-evaluación completa en `ARCHITECTURE.md` §7.1) — resaltado de sintaxis Typst, autocompletado léxico/snippets, numeración de líneas, plegado de bloques, búsqueda y reemplazo, atajos de teclado profesionales, selección múltiple (multi-cursor nativo).
-- [ ] **RF-06 Vista previa PDF en tiempo real:** Recompilación automática con debounce tras cada pausa de escritura; debe sentirse instantánea. Estrategia técnica (SVG por página) en `ARCHITECTURE.md` §7.3.
+- [ ] **RF-06 Vista previa PDF en tiempo real:** Recompilación automática con debounce tras cada pausa de escritura; debe sentirse instantánea. Compilación vía el CLI oficial de Typst vendorizado como sidecar (no crates embebidas); estrategia técnica (SVG por página) en `ARCHITECTURE.md` §7.2-7.3.
 - [ ] **RF-07 Guardar / Guardar como:** Persistencia en disco, con detección de cambios externos concurrentes (modal de conflicto heredado de DBV Markdown Reader).
 - [ ] **RF-08 Temas claro/oscuro:** Reutilización directa del sistema de tokens CSS de DBV Markdown Reader.
 - [ ] **RF-09 Configuración persistente:** Tema, tamaño/posición de ventana, últimos proyectos, nivel de zoom.
-- [ ] **RF-10 Exportación PDF:** El PDF real (vía `typst-pdf`), fiel al documento compilado, es el artefacto final que el usuario exporta/comparte.
+- [ ] **RF-10 Exportación PDF:** El PDF real, fiel al documento compilado, es el artefacto final que el usuario exporta/comparte (vía el sidecar CLI, `typst compile ... -`, sin fichero temporal — `ARCHITECTURE.md` §7.2).
 - [ ] **RF-11 Project Archive (`.dbvt`):** Exportar/importar el proyecto completo como archivo portable único (para compartir, respaldar o distribuir como ejemplo/plantilla). Formato en `ARCHITECTURE.md` §7.12.
-- [ ] **RF-12 Empaquetado:** Instalador para Windows (NSIS) y Linux (AppImage + .deb), reutilizando la configuración CI de DBV Markdown Reader.
+- [ ] **RF-12 Empaquetado:** Instalador para Windows (NSIS) y Linux (AppImage + .deb), reutilizando la configuración CI de DBV Markdown Reader, más el vendorizado del binario `typst` por plataforma (`ARCHITECTURE.md` §7.2, §6).
 
 ## 🚀 6. Funcionalidades — Beta y v1.0 (detalle del Spec Addendum)
 
-Estas funcionalidades están **descritas y arquitectónicamente resueltas** (ver `ARCHITECTURE.md` §7.6–§7.11) pero **fuera del MVP v0.1** por decisión explícita de alcance del usuario:
+Estas funcionalidades están **descritas y arquitectónicamente resueltas** (ver `ARCHITECTURE.md` §7.6–§7.14 y `TYPST_ECOSYSTEM_RESEARCH.md`) pero **fuera del MVP v0.1** por decisión explícita de alcance del usuario:
 
 **Beta (v0.2–v0.4):**
-- Marketplace de plantillas: pestañas Instaladas / Comunidad / Favoritas / Recientes / Actualizaciones; ficha de plantilla con nombre, autor, versión, descripción, capturas, categoría, botones Instalar/Crear Proyecto. Integración con el ecosistema oficial de paquetes de Typst (`@preview/*`, Typst Universe) para la pestaña Comunidad — ver `ARCHITECTURE.md` §7.6.
-- Panel de navegación estructural (esquema del documento, actualizado automáticamente, navegación rápida) — crítico para tesis y documentos extensos.
+- **Package Explorer** (ecosistema distinto del de plantillas — clarificación explícita del usuario): buscar/explorar paquetes Typst por categoría, ver instalados/detalle/documentación/versión/actualizaciones, botón "Añadir al proyecto" que inserta el `#import` automáticamente. Incluye detección automática de "Paquetes usados" al abrir un proyecto. Apoyado en el `index.json` público oficial de Typst (`packages.typst.org`), no en un registro propio — ver `ARCHITECTURE.md` §7.6.2 y `TYPST_ECOSYSTEM_RESEARCH.md`.
+- **Template Explorer** (distinto del Package Explorer): pestañas Instaladas / Comunidad / Favoritas / Recientes / Actualizaciones; ficha de plantilla con imagen de vista previa, nombre, autor, versión, descripción, categoría; acción principal "Crear Proyecto" (nunca "Descargar código"). La pestaña Comunidad usa el mismo `index.json` oficial, filtrado por plantillas — ver `ARCHITECTURE.md` §7.6.3.
+- Panel de navegación estructural (esquema del documento, actualizado automáticamente, navegación rápida) — crítico para tesis y documentos extensos. Vía `typst query` del sidecar CLI.
 - Asistentes de inserción rápida: figura, tabla, ecuación, cita, bibliografía, bloque de código, sección, referencia cruzada — generan Typst automáticamente sin que el usuario memorice sintaxis.
 - Gestión de imágenes por arrastre: copiar al proyecto, organizar, generar `figure()` con caption automáticamente.
 - Gestión visual de bibliografía (`.bib`): exploración de referencias, autocompletado de citas, validación.
 - Modos de trabajo: Escritura (mínima distracción), Edición (todas las herramientas), Dividido (editor + PDF), Lectura (documento final).
 - Exportación PNG (página actual / rango / documento completo).
+- **Terminal avanzado:** consola opcional, oculta por defecto, para ejecutar subcomandos oficiales de Typst directamente sobre el proyecto activo, con salida mostrada en la app — para usuarios avanzados; no sustituye a ningún flujo guiado. `ARCHITECTURE.md` §7.14.
 - Autocompletado semántico y diagnósticos en línea vía LSP `tinymist`; sincronización de scroll editor↔preview por posición real de fuente (no por anclas).
 - Empaquetado macOS, auto-actualizador (`tauri-plugin-updater`).
 
@@ -119,10 +121,14 @@ Estas funcionalidades están **descritas y arquitectónicamente resueltas** (ver
 
 - [x] ¿Reutilizamos el nombre "DBV Academic Writer" o "DBV Typst Editor"? → Resuelto: **DBV Typst Editor**.
 - [x] ¿Monaco o CodeMirror 6? → Re-evaluado tras el Spec Addendum, confirmado **CodeMirror 6** — ver `ARCHITECTURE.md` §7.1.
+- [x] ¿Integración con Typst vía crates embebidas o CLI? → Resuelto por instrucción explícita del usuario: **CLI oficial vendorizado como sidecar** — ver `ARCHITECTURE.md` §7.2 y `TYPST_ECOSYSTEM_RESEARCH.md`.
+- [x] ¿El catálogo "Comunidad" se apoya en el registro oficial de Typst o en uno propio? → Resuelto tras investigación: **sí, exclusivamente en el `index.json` público oficial** (`packages.typst.org`), nunca en la API privada `api.typst.app` — ver `TYPST_ECOSYSTEM_RESEARCH.md` §5.
 - [ ] ¿Se persigue publicación en Microsoft Store / Uptodown desde el MVP, o se pospone a v1.0 como plantea el roadmap de §6?
-- [ ] ¿El catálogo "Comunidad" del marketplace de plantillas (Beta) se apoya 100% en el registro oficial de Typst (`@preview`/Typst Universe) o se complementa con un repositorio curado propio de DBV? Afecta al diseño de `ARCHITECTURE.md` §7.6.
+- [ ] Tamaño exacto de la whitelist curada inicial de paquetes/plantillas comunitarios y criterio de expansión hacia el catálogo completo sin filtrar (`ARCHITECTURE.md` §6, §7.6.3).
 - [ ] ¿`.dbvt` es el nombre de extensión definitivo para el Project Archive, o solo conceptual en el Addendum? Confirmar antes de fijarlo en `tauri.conf.json` (`fileAssociations`) en `/build`.
 - [ ] ¿Qué motor/crate de parseo BibTeX se usa para la gestión visual de bibliografía (Beta)? Se resolverá en `/plan` de esa fase.
+- [ ] Spike técnico pendiente (`/build`): ¿sirve `packages.typst.org` una URL directa para las miniaturas de plantilla (`template.thumbnail`) sin descargar el tarball completo? Condiciona el rendimiento de scroll del Template Explorer (`TYPST_ECOSYSTEM_RESEARCH.md` §5).
+- [ ] Spike técnico pendiente (`/build`): ¿el JSON de `typst query <input> heading` incluye posición de página suficiente para la navegación del panel de outline? (`TYPST_ECOSYSTEM_RESEARCH.md` §1.5).
 
 ## 🧪 10. Criterios de Evaluación (No Deterministas)
 
@@ -143,7 +149,7 @@ Orden de prioridad para toda decisión de diseño/arquitectura (fijado explícit
 | Fase | Alcance | Estado |
 | --- | --- | --- |
 | **MVP (v0.1)** | RF-01 a RF-12 de §5: lanzador, proyectos, asistente de creación, 7 plantillas curadas, editor CodeMirror 6, preview SVG en tiempo real, guardado, temas, configuración, exportación PDF, Project Archive `.dbvt`, empaquetado Windows + Linux. | Planificado |
-| **Beta (v0.2–v0.4)** | Marketplace de plantillas (Typst Universe), navegación estructural, asistentes de inserción rápida, gestión de imágenes por arrastre, bibliografía visual, modos de escritura, exportación PNG, LSP `tinymist`, sync editor↔preview por posición real, macOS, auto-actualizador. | Futuro |
+| **Beta (v0.2–v0.4)** | Package Explorer y Template Explorer (separados, sobre el `index.json` oficial de Typst Universe), navegación estructural, asistentes de inserción rápida, gestión de imágenes por arrastre, bibliografía visual, modos de escritura, exportación PNG, terminal avanzado, LSP `tinymist`, sync editor↔preview por posición real, macOS, auto-actualizador. | Futuro |
 | **v1.0** | Ecosistema completo de plantillas, exportación SVG, asistentes avanzados, Paquete Docente, publicación en stores, accesibilidad WCAG AA. | Futuro |
 | **Futuro (post-1.0)** | IA, repositorio comunitario, sincronización, colaboración en tiempo real, integración Zotero/Mendeley, asistentes de redacción académica. | Exploratorio |
 

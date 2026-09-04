@@ -19,6 +19,7 @@ import { createProjectTree } from './project-explorer/projectTree.js';
 import { createWizard } from './project-wizard/wizard.js';
 import {
   getAppInfo,
+  getStartupDocument,
   getTypstVersion,
   pickProjectFolder,
   pickSaveTarget,
@@ -231,6 +232,11 @@ async function bootstrap() {
   });
 
   await Promise.all([renderAbout(), launcher.load()]);
+
+  // Doble clic sobre un `.typ` en el explorador del SO (asociación de fichero,
+  // RF-12): se abre ese documento en vez del lanzador.
+  const startup = await getStartupDocument();
+  if (startup.ok && startup.value) await openPath(startup.value);
 }
 
 bootstrap();

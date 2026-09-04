@@ -1,0 +1,63 @@
+name: CI
+
+# Comprobación en cada push y pull request. Ejecuta lo mismo que se ejecuta en
+# local antes de un commit, y en el mismo orden, para que "en mi máquina va" y
+# "en CI va" no puedan divergir:
+#
+#   · tests del backend Rust,
+#   · build del frontend,
+#   · verificación del sidecar contra el binario real (8 comprobaciones),
+#   · verificación del catálogo de plantillas: cada plantilla se instancia con
+#     `typst init`, se le sustituyen datos de ejemplo y se compila a PDF.
+#
+# Las dos últimas necesitan el compilador, así que el vendorizado es parte de la
+# comprobación, no un preparativo aparte.
+
+on:
+  push:
+    branches: ["master", "main"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Instalar dependencias del sistema (WebKitGTK)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Instalar Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Caché de cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Instalar Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Instalar dependencias de Node
+        run: npm ci
+
+      - name: Vendorizar el compilador Typst (sidecar)
+        run: npm run vendor:typst
+
+      - name: Tests del backend
+        run: npm test
+
+      - name: Build del frontend
+        run: npm run build:vite
+
+      - name: Verificar el sidecar contra el binario real
+        run: npm run verify:typst
+
+      - name: Verificar el catálogo de plantillas
+        run: npm run verify:templates

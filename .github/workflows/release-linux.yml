@@ -1,0 +1,106 @@
+name: Release Linux
+
+# Construye el .deb y el .AppImage y los adjunta a un borrador de GitHub Release
+# en cada tag vX.Y.Z. El flujo de Windows sigue siendo manual, en la máquina del
+# mantenedor (ver README.md): este workflow crea o actualiza el mismo borrador
+# para que solo haya que subir encima el instalador de Windows y publicar.
+#
+# La versión se lee de src-tauri/tauri.conf.json y no de github.ref_name, para
+# poder relanzarlo a mano (workflow_dispatch) sobre una versión cuyo tag ya
+# existe, sin depender de empujar un tag nuevo.
+#
+# PASO PROPIO DE ESTE PROYECTO, que no existía en DBV Markdown Reader: el
+# compilador Typst se vendoriza ANTES de `tauri build`. El binario no se
+# versiona en el repositorio, así que sin este paso el instalador saldría sin
+# compilador dentro — y por eso el paso verifica su presencia y falla de forma
+# explícita en vez de dejar pasar un artefacto inservible.
+#
+# Sin auto-actualización en el MVP: no se pasan las variables TAURI_SIGNING_*,
+# y `createUpdaterArtifacts: false` en tauri.linux.conf.json es imprescindible
+# para que `tauri build` no termine en error al no encontrar la clave privada.
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      draft:
+        description: >
+          "true" (normal): crea o reutiliza un borrador para esa versión, a completar a
+          mano con el instalador de Windows antes de publicar. "false": la Release ya
+          está PUBLICADA y solo quieres añadirle los artefactos de Linux.
+        required: false
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-22.04
+    # El GITHUB_TOKEN por defecto del repositorio es de solo lectura, y sin este
+    # permiso tauri-action falla al subir los artefactos con "Resource not
+    # accessible by integration". Se concede solo a este workflow.
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Leer versión de tauri.conf.json
+        id: version
+        run: echo "tag=v$(node -p "require('./src-tauri/tauri.conf.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Determinar si la Release debe tratarse como borrador
+        id: draft
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "value=${{ github.event.inputs.draft }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Instalar dependencias del sistema (WebKitGTK)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf xdg-utils
+
+      - name: Instalar Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Instalar Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      - name: Instalar dependencias de Node
+        run: npm ci
+
+      - name: Vendorizar el compilador Typst (sidecar)
+        run: npm run vendor:typst
+
+      - name: Verificar que el sidecar está en su sitio
+        run: |
+          if ! ls src-tauri/binaries/typst-x86_64-unknown-linux-gnu >/dev/null 2>&1; then
+            echo "::error::Falta el sidecar typst; el instalador saldría sin compilador dentro."
+            exit 1
+          fi
+          ./src-tauri/binaries/typst-x86_64-unknown-linux-gnu --version
+
+      - name: Verificar el catálogo de plantillas contra el compilador real
+        run: npm run verify:templates
+
+      - name: Tests del backend
+        run: npm test
+
+      - name: Build y Release (Linux)
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ steps.version.outputs.tag }}
+          releaseName: ${{ steps.version.outputs.tag }}
+          releaseDraft: ${{ steps.draft.outputs.value }}
+          prerelease: false
+          includeUpdaterJson: false

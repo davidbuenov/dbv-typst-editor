@@ -18,12 +18,13 @@
 - [Sobre el proyecto](#-sobre-el-proyecto)
 - [Estado actual](#-estado-actual)
 - [Público objetivo](#-público-objetivo)
-- [Funcionalidades previstas (MVP)](#-funcionalidades-previstas-mvp)
+- [Funcionalidades del MVP](#-funcionalidades-del-mvp)
 - [Requisitos](#-requisitos)
 - [Instalación (desarrollo)](#-instalación-desarrollo)
 - [Cómo ejecutar](#-cómo-ejecutar)
 - [Cómo parar](#-cómo-parar)
 - [Estructura del proyecto](#-estructura-del-proyecto)
+- [Empaquetado y publicación](#-empaquetado-y-publicación)
 - [Changelog](#-changelog)
 - [Licencia](#-licencia)
 - [Autor y Créditos](#-autor-y-créditos)
@@ -42,7 +43,9 @@ Sigue la misma filosofía que su proyecto hermano [DBV Markdown Reader](https://
 
 ## 🚦 Estado actual
 
-Proyecto en fase de arranque (`v0.1.0` en desarrollo). Aún no hay binarios ni releases publicados. La documentación de especificación y arquitectura vive en [`dbv-specs-ops/`](./dbv-specs-ops/) y se actualiza en cada fase del ciclo Spec-Driven Development.
+`v0.1.0` en desarrollo, con el **MVP completo ya construido**: crear un proyecto desde una plantilla, escribirlo con resaltado de sintaxis Typst, ver el PDF actualizarse solo mientras escribes y exportarlo. Todavía no hay releases publicadas.
+
+La documentación de especificación y arquitectura vive en [`dbv-specs-ops/`](./dbv-specs-ops/) y se actualiza en cada fase del ciclo Spec-Driven Development.
 
 ---
 
@@ -56,16 +59,18 @@ Proyecto en fase de arranque (`v0.1.0` en desarrollo). Aún no hay binarios ni r
 
 ---
 
-## ✅ Funcionalidades previstas (MVP)
+## ✅ Funcionalidades del MVP
 
-- Abrir, crear, guardar y guardar como archivos `.typ`
-- Vista previa PDF en tiempo real con recompilación automática
-- Gestión básica de proyectos
-- Editor con resaltado de sintaxis Typst, autocompletado, numeración de líneas, plegado de bloques y búsqueda/reemplazo
-- Temas claro y oscuro
-- Configuración persistente
-- Plantillas: artículo académico, TFG, TFM, tesis doctoral, informe técnico, CV, presentación
-- Empaquetado para Windows y Linux (macOS en fases posteriores)
+- **Lanzador orientado a tareas:** la aplicación no abre un editor vacío, pregunta qué quieres escribir.
+- **Asistente de creación de proyecto:** eliges plantilla, rellenas cuatro datos y el proyecto queda listo para compilar.
+- **Plantillas curadas:** Proyecto en blanco, Trabajo de Fin de Grado, Artículo académico y Currículum vitae. Cada proyecto generado es Typst estándar y compila con `typst` a secas, sin depender de esta aplicación.
+- **Modelo de proyecto, no de fichero suelto:** explorador lateral, proyectos recientes y "mostrar en el explorador del sistema". Abrir un repositorio Git clonado o un proyecto Typst hecho a mano funciona igual de bien, y la aplicación no escribe nada en su carpeta.
+- **Editor Typst real:** CodeMirror 6 con resaltado de la sintaxis de Typst 0.15, autocompletado de las funciones y símbolos integrados, plegado, numeración de líneas, búsqueda y reemplazo y selección múltiple.
+- **Vista previa en tiempo real:** el PDF se recompila solo tras cada pausa de escritura, con zoom y carga de páginas bajo demanda. Un error de sintaxis a medio escribir no borra la vista: mantiene la última correcta y muestra el error en una banda.
+- **Guardar, guardar como y detección de cambios externos**, con recarga automática cuando no hay nada que perder y aviso solo cuando lo hay.
+- **Exportación a PDF** del documento tal como se ve, incluidos los cambios sin guardar.
+- **Temas claro y oscuro**, interfaz en español e inglés y compilador Typst embebido: todo funciona sin conexión.
+- **Empaquetado** para Windows (NSIS) y Linux (AppImage + `.deb`), con asociación de fichero `.typ`. macOS queda para fases posteriores.
 
 El detalle completo de requisitos y criterios de aceptación vive en [`dbv-specs-ops/docs/SPECIFICATIONS.md`](./dbv-specs-ops/docs/SPECIFICATIONS.md).
 
@@ -95,6 +100,13 @@ npm run vendor:typst
 
 # (opcional) Verifica el sidecar contra el binario real: 8 comprobaciones
 npm run verify:typst
+
+# (opcional) Verifica el catálogo de plantillas: instancia cada plantilla con el
+# compilador real, sustituye datos de ejemplo y comprueba que compila a PDF
+npm run verify:templates
+
+# Tests del backend Rust
+npm test
 ```
 
 El binario de Typst **no se versiona en el repositorio**: se descarga de la release oficial fijada en `scripts/vendor-typst.mjs`. El mismo paso se ejecuta en CI antes de empaquetar.
@@ -135,14 +147,46 @@ stop.cmd
 
 ```
 /
-├── src/                # Frontend (editor + previsualizador)
-├── src-tauri/           # Backend Rust + integración Tauri/Typst
-├── dbv-specs-ops/       # Documentación SDD (specs, arquitectura, memoria, tareas)
-├── templates/           # Plantillas Typst (artículo, TFG, TFM, tesis, CV...)
-├── start.cmd / start.sh # Scripts de arranque
-├── stop.cmd / stop.sh   # Scripts de parada
-└── README.md            # Este fichero
+├── src/                        # Frontend (ESM, sin monolito)
+│   ├── app/                     # Estado del espacio de trabajo
+│   ├── editor/                   # Editor CodeMirror 6 + lenguaje Typst
+│   ├── preview/                   # Vista previa SVG en tiempo real
+│   ├── launcher/                   # Lanzador orientado a tareas
+│   ├── project-wizard/              # Asistente de creación de proyecto
+│   ├── project-explorer/             # Árbol de ficheros del proyecto
+│   ├── services/                      # Única frontera con el backend
+│   ├── panels/ · ui/ · themes/ · i18n/ # Paneles, controles, temas y traducciones
+├── src-tauri/                  # Backend Rust
+│   └── src/                     # commands/, project.rs, templates.rs,
+│                                 # typst_engine/, watcher.rs, error.rs
+├── templates/local/            # Plantillas curadas, como paquetes `@local`
+├── scripts/                    # Vendorizado y verificaciones sin dependencias
+├── dbv-specs-ops/              # Documentación SDD (specs, arquitectura, memoria)
+├── start.cmd / start.sh        # Scripts de arranque
+├── stop.cmd / stop.sh          # Scripts de parada
+└── README.md                   # Este fichero
 ```
+
+---
+
+## 📦 Empaquetado y publicación
+
+```bash
+# Instalador de la plataforma actual (Windows: NSIS de ~18 MB)
+npm run build
+
+# Solo Windows: variante con el instalador de WebView2 embebido (~268 MB), para
+# equipos sin WebView2 y sin conexión — aulas aisladas, por ejemplo
+npm run build:win:offline
+```
+
+| Plataforma | Quién compila | Release |
+| --- | --- | --- |
+| **Windows** | El mantenedor, en local (`npm run build`) | Sube el `.exe` al borrador de Release a mano |
+| **Linux** | GitHub Actions (`release-linux.yml`) al empujar un tag `vX.Y.Z` | Adjunta AppImage y `.deb` al borrador automáticamente |
+| **macOS** | Fuera del MVP | — |
+
+El workflow vendoriza el compilador Typst antes de empaquetar y **falla de forma explícita si falta**: un instalador sin compilador dentro no serviría de nada. Cada push ejecuta además el workflow `ci.yml` con los tests, el build del frontend y las dos verificaciones contra el compilador real.
 
 ---
 

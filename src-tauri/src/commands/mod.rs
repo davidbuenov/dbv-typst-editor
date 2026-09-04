@@ -12,3 +12,4 @@
 pub mod app_info;
 pub mod file_io;
 pub mod recent_projects;
+pub mod startup;

@@ -37,6 +37,7 @@ pub fn run() {
             commands::recent_projects::add_recent_project,
             commands::recent_projects::clear_recent_projects,
             commands::recent_projects::get_recent_projects,
+            commands::startup::startup_document,
             project::open_project,
             templates::create_project,
             templates::list_templates,

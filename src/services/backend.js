@@ -61,6 +61,8 @@ export function on(eventName, handler) {
 
 export const getAppInfo = () => call('app_info');
 export const getTypstVersion = () => call('typst_version');
+/** Documento con el que el SO ha arrancado la app (asociación de fichero `.typ`). */
+export const getStartupDocument = () => call('startup_document');
 
 // ─── Ficheros ────────────────────────────────────────────────────────────────
 

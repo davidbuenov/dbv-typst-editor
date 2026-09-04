@@ -38,6 +38,14 @@
     ],
     "category": "Productivity",
     "shortDescription": "Editor Typst para escritura académica y técnica",
-    "longDescription": "DBV Typst Editor es el entorno de escritorio más accesible para el ecosistema Typst: crea proyectos desde plantillas académicas, escribe y ve el PDF actualizarse en tiempo real, sin conexión."
+    "longDescription": "DBV Typst Editor es el entorno de escritorio más accesible para el ecosistema Typst: crea proyectos desde plantillas académicas, escribe y ve el PDF actualizarse en tiempo real, sin conexión.",
+    "fileAssociations": [
+      {
+        "ext": ["typ"],
+        "name": "Documento Typst",
+        "description": "Documento Typst de DBV Typst Editor",
+        "role": "Editor"
+      }
+    ]
   }
 }

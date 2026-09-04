@@ -9,8 +9,8 @@
 
 ## 🎯 Contexto Activo
 
-- **Estado actual del desarrollo:** Bootstrap completado (framework dbv-specs-ops v2.8.0 instalado) + informe arquitectónico de reutilización de DBV Markdown Reader (`docs/ARCHITECTURE.md` v4) + especificación completa (`docs/SPECIFICATIONS.md` v4) + investigación dedicada del ecosistema Typst (`docs/TYPST_ECOSYSTEM_RESEARCH.md`). Ningún código de aplicación escrito todavía — el proyecto está en fase de análisis/planificación (`/spec` + `/plan` inicial), pendiente de validación del usuario antes de pasar a `/build`.
-- **Foco inmediato:** Validar con el usuario las decisiones técnicas clave de `ARCHITECTURE.md` §7 (editor CodeMirror 6 reconfirmado, integración con Typst vía **CLI oficial como sidecar** — no crates embebidas, decisión revertida el 2026-09-04 —, preview SVG+PDF, modelo de proyecto, **Universe Browser** como punto de entrada de primer nivel — Package Explorer y Template Explorer como superficies separadas sobre el `index.json` oficial —, Project Archive `.dbvt`, terminal avanzado) y las Preguntas Abiertas de `SPECIFICATIONS.md` §9 antes de iniciar la implementación del MVP.
+- **Estado actual del desarrollo:** `/spec` y `/plan` CERRADAS y congeladas (`docs/SPECIFICATIONS.md` v1.1, `docs/ARCHITECTURE.md` v1.0, `docs/TYPST_ECOSYSTEM_RESEARCH.md` verificado contra binario real). **`/build` en curso: slices 1 y 2 completados, verificados y commiteados** (`7a77fe2`, `8023821`). La app arranca, tiene shell con temas e i18n, y lleva el compilador Typst v0.15.1 embebido como sidecar y respondiendo. 5 tests Rust en verde, 8/8 verificaciones del sidecar, instalador de 18 MB.
+- **Foco inmediato (próxima sesión):** **Slice 3 — Modelo de Proyecto, explorador de ficheros y operaciones de proyecto (RF-02, RF-02b, RF-02c).** No hay que replanificar nada: specs y arquitectura están congeladas y aprobadas. El punto de retorno operativo con los pasos exactos está en `task.md` → sección "CÓMO RETOMAR ESTE PROYECTO". Único punto pendiente de decisión del usuario, que **no bloquea** el Slice 3: modo de instalación de WebView2 en Windows (`docs/ARCHITECTURE.md` §7.15).
 
 ## 🏗️ Log de Decisiones Técnicas (ADR Ligero)
 

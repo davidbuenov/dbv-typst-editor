@@ -14,6 +14,7 @@
 
 import { createEditor } from '../editor/editor.js';
 import { t } from '../i18n/i18n.js';
+import { getTheme } from '../themes/theme.js';
 import {
   PROJECT_CHANGE_EVENT,
   addRecentProject,
@@ -47,11 +48,13 @@ export function baseName(path) {
  */
 export function createWorkspace({ tree, elements, notify }) {
   const editor = createEditor(elements.editorHost, {
-    onChange: () => {
+    theme: getTheme(),
+    onChange: (content) => {
       state.dirty = true;
       renderDocumentBar();
-      listeners.documentChanged?.(editor.getContent());
+      listeners.documentChanged?.(content);
     },
+    onSave: () => listeners.saveRequested?.(),
   });
 
   const state = {
@@ -72,6 +75,8 @@ export function createWorkspace({ tree, elements, notify }) {
     projectOpened: null,
     /** @type {null | ((doc: object) => void)} */
     documentOpened: null,
+    /** @type {null | (() => void)} */
+    saveRequested: null,
   };
 
   function renderDocumentBar() {
@@ -98,8 +103,21 @@ export function createWorkspace({ tree, elements, notify }) {
           : t('project.external');
   }
 
+  /**
+   * Pide confirmación antes de perder cambios sin guardar. Portado del
+   * `confirmDiscardUnsavedChanges` de DBV Markdown Reader (ARCHITECTURE.md §3
+   * fila 17): es el único punto de la aplicación que interrumpe al usuario con
+   * un diálogo modal, y lo hace porque la alternativa es perder trabajo.
+   */
+  function confirmDiscardChanges() {
+    if (!state.dirty) return true;
+    return window.confirm(t('doc.discardConfirm'));
+  }
+
   /** Abre un documento del proyecto en el editor. */
-  async function openDocument(path) {
+  async function openDocument(path, { force = false } = {}) {
+    if (!force && path !== state.document?.path && !confirmDiscardChanges()) return false;
+
     const result = await readFile(path);
     if (!result.ok) {
       notify(`${t('doc.openError')} — ${result.error.message}`, 'error');
@@ -131,6 +149,8 @@ export function createWorkspace({ tree, elements, notify }) {
    * manifiesto, ni toca la estructura de la carpeta (R-MVP-3).
    */
   async function openProjectAt(path) {
+    if (!confirmDiscardChanges()) return false;
+
     const result = await openProject(path);
     if (!result.ok) {
       notify(`${t('project.openError')} — ${result.error.message}`, 'error');
@@ -148,7 +168,7 @@ export function createWorkspace({ tree, elements, notify }) {
     listeners.projectOpened?.(state.project);
 
     if (state.project.entrypoint) {
-      await openDocument(joinPath(state.project.root, state.project.entrypoint));
+      await openDocument(joinPath(state.project.root, state.project.entrypoint), { force: true });
     } else {
       await watchProject(state.project.root, null);
       notify(t('project.noEntrypoint'));
@@ -157,12 +177,14 @@ export function createWorkspace({ tree, elements, notify }) {
   }
 
   async function closeProject() {
+    if (!confirmDiscardChanges()) return false;
     await unwatchProject();
     state.project = null;
     state.document = null;
     state.dirty = false;
     renderProjectBar();
     renderDocumentBar();
+    return true;
   }
 
   function revealProject() {
@@ -188,6 +210,11 @@ export function createWorkspace({ tree, elements, notify }) {
     openDocument,
     closeProject,
     revealProject,
+    confirmDiscardChanges,
+    /** @param {'dark'|'light'} theme */
+    setTheme(theme) {
+      editor.setTheme(theme);
+    },
     markSaved(modifiedMs) {
       if (!state.document) return;
       state.document.modifiedMs = modifiedMs;

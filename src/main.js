@@ -79,10 +79,12 @@ async function renderRecentProjects(hostEl, onOpen) {
   hostEl.replaceChildren(fragment);
 }
 
-function wireThemeToggle() {
+function wireThemeToggle(onThemeChanged) {
   const icon = el('btn-theme-icon');
   el('btn-theme').addEventListener('click', () => {
-    icon.textContent = toggleTheme() === 'dark' ? '◐' : '◑';
+    const theme = toggleTheme();
+    icon.textContent = theme === 'dark' ? '◐' : '◑';
+    onThemeChanged(theme);
   });
 }
 
@@ -106,7 +108,6 @@ function wireAboutPanel() {
 async function bootstrap() {
   initTheme();
   applyTranslations();
-  wireThemeToggle();
   wireLanguageToggle();
   wireAboutPanel();
 
@@ -132,6 +133,9 @@ async function bootstrap() {
       emptyView: el('empty-view'),
     },
   });
+
+  // El editor (CodeMirror) necesita reconfigurar su tema, no solo heredar CSS.
+  wireThemeToggle((theme) => workspace.setTheme(theme));
 
   const openPath = async (path) => {
     const opened = await workspace.openProjectAt(path);

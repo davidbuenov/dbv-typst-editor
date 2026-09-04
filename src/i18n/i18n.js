@@ -51,6 +51,7 @@ const DICTIONARIES = {
     'project.noEntrypoint': 'La carpeta no contiene ningún documento .typ.',
     'doc.unsaved': 'sin guardar',
     'doc.openError': 'No se ha podido abrir el documento',
+    'doc.discardConfirm': 'Hay cambios sin guardar. ¿Descartarlos?',
   },
   en: {
     'app.tagline': 'Academic and technical writing made simple. Powered by Typst.',
@@ -92,6 +93,7 @@ const DICTIONARIES = {
     'project.noEntrypoint': 'This folder contains no .typ document.',
     'doc.unsaved': 'unsaved',
     'doc.openError': 'The document could not be opened',
+    'doc.discardConfirm': 'There are unsaved changes. Discard them?',
   },
 };
 

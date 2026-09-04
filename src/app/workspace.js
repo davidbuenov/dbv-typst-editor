@@ -18,6 +18,7 @@ import { getTheme } from '../themes/theme.js';
 import {
   PROJECT_CHANGE_EVENT,
   addRecentProject,
+  exportPdf,
   fileModifiedMs,
   on,
   openProject,
@@ -203,6 +204,41 @@ export function createWorkspace({ tree, elements, notify, dialog }) {
     return true;
   }
 
+  /**
+   * Nombre de PDF sugerido: el del documento con extensión cambiada. El usuario
+   * espera que "main.typ" se ofrezca como "main.pdf", no como "documento.pdf".
+   */
+  function suggestedPdfName() {
+    if (!state.document) return 'documento.pdf';
+    return state.document.fileName.replace(/\.typ$/i, '') + '.pdf';
+  }
+
+  /**
+   * Exporta el documento a PDF (RF-10).
+   *
+   * El PDF es el artefacto final que el usuario comparte, así que se exporta el
+   * contenido que tiene delante —incluidos los cambios sin guardar— y no una
+   * versión antigua del disco que sería una sorpresa desagradable.
+   */
+  async function exportToPdf(output) {
+    if (!state.document || !state.project) return false;
+
+    notify(t('export.working'));
+    const result = await exportPdf({
+      document: state.document.path,
+      root: state.project.root,
+      output,
+      content: state.dirty ? editor.getContent() : null,
+    });
+
+    if (!result.ok) {
+      notify(`${t('export.failed')} — ${result.error.message}`, 'error');
+      return false;
+    }
+    notify(`${t('export.done')} ${result.value}`);
+    return true;
+  }
+
   function revealProject() {
     if (!state.project) return;
     revealInFileManager(state.project.root);
@@ -341,6 +377,8 @@ export function createWorkspace({ tree, elements, notify, dialog }) {
     revealProject,
     save,
     saveAs,
+    suggestedPdfName,
+    exportPdf: exportToPdf,
     confirmDiscardChanges,
     /** @param {'dark'|'light'} theme */
     setTheme(theme) {

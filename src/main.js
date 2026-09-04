@@ -21,6 +21,7 @@ import {
   getAppInfo,
   getTypstVersion,
   pickProjectFolder,
+  pickSaveTarget,
   pickTypstFile,
 } from './services/backend.js';
 import { createChoiceDialog } from './ui/choiceDialog.js';
@@ -186,6 +187,12 @@ async function bootstrap() {
   workspace.setListener('saved', () => preview.onSaved());
   el('btn-save').addEventListener('click', () => workspace.save());
   el('btn-save-as').addEventListener('click', () => workspace.saveAs());
+
+  // Exportación PDF (RF-10): el artefacto final que se comparte, no la vista previa.
+  el('btn-export-pdf').addEventListener('click', async () => {
+    const picked = await pickSaveTarget(workspace.suggestedPdfName(), 'PDF', ['pdf']);
+    if (picked.ok && picked.value) await workspace.exportPdf(picked.value);
+  });
 
   el('btn-zoom-in').addEventListener('click', preview.zoomIn);
   el('btn-zoom-out').addEventListener('click', preview.zoomOut);

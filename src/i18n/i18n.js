@@ -69,6 +69,9 @@ const DICTIONARIES = {
     'doc.openError': 'No se ha podido abrir el documento',
     'doc.discardConfirm': 'Hay cambios sin guardar. ¿Descartarlos?',
     'doc.saved': 'Documento guardado.',
+    'export.working': 'Generando el PDF…',
+    'export.done': 'PDF exportado en',
+    'export.failed': 'No se ha podido exportar el PDF',
     'doc.saveError': 'No se ha podido guardar',
     'conflict.title': 'El documento ha cambiado fuera del editor',
     'conflict.text':
@@ -147,6 +150,9 @@ const DICTIONARIES = {
     'doc.openError': 'The document could not be opened',
     'doc.discardConfirm': 'There are unsaved changes. Discard them?',
     'doc.saved': 'Document saved.',
+    'export.working': 'Generating the PDF…',
+    'export.done': 'PDF exported to',
+    'export.failed': 'The PDF could not be exported',
     'doc.saveError': 'The document could not be saved',
     'conflict.title': 'The document changed outside the editor',
     'conflict.text':

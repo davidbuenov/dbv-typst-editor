@@ -6,17 +6,19 @@
 // =============================================================================
 //
 // Solo cablea: resuelve el DOM, construye los módulos y conecta los eventos.
-// Toda la lógica vive en los módulos (`app/`, `project-explorer/`, `editor/`,
-// `services/`), igual que el backend evita el monolito `lib.rs`.
+// Toda la lógica vive en los módulos (`app/`, `launcher/`, `project-wizard/`,
+// `project-explorer/`, `editor/`, `preview/`, `services/`), igual que el
+// backend evita el monolito `lib.rs`.
 
-import { createWorkspace, baseName } from './app/workspace.js';
+import { createWorkspace } from './app/workspace.js';
 import { applyTranslations, getLanguage, t, toggleLanguage } from './i18n/i18n.js';
+import { createLauncher } from './launcher/launcher.js';
 import { closeAllPanels, registerPanel } from './panels/registerPanel.js';
 import { createPreview } from './preview/preview.js';
 import { createProjectTree } from './project-explorer/projectTree.js';
+import { createWizard } from './project-wizard/wizard.js';
 import {
   getAppInfo,
-  getRecentProjects,
   getTypstVersion,
   pickProjectFolder,
   pickTypstFile,
@@ -44,41 +46,6 @@ async function renderAbout() {
     typstEl.textContent = `${t('typst.fail')} — ${typstVersion.error.message}`;
     typstEl.style.color = 'var(--code-tag)';
   }
-}
-
-/** Pinta la lista de proyectos recientes del estado sin proyecto (RF-02c). */
-async function renderRecentProjects(hostEl, onOpen) {
-  const result = await getRecentProjects();
-  const projects = result.ok ? result.value : [];
-
-  if (projects.length === 0) {
-    const empty = document.createElement('p');
-    empty.className = 'recent-list__empty';
-    empty.textContent = t('recent.empty');
-    hostEl.replaceChildren(empty);
-    return;
-  }
-
-  const fragment = document.createDocumentFragment();
-  for (const project of projects) {
-    const item = document.createElement('button');
-    item.type = 'button';
-    item.className = 'recent-item';
-
-    const name = document.createElement('span');
-    name.className = 'recent-item__name';
-    name.textContent = project.name || baseName(project.path);
-    item.append(name);
-
-    const path = document.createElement('span');
-    path.className = 'recent-item__path';
-    path.textContent = project.path;
-    item.append(path);
-
-    item.addEventListener('click', () => onOpen(project.path));
-    fragment.append(item);
-  }
-  hostEl.replaceChildren(fragment);
 }
 
 function wireThemeToggle(onThemeChanged) {
@@ -120,7 +87,6 @@ async function bootstrap() {
     textEl: el('choice-text'),
     actionsEl: el('choice-actions'),
   });
-  const recentListEl = el('recent-list');
 
   const tree = createProjectTree(el('project-tree'), {
     onOpenFile: (path) => workspace.openDocument(path),
@@ -167,20 +133,31 @@ async function bootstrap() {
     if (!change.isActiveDocument) preview.onExternalChange();
   });
 
-  // Guardado: botones, Ctrl/Cmd+S desde el editor y refresco de la vista previa.
-  workspace.setListener('saveRequested', () => workspace.save());
-  workspace.setListener('saved', () => preview.onSaved());
-  el('btn-save').addEventListener('click', () => workspace.save());
-  el('btn-save-as').addEventListener('click', () => workspace.saveAs());
-
-  el('btn-zoom-in').addEventListener('click', preview.zoomIn);
-  el('btn-zoom-out').addEventListener('click', preview.zoomOut);
-  el('btn-zoom-reset').addEventListener('click', preview.zoomReset);
-
   const openPath = async (path) => {
     const opened = await workspace.openProjectAt(path);
-    if (opened) await renderRecentProjects(recentListEl, openPath);
+    if (opened) await launcher.refreshRecent();
   };
+
+  const launcher = createLauncher({
+    templatesEl: el('template-grid'),
+    recentEl: el('recent-list'),
+    onCreateFromTemplate: (template) => wizard.open(template),
+    onOpenRecent: openPath,
+  });
+
+  const wizard = createWizard({
+    dialogEl: el('wizard-dialog'),
+    titleEl: el('wizard-title'),
+    descriptionEl: el('wizard-description'),
+    formEl: el('wizard-form'),
+    locationEl: el('wizard-location'),
+    browseButton: el('wizard-browse'),
+    createButton: el('wizard-create'),
+    cancelButton: el('wizard-cancel'),
+    errorEl: el('wizard-error'),
+    notify: toast.show,
+    onCreated: (project) => openPath(project.root),
+  });
 
   const openFolder = async () => {
     const picked = await pickProjectFolder();
@@ -201,8 +178,18 @@ async function bootstrap() {
     const closed = await workspace.closeProject();
     if (!closed) return;
     await preview.clear();
-    await renderRecentProjects(recentListEl, openPath);
+    await launcher.refreshRecent();
   });
+
+  // Guardado: botones, Ctrl/Cmd+S desde el editor y refresco de la vista previa.
+  workspace.setListener('saveRequested', () => workspace.save());
+  workspace.setListener('saved', () => preview.onSaved());
+  el('btn-save').addEventListener('click', () => workspace.save());
+  el('btn-save-as').addEventListener('click', () => workspace.saveAs());
+
+  el('btn-zoom-in').addEventListener('click', preview.zoomIn);
+  el('btn-zoom-out').addEventListener('click', preview.zoomOut);
+  el('btn-zoom-reset').addEventListener('click', preview.zoomReset);
 
   el('tree-filter').addEventListener('input', (event) => tree.filter(event.target.value));
 
@@ -227,15 +214,16 @@ async function bootstrap() {
     if (event.key === 'Escape') closeAllPanels();
   });
 
-  // Los textos escritos a mano con t() (lista de recientes, etiqueta de tipo de
-  // proyecto) no llevan `data-i18n`: hay que repintarlos al cambiar de idioma.
+  // Los textos que los módulos escriben a mano con t() (catálogo, recientes,
+  // estado de la vista previa) no llevan `data-i18n`: hay que repintarlos.
   document.addEventListener('dbv-lang-changed', () => {
-    renderRecentProjects(recentListEl, openPath);
+    launcher.refreshLanguage();
+    launcher.refreshRecent();
     workspace.renderDocumentBar();
     preview.refreshStatus();
   });
 
-  await Promise.all([renderAbout(), renderRecentProjects(recentListEl, openPath)]);
+  await Promise.all([renderAbout(), launcher.load()]);
 }
 
 bootstrap();

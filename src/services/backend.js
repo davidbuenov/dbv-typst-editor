@@ -82,6 +82,12 @@ export const pickSaveTarget = (defaultName, filterName, extensions) =>
 export const openProject = (path) => call('open_project', { path });
 export const readProjectManifest = (root) => call('read_project_manifest', { root });
 
+// ─── Plantillas y creación de proyecto ───────────────────────────────────────
+
+export const listTemplates = () => call('list_templates');
+export const createProject = ({ templateName, templateVersion, parentDir, projectName, fields }) =>
+  call('create_project', { templateName, templateVersion, parentDir, projectName, fields });
+
 // ─── Proyectos recientes ─────────────────────────────────────────────────────
 
 export const getRecentProjects = () => call('get_recent_projects');

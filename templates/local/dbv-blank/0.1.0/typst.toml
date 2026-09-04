@@ -1,0 +1,12 @@
+[package]
+name = "dbv-blank"
+version = "0.1.0"
+entrypoint = "template/main.typ"
+authors = ["David Bueno Vallejo <https://github.com/davidbuenov>"]
+license = "MIT"
+description = "Proyecto Typst minimo y valido, para empezar en blanco"
+categories = ["other"]
+
+[template]
+path = "template"
+entrypoint = "main.typ"

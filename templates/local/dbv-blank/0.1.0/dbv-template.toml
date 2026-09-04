@@ -1,0 +1,12 @@
+# Capa de Plantillas DBV — sidecar opcional (ARCHITECTURE.md §7.6.3).
+# "Proyecto en blanco" no declara `[[fields]]` a proposito: es la plantilla para
+# quien prefiere empezar vacio, asi que el asistente no le pide ningun dato.
+dbv_category = "generico"
+
+[localization.es]
+name = "Proyecto en blanco"
+description = "Un documento Typst minimo y valido. Sin portada ni estructura: empiezas tu."
+
+[localization.en]
+name = "Blank project"
+description = "A minimal, valid Typst document. No cover page, no structure: you start it."

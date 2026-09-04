@@ -63,16 +63,22 @@
     </header>
 
     <main class="app-body">
-      <!-- Estado sin proyecto. El Slice 7 lo convierte en el lanzador por tareas. -->
-      <section class="empty-view" id="empty-view">
-        <div class="empty-view__card">
-          <h1 class="empty-view__heading" data-i18n="empty.heading"></h1>
-          <p class="empty-view__text" data-i18n="empty.text"></p>
-          <div class="empty-view__actions">
-            <button id="btn-empty-open-folder" class="button button--primary" type="button" data-i18n="action.openFolder"></button>
+      <!-- Lanzador orientado a tareas (RF-01): no hay editor vacío por defecto. -->
+      <section class="launcher" id="empty-view">
+        <div class="launcher__inner">
+          <h1 class="launcher__heading" data-i18n="empty.heading"></h1>
+          <p class="launcher__text" data-i18n="empty.text"></p>
+
+          <h2 class="launcher__subheading" data-i18n="launcher.templates"></h2>
+          <div class="template-grid" id="template-grid"></div>
+
+          <h2 class="launcher__subheading" data-i18n="launcher.open"></h2>
+          <div class="launcher__actions">
+            <button id="btn-empty-open-folder" class="button" type="button" data-i18n="action.openFolder"></button>
             <button id="btn-empty-open-file" class="button" type="button" data-i18n="action.openFile"></button>
           </div>
-          <h2 class="empty-view__subheading" data-i18n="recent.title"></h2>
+
+          <h2 class="launcher__subheading" data-i18n="recent.title"></h2>
           <div class="recent-list" id="recent-list"></div>
         </div>
       </section>
@@ -124,6 +130,25 @@
     </main>
 
     <div class="toast hidden" id="toast"></div>
+
+    <!-- Asistente de creación de proyecto (RF-03). -->
+    <div class="modal hidden" id="wizard-dialog" role="dialog" aria-modal="true">
+      <div class="modal__card modal__card--wide">
+        <h2 class="modal__title" id="wizard-title"></h2>
+        <p class="modal__text" id="wizard-description"></p>
+        <div class="form" id="wizard-form"></div>
+        <div class="form-row form-row--inline">
+          <span class="form-row__label" data-i18n="wizard.location"></span>
+          <span class="form-row__value" id="wizard-location"></span>
+          <button id="wizard-browse" class="button button--compact" type="button" data-i18n="wizard.browse"></button>
+        </div>
+        <p class="form__error hidden" id="wizard-error"></p>
+        <div class="modal__actions">
+          <button id="wizard-cancel" class="button" type="button" data-i18n="action.cancel"></button>
+          <button id="wizard-create" class="button button--primary" type="button" data-i18n="wizard.create"></button>
+        </div>
+      </div>
+    </div>
 
     <!-- Modal de elección: solo para decisiones que pueden destruir trabajo. -->
     <div class="modal hidden" id="choice-dialog" role="dialog" aria-modal="true">

@@ -12,6 +12,7 @@
 pub mod commands;
 pub mod error;
 pub mod project;
+pub mod templates;
 pub mod typst_engine;
 pub mod watcher;
 
@@ -37,6 +38,8 @@ pub fn run() {
             commands::recent_projects::clear_recent_projects,
             commands::recent_projects::get_recent_projects,
             project::open_project,
+            templates::create_project,
+            templates::list_templates,
             project::read_project_manifest,
             typst_engine::compile::typst_cancel_preview,
             typst_engine::compile::typst_compile_preview,

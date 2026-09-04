@@ -59,46 +59,88 @@
   overflow: hidden;
 }
 
-.empty-view {
+.launcher {
   height: 100%;
-  display: grid;
-  place-items: center;
-  padding: 24px;
   overflow: auto;
+  padding: 32px 24px 48px;
 }
 
-.empty-view__card {
-  width: min(620px, 100%);
-  padding: 28px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: 0 8px 24px var(--shadow);
+.launcher__inner {
+  width: min(900px, 100%);
+  margin: 0 auto;
 }
 
-.empty-view__heading {
+.launcher__heading {
   margin: 0 0 8px;
-  font-size: 20px;
+  font-size: 24px;
 }
 
-.empty-view__text {
-  margin: 0 0 20px;
+.launcher__text {
+  margin: 0 0 28px;
   color: var(--text-secondary);
+  max-width: 70ch;
 }
 
-.empty-view__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 24px;
-}
-
-.empty-view__subheading {
-  margin: 0 0 10px;
-  font-size: 13px;
+.launcher__subheading {
+  margin: 28px 0 12px;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-muted);
+}
+
+.launcher__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* Rejilla de plantillas: es, en pequeño, el Template Explorer que en Beta se
+   abre al catálogo comunitario (ARCHITECTURE.md §7.6.3). */
+.template-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.template-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px;
+  text-align: left;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: inherit;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color var(--transition), transform var(--transition);
+}
+
+.template-card:hover,
+.template-card:focus-visible {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+  outline: none;
+}
+
+.template-card__name {
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.template-card__description {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.template-card__meta {
+  margin-top: auto;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-family: var(--font-mono);
 }
 
 .recent-list {
@@ -491,6 +533,73 @@
 .button--danger {
   border-color: var(--code-tag);
   color: var(--code-tag);
+}
+
+/* ─── Formulario del asistente ────────────────────────────────────────────── */
+.modal__card--wide {
+  width: min(620px, calc(100vw - 32px));
+  max-height: calc(100vh - 64px);
+  overflow: auto;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.form-row--inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.form-row__label {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.form-row__value {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  word-break: break-all;
+}
+
+.form-row__input {
+  padding: 7px 10px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-family: inherit;
+  font-size: 13px;
+}
+
+.form-row__input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.form-row__input.is-invalid {
+  border-color: var(--code-tag);
+}
+
+.form__error {
+  margin: 0 0 12px;
+  color: var(--code-tag);
+  font-size: 12px;
 }
 
 /* ─── Aviso flotante ──────────────────────────────────────────────────────── */

@@ -1,7 +1,8 @@
 # 📋 Especificaciones: DBV Typst Editor
 
-> **Fase:** `/spec` (Especificación)
-> **Estado:** En Definición — v4 (incorpora Spec Addendum, Additional Specification Clarification, TYPST CLI INTEGRATION, el research phase dedicado y el feedback de posicionamiento de producto; ver [`ARCHITECTURE.md`](./ARCHITECTURE.md) y [`TYPST_ECOSYSTEM_RESEARCH.md`](./TYPST_ECOSYSTEM_RESEARCH.md))
+> **Fase:** `/spec` (Especificación) → **cerrada**
+> **Estado:** 🔒 **CONGELADO v1.0 — 2026-09-04** (baseline de especificación para el MVP, tras Architecture Review final). Incorpora Spec Addendum, Additional Specification Clarification, TYPST CLI INTEGRATION, el research phase dedicado y el feedback de posicionamiento de producto; ver [`ARCHITECTURE.md`](./ARCHITECTURE.md) y [`TYPST_ECOSYSTEM_RESEARCH.md`](./TYPST_ECOSYSTEM_RESEARCH.md).
+> **Regla de congelación:** a partir de aquí, cualquier cambio de alcance o de requisito exige (1) registrarlo como ADR en `memory.md`, (2) actualizar este documento con nueva versión, y (3) revisar el impacto en `implementation_plan.md`. No se modifican requisitos "al vuelo" durante `/build`.
 > **Última Revisión:** 2026-09-04
 
 ---

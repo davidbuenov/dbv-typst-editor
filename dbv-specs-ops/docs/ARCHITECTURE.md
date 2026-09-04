@@ -1,7 +1,8 @@
 # 🏗 Arquitectura Técnica: DBV Typst Editor
 
 > **Fase:** `/plan` (Planificación Técnica) — Informe de análisis de reutilización sobre DBV Markdown Reader
-> **Estado:** Borrador para validación — v4 (incorpora Spec Addendum, Additional Specification Clarification, TYPST CLI INTEGRATION, el research phase dedicado y el feedback de posicionamiento del usuario del 2026-09-04)
+> **Estado:** 🔒 **CONGELADO v1.0 — 2026-09-04** (baseline arquitectónica para el MVP, validada en el Architecture Review final). Incorpora Spec Addendum, Additional Specification Clarification, TYPST CLI INTEGRATION, el research phase dedicado y el feedback de posicionamiento del usuario.
+> **Regla de congelación:** las decisiones de §7 son la línea base de `/build`. Cualquier desviación descubierta durante la implementación exige registrar un ADR en `memory.md` **antes** de implementarla, y actualizar este documento — no se cambia la arquitectura de facto en el código.
 > **Última Revisión:** 2026-09-04
 > **Fuente analizada:** `d:/Programacion/github-davidbuenov/dbv-md-reader` (v0.15.0, commit `23fccad`) + investigación del ecosistema Typst en [`TYPST_ECOSYSTEM_RESEARCH.md`](./TYPST_ECOSYSTEM_RESEARCH.md)
 

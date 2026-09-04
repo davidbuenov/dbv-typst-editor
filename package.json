@@ -1,0 +1,25 @@
+{
+  "name": "dbv-typst-editor",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Editor de escritorio multiplataforma para documentos Typst, con vista previa PDF en tiempo real",
+  "scripts": {
+    "dev": "tauri dev",
+    "dev:vite": "vite",
+    "build": "tauri build",
+    "build:vite": "vite build",
+    "preview:vite": "vite preview",
+    "tauri": "tauri",
+    "test": "cargo test --manifest-path src-tauri/Cargo.toml --lib",
+    "icons": "node scripts/generate-base-icon.mjs && tauri icon src-tauri/icons/base.png"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.9.0",
+    "@tauri-apps/plugin-dialog": "^2.4.0"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.9.0",
+    "vite": "^7.1.0"
+  }
+}

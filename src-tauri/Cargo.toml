@@ -1,0 +1,25 @@
+[package]
+name = "dbv-typst-editor"
+version = "0.1.0"
+description = "Editor de escritorio multiplataforma para documentos Typst, con vista previa PDF en tiempo real"
+authors = ["David Bueno Vallejo <https://github.com/davidbuenov>"]
+license = "MIT"
+edition = "2021"
+
+[lib]
+name = "dbv_typst_editor_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+# Necesario desde el Slice 2: gestión del sidecar `typst` (ARCHITECTURE.md §7.2).
+tauri-plugin-shell = "2"
+tauri-plugin-dialog = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[dev-dependencies]
+tempfile = "3"

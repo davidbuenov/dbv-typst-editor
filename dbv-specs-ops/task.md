@@ -35,7 +35,7 @@
   - [ ] Aprobación del usuario del plan y del alcance de v0.1 (completo RF-01..RF-12 vs. recomendación acotada de §4 del plan).
 
 - [ ] **Fase 3: Construcción (`/build`)** — desglose por slices (ver `implementation_plan.md` §3):
-  - [ ] Slice 1 — Andamiaje Tauri v2 + Vite + shell (theming, paneles, i18n).
+  - [x] **Slice 1 — Andamiaje Tauri v2 + Vite + shell (theming, paneles, i18n).** ✅ Verificado: `cargo check` limpio, 2 tests Rust en verde, `vite build` OK (4,7 kB JS + 3,6 kB CSS), `npm run dev` arranca la ventana sin errores ni warnings y el `invoke('app_info')` responde — **R-04 (convivencia Vite ↔ `withGlobalTauri`) descartado**. RAM en reposo medida: ~33 MB.
   - [ ] Slice 2 — Sidecar `typst` verificado contra binario real + medición de tamaño del instalador.
   - [ ] Slice 3 — Modelo de Proyecto + explorador de ficheros.
   - [ ] Slice 4 — Editor CodeMirror 6 + lenguaje Typst.
@@ -58,4 +58,4 @@
 > **Última actualización:** 2026-09-04
 > **Punto exacto:** Fases `/spec` y `/plan` cerradas. `SPECIFICATIONS.md` y `ARCHITECTURE.md` **congelados en v1.0**; `implementation_plan.md` generado con 10 slices, Adversarial Architect Review y gate de CI multiplataforma resuelto. Commits: bootstrap (`26dfdb2`), informe arquitectónico (`31b5ae4`), Spec Addendum (`9d100f4`), clarificación + CLI + research (`06256c4`), posicionamiento + Universe Browser (`10558f2`), congelación + plan (este).
 > **Pendiente:** **Aprobación explícita del usuario** del plan y del alcance de v0.1 — completo (RF-01..RF-12) o acotado según la recomendación de `implementation_plan.md` §4 (3 plantillas en vez de 7, `.dbvt` diferido a v0.2). Preguntas abiertas restantes de `SPECIFICATIONS.md` §9 no bloquean el MVP (ver `implementation_plan.md` §5); se asume `.dbvt` como extensión salvo indicación contraria.
-> **Próximo paso:** Tras aprobación, iniciar `/build` por el **Slice 1** (andamiaje Tauri v2 + Vite + shell con theming/paneles/i18n portados de DBV Markdown Reader), cuyo criterio de aceptación es validar la convivencia Vite ↔ `withGlobalTauri` antes de portar nada más.
+> **Próximo paso:** **Slice 2 — sidecar `typst` verificado contra el binario real + medición del tamaño del instalador.** Es un slice con *gate de parada*: si el instalador supera el objetivo `<30 MB` (riesgo R-01), hay que parar y reabrir la decisión mediante ADR antes de continuar al Slice 3. Incluye verificar contra el binario real cada subcomando usado (`--version`, `compile --format svg` con `{0p}`, `compile input.typ -`, `init` con ruta local, `query heading`) — riesgo R-05.

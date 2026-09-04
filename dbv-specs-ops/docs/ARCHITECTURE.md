@@ -21,6 +21,15 @@ Confirmados explícitamente por el usuario el 2026-09-04 tras revisar el informe
 
 Estos dos principios explican por qué §7.6 (antes descrita como "marketplace de plantillas", una funcionalidad más entre otras) se reencuadra en esta revisión como **Universe Browser** — un punto de entrada de primer nivel de la aplicación, no un añadido — ver §7.6.0.1.
 
+### 0.2. Restricciones de construcción para el MVP (aprobadas al autorizar `/build`)
+
+Aunque el Universe Browser completo es Beta, el MVP **no debe tomar decisiones que dificulten esa integración futura**. Restricciones concretas y verificables durante `/build`:
+
+- **R-MVP-1 — Catálogo de plantillas tras una abstracción, no rutas fijas.** El lanzador y el asistente leen las plantillas a través de un `TemplateSource` con una forma de dato **compatible con las entradas de `index.json`** (name, version, authors, description, categories, `template{path,entrypoint,thumbnail}`); en el MVP existe una sola implementación (plantillas locales curadas), y en Beta se añade la del catálogo remoto cacheado **sin tocar el lanzador ni el asistente**.
+- **R-MVP-2 — Scaffolding siempre vía `typst init`.** Nunca copiar directorios a mano: `typst init` acepta indistintamente una ruta local (MVP) y un `@preview/nombre:versión` (Beta), así que el mismo camino de código sirve para plantillas propias y comunitarias.
+- **R-MVP-3 — Proyectos ajenos como ciudadanos de primera clase** (`SPECIFICATIONS.md` RF-02b). El manifiesto `settings/dbv-project.toml` es opcional en todo el flujo: abrir un repositorio Git clonado, un proyecto Typst preexistente o uno generado por `typst init` fuera de DBV debe funcionar sin diferencias, salvo las funciones que dependen intrínsecamente de metadatos DBV. **Ninguna operación debe escribir el manifiesto sin acción explícita del usuario.**
+- **R-MVP-4 — El `typst_engine` no asume proyectos DBV.** Compilar, exportar y consultar operan sobre rutas de fichero, no sobre el modelo de Proyecto — para que el mismo motor sirva a un `.typ` suelto, a un proyecto ajeno y a uno creado por el asistente.
+
 | Categoría | % aprox. del esfuerzo total evitado | Ejemplos |
 | --- | --- | --- |
 | Reutilizable sin cambios | ~30% | Watcher de ficheros, single-instance, recent-files, updater, CI de release, patrón de tests Rust |

@@ -1,0 +1,72 @@
+/* =============================================================================
+   DBV Typst Editor — Tokens de tema (claro / oscuro)
+   Copyright (c) 2026 David Bueno Vallejo
+   Licensed under the MIT License. See LICENSE for details.
+   Built with dbv-specs-ops · https://github.com/davidbuenov/dbv-specs-ops
+
+   Portado de dbv-md-reader/src/styles.css:10-99 (ARCHITECTURE.md §3 fila 12).
+   Diferencias conscientes respecto al original:
+     · Sin @import de Google Fonts: el original depende de red para tipografía,
+       lo que contradice el objetivo offline-first. Se usa la pila del sistema.
+     · Sin tema sepia (era una función de lectura; RF-08 pide claro/oscuro).
+     · Sin tokens --alert-* (específicos de las alertas GFM de Markdown).
+     · Se conservan los tokens --code-*: alimentarán el tema del editor
+       CodeMirror 6 en el Slice 4.
+   ============================================================================= */
+
+:root,
+[data-theme='dark'] {
+  --bg-primary: #0d1117;
+  --bg-secondary: #161b22;
+  --bg-tertiary: #21262d;
+  --text-primary: #e6edf3;
+  --text-secondary: #8b949e;
+  --text-muted: #6e7681;
+  --accent: #58a6ff;
+  --accent-hover: #79c0ff;
+  --border: #30363d;
+  --code-bg: #161b22;
+  --quote-bg: rgba(88, 166, 255, 0.08);
+  --shadow: rgba(0, 0, 0, 0.4);
+
+  --code-keyword: #cc99cd;
+  --code-string: #7ec699;
+  --code-comment: #999999;
+  --code-function: #f08d49;
+  --code-number: #f08d49;
+  --code-tag: #e2777a;
+  --code-class: #f8c555;
+  --code-operator: #67cdcc;
+}
+
+[data-theme='light'] {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f6f8fa;
+  --bg-tertiary: #eaeef2;
+  --text-primary: #1f2328;
+  --text-secondary: #57606a;
+  --text-muted: #8c959f;
+  --accent: #0969da;
+  --accent-hover: #0550ae;
+  --border: #d0d7de;
+  --code-bg: #f6f8fa;
+  --quote-bg: rgba(9, 105, 218, 0.05);
+  --shadow: rgba(0, 0, 0, 0.12);
+
+  --code-keyword: #cf222e;
+  --code-string: #0a3069;
+  --code-comment: #6e7781;
+  --code-function: #8250df;
+  --code-number: #0550ae;
+  --code-tag: #116329;
+  --code-class: #953800;
+  --code-operator: #24292f;
+}
+
+:root {
+  --font-ui:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Cascadia Code', Consolas, 'SF Mono', Menlo, monospace;
+  --radius: 8px;
+  --transition: 120ms ease;
+}

@@ -1,6 +1,12 @@
 # Tauri / Rust build artifacts
 target/
 src-tauri/target/
+# Esquemas de capabilities generados por tauri-build en cada compilación
+src-tauri/gen/schemas/
+
+# Sidecar oficial de Typst: se vendoriza en CI/local antes de `tauri build`
+# (ARCHITECTURE.md §7.2), nunca se commitea el binario al repositorio.
+src-tauri/binaries/
 
 # Node dependencies & dist
 node_modules/

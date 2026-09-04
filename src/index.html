@@ -1,0 +1,82 @@
+<!doctype html>
+<!--
+  DBV Typst Editor — Shell de la aplicación
+  Copyright (c) 2026 David Bueno Vallejo
+  Licensed under the MIT License. See LICENSE for details.
+  Built with dbv-specs-ops · https://github.com/davidbuenov/dbv-specs-ops
+-->
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DBV Typst Editor</title>
+
+    <!--
+      Capturador de errores inline y SIN defer, antes que cualquier otro script:
+      una lección heredada de DBV Markdown Reader (NATIVE_DESKTOP_APPS.md §3) —
+      un handler declarado dentro del fichero que falla nunca llega a registrarse,
+      y en un WebView sin DevTools el síntoma es una interfaz muerta sin errores.
+    -->
+    <script>
+      window.addEventListener('error', (e) => {
+        const el = document.getElementById('fatal-error');
+        if (!el) return;
+        el.textContent = `Error: ${e.message} (${e.filename}:${e.lineno})`;
+        el.hidden = false;
+      });
+      window.addEventListener('unhandledrejection', (e) => {
+        const el = document.getElementById('fatal-error');
+        if (!el) return;
+        el.textContent = `Promesa rechazada: ${e.reason}`;
+        el.hidden = false;
+      });
+    </script>
+
+    <link rel="stylesheet" href="./themes/tokens.css" />
+    <link rel="stylesheet" href="./themes/base.css" />
+  </head>
+  <body>
+    <div id="fatal-error" class="fatal-error" hidden></div>
+
+    <header class="app-header">
+      <div class="app-header__brand">
+        <span class="app-header__title">DBV Typst Editor</span>
+        <span class="app-header__tagline" data-i18n="app.tagline"></span>
+      </div>
+      <div class="app-header__actions">
+        <button id="btn-theme" class="icon-button" type="button" data-i18n-title="action.toggleTheme">
+          <span id="btn-theme-icon" aria-hidden="true">◐</span>
+        </button>
+        <button id="btn-about" class="icon-button" type="button" data-i18n-title="action.about">ⓘ</button>
+      </div>
+    </header>
+
+    <main class="app-body">
+      <!--
+        Slice 1: solo andamiaje. El editor (Slice 4) y el panel de vista previa
+        (Slice 5) sustituirán este contenido de bienvenida.
+      -->
+      <section class="scaffold-card">
+        <h1 class="scaffold-card__heading" data-i18n="scaffold.heading"></h1>
+        <p class="scaffold-card__text" data-i18n="scaffold.text"></p>
+        <dl class="scaffold-card__facts">
+          <dt data-i18n="scaffold.appVersion"></dt>
+          <dd id="fact-app-version">—</dd>
+          <dt data-i18n="scaffold.platform"></dt>
+          <dd id="fact-platform">—</dd>
+          <dt data-i18n="scaffold.bridge"></dt>
+          <dd id="fact-bridge">—</dd>
+        </dl>
+      </section>
+    </main>
+
+    <!-- Panel flotante de ejemplo, sobre la factoría registerPanel() portada -->
+    <div id="about-panel" class="floating-panel hidden" role="dialog" aria-modal="false">
+      <h2 class="floating-panel__title" data-i18n="about.title"></h2>
+      <p class="floating-panel__text" data-i18n="about.text"></p>
+      <button id="btn-about-close" class="button" type="button" data-i18n="action.close"></button>
+    </div>
+
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

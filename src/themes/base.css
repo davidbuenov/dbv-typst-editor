@@ -1,0 +1,187 @@
+/* =============================================================================
+   DBV Typst Editor — Estilos base del shell de la aplicación
+   Copyright (c) 2026 David Bueno Vallejo
+   Licensed under the MIT License. See LICENSE for details.
+   Built with dbv-specs-ops · https://github.com/davidbuenov/dbv-specs-ops
+   ============================================================================= */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.5;
+  /* El WebView no debe permitir arrastrar la página como si fuera un navegador */
+  overflow: hidden;
+}
+
+/* ─── Banda de error fatal (ver el capturador inline de index.html) ────────── */
+.fatal-error {
+  padding: 8px 14px;
+  background: #b3261e;
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+
+/* ─── Cabecera ────────────────────────────────────────────────────────────── */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 16px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  flex: 0 0 auto;
+}
+
+.app-header__brand {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+
+.app-header__title {
+  font-weight: 600;
+}
+
+.app-header__tagline {
+  color: var(--text-muted);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.app-header__actions {
+  display: flex;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+/* ─── Controles ───────────────────────────────────────────────────────────── */
+.icon-button,
+.button {
+  border: 1px solid var(--border);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition);
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.icon-button {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+}
+
+.button {
+  padding: 6px 14px;
+}
+
+.icon-button:hover,
+.button:hover {
+  background: var(--bg-primary);
+  border-color: var(--accent);
+}
+
+.icon-button:focus-visible,
+.button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ─── Cuerpo ──────────────────────────────────────────────────────────────── */
+.app-body {
+  flex: 1 1 auto;
+  overflow: auto;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.scaffold-card {
+  max-width: 560px;
+  width: 100%;
+  padding: 24px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px var(--shadow);
+}
+
+.scaffold-card__heading {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.scaffold-card__text {
+  margin: 0 0 20px;
+  color: var(--text-secondary);
+}
+
+.scaffold-card__facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 16px;
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.scaffold-card__facts dt {
+  color: var(--text-muted);
+}
+
+.scaffold-card__facts dd {
+  margin: 0;
+  color: var(--text-primary);
+  word-break: break-all;
+}
+
+/* ─── Paneles flotantes (factoría registerPanel) ──────────────────────────── */
+.floating-panel {
+  position: absolute;
+  top: 56px;
+  right: 16px;
+  width: min(360px, calc(100vw - 32px));
+  padding: 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px var(--shadow);
+  z-index: 10;
+}
+
+.floating-panel__title {
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+
+.floating-panel__text {
+  margin: 0 0 16px;
+  color: var(--text-secondary);
+}
+
+.hidden {
+  display: none !important;
+}

@@ -38,6 +38,31 @@
 - **2026-09-04 — Gate de CI de app nativa resuelto para el MVP:** Linux automatizado por GitHub Actions (AppImage + .deb, adjuntados a Release en borrador), Windows compilado manualmente por el mantenedor (mismo patrón que dbv-md-reader, firma local), macOS fuera del MVP. Paso de CI nuevo respecto a dbv-md-reader: **vendorizado del binario oficial `typst` en `src-tauri/binaries/` antes de `tauri build`**, con fallo explícito si falta (nunca producir un instalador sin compilador dentro).
 - **2026-09-04 — Campos base canónicos del Asistente de creación de proyecto acordados:** nombre del proyecto, título, autor, institución, supervisor/tutor, curso/año académico — comunes a la mayoría de plantillas académicas, cada plantilla puede añadir campos propios vía `[[fields]]`. El asistente se posiciona como diferenciador de producto explícito: el usuario "crea un documento", no "inicializa un paquete". Ver `docs/ARCHITECTURE.md` §7.6.4.
 
+- **2026-09-04 — Aprobación del usuario para pasar a `/build` con alcance MVP reducido, más cuatro ajustes finales.** (1) v0.1 = slices 1-7, slice 8 con 4 plantillas (Proyecto en blanco, TFG, Artículo académico, CV), slice 9 solo PDF, slice 10; `.dbvt` y las otras 4 plantillas → v0.2. (2) Mantener la arquitectura preparada para Universe desde el principio pese a ser Beta (formalizado como restricciones R-MVP-1..4 en `docs/ARCHITECTURE.md` §0.2). (3) Abrir proyectos ajenos (repos Git clonados, proyectos Typst preexistentes, plantillas comunitarias) es flujo de primer nivel, no un caso secundario → nuevo RF-02b. (4) Operaciones de proyecto explícitas en MVP (Abrir carpeta / Mostrar en el explorador / Recientes) → nuevo RF-02c. `SPECIFICATIONS.md` sube a v1.1 siguiendo la propia regla de congelación (ADR + nueva versión + revisión de impacto en el plan).
+- **2026-09-04 — Regla de trabajo para `/build` fijada por el usuario: priorizar software funcionando sobre refinamiento arquitectónico.** No se reabren decisiones congeladas salvo que (a) aparezca un bloqueante real, (b) una asunción del research phase resulte falsa, o (c) se cree un ADR explícito para ello. En esas tres situaciones el procedimiento es el ya establecido: ADR primero, cambio después.
+
+### ADR-EDITOR-001 — CodeMirror 6 en lugar de Monaco Editor (decisión definitiva)
+
+*Registrada a petición explícita del usuario antes de iniciar `/build`, para preservar el razonamiento. La decisión **no** se reabre; este ADR es la referencia canónica si alguien la cuestiona en el futuro.*
+
+- **Contexto:** DBV Typst Editor necesita un editor de código real (el proyecto origen, DBV Markdown Reader, solo tenía un `<textarea>` plano). El usuario pidió explícitamente, en dos ocasiones, evaluar Monaco como opción principal, citando minimapa, multi-cursor y rendimiento en documentos largos.
+- **Decisión:** **CodeMirror 6**.
+- **Ventajas de CodeMirror 6:**
+  - Coherencia con la propuesta de valor de toda la familia DBV (ligero, offline-first, arranque instantáneo).
+  - Modelo de extensiones (decoraciones, widgets, paneles) pensado exactamente para UI de edición enriquecida — es el mecanismo con el que Obsidian implementa su "Live Preview", y es el mismo patrón que necesitan los asistentes de inserción rápida y el objetivo de "el usuario no debe ver código si no quiere".
+  - ESM nativo y tree-shakeable: solo se paga por lo que se usa.
+  - Es la base del editor web oficial de Typst, lo que maximiza la probabilidad de que exista y se mantenga un modo de lenguaje Typst de calidad.
+  - Obsidian —la referencia de producto explícita del propio usuario— está construido sobre CodeMirror 6, no sobre Monaco: prueba de que el nivel de calidad buscado es alcanzable con esta base.
+- **Desventajas asumidas:**
+  - **Minimapa**: no es nativo; existe como extensión de comunidad, menos madura que la de Monaco. Es la **única ventaja real y no discutible de Monaco** tras dos evaluaciones. Se difiere a Beta como mejora opcional.
+  - Curva de adopción mayor: API funcional basada en extensiones componibles frente al enfoque "todo incluido" de Monaco.
+  - Integración LSP (`tinymist`, Beta) requiere algo más de trabajo manual (`codemirror-languageserver`) que en Monaco, que nació para LSP.
+  - Obliga a introducir un bundler (Vite), rompiendo el patrón "sin bundler" heredado — coste aceptado y registrado como ADR aparte.
+- **Implicaciones de tamaño de bundle:** CodeMirror 6 ≈ 200-400 KB (núcleo, modular) frente a Monaco ≈ 2-5 MB (motor completo de VS Code). En un producto cuyo argumento comercial es un instalador ligero y arranque en frío por debajo de los 200 ms, la diferencia es material, no cosmética — sobre todo sumada al peso del sidecar `typst` ya presente en el instalador.
+- **Implicaciones de rendimiento:** ambos manejan bien documentos largos; CodeMirror 6 usa una estructura de datos tipo *rope*. A la escala real del producto (una tesis de cientos de páginas, no un repositorio de código), el rendimiento **no es un factor diferenciador** entre ambos: el motivo citado a favor de Monaco no se sostiene en este caso de uso concreto.
+- **Soporte del ecosistema Typst:** no hay gramática Typst oficial activamente mantenida para Monaco; para CodeMirror 6 existe ecosistema comunitario y el precedente del editor web oficial de Typst. Riesgo residual R-02 del plan (calidad real del modo de lenguaje) con plan B definido: gramática mínima propia suficiente para el MVP.
+- **Consecuencias:** introducción de Vite; el minimapa queda como deuda funcional consciente evaluable en Beta; la integración LSP de Beta requerirá trabajo adicional respecto a lo que habría costado con Monaco.
+
 ## ⚠️ Lecciones Aprendidas
 
 - **El pipeline "watch(directorio padre) → debounce → supresión de auto-eco → re-render preservando scroll" de DBV Markdown Reader es el activo más valioso a heredar**, muy por encima de cualquier componente visual concreto — es exactamente la arquitectura que necesita un editor con vista previa en tiempo real, independientemente del formato (Markdown u otro lenguaje de composición).

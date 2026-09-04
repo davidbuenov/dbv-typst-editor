@@ -1,7 +1,7 @@
 # 🏗 Arquitectura Técnica: DBV Typst Editor
 
 > **Fase:** `/plan` (Planificación Técnica) — Informe de análisis de reutilización sobre DBV Markdown Reader
-> **Estado:** Borrador para validación
+> **Estado:** Borrador para validación — v2 (incorpora Spec Addendum del usuario: producto orientado a documento/proyecto, no a código)
 > **Última Revisión:** 2026-09-04
 > **Fuente analizada:** `d:/Programacion/github-davidbuenov/dbv-md-reader` (v0.15.0, commit `23fccad`)
 
@@ -9,13 +9,13 @@
 
 ## 0. Resumen ejecutivo
 
-DBV Markdown Reader es una base de reutilización **excelente en infraestructura de aplicación** (shell Tauri, ciclo de vida de ficheros, empaquetado, auto-actualización, i18n, theming) pero **insuficiente en el núcleo de edición**: es fundamentalmente un *visor* con capacidad de edición mínima (un `<textarea>` plano), mientras que DBV Typst Editor necesita ser un editor de código profesional desde el día 1. La estrategia recomendada es: **reutilizar ~60% de la infraestructura Rust/Tauri prácticamente sin cambios, adaptar ~25% del frontend (theming, paneles, gestión de ficheros/proyecto) y sustituir por completo el ~15% restante** (todo el pipeline de renderizado Markdown→HTML y el propio componente de edición de texto).
+DBV Markdown Reader es una base de reutilización **excelente en infraestructura de aplicación** (shell Tauri, ciclo de vida de ficheros, empaquetado, auto-actualización, i18n, theming) pero **insuficiente en el núcleo de edición**: es fundamentalmente un *visor* con capacidad de edición mínima (un `<textarea>` plano), mientras que DBV Typst Editor necesita ser una herramienta de escritura orientada a documento/proyecto desde el día 1 (ver Spec Addendum en `SPECIFICATIONS.md` §2: "para Typst lo que Obsidian es para Markdown", no un editor de código para desarrolladores).
 
 | Categoría | % aprox. del esfuerzo total evitado | Ejemplos |
 | --- | --- | --- |
-| Reutilizable sin cambios | ~35% | Watcher de ficheros, single-instance, recent-files, updater, CI de release, patrón de tests Rust |
-| Adaptación menor | ~25% | Theming CSS, paneles flotantes, file-tree, atajos de teclado, empaquetado/asociación de fichero |
-| Reemplazo completo | ~40% (pero es el núcleo del valor del producto) | Pipeline de renderizado, componente de edición, integración con el compilador Typst, sistema de plantillas |
+| Reutilizable sin cambios | ~30% | Watcher de ficheros, single-instance, recent-files, updater, CI de release, patrón de tests Rust |
+| Adaptación menor o conceptual | ~30% | Theming CSS, paneles flotantes, file-tree→project-tree, atajos de teclado, toolbar de inserción (patrón, no código), empaquetado/asociación de fichero |
+| Trabajo nuevo (núcleo de producto) | ~40% | Compilador Typst embebido, editor CodeMirror 6, lanzador, asistente de proyecto, marketplace de plantillas, outline, Project Archive |
 
 ---
 
@@ -42,7 +42,7 @@ Sistema Operativo (Windows / Linux / macOS)
         · styles.css (1295 líneas) — temas vía CSS custom properties
 ```
 
-Backend **no modularizado** (todo en `lib.rs`): esto es una decisión consciente documentada en `NATIVE_DESKTOP_APPS.md` para un proyecto de este tamaño, pero **DBV Typst Editor va a superar ampliamente ese tamaño** (compilador embebido, LSP, gestión de proyectos multi-fichero) — se recomienda modularizar desde el inicio (ver §7.4).
+Backend **no modularizado** (todo en `lib.rs`): decisión consciente y documentada en `NATIVE_DESKTOP_APPS.md` para un proyecto de este tamaño, pero **DBV Typst Editor va a superar ampliamente ese tamaño** (compilador embebido, LSP, gestión de proyectos, marketplace de plantillas) — se recomienda modularizar desde el inicio (ver §7.4).
 
 ### 1.2. Comandos Tauri expuestos (`src-tauri/src/lib.rs`)
 
@@ -55,17 +55,19 @@ Backend **no modularizado** (todo en `lib.rs`): esto es una decisión consciente
 | `write_file` | Escribe local, rechaza remoto | ✅ Reutilizable casi sin cambios |
 | `open_file_dialog` | Diálogo nativo (`tauri-plugin-dialog`) | 🟡 Adaptar filtro de extensión (`.typ`) |
 | `resolve_relative_path` | Resuelve enlaces/imágenes relativos | 🟡 Adaptar (Typst resuelve sus propios assets en compilación, ver §7.2) |
-| `watch_file` | Watcher `notify` sobre directorio padre, emite `file-changed` | ✅ **Reutilizable casi literal** — es el mecanismo más valioso a heredar |
-| `get_recent_files` / `add_recent_file` / `clear_recent_files` | Recientes persistidos en JSON | ✅ Sin cambios |
-| `list_directory` | Árbol de directorio (1 nivel, lazy) | ✅ Sin cambios (para RF-06, gestión de proyecto) |
+| `watch_file` | Watcher `notify` sobre directorio padre, emite `file-changed` | ✅ **Reutilizable casi literal** — mecanismo más valioso a heredar |
+| `get_recent_files` / `add_recent_file` / `clear_recent_files` | Recientes persistidos en JSON | ✅ Sin cambios (pasan a ser "recent **projects**", mismo mecanismo) |
+| `list_directory` | Árbol de directorio (1 nivel, lazy) | ✅ Sin cambios — base del explorador de proyecto (§7.5) |
 | `reveal_in_file_manager` | "Mostrar en el explorador" | ✅ Sin cambios |
 | `open_in_new_window` | Nueva ventana, mismo proceso | ✅ Sin cambios |
 
 ### 1.3. Frontend: patrón arquitectónico
 
-**No hay componentes ni framework** — convención "IIFE + espacio de nombres `window.DBV*`" (`window.DBVApp`, `window.DBVFileTree`, `window.DBV_I18N`). Cada fichero JS se auto-encapsula; el fichero `NATIVE_DESKTOP_APPS.md` (§3) documenta por qué esto es **obligatorio** en este patrón sin bundler (colisión de identificadores globales = fallo de parseo silencioso de todo el fichero).
+**No hay componentes ni framework** — convención "IIFE + espacio de nombres `window.DBV*`" (`window.DBVApp`, `window.DBVFileTree`, `window.DBV_I18N`). Cada fichero JS se auto-encapsula; `NATIVE_DESKTOP_APPS.md` (§3) documenta por qué esto es **obligatorio** en este patrón sin bundler (colisión de identificadores globales = fallo de parseo silencioso de todo el fichero).
 
-Primitiva reutilizable clave: `registerPanel(panelEl, opts)` (`app.js:1058-1088`) — factoría de apertura/cierre/click-fuera para **todo** panel flotante o modal (URL, Settings, Search, About, conflicto, Quick Open). Esta es la abstracción resultante del refactor "consolidar paneles flotantes" mencionado en el historial de commits — **candidata directa a reutilización literal**.
+Primitivas reutilizables clave:
+- `registerPanel(panelEl, opts)` (`app.js:1058-1088`) — factoría de apertura/cierre/click-fuera para **todo** panel flotante o modal. Candidata directa a reutilización literal (Settings, About, marketplace de plantillas, asistente de creación de proyecto...).
+- `applyInlineWrap`/`applyHeading`/`applyLinePrefix`/`applyLinkWrap`/`applyBlockInsert` (`app.js:1901-2037`) — toolbar que hace manipulación de string sobre el `<textarea>` para insertar sintaxis Markdown. **El patrón** (botón → inserta marcado en la posición del cursor/selección) es directamente reutilizable como base conceptual de los "asistentes de inserción rápida" del Spec Addendum (§7.7) — solo cambia la API de destino (de `textarea.value` a transacciones de CodeMirror 6) y el marcado generado (Typst en vez de Markdown).
 
 ### 1.4. Pipeline de renderizado y mecanismo de watch→reload (el más relevante para Typst)
 
@@ -95,18 +97,16 @@ extractMath → markdown-it.parse/render → DOMPurify.sanitize
    → buildToc/setupScrollSpy
 ```
 
-Este es el **hallazgo más valioso del análisis**: el patrón *watch(directorio padre) → debounce → supresión de auto-eco → recompilar → re-render preservando scroll*, es exactamente la arquitectura que necesita un editor Typst con vista previa en tiempo real. Solo cambian los pasos finales (parseo Markdown→HTML se sustituye por invocar al compilador Typst y volcar el resultado como SVG/PDF, ver §7.2).
+Este es el **hallazgo más valioso del análisis**: el patrón *watch(directorio padre) → debounce → supresión de auto-eco → recompilar → re-render preservando scroll* es exactamente la arquitectura que necesita un editor Typst con vista previa en tiempo real. Solo cambian los pasos finales (parseo Markdown→HTML se sustituye por invocar al compilador Typst y volcar el resultado como SVG/PDF, ver §7.2-7.3). El paso final `buildToc/setupScrollSpy` es además el precedente directo del panel de navegación estructural del Addendum (§7.8).
 
 ### 1.5. Ventana/UI, persistencia de configuración, auto-actualizador, asociación de fichero, plantillas, testing
 
-Ver detalle completo en la tabla de componentes §3. Resumen de hallazgos relevantes:
-
-- **No hay `tauri-plugin-store`**: preferencias de UI en `localStorage` (tema, zoom, splits, últimos docs); solo `recent_files.json` vive en `app_data_dir()` gestionado por Rust.
-- **Auto-actualizador** (`tauri-plugin-updater`): chequeo solo bajo demanda (nunca automático), deshabilitado en Android y en builds MSIX de Microsoft Store (`is_packaged_app`), firmado con minisign, `latest.json` generado manualmente (`scripts/generate-latest-json.mjs`). Config en `tauri.conf.json` `plugins.updater`.
-- **Asociación de fichero**: 100% declarativa en `bundle.fileAssociations` de `tauri.conf.json` — sin código Rust adicional. El runtime ya soporta el "hilo" cold-start/warm-start/macOS-Opened/Android-Intent de forma agnóstica al formato.
-- **Plantillas**: `templates/` en la raíz contiene 34 `.md` estáticos (ES/EN) **sin ninguna integración en la app** — ni comando Rust, ni selector UI, ni siquiera existe un "Guardar como" en la app actual (confirmado leyendo `saveCurrentDocument`, que siempre sobrescribe `currentDoc.path`). Es decir: el sistema de plantillas de DBV Typst Editor es **trabajo nuevo al 100%**, aunque la organización bilingüe/por categorías del directorio es un patrón razonable a imitar.
-- **CI/Build**: `release-linux.yml` y `release-macos.yml` (GitHub Actions, `tauri-apps/tauri-action@v0`, Release en borrador). **Windows es 100% manual** (no hay `release-windows.yml`). NSIS muy personalizado (`nsis/hooks.nsh`, `installer.nsi.template`).
-- **Testing**: sin frameworks JS (no Jest/Vitest). Tests Rust inline en `lib.rs` (`#[cfg(test)]`, ~30 tests) sobre funciones puras extraídas deliberadamente de los comandos `#[tauri::command]` para ser testeables sin `AppHandle` real, más `tempfile` para fixtures aisladas. Patrón directamente reutilizable.
+- **No hay `tauri-plugin-store`**: preferencias de UI en `localStorage`; solo `recent_files.json` vive en `app_data_dir()` gestionado por Rust.
+- **Auto-actualizador** (`tauri-plugin-updater`): chequeo solo bajo demanda, deshabilitado en Android/MSIX (`is_packaged_app`), firmado con minisign. Config en `tauri.conf.json` `plugins.updater`.
+- **Asociación de fichero**: 100% declarativa en `bundle.fileAssociations` — sin código Rust adicional.
+- **Plantillas**: `templates/` en la raíz contiene 34 `.md` estáticos (ES/EN) **sin ninguna integración en la app** — ni comando Rust, ni selector UI, ni siquiera existe un "Guardar como". El sistema de plantillas de DBV Typst Editor es **trabajo nuevo al 100%** en cuanto a integración, aunque el Spec Addendum ya fija la organización por categorías a imitar (ver §7.6).
+- **CI/Build**: `release-linux.yml` y `release-macos.yml`. **Windows es 100% manual**. NSIS muy personalizado.
+- **Testing**: sin frameworks JS. Tests Rust inline en `lib.rs` (`#[cfg(test)]`, ~30 tests) sobre funciones puras extraídas de los comandos `#[tauri::command]`, más `tempfile`. Patrón directamente reutilizable.
 
 ---
 
@@ -114,42 +114,48 @@ Ver detalle completo en la tabla de componentes §3. Resumen de hallazgos releva
 
 **Backend (Rust / `src-tauri/Cargo.toml`):** `tauri` 2.0 (feature `protocol-asset`), `tauri-plugin-shell/dialog/updater/process/os` 2.x, `tauri-plugin-single-instance` 2.4.3 (solo desktop), `tauri-plugin-saf` (plugin propio, solo Android), `serde`/`serde_json` 1.0, `notify` 8.2.0, `ureq` 3.4.0, `rustls` 0.23 (provider `ring`), `ctor` 0.8, `sys-locale` 0.3, `tempfile` 3.27 (dev).
 
-**Frontend (`package.json`, sin bundler en runtime):** `markdown-it` 14.1 + `markdown-it-footnote`/`markdown-it-task-lists`, `dompurify` 3.4.13, `katex` 0.18.4, `mermaid` 11.4.1, `pako` 3.0.1, `prismjs` 1.29 (+20 gramáticas), `@tauri-apps/api` 2.2, `@tauri-apps/plugin-{process,shell,updater}` 2.x. Todo vendorizado a mano en `src/vendor/*.min.js`.
+**Frontend (`package.json`, sin bundler en runtime):** `markdown-it` 14.1 + plugins, `dompurify` 3.4.13, `katex` 0.18.4, `mermaid` 11.4.1, `pako` 3.0.1, `prismjs` 1.29 (+20 gramáticas), `@tauri-apps/api` 2.2, `@tauri-apps/plugin-{process,shell,updater}` 2.x. Todo vendorizado a mano en `src/vendor/*.min.js`.
 
-**Empaquetado:** NSIS (Windows), AppImage + .deb (Linux), dmg/.app (macOS, sin firmar hoy). Sin bundler de frontend (`frontendDist` apunta directo a `src/`).
+**Empaquetado:** NSIS (Windows), AppImage + .deb (Linux), dmg/.app (macOS, sin firmar hoy). Sin bundler de frontend.
 
 ---
 
 ## 3. Componentes reutilizables — clasificación explícita
 
-Leyenda: 🟢 Reutilizable sin cambios · 🟡 Adaptación menor · 🔴 Reemplazo completo
+Leyenda: 🟢 Reutilizable sin cambios · 🟡 Adaptación menor · 🔴 Reemplazo/trabajo nuevo
 
 | # | Componente | Origen (fichero) | Clasificación | Complejidad de adaptación |
 | --- | --- | --- | --- | --- |
-| 1 | Watcher de fichero (directorio padre + debounce + evento IPC) | `lib.rs:457-503` + `app.js:552-568` | 🟢 | Trivial — copiar tal cual, solo cambia qué se hace tras el evento |
+| 1 | Watcher de fichero (directorio padre + debounce + evento IPC) | `lib.rs:457-503` + `app.js:552-568` | 🟢 | Trivial |
 | 2 | Supresión de auto-eco en guardado (`suppressSelfWriteUntil`) | `app.js:2153` | 🟢 | Trivial |
-| 3 | Modal de conflicto (cambio externo con ediciones sin guardar) | `app.js` (patrón `conflictPending`) | 🟢 | Trivial |
-| 4 | Single-instance + apertura por doble clic (`RunEvent::Opened`, cold/warm) | `lib.rs:154-171, 800-938` | 🟢 | Trivial — cambiar solo la lista de extensiones (`MARKDOWN_EXTENSIONS` → `.typ`) |
-| 5 | Recent files (JSON en `app_data_dir`, cap 10, autolimpieza) | `lib.rs:209-228, 505-530` | 🟢 | Trivial |
-| 6 | Explorador de directorio lazy (`list_directory`) + Quick Open | `lib.rs:574-590`, `filetree.js` | 🟢 | Trivial — cambiar filtro `is_markdown` → `is_typst` |
+| 3 | Modal de conflicto (cambio externo con ediciones sin guardar) | `app.js` (`conflictPending`) | 🟢 | Trivial |
+| 4 | Single-instance + apertura por doble clic (`RunEvent::Opened`, cold/warm) | `lib.rs:154-171, 800-938` | 🟢 | Trivial — cambiar extensiones a `.typ`/`.dbvt` |
+| 5 | Recent files→projects (JSON en `app_data_dir`, cap 10, autolimpieza) | `lib.rs:209-228, 505-530` | 🟢 | Trivial |
+| 6 | Explorador de directorio lazy (`list_directory`) + Quick Open | `lib.rs:574-590`, `filetree.js` | 🟢 | Trivial — base del explorador de proyecto (§7.5) |
 | 7 | Auto-actualizador (`tauri-plugin-updater`, UI bajo demanda, detección MSIX) | `lib.rs:349-361, 798`, `app.js:1236-1299` | 🟢 | Trivial |
-| 8 | CI de Release (Linux/macOS `tauri-action`, draft release) | `.github/workflows/*.yml` | 🟢 | Trivial — cambiar nombre de producto/identifier |
+| 8 | CI de Release (Linux/macOS `tauri-action`, draft release) | `.github/workflows/*.yml` | 🟢 | Trivial |
 | 9 | Scripts `build.mjs` / `generate-latest-json.mjs` / `installer-name.mjs` | `scripts/` | 🟢 | Trivial |
-| 10 | Patrón de tests Rust (funciones puras extraídas + `tempfile`) | `lib.rs:941-1194` | 🟢 | Trivial — mismo patrón, nuevas funciones |
-| 11 | Asociación de fichero declarativa (`bundle.fileAssociations`) | `tauri.conf.json:47-55` | 🟡 | Baja — cambiar extensión/mimeType/rol |
-| 12 | Sistema de theming (CSS custom properties, `[data-theme]`, claro/oscuro/sepia) | `styles.css:10-99` | 🟡 | Baja — mantener tokens `--bg-*/--text-*/--accent`, retocar paleta de marca |
-| 13 | `registerPanel()` — factoría de paneles flotantes/modales | `app.js:1058-1088` | 🟡 | Baja — reutilizar la función, adaptar los paneles concretos |
-| 14 | i18n hecho a mano (diccionario ES/EN + `t()`) | `i18n.js` | 🟡 | Baja — mismo mecanismo, nuevas claves |
-| 15 | Layout resizable (split editor/preview, split TOC) con persistencia `localStorage` | `app.js:1707-1732` | 🟡 | Baja — mismo mecanismo, aplicado a editor↔preview |
-| 16 | Menú nativo macOS hecho a mano + eventos `menu-open-file`/`menu-save` | `lib.rs:643-779, 846-866` | 🟡 | Media — añadir entradas propias de Typst (compilar, exportar PDF) |
-| 17 | Gestión de "guardar"/dirty-state/confirmación de descarte | `app.js` (`setDirty`, `confirmDiscardUnsavedChanges:89-99`) | 🟡 | Baja — formato-agnóstico, ya reutilizable casi literal |
-| 18 | Capabilities/permisos Tauri (`capabilities/main.json`) | `src-tauri/capabilities/` | 🟡 | Baja — mismo esqueleto, revisar permisos de shell si se añade sidecar |
-| 19 | Pipeline `markdown-it → DOMPurify → Prism/Mermaid/KaTeX` | `app.js:598-627` | 🔴 | Alta — sustituido por invocación al compilador Typst (ver §7.2) |
-| 20 | Componente de edición: `<textarea>` + numeración manual + toolbar de manipulación de string | `index.html:239`, `app.js:1901-2037` | 🔴 | Alta — sustituido por CodeMirror 6 (ver §7.1). **No hay nada que adaptar aquí**: no existe resaltado de sintaxis, autocompletado ni plegado en el editor actual. |
-| 21 | Scroll-sync editor↔preview por anclas de heading | `app.js` (`fullScrollAnchors`/`interpolateScroll`) | 🔴 | Alta — Typst no tiene "headings HTML"; la sincronización real necesita mapeo de posición de fuente↔página vía `typst-ide`/SourceSpan |
-| 22 | Sistema de plantillas | `templates/` (sin integración) | 🔴 | Alta — no hay código que reutilizar, solo el patrón organizativo del directorio |
-| 23 | Resolución de imágenes relativas / `asset://` para Markdown | `app.js` (`resolveImages`) | 🔴 | Typst resuelve sus propios assets al compilar; este código no aplica |
-| 24 | Ayuda de sintaxis Markdown (`markdownhelp_{es,en}.md`) | `src/*.md` | 🔴 | Contenido específico de Markdown, sustituir por chuleta de sintaxis Typst |
+| 10 | Patrón de tests Rust (funciones puras extraídas + `tempfile`) | `lib.rs:941-1194` | 🟢 | Trivial |
+| 11 | Asociación de fichero declarativa (`bundle.fileAssociations`) | `tauri.conf.json:47-55` | 🟡 | Baja — `.typ` (y decidir si `.dbvt` también se asocia) |
+| 12 | Sistema de theming (CSS custom properties, `[data-theme]`) | `styles.css:10-99` | 🟡 | Baja |
+| 13 | `registerPanel()` — factoría de paneles flotantes/modales | `app.js:1058-1088` | 🟡 | Baja — reutilizado también por marketplace/asistente de proyecto |
+| 14 | i18n hecho a mano (diccionario ES/EN + `t()`) | `i18n.js` | 🟡 | Baja |
+| 15 | Layout resizable con persistencia `localStorage` | `app.js:1707-1732` | 🟡 | Baja — base de los "Modos de escritura" (§7.9) |
+| 16 | Menú nativo macOS + eventos `menu-open-file`/`menu-save` | `lib.rs:643-779, 846-866` | 🟡 | Media |
+| 17 | Gestión de "guardar"/dirty-state/confirmación de descarte | `app.js` (`setDirty`, `confirmDiscardUnsavedChanges:89-99`) | 🟡 | Baja — formato-agnóstico |
+| 18 | Capabilities/permisos Tauri (`capabilities/main.json`) | `src-tauri/capabilities/` | 🟡 | Baja |
+| 19 | **Toolbar de inserción por manipulación de string** (patrón) | `app.js:1901-2037` | 🟡 | Media — mismo patrón conceptual, nueva API (CM6) y nuevo marcado (Typst); base de los asistentes de inserción rápida (§7.7) |
+| 20 | Construcción de TOC / scroll-spy (patrón) | `app.js` (`buildToc`/`setupScrollSpy`) | 🟡 | Media — mismo patrón conceptual, nueva fuente de datos (outline de Typst vía `typst-ide`, §7.8) |
+| 21 | Pipeline `markdown-it → DOMPurify → Prism/Mermaid/KaTeX` | `app.js:598-627` | 🔴 | Sustituido por invocación al compilador Typst (§7.2) |
+| 22 | Componente de edición: `<textarea>` + numeración manual | `index.html:239`, `app.js:1901-2037` | 🔴 | Sustituido por CodeMirror 6 (§7.1). No existe resaltado, autocompletado ni plegado en el original |
+| 23 | Scroll-sync editor↔preview por anclas de heading | `app.js` (`fullScrollAnchors`/`interpolateScroll`) | 🔴 | Reemplazado por mapeo de posición real vía `typst-ide` (Beta) |
+| 24 | Integración de plantillas en la app (selector, carga, "Guardar como") | `templates/` (sin integración) | 🔴 | Trabajo nuevo — lanzador, asistente de proyecto y marketplace (§7.6) |
+| 25 | Resolución de imágenes relativas / `asset://` para Markdown | `app.js` (`resolveImages`) | 🔴 | No aplica — Typst resuelve sus propios assets al compilar |
+| 26 | Ayuda de sintaxis Markdown (`markdownhelp_{es,en}.md`) | `src/*.md` | 🔴 | Sustituir por chuleta de sintaxis Typst (o innecesario si los asistentes de inserción cubren el caso de uso) |
+| 27 | Lanzador de tareas ("¿Qué quieres crear hoy?") | *(no existe en el original)* | 🔴 | Trabajo nuevo (§7.13) — DBV Markdown Reader abre directamente el último/un documento |
+| 28 | Asistente de creación de proyecto (formulario de metadatos) | *(no existe en el original)* | 🔴 | Trabajo nuevo (§7.6.2) |
+| 29 | Project Archive (`.dbvt`, empaquetado/desempaquetado) | *(no existe en el original)* | 🔴 | Trabajo nuevo (§7.12) |
+| 30 | Gestión de imágenes por arrastre (copiar + generar `figure()`) | *(no existe — el original solo resuelve rutas ya existentes, no copia)* | 🔴 | Trabajo nuevo, Beta (§7.10) |
 
 ---
 
@@ -157,23 +163,23 @@ Leyenda: 🟢 Reutilizable sin cambios · 🟡 Adaptación menor · 🔴 Reempla
 
 | Dependencia | Capa | Motivo |
 | --- | --- | --- |
-| `tauri` 2.x + `tauri-plugin-{shell,dialog,updater,process,os,single-instance}` | Rust | Núcleo de la plataforma, sin alternativa mejor para el caso de uso |
-| `serde` / `serde_json` | Rust | Estándar de facto para (de)serialización de config/recent-files |
-| `notify` | Rust | Watcher de ficheros, ya validado en producción |
+| `tauri` 2.x + `tauri-plugin-{shell,dialog,updater,process,os,single-instance}` | Rust | Núcleo de la plataforma |
+| `serde` / `serde_json` | Rust | (De)serialización de config/recent-projects/manifiestos de plantilla |
+| `notify` | Rust | Watcher de ficheros |
 | `tempfile` | Rust (dev) | Fixtures de test aisladas |
-| `@tauri-apps/api` + plugins JS homónimos | JS | Bindings oficiales, sin alternativa |
-| `dompurify` | JS | Aunque el pipeline principal de sanitización de Markdown desaparece, sigue siendo buena práctica sanitizar cualquier string dinámico insertado como HTML en la UI (p. ej. mensajes de error del compilador con rutas de fichero) |
+| `@tauri-apps/api` + plugins JS homónimos | JS | Bindings oficiales |
+| `dompurify` | JS | Sanitizar cualquier string dinámico insertado como HTML en la UI (mensajes de error del compilador, metadatos de plantillas comunitarias) |
 
 ## 5. Dependencias que deberían sustituirse (o eliminarse)
 
-| Dependencia actual | Motivo de sustitución/eliminación | Sustituto propuesto |
+| Dependencia actual | Motivo | Sustituto propuesto |
 | --- | --- | --- |
-| `markdown-it` + `markdown-it-footnote` + `markdown-it-task-lists` | No hay Markdown que parsear | *(eliminar)* — compilador Typst |
-| `prismjs` (+20 gramáticas) | El resaltado de salida HTML no aplica; el resaltado ahora es del **código fuente Typst en el editor**, no de bloques de código en un HTML renderizado | Modo de lenguaje Typst para CodeMirror 6 (ver §7.1). Si se desea resaltar bloques `raw` embebidos dentro del propio Typst, evaluar en Beta, no en MVP |
-| `mermaid` + `pako` (solo usado para el round-trip a mermaid.live) | Sin equivalente de uso — Typst tiene sus propios paquetes de diagramas (`cetz`) compilados nativamente | *(eliminar)* |
-| `katex` | Typst tiene tipografía matemática **nativa** en el propio compilador — renderizar LaTeX en el DOM con KaTeX sería redundante y además inconsistente visualmente con el resto del documento compilado | *(eliminar)* |
-| `ureq` (descarga de `.md` remotos vía HTTP) | Un proyecto Typst normalmente vive en disco local con dependencias (`.bib`, imágenes) también locales; "abrir un `.typ` remoto por URL" no es un caso de uso claro para este producto | *(eliminar del MVP; revalorar si surge demanda real)* |
-| Uso de `<textarea>` como editor | No ofrece resaltado, autocompletado ni plegado — ver hallazgo crítico §1.3/§3#20 | **CodeMirror 6** (ver justificación en §7.1) |
+| `markdown-it` + plugins | No hay Markdown que parsear | *(eliminar)* — compilador Typst |
+| `prismjs` (+20 gramáticas) | El resaltado de salida HTML no aplica | Modo de lenguaje Typst para CodeMirror 6 (§7.1) |
+| `mermaid` + `pako` | Typst tiene sus propios paquetes de diagramas (`cetz`) | *(eliminar)* |
+| `katex` | Typst tiene tipografía matemática nativa | *(eliminar)* |
+| `ureq` (descarga remota vía HTTP) | Casos de uso Typst son locales; salvo la descarga de paquetes/plantillas comunitarias en Beta (§7.6), que usa el propio mecanismo de Typst, no `ureq` genérico | *(eliminar del MVP)* |
+| Uso de `<textarea>` como editor | Sin resaltado/autocompletado/plegado | **CodeMirror 6** (§7.1) |
 
 ---
 
@@ -181,32 +187,40 @@ Leyenda: 🟢 Reutilizable sin cambios · 🟡 Adaptación menor · 🔴 Reempla
 
 | Riesgo | Severidad | Mitigación propuesta |
 | --- | --- | --- |
-| El backend Rust de DBV Markdown Reader es un monolito de ~1200 líneas en un solo `lib.rs`; el Typst Editor añade compilador embebido + gestión de proyecto + (en Beta) LSP, lo que puede triplicar ese tamaño. | Media | Modularizar desde el inicio en submódulos (`commands/`, `watcher.rs`, `typst_engine.rs`, `templates.rs`) en vez de replicar el patrón monolítico — ver propuesta de estructura §7.4. |
-| Las crates del ecosistema Typst (`typst`, `typst-pdf`, `typst-svg`, `typst-ide`, `typst-kit`) tienen una API interna que cambia entre versiones menores (Typst evoluciona rápido) y no siempre está pensada para embeberse como librería en apps de terceros (a diferencia de la CLI, que es la superficie "pública" más estable). | Alta | Fijar versiones exactas (`=x.y.z`) en `Cargo.toml`, aislar toda la interacción con esas crates detrás de un módulo `typst_engine` con una interfaz propia y estable, para poder migrar de "crate embebida" a "CLI sidecar" sin tocar el resto de la app si la integración resulta demasiado inestable (ver decisión y plan B en §7.2). |
-| CodeMirror 6 es una librería ES Modules-first — **incompatible** con el patrón "sin bundler, IIFE + scripts vendorizados" que usa hoy DBV Markdown Reader (documentado como obligatorio en `NATIVE_DESKTOP_APPS.md` §3 para evitar colisiones de scope global). | Media | Introducir un bundler ligero (Vite) **solo** para el frontend del Typst Editor — es un cambio de filosofía consciente y justificado (ver §7.1), no aplicable retroactivamente a DBV Markdown Reader. |
-| Fuente de verdad de la vista previa: si se opta por renderizar SVG por página (recomendado, ver §7.3) en vez de un único PDF, hay que reconstruir desde cero la sincronización de scroll editor↔preview (el mecanismo actual de anclas de *heading* de Markdown no tiene equivalente directo en Typst). | Media | Usar `typst-ide` (crate oficial) para mapear posiciones de fuente (`SourceSpan`) a coordenadas de página/posición renderizada — es el mismo mecanismo que usa `tinymist`/tinymist-preview. Documentar como Decisión Técnica en `memory.md` cuando se implemente en `/build`. |
-| Tamaño del instalador: sumar el compilador Typst embebido (crates `typst-kit` incluyen fuentes y el motor completo) puede superar el objetivo `<30MB` fijado en `SPECIFICATIONS.md`. | Media | Medir en un spike temprano de `/build` antes de comprometerse a esa cifra; si excede el umbral, considerar no embeber fuentes por defecto y usar las fuentes del sistema + descarga opcional de paquetes Typst bajo demanda (offline-first sigue cumpliéndose: no hay llamada de red *obligatoria*). |
-| Ausencia total de tests JS (ni en el proyecto origen ni, hoy, en ningún proyecto `dbv-*`) choca con la necesidad de testear lógica no trivial de UI del editor (autocompletado, plegado, sincronización). | Baja-Media | Extender el patrón "funciones puras testeables" también al lado JS: extraer lógica de sincronización/estado a módulos puros y evaluar Vitest (ligero, compatible ESM, encaja con la introducción de Vite en §7.1) solo para esa capa, sin convertir todo el proyecto en una app de tests. |
-| Licencias del ecosistema Typst: las crates oficiales (`typst`, `typst-pdf`, etc.) son Apache-2.0; hay que confirmar que todas las dependencias transitivas (incluidas fuentes tipográficas empaquetadas, si se embeben) tienen licencias compatibles con distribución en instaladores comerciales/gratuitos. | Baja | Auditoría de licencias como parte del gate de `/code-simplify` (ya previsto en `MASTER_PROMPT.md` §Seguridad) antes del primer `/ship`. |
+| El backend Rust de DBV Markdown Reader es un monolito de ~1200 líneas; el Typst Editor añade compilador embebido + gestión de proyecto + marketplace + (Beta) LSP. | Media | Modularizar desde el inicio (`commands/`, `watcher.rs`, `typst_engine.rs`, `project.rs`, `templates.rs`) — ver §7.4. |
+| Las crates del ecosistema Typst (`typst`, `typst-pdf`, `typst-svg`, `typst-ide`, `typst-kit`) tienen API interna que cambia entre versiones menores. | Alta | Fijar versiones exactas, aislar tras un módulo `typst_engine` con interfaz estable propia — ver §7.2. |
+| CodeMirror 6 es ES Modules-first — incompatible con el patrón "sin bundler" de DBV Markdown Reader. | Media | Introducir Vite solo para el frontend del Typst Editor — cambio consciente, ver §7.1. |
+| Sincronización editor↔preview por posición real requiere mapeo de `SourceSpan` de Typst; no hay precedente reutilizable directo (el de Markdown usa anclas de heading). | Media | Usar `typst-ide` (crate oficial), mismo mecanismo que `tinymist`. Se pospone a Beta. |
+| Tamaño del instalador: el compilador Typst embebido (`typst-kit` incluye fuentes) puede superar el objetivo `<30MB`. | Media | Medir en spike temprano de `/build`; considerar fuentes del sistema + descarga opcional bajo demanda si excede el umbral. |
+| **[NUEVO] Alcance del MVP creció tras el Spec Addendum** (lanzador, asistente de proyecto, Project Archive pasan a ser MVP). | Media | El core técnico no cambia; son capas de UI/orquestación sobre infraestructura ya heredada — ver estimación de complejidad actualizada en §8. Confirmar con el usuario expectativa de plazo. |
+| **[NUEVO] Marketplace de plantillas comunitarias (Beta) implica compilar código Typst de terceros** — riesgo de cadena de suministro, aunque Typst es un lenguaje de tipografía sin acceso arbitrario a red/FS fuera de su sandbox de compilación por diseño. | Media | Empezar con una whitelist curada (paquetes/plantillas verificados por DBV) antes de abrir a todo el registro `@preview` sin filtro; mostrar siempre autor/versión/origen en la ficha de la plantilla (ya previsto en el Addendum). Auditar en el gate de seguridad de `/code-simplify`. |
+| **[NUEVO] Project Archive `.dbvt` como ZIP**: importar un archivo `.dbvt` construido a mano/malicioso puede intentar un *zip-slip* (rutas `../` que escriben fuera del directorio destino). | Media | Sanitizar/normalizar cada ruta de entrada del ZIP en el comando de importación Rust antes de escribir a disco; rechazar cualquier entrada que resuelva fuera del directorio de proyecto destino. |
+| Ausencia total de tests JS choca con la necesidad de testear lógica no trivial de UI del editor (autocompletado, asistentes de inserción, outline). | Baja-Media | Extender el patrón "funciones puras testeables" al lado JS; evaluar Vitest solo para esa capa. |
+| Licencias del ecosistema Typst y de plantillas comunitarias de terceros. | Baja | Auditoría de licencias en el gate de `/code-simplify`; para plantillas comunitarias, mostrar licencia declarada en la ficha antes de instalar. |
 
 ---
 
 ## 7. Propuesta de migración / decisiones técnicas clave
 
-### 7.1. Editor de código: CodeMirror 6 (recomendado) vs. Monaco Editor
+### 7.1. Editor de código: CodeMirror 6 — re-evaluación tras el Spec Addendum (Monaco solicitado explícitamente como opción principal a evaluar)
+
+El Spec Addendum pide evaluar **Monaco Editor como opción principal**, citando minimapa, multi-cursor y experiencia en documentos largos. Se repite la evaluación con estos criterios añadidos:
 
 | Criterio | Monaco Editor | CodeMirror 6 |
 | --- | --- | --- |
-| Tamaño (min+gzip) | ~2-5 MB (motor de VS Code completo) | ~200-400 KB core, modular por paquete |
-| Modelo de distribución | AMD/UMD pesado, pensado para bundlers grandes | ESM nativo, tree-shakeable |
-| Encaja con "ligero/offline-first" (filosofía DBV) | Contradice el objetivo de instalador ligero y arranque instantáneo que ya logra DBV Markdown Reader | Alineado — es la opción que prioriza tamaño y arranque en frío |
-| Soporte de lenguaje Typst | No hay gramática Typst oficial mantenida activamente para Monaco a día de hoy | Existe un ecosistema de modos Typst para CodeMirror 6 en la comunidad, y es la base que usa el propio editor web oficial de Typst (app.typst.io), lo que da mayor probabilidad de mantenimiento y compatibilidad futura con el propio proyecto Typst |
-| Integración LSP (`tinymist`, para Beta) | Buen soporte (Monaco nació para integrarse con el Language Server Protocol de VS Code) | También soportado (`codemirror-languageserver` y variantes), algo más de trabajo de integración manual |
-| API / complejidad de adopción | API orientada a objetos, más "todo incluido" | API funcional basada en extensiones componibles (mayor curva inicial, pero más control fino) |
+| Tamaño (min+gzip) | ~2-5 MB (motor de VS Code completo) | ~200-400 KB core, modular |
+| Modelo de distribución | AMD/UMD pesado | ESM nativo, tree-shakeable |
+| Encaja con "ligero/offline-first" | Contradice el objetivo de instalador ligero de la familia DBV | Alineado |
+| Soporte de lenguaje Typst | Sin gramática Typst oficial activamente mantenida | Ecosistema de modos Typst en la comunidad; es la base del editor web oficial de Typst (app.typst.io) |
+| **Multi-cursor / selección múltiple** (pedido en el Addendum) | Nativo y maduro | **También nativo** (`EditorState` soporta rangos múltiples de forma built-in) — no es una carencia real de CM6 |
+| **Minimapa** (pedido en el Addendum) | Nativo | Disponible como extensión de comunidad (p. ej. `@replit/codemirror-minimap`), menos maduro que el de Monaco — único punto real a favor de Monaco |
+| **Documentos largos** (pedido en el Addendum, p. ej. tesis) | Buen rendimiento (nace para ficheros de código grandes) | Buen rendimiento (estructura de datos tipo *rope*); a esta escala (una tesis, no un repositorio) no es un diferenciador real |
+| Integración LSP (`tinymist`, Beta) | Nació para LSP de VS Code | También soportado (`codemirror-languageserver`), algo más de integración manual |
+| **Alineamiento con la filosofía "Obsidian for Typst" del Addendum** | Monaco *es*, perceptualmente, "VS Code embebido" — refuerza la sensación de "editor de código", justo lo contrario de lo que pide el Addendum (§2: "el usuario no debe ver código si no quiere") | **Obsidian —la referencia explícita del propio Addendum— usa CodeMirror 6 como motor de edición.** Su modelo de extensiones (decoraciones, widgets, paneles) es además el mecanismo estándar con el que Obsidian construye su "Live Preview" (ocultar/transformar marcado en línea) — el mismo patrón que necesitan los asistentes de inserción rápida del Addendum (§7.7) |
 
-**Decisión:** **CodeMirror 6**. Justificación: (1) coherencia directa con la filosofía "ligero, offline-first, arranque instantáneo" que es la propuesta de valor central de toda la familia DBV — Monaco la comprometería severamente; (2) el propio ecosistema Typst gravita hacia CodeMirror 6 en su editor web oficial, lo que maximiza la probabilidad de encontrar/mantener un modo de lenguaje Typst de calidad a largo plazo; (3) el MVP no requiere LSP completo (ver `SPECIFICATIONS.md` §4, fuera de alcance en v0.1), por lo que la ventaja de integración LSP de Monaco no pesa en esta fase.
+**Decisión (confirmada, no revertida):** **CodeMirror 6**. La única ventaja real y no discutible de Monaco tras esta segunda evaluación es el minimapa nativo (más maduro que la alternativa de CM6); no se considera suficiente para invertir la decisión, dado el coste en tamaño/filosofía y que el propio producto de referencia del Addendum (Obsidian) confirma que CM6 es viable a este nivel de calidad de producto. El minimapa se marca como mejora evaluable en Beta con la extensión de comunidad si el equipo de UX lo considera necesario tras probar el MVP.
 
-**Coste de esta decisión:** rompe el patrón "sin bundler" de DBV Markdown Reader (§ Riesgos). Se acepta conscientemente: se introduce **Vite** solo para el frontend del Typst Editor, manteniendo igualmente `withGlobalTauri: true` para los plugins Tauri que se sigan consumiendo vía `window.__TAURI__`, y evaluando en `/build` si conviene migrar el resto del frontend a ESM real o mantener híbrido (Vite para el editor, vendorizado para el resto).
+**Coste de esta decisión:** rompe el patrón "sin bundler" de DBV Markdown Reader. Se acepta conscientemente: se introduce **Vite** solo para el frontend del Typst Editor, manteniendo `withGlobalTauri: true` para los plugins Tauri consumidos vía `window.__TAURI__`.
 
 ### 7.2. Integración del compilador Typst
 
@@ -214,46 +228,152 @@ Leyenda: 🟢 Reutilizable sin cambios · 🟡 Adaptación menor · 🔴 Reempla
 
 Justificación:
 
-- Coherente con la filosofía "single self-contained binary, cero dependencias externas en `PATH`" que ya sigue DBV Markdown Reader (todo el WebView2/runtime va embebido en el instalador).
-- Evita problemas de versión desalineada entre el compilador del sistema (si el usuario tiene Typst CLI instalado por su cuenta) y el que espera la app.
-- Permite compilar a bytes en memoria (SVG por página o PDF completo) sin pasar por el sistema de ficheros en cada recompilación — más rápido que invocar un proceso externo en cada pulsación tras el debounce.
-- Da acceso directo a `typst-ide` para diagnósticos/autocompletado en Beta, sin tener que parsear la salida de texto de un proceso CLI.
+- Coherente con la filosofía "single self-contained binary" que ya sigue DBV Markdown Reader.
+- Evita desalineación de versión con un `typst` instalado por el usuario.
+- Permite compilar a bytes en memoria (SVG/PDF) sin pasar por el sistema de ficheros en cada recompilación.
+- Da acceso directo a `typst-ide` para diagnósticos/autocompletado (Beta) y outline (§7.8).
+- **La crate `typst-kit` incluye `PackageStorage`**, el mismo mecanismo que usa `typst-cli` para resolver e importar paquetes `@preview/*` con descarga-y-caché local — reutilizable directamente tanto para compilar documentos que importan paquetes de terceros como para el marketplace de plantillas comunitarias (§7.6). *(Nombre de API a confirmar contra la versión exacta de `typst-kit` en `/build`, dado que el ecosistema evoluciona rápido — ver riesgo en §6.)*
 
-**Plan B (documentar en `memory.md` si se activa):** si la superficie de API de las crates resulta demasiado inestable entre versiones (riesgo identificado en §6), aislar la integración detrás de un módulo `typst_engine` con una interfaz estable propia permite migrar a invocar el binario `typst` como sidecar de Tauri (`tauri-plugin-shell` ya está en el stack heredado) sin reescribir el resto de la aplicación.
+**Plan B:** si la API de las crates resulta demasiado inestable, aislar tras `typst_engine` permite migrar a sidecar CLI (`tauri-plugin-shell` ya está en el stack heredado) sin reescribir el resto de la app.
 
 ### 7.3. Estrategia de vista previa en tiempo real
 
-**Decisión:** renderizar cada página como **SVG** (vía `typst-svg`) para el panel de vista previa en vivo durante la edición, y reservar la generación de **PDF real** (vía `typst-pdf`) para el momento de guardado/exportación final.
+**Decisión:** renderizar cada página como **SVG** (`typst-svg`) para la vista previa en vivo; reservar el **PDF real** (`typst-pdf`) para guardado/exportación final.
 
-Justificación: SVG es vectorial (nítido a cualquier zoom, coherente con la calidad tipográfica que es la propuesta de valor de Typst), permite actualizar página a página de forma incremental sin cargar un visor PDF.js completo, y reutiliza casi literalmente el mecanismo de watch→debounce→re-render de §1.4 (solo cambia qué se re-renderiza). El PDF real generado con `typst-pdf` sigue siendo, como es lógico, el artefacto que el usuario exporta/imprime — coincide con la petición explícita del usuario de "vista previa PDF en tiempo real" en el sentido de "documento con fidelidad PDF", aunque el pipeline interno de refresco use SVG por eficiencia.
+Justificación: SVG es vectorial, permite refresco incremental sin PDF.js, y reutiliza el mecanismo watch→debounce→re-render de §1.4.
 
 ### 7.4. Estructura de directorios propuesta
 
 ```text
 /
-├── src/                      # Frontend (Vite + CodeMirror 6 para el editor;
-│   ├── editor/                #   resto de UI puede seguir el patrón IIFE heredado)
-│   ├── preview/                # Panel de vista previa SVG + zoom/paginación
-│   ├── panels/                 # registerPanel() heredado: Settings, About, Quick Open...
-│   ├── filetree/                # Heredado casi literal de dbv-md-reader/src/filetree.js
-│   ├── i18n/                    # Heredado del patrón de dbv-md-reader/src/i18n.js
-│   ├── themes/                  # CSS custom properties heredadas + paleta de marca propia
-│   └── vendor/                  # Solo lo que NO pase por Vite (si se opta por híbrido)
+├── src/                      # Frontend (Vite + CodeMirror 6 para el editor)
+│   ├── launcher/                # NUEVO — pantalla "¿Qué quieres crear hoy?" (§7.13)
+│   ├── project-wizard/           # NUEVO — asistente de creación de proyecto (§7.6.2)
+│   ├── editor/                    # CodeMirror 6 + modo Typst + asistentes de inserción (§7.7)
+│   ├── preview/                    # Panel de vista previa SVG + zoom/paginación
+│   ├── outline/                     # NUEVO — panel de navegación estructural (§7.8)
+│   ├── templates-marketplace/        # NUEVO, Beta — Instaladas/Comunidad/Favoritas/Recientes (§7.6)
+│   ├── panels/                        # registerPanel() heredado: Settings, About, Quick Open...
+│   ├── project-explorer/               # Heredado de dbv-md-reader/src/filetree.js
+│   ├── i18n/                            # Heredado del patrón de dbv-md-reader/src/i18n.js
+│   ├── themes/                           # CSS custom properties heredadas + paleta propia
+│   └── vendor/                            # Solo lo que NO pase por Vite (si se opta por híbrido)
 ├── src-tauri/
 │   ├── src/
 │   │   ├── main.rs
-│   │   ├── lib.rs               # Orquestación: registro de plugins/comandos, run()
-│   │   ├── commands/            # Módulos por dominio (file_io.rs, recent_files.rs, project.rs...)
-│   │   ├── watcher.rs            # Heredado de lib.rs:457-503
-│   │   └── typst_engine/         # NUEVO — compilación, SVG/PDF, IDE/diagnósticos
-│   └── tauri.conf.json + overlays por plataforma (heredado de dbv-md-reader)
-├── templates/                 # Plantillas .typ (es/en) — patrón organizativo heredado
-│   ├── es/{articulo,tfg,tfm,tesis,informe,cv,presentacion}.typ
-│   └── en/{...}
+│   │   ├── lib.rs                # Orquestación: registro de plugins/comandos, run()
+│   │   ├── commands/               # file_io.rs, recent_projects.rs...
+│   │   ├── watcher.rs                # Heredado de lib.rs:457-503
+│   │   ├── project.rs                 # NUEVO — modelo de proyecto, manifiesto (§7.5)
+│   │   ├── templates.rs                # NUEVO — scaffolding, marketplace/PackageStorage (§7.6)
+│   │   ├── archive.rs                   # NUEVO — export/import .dbvt (zip), sanitización de rutas (§7.12)
+│   │   └── typst_engine/                 # NUEVO — compilación, SVG/PDF, IDE/diagnósticos/outline
+│   └── tauri.conf.json + overlays por plataforma (heredado)
+├── templates/                 # Plantillas .typ (es/en) por categoría — patrón heredado del Addendum
+│   ├── academico/{articulo,tfg,tfm,tesis,ieee,acm,springer,lncs}/
+│   ├── docencia/{apuntes,practicas,examen,guia-docente}/
+│   ├── profesional/{informe-tecnico,propuesta,memorando,cv}/
+│   └── presentaciones/{deck,charla-tecnica,seminario}/
+│       └── (cada plantilla: ficheros .typ + manifest.toml con campos del asistente, §7.6.1)
 ├── dbv-specs-ops/              # Documentación SDD (este directorio)
 ├── start.cmd / start.sh        # Heredado sin cambios
 └── stop.cmd / stop.sh           # Heredado sin cambios
 ```
+
+### 7.5. Modelo de Proyecto
+
+**Decisión:** la unidad de trabajo es un directorio de proyecto (`SPECIFICATIONS.md` §4: `main.typ`, `refs.bib`, `chapters/`, `images/`, `assets/`, `settings/`), con un manifiesto propio de DBV (p. ej. `settings/dbv-project.toml`) que registra metadatos **que Typst no conoce** (plantilla de origen, versión de la plantilla, fecha de creación, valores de los campos del asistente §7.6.2) — nunca metadatos de compilación, que son responsabilidad exclusiva de Typst.
+
+Arquitectura: extiende `list_directory`/`filetree.js` (§3 fila 6) para mostrar la estructura completa del proyecto en vez de un único fichero; añade comandos Rust `create_project(template_id, target_dir, form_values)`, `open_project(dir)`, `read_project_manifest(dir)`. Un `.typ` suelto abierto directamente se trata como "proyecto de un solo fichero" (sin manifiesto) para mantener compatibilidad con documentos Typst ya existentes fuera de DBV Typst Editor.
+
+### 7.6. Plantillas y Marketplace
+
+#### 7.6.1. Plantillas propias (MVP y ampliación v1.0)
+
+Cada plantilla es un **proyecto Typst completo** (no solo un `.typ`) más un `manifest.toml`:
+
+```toml
+id = "tfg-es"
+name = "TFG"
+category = "academico"
+author = "DBV"
+version = "1.0.0"
+description = "Trabajo de Fin de Grado con portada, índice, capítulos y bibliografía"
+
+[[fields]]
+key = "titulo"
+label = "Título"
+type = "text"
+
+[[fields]]
+key = "autor"
+label = "Autor"
+type = "text"
+# ... tutor, universidad, curso, titulación (§ Addendum)
+```
+
+El asistente de creación de proyecto (§7.6.2) lee `fields` para generar el formulario dinámicamente; el comando `create_project` copia el directorio de la plantilla y sustituye los tokens (`{{titulo}}`, etc.) en los ficheros `.typ` mediante una sustitución de texto simple (no requiere un motor de plantillas complejo tipo Handlebars).
+
+Catálogo inicial (MVP, curado): Artículo académico, TFG, TFM, Tesis doctoral, Informe técnico, CV, Presentación. Ampliación v1.0 (categorías completas del Addendum): Académico (+ IEEE, ACM, Springer, LNCS, informe de investigación), Docencia (apuntes, prácticas, examen, guía docente, material de curso), Profesional (propuesta, memorándum), Presentaciones (charlas técnicas, seminarios).
+
+#### 7.6.2. Asistente de creación de proyecto
+
+Formulario generado dinámicamente desde `manifest.toml.fields` de la plantilla elegida (reutiliza `registerPanel()`, §3 fila 13, como modal/panel). Al confirmar, invoca `create_project`. El usuario no edita variables Typst a mano salvo que lo desee explícitamente después.
+
+#### 7.6.3. Marketplace de plantillas comunitarias (Beta)
+
+**Decisión propuesta:** apoyar la pestaña "Comunidad" en el **registro oficial de paquetes de Typst** (`@preview/*`, indexado públicamente como "Typst Universe") en vez de construir un backend propio desde cero para el MVP/Beta — reduce drásticamente el esfuerzo de construir y mantener infraestructura de distribución de paquetes, y da acceso inmediato a un catálogo ya existente y mantenido por la comunidad Typst. La descarga/caché reutiliza el mismo mecanismo `PackageStorage` de `typst-kit` que ya usa el motor de compilación (§7.2) — primera descarga requiere red, uso posterior 100% offline (coherente con el objetivo offline-first).
+
+Pestañas de la UI (Addendum): Instaladas / Comunidad / Favoritas / Recientes / Actualizaciones. Ficha de plantilla: nombre, autor, versión, descripción, capturas, categoría, botones Instalar/Crear Proyecto — sin mostrar código inicialmente.
+
+Para catálogos de "cientos o miles" de plantillas sin degradar la UX: lista virtualizada en el frontend (renderizar solo las filas visibles) + un índice de búsqueda local ligero (JSON/SQLite cacheado, actualizado bajo demanda) en vez de repetir consultas de red por cada tecleo de búsqueda.
+
+*(Pregunta abierta registrada en `SPECIFICATIONS.md` §9: si "Comunidad" se apoya 100% en el registro oficial de Typst o se complementa con curación propia de DBV — la whitelist inicial de seguridad de §6 apunta a que el MVP de esta pestaña debería lanzar con una selección curada, no el registro completo sin filtrar.)*
+
+### 7.7. Asistentes de inserción rápida
+
+Extiende el patrón ya existente en DBV Markdown Reader (§1.3, §3 fila 19: botones de toolbar que insertan marcado en la posición del cursor) a la API de transacciones de CodeMirror 6 (`EditorView.dispatch({changes, selection})`), generando Typst en vez de Markdown:
+
+| Botón | Marcado Typst generado (orientativo) |
+| --- | --- |
+| Insertar figura | `#figure(image("images/..."), caption: [...])` |
+| Insertar tabla | `#table(columns: ..., [...], [...])` |
+| Insertar ecuación | `$ ... $` |
+| Insertar cita | `#cite(<clave>)` |
+| Insertar bibliografía | `#bibliography("refs.bib")` |
+| Insertar bloque de código | ```` ```lang\n...\n``` ```` |
+| Insertar sección | `= Título de sección` |
+| Insertar referencia cruzada | `@etiqueta` |
+
+Cada asistente puede abrir un mini-formulario (vía `registerPanel()`) para los casos que necesiten datos (p. ej. "Insertar tabla" pide número de filas/columnas antes de generar el esqueleto). Beta, según roadmap de `SPECIFICATIONS.md` §6.
+
+### 7.8. Panel de navegación estructural (Outline)
+
+Sustituye la fuente de datos del patrón `buildToc`/`setupScrollSpy` (§3 fila 20): en vez de parsear encabezados HTML, consulta la estructura del documento Typst compilado (mecanismo `query()`, el mismo que respalda `typst query` en la CLI oficial y el "Outline" de `tinymist` en VS Code) para obtener nodos de encabezado con su `SourceSpan`, permitiendo clic→navegación tanto en el editor como en la vista previa. Beta.
+
+### 7.9. Modos de escritura (Escritura / Edición / Dividido / Lectura)
+
+Extiende el layout resizable con persistencia (§3 fila 15): cada modo es un preajuste de qué paneles están visibles y con qué anchura (Escritura: solo editor, sin barras de herramientas; Edición: editor + todas las herramientas; Dividido: editor + preview; Lectura: solo preview a pantalla completa). No requiere nueva infraestructura de layout, solo presets sobre la ya heredada. Beta.
+
+### 7.10. Gestión de imágenes por arrastre
+
+Nuevo comando Rust `copy_asset_into_project(project_root, source_path) -> relative_path` que copia el fichero soltado a `images/` del proyecto activo y devuelve la ruta relativa; el frontend usa esa ruta para invocar el asistente "Insertar figura" (§7.7) automáticamente. A diferencia de `resolveImages()` en DBV Markdown Reader (que solo *resuelve* rutas ya existentes, de solo lectura), esto requiere una operación de escritura nueva. Beta.
+
+### 7.11. Bibliografía
+
+MVP: las plantillas académicas incluyen `refs.bib` vacío/de ejemplo y ya invocan `#bibliography("refs.bib")` — soporte nativo de Typst, sin trabajo adicional de integración. Beta: panel de exploración de entradas `.bib` (requiere elegir una crate de parseo BibTeX en Rust — pregunta abierta en `SPECIFICATIONS.md` §9) + autocompletado de claves de cita en el asistente "Insertar cita" (§7.7).
+
+### 7.12. Exportaciones y Project Archive (`.dbvt`)
+
+**Decisión:** `.dbvt` es un archivo **ZIP** (crate `zip` en Rust, licencia MIT/Apache-2.0, ampliamente usada) que empaqueta el directorio de proyecto completo (§7.5) más un `manifest.json` propio (versión de la app, versión de Typst usada, plantilla de origen si aplica) para checks de compatibilidad al importar. Dos comandos nuevos: `export_project_archive(project_dir, output_path)` / `import_project_archive(archive_path, target_dir)`.
+
+**Mitigación de seguridad obligatoria (ver riesgo en §6):** el comando de importación debe normalizar y validar cada ruta de entrada del ZIP, rechazando cualquier entrada cuya ruta resuelta caiga fuera del directorio de proyecto destino (protección *zip-slip*), antes de escribir nada a disco.
+
+Exportaciones de documento (distintas del Project Archive): PDF (MVP, artefacto final vía `typst-pdf`), PNG (Beta, página actual/rango/documento completo), SVG (v1.0). "Paquete Docente" (v1.0): combina PDF+SVG+PNG+recursos en un único paquete para plataformas educativas (Moodle, Teams, SharePoint).
+
+### 7.13. Lanzador orientado a tareas
+
+Pantalla inicial nueva (no existe en DBV Markdown Reader, que abre directamente el último/un documento): "¿Qué quieres crear hoy?" con las plantillas del catálogo curado (§7.6.1) + acceso a proyectos recientes (reutilizando el mecanismo de recent-files, §3 fila 5). Sustituye a la apertura directa de documento como pantalla de bienvenida. MVP.
 
 ---
 
@@ -263,11 +383,20 @@ Justificación: SVG es vectorial (nítido a cualquier zoom, coherente con la cal
 | --- | --- | --- |
 | Portar infraestructura Rust reutilizable (§3, filas 1-10) | 🟢 Baja | Copiar y renombrar, tests ya existentes como red de seguridad |
 | Adaptar theming/paneles/i18n/layout (§3, filas 11-18) | 🟢 Baja-Media | Mecanismo probado, solo cambia contenido |
-| Integrar CodeMirror 6 + modo Typst + Vite | 🟠 Media-Alta | Primera introducción de bundler en la familia DBV; requiere validar convivencia con `withGlobalTauri` |
-| Integrar crates Typst (compilación embebida SVG/PDF) | 🔴 Alta | Superficie de API nueva y potencialmente inestable (riesgo §6); es el corazón técnico del producto |
-| Sincronización editor↔preview por posición real (`typst-ide`) | 🔴 Alta | Sin precedente reutilizable en DBV Markdown Reader; se pospone a Beta según `SPECIFICATIONS.md` |
-| Sistema de plantillas (picker + scaffolding + 7 plantillas .typ) | 🟠 Media | Sin código previo que reutilizar, pero sin incertidumbre técnica (es "trabajo nuevo conocido", no riesgo) |
-| Empaquetado Windows/Linux (CI, NSIS, AppImage/deb) | 🟢 Baja | Config casi copiable de dbv-md-reader, cambiar identidad/branding |
+| Integrar CodeMirror 6 + modo Typst + Vite | 🟠 Media-Alta | Primera introducción de bundler en la familia DBV |
+| Integrar crates Typst (compilación embebida SVG/PDF) | 🔴 Alta | Superficie de API nueva y potencialmente inestable; corazón técnico del producto |
+| Modelo de Proyecto + explorador de proyecto | 🟢 Baja-Media | Extiende `list_directory`/`filetree.js` ya existentes |
+| Lanzador de tareas | 🟢 Baja | UI nueva pero simple, sin lógica de negocio compleja |
+| Asistente de creación de proyecto (formulario + scaffolding) | 🟠 Media | Sin código previo que reutilizar, pero sin incertidumbre técnica |
+| 7 plantillas curadas iniciales (contenido Typst + manifest.toml) | 🟠 Media | Trabajo de contenido más que de ingeniería; requiere conocimiento de maquetación Typst por tipo de documento |
+| Project Archive `.dbvt` (export/import zip + sanitización de rutas) | 🟢 Baja-Media | Crate `zip` madura; la parte delicada es la validación de seguridad (§6), acotada y testeable |
+| Marketplace de plantillas comunitarias (Beta) | 🔴 Alta | Depende de la estabilidad de `typst-kit::PackageStorage` (riesgo §6) y de UX de catálogos grandes (virtualización, búsqueda) |
+| Asistentes de inserción rápida (Beta) | 🟠 Media | Patrón ya validado en DBV Markdown Reader (§3 fila 19), solo cambia la API de destino |
+| Outline estructural (Beta) | 🔴 Alta | Requiere `typst-ide`/`query()`, sin precedente reutilizable directo |
+| Sincronización editor↔preview por posición real (Beta) | 🔴 Alta | Sin precedente reutilizable; pospuesto a Beta |
+| Gestión de imágenes por arrastre (Beta) | 🟡 Media-Baja | Un comando Rust nuevo + reutilizar el asistente "Insertar figura" |
+| Bibliografía visual (Beta) | 🟠 Media | Depende de elegir crate de parseo BibTeX (pregunta abierta) |
+| Empaquetado Windows/Linux (CI, NSIS, AppImage/deb) | 🟢 Baja | Config casi copiable de dbv-md-reader |
 | Auto-actualizador | 🟢 Baja | Reutilizable sin cambios funcionales |
 
 ---
@@ -276,17 +405,19 @@ Justificación: SVG es vectorial (nítido a cualquier zoom, coherente con la cal
 
 ### Seguridad
 
-- **Sin red en el flujo de compilación/edición** — 100% offline (ver `SPECIFICATIONS.md` §5).
-- **Datos sensibles:** ninguno específico del dominio (no hay auth ni credenciales); se mantiene el principio de menor privilegio ya aplicado en `capabilities/main.json` de DBV Markdown Reader.
+- **Sin red obligatoria en el flujo de compilación/edición** — 100% offline en el MVP; red opcional solo para descarga bajo demanda de plantillas/paquetes comunitarios (Beta), con caché local tras la primera descarga.
+- **Importación de `.dbvt`:** validación obligatoria anti *zip-slip* antes de escribir a disco (§7.12, §6).
+- **Plantillas comunitarias (Beta):** whitelist curada inicial antes de abrir al registro completo sin filtrar (§7.6.3, §6).
+- **Datos sensibles:** ninguno específico del dominio; se mantiene el principio de menor privilegio ya aplicado en `capabilities/main.json` de DBV Markdown Reader.
 
 ### Estilo de Código
 
-- Mismas convenciones que el resto de proyectos `dbv-*` (ver `<coding_standards>` de `MASTER_PROMPT.md`): un solo `return` + guard clauses, patrón `Result`, tipado estricto (Rust ya lo impone; en TS/JS del nuevo frontend con Vite, activar `strict` en `tsconfig.json` si se adopta TypeScript para el editor — recomendado dado que CodeMirror 6 está escrito en TypeScript).
+- Mismas convenciones que el resto de proyectos `dbv-*` (`<coding_standards>` de `MASTER_PROMPT.md`): un solo `return` + guard clauses, patrón `Result`, tipado estricto (Rust ya lo impone; activar `strict` en `tsconfig.json` del frontend con Vite — recomendado adoptar TypeScript dado que CodeMirror 6 está escrito en TypeScript).
 
 ### Gestión de Estado
 
-- Backend: mismo patrón `.manage()` de Tauri con structs `Mutex<...>` ya usado (Watcher, documentos abiertos); añadir `TypstEngineState` para cachear el `World`/compilación incremental de Typst entre recompilaciones.
-- Frontend: mantener el patrón `window.DBV*` para los módulos heredados; el editor CodeMirror 6 gestiona su propio estado interno (`EditorState`/`EditorView`) expuesto mínimamente al resto de la app.
+- Backend: patrón `.manage()` de Tauri con structs `Mutex<...>` (Watcher, documentos/proyectos abiertos); añadir `TypstEngineState` (compilación incremental) y `PackageStorageState` (caché de paquetes/plantillas comunitarias).
+- Frontend: mantener el patrón `window.DBV*` para los módulos heredados; CodeMirror 6 gestiona su propio estado interno (`EditorState`/`EditorView`).
 
 ---
 
@@ -299,12 +430,12 @@ Ver tabla completa en §6. Restricción transversal: cualquier desviación de la
 ## 🤖 Agent Harness (Arnés del Agente)
 
 - **Contexto Estático:** `CLAUDE.md`/`GEMINI.md`/`.windsurfrules`/`.github/copilot-instructions.md` (raíz) + `dbv-specs-ops/project.config.md` + este fichero + `memory.md`.
-- **Contexto Dinámico / Skills:** No aplica todavía (sin Agent Plugin definido; revalorar en `/spec` si se detecta valor en un MCP local para consultar la sintaxis Typst durante el desarrollo).
+- **Contexto Dinámico / Skills:** No aplica todavía.
 - **Servidores MCP:** Ninguno requerido para el MVP.
-- **Sandboxing:** Desarrollo local estándar (sin contenedor obligatorio); compilación Rust nativa por plataforma.
-- **Guardrails:** Herencia directa de los ya usados en `dbv-md-reader` (sin secretos en código, auditoría de dependencias en `/code-simplify`).
-- **Agent Readiness (Web):** No aplica — proyecto de escritorio, no web/API (ver `project.config.md`).
+- **Sandboxing:** Desarrollo local estándar; compilación Rust nativa por plataforma.
+- **Guardrails:** Herencia directa de los ya usados en `dbv-md-reader`, más las mitigaciones específicas de §6 (zip-slip, whitelist de plantillas).
+- **Agent Readiness (Web):** No aplica.
 
 ---
 
-**Instrucción para la IA:** Este documento fija las decisiones de §7 (editor CodeMirror 6, compilador Typst embebido vía crates, preview SVG+PDF) como la línea base para `/plan` y `/build`. Cualquier cambio debe registrarse como Decisión Técnica en `memory.md` antes de implementarse.
+**Instrucción para la IA:** Este documento fija las decisiones de §7 (editor CodeMirror 6 — reconfirmado tras re-evaluación de Monaco, compilador Typst embebido vía crates, preview SVG+PDF, modelo de proyecto, marketplace apoyado en el registro oficial de Typst, Project Archive `.dbvt` como ZIP con protección zip-slip) como línea base para `/plan` y `/build`. Cualquier cambio debe registrarse como Decisión Técnica en `memory.md` antes de implementarse.

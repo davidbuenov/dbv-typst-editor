@@ -2,10 +2,10 @@
 
 ## Contexto del Proyecto (Context Snapshot)
 
-* **Objetivo**: Construir un editor de escritorio (Windows/Linux, macOS después) para documentos Typst, ligero, offline-first y multiplataforma, reutilizando al máximo la arquitectura de [DBV Markdown Reader](https://github.com/davidbuenov/dbv-md-reader).
-* **Estado actual**: Bootstrap del framework `dbv-specs-ops` v2.8.0 completado (activadores, `project.config.md`, README, LICENSE, `git init` + primer commit). Informe arquitectónico de reutilización completado en `docs/ARCHITECTURE.md`, especificación inicial en `docs/SPECIFICATIONS.md`. **Ningún código de aplicación escrito todavía.**
-* **Última decisión técnica**: Ver `memory.md` — editor CodeMirror 6, compilación Typst embebida vía crates Rust, preview SVG+PDF, introducción de Vite. Registradas 2026-09-04.
-* **Próximo paso**: Validar con el usuario las decisiones de `ARCHITECTURE.md` §7 (y las Preguntas Abiertas de `SPECIFICATIONS.md` §6) antes de desglosar el plan de implementación (`implementation_plan.md`) del MVP en `/plan` → `/build`.
+* **Objetivo**: Construir una herramienta de escritura de escritorio (Windows/Linux, macOS después) orientada a documento/proyecto para Typst — "para Typst lo que Obsidian es para Markdown" —, ligera, offline-first y multiplataforma, reutilizando al máximo la arquitectura de [DBV Markdown Reader](https://github.com/davidbuenov/dbv-md-reader).
+* **Estado actual**: Bootstrap del framework `dbv-specs-ops` v2.8.0 completado. Informe arquitectónico de reutilización completado en `docs/ARCHITECTURE.md` (v2) y especificación completa en `docs/SPECIFICATIONS.md` (v2), incorporando el **Spec Addendum** del usuario (2026-09-04): filosofía de producto orientada a documento, lanzador por tareas, modelo de Proyecto, marketplace de plantillas, asistentes de inserción, outline, modos de escritura, Project Archive `.dbvt`. **Ningún código de aplicación escrito todavía.**
+* **Última decisión técnica**: Ver `memory.md` — editor CodeMirror 6 (re-evaluado y reconfirmado frente a Monaco tras el Addendum), compilación Typst embebida vía crates Rust, preview SVG+PDF, Vite, modelo de Proyecto, marketplace apoyado en el registro oficial de Typst, `.dbvt` como ZIP con protección zip-slip. Registradas 2026-09-04.
+* **Próximo paso**: Validar con el usuario las decisiones de `ARCHITECTURE.md` §7 (y las Preguntas Abiertas de `SPECIFICATIONS.md` §9) antes de desglosar el plan de implementación (`implementation_plan.md`) del MVP en `/plan` → `/build`.
 
 ## Checklist de Tareas
 
@@ -27,11 +27,12 @@
   - [x] Estrategia de vista previa en tiempo real: SVG por página + PDF en export (`ARCHITECTURE.md` §7.3).
   - [x] Estructura de directorios propuesta (`ARCHITECTURE.md` §7.4) y estimación de complejidad por bloque (`ARCHITECTURE.md` §8).
   - [x] Visión de producto, MVP, fuera de alcance, riesgos y roadmap por fases (`SPECIFICATIONS.md`).
+  - [x] **Spec Addendum del usuario procesado (2026-09-04):** filosofía "Obsidian for Typst", lanzador orientado a tareas, modelo de Proyecto (§4/§7.5), plantillas como funcionalidad de primer nivel + marketplace (§7.6), asistente de creación de proyecto (§7.6.2), asistentes de inserción rápida (§7.7), outline estructural (§7.8), modos de escritura (§7.9), gestión de imágenes por arrastre (§7.10), bibliografía (§7.11), exportaciones + Project Archive `.dbvt` (§7.12), re-evaluación explícita de Monaco vs. CodeMirror 6 con los criterios del Addendum (§7.1, reconfirmado CM6), roadmap y prioridades reconciliados (`SPECIFICATIONS.md` §11).
   - [ ] Validación del usuario sobre las decisiones anteriores (pendiente).
   - [ ] `docs/DESIGN.md` — sistema de diseño visual (pendiente, opcional en esta fase según `MASTER_PROMPT.md`).
 
 - [ ] **Fase 2: Planificación de implementación (`/plan`)**
-  - [ ] Desglosar el MVP (RF-01 a RF-11 de `SPECIFICATIONS.md`) en `implementation_plan.md` con dependencias, riesgos y estrategia de rollback.
+  - [ ] Desglosar el MVP (RF-01 a RF-12 de `SPECIFICATIONS.md` §5) en `implementation_plan.md` con dependencias, riesgos y estrategia de rollback.
   - [ ] Adversarial Architect Review formal sobre el plan del MVP.
 
 - [ ] **Fase 3: Construcción (`/build`)** — no iniciada.
@@ -44,6 +45,6 @@
 ## 🔄 Context Snapshot / Snapshot de Contexto
 
 > **Última actualización:** 2026-09-04
-> **Punto exacto:** Bootstrap + informe arquitectónico entregados. Repo git local inicializado con un único commit (`chore: bootstrap DBV Typst Editor con framework dbv-specs-ops v2.8.0`). Documentos vivos actualizados: `project.config.md`, `docs/SPECIFICATIONS.md`, `docs/ARCHITECTURE.md`, `memory.md`, `CHANGELOG.md`, `task.md` (este fichero). `docs/DESIGN.md` sigue con placeholders.
-> **Pendiente:** Validación del usuario de las decisiones técnicas de `ARCHITECTURE.md` §7 y respuesta a las Preguntas Abiertas de `SPECIFICATIONS.md` §6 (en particular: ¿publicación en stores desde el MVP o después?).
-> **Próximo paso:** Si el usuario valida, continuar con `/plan` (desglose de `implementation_plan.md` del MVP) y después `/build` (primer slice: shell Tauri + estructura de directorios de `ARCHITECTURE.md` §7.4, portando la infraestructura reutilizable de DBV Markdown Reader).
+> **Punto exacto:** Bootstrap + informe arquitectónico (v1) + Spec Addendum del usuario procesado e integrado (v2) entregados. Repo git local con commits de bootstrap e informe v1; el commit del Spec Addendum (v2) está pendiente de crear en esta misma sesión. Documentos vivos actualizados: `project.config.md`, `docs/SPECIFICATIONS.md` (v2), `docs/ARCHITECTURE.md` (v2), `memory.md`, `task.md` (este fichero). `docs/DESIGN.md` sigue con placeholders.
+> **Pendiente:** Validación del usuario de las decisiones técnicas de `ARCHITECTURE.md` §7 (en especial la reconfirmación de CodeMirror 6 sobre Monaco) y respuesta a las Preguntas Abiertas de `SPECIFICATIONS.md` §9 (publicación en stores, alcance exacto del marketplace de plantillas en Beta, nombre definitivo de `.dbvt`, crate de parseo BibTeX).
+> **Próximo paso:** Si el usuario valida, continuar con `/plan` (desglose de `implementation_plan.md` del MVP, RF-01 a RF-12) y después `/build` (primer slice: shell Tauri + estructura de directorios de `ARCHITECTURE.md` §7.4, portando la infraestructura reutilizable de DBV Markdown Reader).

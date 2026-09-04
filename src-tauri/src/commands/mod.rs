@@ -10,3 +10,5 @@
 // DBV Markdown Reader, que este proyecto va a superar ampliamente.
 
 pub mod app_info;
+pub mod file_io;
+pub mod recent_projects;

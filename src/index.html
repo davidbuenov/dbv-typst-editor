@@ -34,6 +34,7 @@
 
     <link rel="stylesheet" href="./themes/tokens.css" />
     <link rel="stylesheet" href="./themes/base.css" />
+    <link rel="stylesheet" href="./themes/layout.css" />
   </head>
   <body>
     <div id="fatal-error" class="fatal-error" hidden></div>
@@ -41,9 +42,19 @@
     <header class="app-header">
       <div class="app-header__brand">
         <span class="app-header__title">DBV Typst Editor</span>
-        <span class="app-header__tagline" data-i18n="app.tagline"></span>
+        <span class="app-header__project" id="project-name">—</span>
+        <span class="app-header__badge" id="project-kind"></span>
       </div>
       <div class="app-header__actions">
+        <div class="app-header__group hidden" id="project-actions">
+          <button id="btn-reveal" class="button button--ghost" type="button" data-i18n="action.reveal"></button>
+          <button id="btn-close-project" class="button button--ghost" type="button" data-i18n="action.closeProject"></button>
+        </div>
+        <button id="btn-open-folder" class="button" type="button" data-i18n="action.openFolder"></button>
+        <button id="btn-open-file" class="button button--ghost" type="button" data-i18n="action.openFile"></button>
+        <button id="btn-lang" class="icon-button" type="button" data-i18n-title="action.toggleLang">
+          <span id="btn-lang-label" aria-hidden="true">ES</span>
+        </button>
         <button id="btn-theme" class="icon-button" type="button" data-i18n-title="action.toggleTheme">
           <span id="btn-theme-icon" aria-hidden="true">◐</span>
         </button>
@@ -52,30 +63,61 @@
     </header>
 
     <main class="app-body">
-      <!--
-        Slice 1: solo andamiaje. El editor (Slice 4) y el panel de vista previa
-        (Slice 5) sustituirán este contenido de bienvenida.
-      -->
-      <section class="scaffold-card">
-        <h1 class="scaffold-card__heading" data-i18n="scaffold.heading"></h1>
-        <p class="scaffold-card__text" data-i18n="scaffold.text"></p>
-        <dl class="scaffold-card__facts">
-          <dt data-i18n="scaffold.appVersion"></dt>
-          <dd id="fact-app-version">—</dd>
-          <dt data-i18n="scaffold.platform"></dt>
-          <dd id="fact-platform">—</dd>
-          <dt data-i18n="scaffold.bridge"></dt>
-          <dd id="fact-bridge">—</dd>
-          <dt data-i18n="scaffold.typst"></dt>
-          <dd id="fact-typst">—</dd>
-        </dl>
+      <!-- Estado sin proyecto. El Slice 7 lo convierte en el lanzador por tareas. -->
+      <section class="empty-view" id="empty-view">
+        <div class="empty-view__card">
+          <h1 class="empty-view__heading" data-i18n="empty.heading"></h1>
+          <p class="empty-view__text" data-i18n="empty.text"></p>
+          <div class="empty-view__actions">
+            <button id="btn-empty-open-folder" class="button button--primary" type="button" data-i18n="action.openFolder"></button>
+            <button id="btn-empty-open-file" class="button" type="button" data-i18n="action.openFile"></button>
+          </div>
+          <h2 class="empty-view__subheading" data-i18n="recent.title"></h2>
+          <div class="recent-list" id="recent-list"></div>
+        </div>
+      </section>
+
+      <!-- Espacio de trabajo: explorador + editor (+ vista previa desde el Slice 5). -->
+      <section class="workspace hidden" id="workspace-view">
+        <aside class="sidebar" id="sidebar">
+          <div class="sidebar__header">
+            <span class="sidebar__title" data-i18n="tree.title"></span>
+          </div>
+          <input
+            id="tree-filter"
+            class="sidebar__filter"
+            type="search"
+            data-i18n-placeholder="tree.filter"
+          />
+          <div class="tree" id="project-tree"></div>
+        </aside>
+
+        <div class="splitter" id="splitter-sidebar" role="separator" aria-orientation="vertical"></div>
+
+        <div class="document">
+          <div class="document__bar">
+            <span class="document__name" id="document-name">—</span>
+            <span class="document__dirty hidden" id="document-dirty" data-i18n="doc.unsaved"></span>
+            <span class="document__path" id="document-path"></span>
+          </div>
+          <div class="editor" id="editor-host"></div>
+        </div>
       </section>
     </main>
 
-    <!-- Panel flotante de ejemplo, sobre la factoría registerPanel() portada -->
+    <div class="toast hidden" id="toast"></div>
+
     <div id="about-panel" class="floating-panel hidden" role="dialog" aria-modal="false">
       <h2 class="floating-panel__title" data-i18n="about.title"></h2>
       <p class="floating-panel__text" data-i18n="about.text"></p>
+      <dl class="scaffold-card__facts">
+        <dt data-i18n="scaffold.appVersion"></dt>
+        <dd id="fact-app-version">—</dd>
+        <dt data-i18n="scaffold.platform"></dt>
+        <dd id="fact-platform">—</dd>
+        <dt data-i18n="scaffold.typst"></dt>
+        <dd id="fact-typst">—</dd>
+      </dl>
       <button id="btn-about-close" class="button" type="button" data-i18n="action.close"></button>
     </div>
 

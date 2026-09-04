@@ -4,122 +4,182 @@
 // Licensed under the MIT License. See LICENSE for details.
 // Built with dbv-specs-ops · https://github.com/davidbuenov/dbv-specs-ops
 // =============================================================================
+//
+// Solo cablea: resuelve el DOM, construye los módulos y conecta los eventos.
+// Toda la lógica vive en los módulos (`app/`, `project-explorer/`, `editor/`,
+// `services/`), igual que el backend evita el monolito `lib.rs`.
 
-import { invoke } from '@tauri-apps/api/core';
-
-import { applyTranslations, t } from './i18n/i18n.js';
+import { createWorkspace, baseName } from './app/workspace.js';
+import { applyTranslations, getLanguage, t, toggleLanguage } from './i18n/i18n.js';
 import { closeAllPanels, registerPanel } from './panels/registerPanel.js';
+import { createProjectTree } from './project-explorer/projectTree.js';
+import {
+  getAppInfo,
+  getRecentProjects,
+  getTypstVersion,
+  pickProjectFolder,
+  pickTypstFile,
+} from './services/backend.js';
+import { createSplitter } from './ui/splitter.js';
+import { createToast } from './ui/toast.js';
 import { initTheme, toggleTheme } from './themes/theme.js';
 
-/**
- * Consulta al backend la información básica de la aplicación.
- *
- * Criterio de aceptación del Slice 1: este `invoke` es la prueba de que Vite
- * (ESM, con bundler) y el puente de Tauri conviven — el riesgo R-04 del plan.
- *
- * @returns {Promise<{ok: true, value: {version: string, platform: string}} | {ok: false, error: string}>}
- */
-async function fetchAppInfo() {
-  let result;
-  try {
-    const info = await invoke('app_info');
-    result = { ok: true, value: info };
-  } catch (error) {
-    result = { ok: false, error: String(error) };
+const el = (id) => document.getElementById(id);
+
+/** Rellena la ficha "Acerca de" con la versión de la app y del compilador. */
+async function renderAbout() {
+  const [appInfo, typstVersion] = await Promise.all([getAppInfo(), getTypstVersion()]);
+
+  if (appInfo.ok) {
+    el('fact-app-version').textContent = appInfo.value.version;
+    el('fact-platform').textContent = appInfo.value.platform;
   }
-  return result;
+
+  const typstEl = el('fact-typst');
+  if (typstVersion.ok) {
+    typstEl.textContent = `${typstVersion.value} ${t('typst.embedded')}`;
+  } else {
+    typstEl.textContent = `${t('typst.fail')} — ${typstVersion.error.message}`;
+    typstEl.style.color = 'var(--code-tag)';
+  }
 }
 
-/**
- * Consulta la versión del compilador Typst embebido como sidecar.
- *
- * Criterio de aceptación del Slice 2: prueba de que el binario oficial viaja
- * dentro de la app y se puede invocar desde Rust sin que el WebView tenga
- * permisos de shell.
- *
- * @returns {Promise<{ok: true, value: string} | {ok: false, error: string}>}
- */
-async function fetchTypstVersion() {
-  let result;
-  try {
-    const version = await invoke('typst_version');
-    result = { ok: true, value: version };
-  } catch (error) {
-    // El error del backend es tipado: {kind, message}. Se muestra el mensaje
-    // legible si viene, y la forma cruda si no, para no ocultar diagnósticos.
-    const message = error?.message ?? error?.kind ?? String(error);
-    result = { ok: false, error: message };
-  }
-  return result;
-}
+/** Pinta la lista de proyectos recientes del estado sin proyecto (RF-02c). */
+async function renderRecentProjects(hostEl, onOpen) {
+  const result = await getRecentProjects();
+  const projects = result.ok ? result.value : [];
 
-/** Pinta en la tarjeta de andamiaje el resultado del puente con el backend. */
-function renderAppInfo(result) {
-  const versionEl = document.getElementById('fact-app-version');
-  const platformEl = document.getElementById('fact-platform');
-  const bridgeEl = document.getElementById('fact-bridge');
-
-  if (!result.ok) {
-    bridgeEl.textContent = `${t('bridge.fail')} — ${result.error}`;
-    bridgeEl.style.color = 'var(--code-tag)';
+  if (projects.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'recent-list__empty';
+    empty.textContent = t('recent.empty');
+    hostEl.replaceChildren(empty);
     return;
   }
 
-  versionEl.textContent = result.value.version;
-  platformEl.textContent = result.value.platform;
-  bridgeEl.textContent = t('bridge.ok');
-  bridgeEl.style.color = 'var(--code-string)';
-}
+  const fragment = document.createDocumentFragment();
+  for (const project of projects) {
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = 'recent-item';
 
-/** Pinta la versión del compilador Typst embebido. */
-function renderTypstVersion(result) {
-  const el = document.getElementById('fact-typst');
-  if (!result.ok) {
-    el.textContent = `${t('typst.fail')} — ${result.error}`;
-    el.style.color = 'var(--code-tag)';
-    return;
+    const name = document.createElement('span');
+    name.className = 'recent-item__name';
+    name.textContent = project.name || baseName(project.path);
+    item.append(name);
+
+    const path = document.createElement('span');
+    path.className = 'recent-item__path';
+    path.textContent = project.path;
+    item.append(path);
+
+    item.addEventListener('click', () => onOpen(project.path));
+    fragment.append(item);
   }
-  el.textContent = `${result.value} ${t('typst.embedded')}`;
-  el.style.color = 'var(--code-string)';
+  hostEl.replaceChildren(fragment);
 }
 
 function wireThemeToggle() {
-  const button = document.getElementById('btn-theme');
-  const icon = document.getElementById('btn-theme-icon');
-  button.addEventListener('click', () => {
-    const theme = toggleTheme();
-    icon.textContent = theme === 'dark' ? '◐' : '◑';
+  const icon = el('btn-theme-icon');
+  el('btn-theme').addEventListener('click', () => {
+    icon.textContent = toggleTheme() === 'dark' ? '◐' : '◑';
+  });
+}
+
+function wireLanguageToggle() {
+  const label = el('btn-lang-label');
+  label.textContent = getLanguage().toUpperCase();
+  el('btn-lang').addEventListener('click', () => {
+    label.textContent = toggleLanguage().toUpperCase();
   });
 }
 
 function wireAboutPanel() {
-  const panel = document.getElementById('about-panel');
-  const { close } = registerPanel(panel, {
-    trigger: document.getElementById('btn-about'),
+  const { close } = registerPanel(el('about-panel'), {
+    trigger: el('btn-about'),
     toggle: true,
     closeOnOutsideClick: true,
   });
-  document.getElementById('btn-about-close').addEventListener('click', close);
-}
-
-function wireGlobalShortcuts() {
-  document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') closeAllPanels();
-  });
+  el('btn-about-close').addEventListener('click', close);
 }
 
 async function bootstrap() {
   initTheme();
   applyTranslations();
   wireThemeToggle();
+  wireLanguageToggle();
   wireAboutPanel();
-  wireGlobalShortcuts();
 
-  // Ambas consultas son independientes: se lanzan en paralelo para no encadenar
-  // el arranque del sidecar detrás del de la información de la app.
-  const [appInfo, typstVersion] = await Promise.all([fetchAppInfo(), fetchTypstVersion()]);
-  renderAppInfo(appInfo);
-  renderTypstVersion(typstVersion);
+  const toast = createToast(el('toast'));
+  const recentListEl = el('recent-list');
+
+  const tree = createProjectTree(el('project-tree'), {
+    onOpenFile: (path) => workspace.openDocument(path),
+  });
+
+  const workspace = createWorkspace({
+    tree,
+    notify: toast.show,
+    elements: {
+      editorHost: el('editor-host'),
+      documentName: el('document-name'),
+      documentDirty: el('document-dirty'),
+      documentPath: el('document-path'),
+      projectName: el('project-name'),
+      projectKind: el('project-kind'),
+      projectActions: el('project-actions'),
+      workspaceView: el('workspace-view'),
+      emptyView: el('empty-view'),
+    },
+  });
+
+  const openPath = async (path) => {
+    const opened = await workspace.openProjectAt(path);
+    if (opened) await renderRecentProjects(recentListEl, openPath);
+  };
+
+  const openFolder = async () => {
+    const picked = await pickProjectFolder();
+    if (picked.ok && picked.value) await openPath(picked.value);
+  };
+
+  const openFile = async () => {
+    const picked = await pickTypstFile();
+    if (picked.ok && picked.value) await openPath(picked.value);
+  };
+
+  el('btn-open-folder').addEventListener('click', openFolder);
+  el('btn-empty-open-folder').addEventListener('click', openFolder);
+  el('btn-open-file').addEventListener('click', openFile);
+  el('btn-empty-open-file').addEventListener('click', openFile);
+  el('btn-reveal').addEventListener('click', workspace.revealProject);
+  el('btn-close-project').addEventListener('click', async () => {
+    await workspace.closeProject();
+    await renderRecentProjects(recentListEl, openPath);
+  });
+
+  el('tree-filter').addEventListener('input', (event) => tree.filter(event.target.value));
+
+  createSplitter(el('splitter-sidebar'), {
+    hostEl: el('workspace-view'),
+    cssVariable: '--sidebar-width',
+    storageKey: 'dbv-typst-sidebar-width',
+    min: 180,
+    max: 520,
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') closeAllPanels();
+  });
+
+  // Los textos escritos a mano con t() (lista de recientes, etiqueta de tipo de
+  // proyecto) no llevan `data-i18n`: hay que repintarlos al cambiar de idioma.
+  document.addEventListener('dbv-lang-changed', () => {
+    renderRecentProjects(recentListEl, openPath);
+    workspace.renderDocumentBar();
+  });
+
+  await Promise.all([renderAbout(), renderRecentProjects(recentListEl, openPath)]);
 }
 
 bootstrap();

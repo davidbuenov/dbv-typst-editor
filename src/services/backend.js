@@ -1,0 +1,104 @@
+// =============================================================================
+// DBV Typst Editor — Capa de acceso al backend Rust
+// Copyright (c) 2026 David Bueno Vallejo
+// Licensed under the MIT License. See LICENSE for details.
+// Built with dbv-specs-ops · https://github.com/davidbuenov/dbv-specs-ops
+// =============================================================================
+//
+// Único punto del frontend que llama a `invoke`. Dos motivos:
+//   · Convierte la excepción del puente Tauri en el `Result` discriminado que
+//     exigen los estándares de codificación (MASTER_PROMPT §coding_standards),
+//     para que ningún módulo de UI tenga que envolver llamadas en try/catch.
+//   · Concentra los nombres de comando: renombrar uno en Rust se propaga aquí
+//     y en ningún otro sitio.
+
+import { invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
+
+/**
+ * @template T
+ * @typedef {{ok: true, value: T} | {ok: false, error: {kind: string, message: string}}} Result
+ */
+
+/**
+ * Normaliza cualquier fallo del puente al error tipado `{kind, message}`.
+ *
+ * El backend devuelve `AppError`/`TypstError` ya con esa forma; un fallo del
+ * propio puente (comando inexistente, argumentos mal nombrados) llega como
+ * cadena, y se etiqueta como `bridge` para que sea distinguible de un error de
+ * negocio en los mensajes de la interfaz.
+ */
+function normalizeError(raw) {
+  if (raw && typeof raw === 'object' && typeof raw.kind === 'string') {
+    return { kind: raw.kind, message: String(raw.message ?? raw.kind) };
+  }
+  return { kind: 'bridge', message: String(raw?.message ?? raw) };
+}
+
+/**
+ * Invoca un comando Rust y devuelve siempre un `Result`, nunca una excepción.
+ * @template T
+ * @param {string} command
+ * @param {Record<string, unknown>} [args]
+ * @returns {Promise<Result<T>>}
+ */
+export async function call(command, args = {}) {
+  let result;
+  try {
+    result = { ok: true, value: await invoke(command, args) };
+  } catch (error) {
+    result = { ok: false, error: normalizeError(error) };
+  }
+  return result;
+}
+
+/** Suscribe a un evento emitido por el backend. @returns {Promise<() => void>} */
+export function on(eventName, handler) {
+  return listen(eventName, (event) => handler(event.payload));
+}
+
+// ─── Información de la aplicación y del compilador ──────────────────────────
+
+export const getAppInfo = () => call('app_info');
+export const getTypstVersion = () => call('typst_version');
+
+// ─── Ficheros ────────────────────────────────────────────────────────────────
+
+export const readFile = (path) => call('read_file', { path });
+export const writeFile = (path, content) => call('write_file', { path, content });
+export const fileModifiedMs = (path) => call('file_modified_ms', { path });
+export const listDirectory = (path) => call('list_directory', { path });
+export const revealInFileManager = (path) => call('reveal_in_file_manager', { path });
+
+// ─── Diálogos nativos ────────────────────────────────────────────────────────
+
+export const pickTypstFile = () => call('open_file_dialog');
+export const pickProjectFolder = () => call('open_folder_dialog');
+export const pickSaveTarget = (defaultName, filterName, extensions) =>
+  call('save_file_dialog', { defaultName, filterName, extensions });
+
+// ─── Proyecto ────────────────────────────────────────────────────────────────
+
+export const openProject = (path) => call('open_project', { path });
+export const readProjectManifest = (root) => call('read_project_manifest', { root });
+
+// ─── Proyectos recientes ─────────────────────────────────────────────────────
+
+export const getRecentProjects = () => call('get_recent_projects');
+export const addRecentProject = (project) =>
+  call('add_recent_project', {
+    path: project.isSingleFile ? `${project.root}/${project.entrypoint}` : project.root,
+    name: project.name,
+    entrypoint: project.entrypoint ?? null,
+    isSingleFile: Boolean(project.isSingleFile),
+  });
+export const clearRecentProjects = () => call('clear_recent_projects');
+
+// ─── Observador de cambios ───────────────────────────────────────────────────
+
+/** Nombre del evento emitido por `watcher.rs` en cada cambio relevante. */
+export const PROJECT_CHANGE_EVENT = 'project-file-changed';
+
+export const watchProject = (root, activeDocument) =>
+  call('watch_project', { root, activeDocument: activeDocument ?? null });
+export const unwatchProject = () => call('unwatch_project');

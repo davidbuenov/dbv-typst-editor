@@ -14,42 +14,84 @@ const DICTIONARIES = {
   es: {
     'app.tagline': 'Escritura académica y técnica, sencilla. Con Typst.',
     'action.toggleTheme': 'Cambiar tema claro/oscuro',
+    'action.toggleLang': 'Cambiar idioma',
     'action.about': 'Acerca de',
     'action.close': 'Cerrar',
-    'scaffold.heading': 'Andamiaje operativo',
-    'scaffold.text':
-      'El shell de la aplicación arranca correctamente y el puente con el backend responde. El editor y la vista previa llegan en los siguientes slices.',
+    'action.openFolder': 'Abrir carpeta de proyecto',
+    'action.openFile': 'Abrir documento .typ',
+    'action.reveal': 'Mostrar en el explorador',
+    'action.closeProject': 'Cerrar proyecto',
+    'action.save': 'Guardar',
+    'action.saveAs': 'Guardar como…',
+    'action.exportPdf': 'Exportar PDF',
+    'action.newProject': 'Nuevo proyecto',
     'scaffold.appVersion': 'Versión',
     'scaffold.platform': 'Plataforma',
-    'scaffold.bridge': 'Puente Tauri',
     'scaffold.typst': 'Compilador Typst',
     'about.title': 'DBV Typst Editor',
     'about.text':
       'El entorno de escritorio más accesible para el ecosistema Typst. Proyecto en construcción.',
-    'bridge.ok': 'operativo',
-    'bridge.fail': 'sin respuesta',
     'typst.embedded': '(embebido)',
     'typst.fail': 'sidecar no disponible',
+    'empty.heading': '¿Qué quieres escribir hoy?',
+    'empty.text':
+      'Abre una carpeta de proyecto —incluido un repositorio clonado o un proyecto Typst hecho a mano— o un documento .typ suelto.',
+    'recent.title': 'Proyectos recientes',
+    'recent.empty': 'Todavía no has abierto ningún proyecto.',
+    'tree.title': 'Proyecto',
+    'tree.filter': 'Filtrar…',
+    'tree.empty': 'La carpeta está vacía.',
+    'tree.error': 'No se ha podido leer la carpeta.',
+    'tree.noProject': 'Sin proyecto abierto.',
+    'project.none': 'Sin proyecto',
+    'project.dbv': 'proyecto DBV',
+    'project.external': 'proyecto externo',
+    'project.singleFile': 'documento suelto',
+    'project.openError': 'No se ha podido abrir el proyecto',
+    'project.noEntrypoint': 'La carpeta no contiene ningún documento .typ.',
+    'doc.unsaved': 'sin guardar',
+    'doc.openError': 'No se ha podido abrir el documento',
   },
   en: {
     'app.tagline': 'Academic and technical writing made simple. Powered by Typst.',
     'action.toggleTheme': 'Toggle light/dark theme',
+    'action.toggleLang': 'Switch language',
     'action.about': 'About',
     'action.close': 'Close',
-    'scaffold.heading': 'Scaffolding is up',
-    'scaffold.text':
-      'The application shell starts correctly and the backend bridge responds. The editor and preview arrive in the next slices.',
+    'action.openFolder': 'Open project folder',
+    'action.openFile': 'Open .typ document',
+    'action.reveal': 'Show in file manager',
+    'action.closeProject': 'Close project',
+    'action.save': 'Save',
+    'action.saveAs': 'Save as…',
+    'action.exportPdf': 'Export PDF',
+    'action.newProject': 'New project',
     'scaffold.appVersion': 'Version',
     'scaffold.platform': 'Platform',
-    'scaffold.bridge': 'Tauri bridge',
     'scaffold.typst': 'Typst compiler',
     'about.title': 'DBV Typst Editor',
     'about.text':
       'The most user-friendly desktop environment for the Typst ecosystem. Work in progress.',
-    'bridge.ok': 'up',
-    'bridge.fail': 'no response',
     'typst.embedded': '(embedded)',
     'typst.fail': 'sidecar unavailable',
+    'empty.heading': 'What do you want to write today?',
+    'empty.text':
+      'Open a project folder — including a cloned repository or a hand-made Typst project — or a standalone .typ document.',
+    'recent.title': 'Recent projects',
+    'recent.empty': 'You have not opened any project yet.',
+    'tree.title': 'Project',
+    'tree.filter': 'Filter…',
+    'tree.empty': 'This folder is empty.',
+    'tree.error': 'The folder could not be read.',
+    'tree.noProject': 'No project open.',
+    'project.none': 'No project',
+    'project.dbv': 'DBV project',
+    'project.external': 'external project',
+    'project.singleFile': 'standalone document',
+    'project.openError': 'The project could not be opened',
+    'project.noEntrypoint': 'This folder contains no .typ document.',
+    'doc.unsaved': 'unsaved',
+    'doc.openError': 'The document could not be opened',
   },
 };
 
@@ -100,11 +142,22 @@ export function setLanguage(language) {
     // Ver comentario en resolveInitialLanguage().
   }
   applyTranslations();
+  // Los textos que un módulo escribe a mano con t() (estados vacíos, listas
+  // repintadas) no llevan atributo `data-i18n`: este evento es su única forma
+  // de enterarse del cambio de idioma.
+  document.dispatchEvent(new CustomEvent('dbv-lang-changed', { detail: language }));
+}
+
+/** Alterna entre los dos idiomas soportados. @returns {'es'|'en'} */
+export function toggleLanguage() {
+  setLanguage(currentLanguage === 'es' ? 'en' : 'es');
+  return currentLanguage;
 }
 
 /**
  * Aplica las traducciones a los elementos marcados con `data-i18n`
- * (contenido) y `data-i18n-title` (tooltip / etiqueta accesible).
+ * (contenido), `data-i18n-title` (tooltip / etiqueta accesible) y
+ * `data-i18n-placeholder` (campos de texto).
  */
 export function applyTranslations(root = document) {
   document.documentElement.lang = currentLanguage;
@@ -116,5 +169,8 @@ export function applyTranslations(root = document) {
     const label = t(el.dataset.i18nTitle);
     el.title = label;
     el.setAttribute('aria-label', label);
+  }
+  for (const el of root.querySelectorAll('[data-i18n-placeholder]')) {
+    el.placeholder = t(el.dataset.i18nPlaceholder);
   }
 }

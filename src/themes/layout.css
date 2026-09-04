@@ -1,0 +1,359 @@
+/* =============================================================================
+   DBV Typst Editor — Layout del espacio de trabajo
+   Copyright (c) 2026 David Bueno Vallejo
+   Licensed under the MIT License. See LICENSE for details.
+   Built with dbv-specs-ops · https://github.com/davidbuenov/dbv-specs-ops
+
+   Explorador de proyecto · barra de documento · editor · vista previa.
+   Separado de base.css (shell) para que cada fichero tenga una sola razón
+   para cambiar: base.css es el marco, este fichero es el área de trabajo.
+   ============================================================================= */
+
+/* ─── Cabecera: proyecto activo ───────────────────────────────────────────── */
+.app-header__project {
+  font-size: 13px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 40vw;
+}
+
+.app-header__badge {
+  font-size: 11px;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 1px 8px;
+  white-space: nowrap;
+}
+
+.app-header__badge:empty {
+  display: none;
+}
+
+.app-header__group {
+  display: flex;
+  gap: 6px;
+}
+
+.button--ghost {
+  background: transparent;
+}
+
+.button--primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.button--primary:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+/* ─── Estado sin proyecto (proto-lanzador) ────────────────────────────────── */
+.app-body {
+  display: block;
+  padding: 0;
+  overflow: hidden;
+}
+
+.empty-view {
+  height: 100%;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  overflow: auto;
+}
+
+.empty-view__card {
+  width: min(620px, 100%);
+  padding: 28px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px var(--shadow);
+}
+
+.empty-view__heading {
+  margin: 0 0 8px;
+  font-size: 20px;
+}
+
+.empty-view__text {
+  margin: 0 0 20px;
+  color: var(--text-secondary);
+}
+
+.empty-view__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.empty-view__subheading {
+  margin: 0 0 10px;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.recent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.recent-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition);
+}
+
+.recent-item:hover,
+.recent-item:focus-visible {
+  background: var(--bg-tertiary);
+  border-color: var(--border);
+  outline: none;
+}
+
+.recent-item__name {
+  font-weight: 600;
+}
+
+.recent-item__path {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  word-break: break-all;
+}
+
+.recent-list__empty {
+  color: var(--text-muted);
+  font-size: 12px;
+  margin: 0;
+}
+
+/* ─── Espacio de trabajo ──────────────────────────────────────────────────── */
+.workspace {
+  height: 100%;
+  display: grid;
+  grid-template-columns: var(--sidebar-width, 260px) 5px 1fr;
+  min-height: 0;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border);
+}
+
+.sidebar__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px 6px;
+}
+
+.sidebar__title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.sidebar__filter {
+  margin: 0 10px 8px;
+  padding: 5px 8px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-family: inherit;
+  font-size: 12px;
+}
+
+.sidebar__filter:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+/* ─── Árbol de proyecto ───────────────────────────────────────────────────── */
+.tree {
+  flex: 1 1 auto;
+  overflow: auto;
+  padding-bottom: 12px;
+  font-size: 13px;
+}
+
+.tree__message {
+  margin: 8px 12px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.tree-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px 3px 0;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.tree-row:hover {
+  background: var(--bg-tertiary);
+}
+
+.tree-row:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.tree-row.is-active {
+  background: var(--quote-bg);
+  color: var(--accent);
+}
+
+.tree-row.is-dimmed {
+  color: var(--text-muted);
+  cursor: default;
+}
+
+.tree-row--hidden {
+  display: none;
+}
+
+.tree-row__toggle {
+  width: 10px;
+  flex: 0 0 auto;
+  color: var(--text-muted);
+  transition: transform var(--transition);
+}
+
+.tree-row__toggle.is-expanded {
+  transform: rotate(90deg);
+}
+
+.tree-row__icon {
+  flex: 0 0 auto;
+  font-size: 11px;
+}
+
+.tree-row__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ─── Separadores redimensionables ────────────────────────────────────────── */
+.splitter {
+  background: var(--border);
+  cursor: col-resize;
+  transition: background var(--transition);
+}
+
+.splitter:hover,
+.splitter.is-dragging {
+  background: var(--accent);
+}
+
+/* ─── Documento y editor ──────────────────────────────────────────────────── */
+.document {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-width: 0;
+  min-height: 0;
+}
+
+.document__bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  min-width: 0;
+}
+
+.document__name {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.document__dirty {
+  font-size: 11px;
+  color: var(--code-function);
+}
+
+.document__path {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.editor {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+}
+
+.editor__area {
+  flex: 1 1 auto;
+  width: 100%;
+  border: 0;
+  resize: none;
+  padding: 14px 16px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.6;
+  tab-size: 2;
+}
+
+.editor__area:focus {
+  outline: none;
+}
+
+/* ─── Aviso flotante ──────────────────────────────────────────────────────── */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%);
+  max-width: min(640px, calc(100vw - 32px));
+  padding: 8px 14px;
+  border-radius: var(--radius);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 24px var(--shadow);
+  font-size: 13px;
+  z-index: 20;
+}
+
+.toast.is-error {
+  border-color: var(--code-tag);
+  color: var(--code-tag);
+}

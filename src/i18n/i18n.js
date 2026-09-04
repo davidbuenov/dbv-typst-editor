@@ -22,11 +22,14 @@ const DICTIONARIES = {
     'scaffold.appVersion': 'Versión',
     'scaffold.platform': 'Plataforma',
     'scaffold.bridge': 'Puente Tauri',
+    'scaffold.typst': 'Compilador Typst',
     'about.title': 'DBV Typst Editor',
     'about.text':
       'El entorno de escritorio más accesible para el ecosistema Typst. Proyecto en construcción.',
     'bridge.ok': 'operativo',
     'bridge.fail': 'sin respuesta',
+    'typst.embedded': '(embebido)',
+    'typst.fail': 'sidecar no disponible',
   },
   en: {
     'app.tagline': 'Academic and technical writing made simple. Powered by Typst.',
@@ -39,11 +42,14 @@ const DICTIONARIES = {
     'scaffold.appVersion': 'Version',
     'scaffold.platform': 'Platform',
     'scaffold.bridge': 'Tauri bridge',
+    'scaffold.typst': 'Typst compiler',
     'about.title': 'DBV Typst Editor',
     'about.text':
       'The most user-friendly desktop environment for the Typst ecosystem. Work in progress.',
     'bridge.ok': 'up',
     'bridge.fail': 'no response',
+    'typst.embedded': '(embedded)',
+    'typst.fail': 'sidecar unavailable',
   },
 };
 

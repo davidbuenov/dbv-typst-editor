@@ -30,6 +30,29 @@ async function fetchAppInfo() {
   return result;
 }
 
+/**
+ * Consulta la versión del compilador Typst embebido como sidecar.
+ *
+ * Criterio de aceptación del Slice 2: prueba de que el binario oficial viaja
+ * dentro de la app y se puede invocar desde Rust sin que el WebView tenga
+ * permisos de shell.
+ *
+ * @returns {Promise<{ok: true, value: string} | {ok: false, error: string}>}
+ */
+async function fetchTypstVersion() {
+  let result;
+  try {
+    const version = await invoke('typst_version');
+    result = { ok: true, value: version };
+  } catch (error) {
+    // El error del backend es tipado: {kind, message}. Se muestra el mensaje
+    // legible si viene, y la forma cruda si no, para no ocultar diagnósticos.
+    const message = error?.message ?? error?.kind ?? String(error);
+    result = { ok: false, error: message };
+  }
+  return result;
+}
+
 /** Pinta en la tarjeta de andamiaje el resultado del puente con el backend. */
 function renderAppInfo(result) {
   const versionEl = document.getElementById('fact-app-version');
@@ -46,6 +69,18 @@ function renderAppInfo(result) {
   platformEl.textContent = result.value.platform;
   bridgeEl.textContent = t('bridge.ok');
   bridgeEl.style.color = 'var(--code-string)';
+}
+
+/** Pinta la versión del compilador Typst embebido. */
+function renderTypstVersion(result) {
+  const el = document.getElementById('fact-typst');
+  if (!result.ok) {
+    el.textContent = `${t('typst.fail')} — ${result.error}`;
+    el.style.color = 'var(--code-tag)';
+    return;
+  }
+  el.textContent = `${result.value} ${t('typst.embedded')}`;
+  el.style.color = 'var(--code-string)';
 }
 
 function wireThemeToggle() {
@@ -79,7 +114,12 @@ async function bootstrap() {
   wireThemeToggle();
   wireAboutPanel();
   wireGlobalShortcuts();
-  renderAppInfo(await fetchAppInfo());
+
+  // Ambas consultas son independientes: se lanzan en paralelo para no encadenar
+  // el arranque del sidecar detrás del de la información de la app.
+  const [appInfo, typstVersion] = await Promise.all([fetchAppInfo(), fetchTypstVersion()]);
+  renderAppInfo(appInfo);
+  renderTypstVersion(typstVersion);
 }
 
 bootstrap();

@@ -89,10 +89,17 @@ cd dbv-typst-editor
 # Install frontend dependencies
 npm install
 
-# Install Tauri prerequisites (see official docs for your OS)
+# Download the official Typst compiler that ships inside the app (sidecar).
+# REQUIRED step: without it the application cannot compile documents.
+npm run vendor:typst
+
+# (optional) Verify the sidecar against the real binary: 8 checks
+npm run verify:typst
 ```
 
-> Full build and packaging instructions will be added during `/build`.
+The Typst binary is **not committed to the repository**: it is downloaded from the official release pinned in `scripts/vendor-typst.mjs`. The same step runs in CI before packaging.
+
+Additional requirements: the [Tauri v2 prerequisites](https://v2.tauri.app/start/prerequisites/) for your operating system.
 
 ---
 

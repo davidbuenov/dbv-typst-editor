@@ -11,6 +11,8 @@
     "build:vite": "vite build",
     "preview:vite": "vite preview",
     "tauri": "tauri",
+    "vendor:typst": "node scripts/vendor-typst.mjs",
+    "verify:typst": "node scripts/verify-typst-sidecar.mjs",
     "test": "cargo test --manifest-path src-tauri/Cargo.toml --lib",
     "icons": "node scripts/generate-base-icon.mjs && tauri icon src-tauri/icons/base.png"
   },

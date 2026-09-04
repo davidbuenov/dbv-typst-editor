@@ -10,6 +10,7 @@
 // monolito de DBV Markdown Reader.
 
 pub mod commands;
+pub mod typst_engine;
 
 /// Arranca la aplicación. Invocado desde `main.rs`.
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -17,7 +18,10 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![commands::app_info::app_info])
+        .invoke_handler(tauri::generate_handler![
+            commands::app_info::app_info,
+            typst_engine::typst_version,
+        ])
         .run(tauri::generate_context!())
         .expect("error al arrancar la aplicación DBV Typst Editor");
 }

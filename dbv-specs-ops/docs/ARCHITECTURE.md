@@ -26,7 +26,7 @@ Estos dos principios explican por qué §7.6 (antes descrita como "marketplace d
 Aunque el Universe Browser completo es Beta, el MVP **no debe tomar decisiones que dificulten esa integración futura**. Restricciones concretas y verificables durante `/build`:
 
 - **R-MVP-1 — Catálogo de plantillas tras una abstracción, no rutas fijas.** El lanzador y el asistente leen las plantillas a través de un `TemplateSource` con una forma de dato **compatible con las entradas de `index.json`** (name, version, authors, description, categories, `template{path,entrypoint,thumbnail}`); en el MVP existe una sola implementación (plantillas locales curadas), y en Beta se añade la del catálogo remoto cacheado **sin tocar el lanzador ni el asistente**.
-- **R-MVP-2 — Scaffolding siempre vía `typst init`.** Nunca copiar directorios a mano: `typst init` acepta indistintamente una ruta local (MVP) y un `@preview/nombre:versión` (Beta), así que el mismo camino de código sirve para plantillas propias y comunitarias.
+- **R-MVP-2 — Scaffolding siempre vía `typst init`.** Nunca copiar directorios a mano. ⚠️ *Mecanismo corregido en el Slice 2 tras verificar contra el binario real:* `typst init` **solo acepta especificadores de paquete**, no rutas de fichero. Las plantillas propias se sirven como paquetes del namespace `@local` desde un directorio propio de DBV (`typst init --package-path <dir> @local/<n>:<v>`), y las comunitarias como `@preview/<n>:<v>` — el mismo camino de código sigue sirviendo para ambas, que es lo que esta restricción persigue.
 - **R-MVP-3 — Proyectos ajenos como ciudadanos de primera clase** (`SPECIFICATIONS.md` RF-02b). El manifiesto `settings/dbv-project.toml` es opcional en todo el flujo: abrir un repositorio Git clonado, un proyecto Typst preexistente o uno generado por `typst init` fuera de DBV debe funcionar sin diferencias, salvo las funciones que dependen intrínsecamente de metadatos DBV. **Ninguna operación debe escribir el manifiesto sin acción explícita del usuario.**
 - **R-MVP-4 — El `typst_engine` no asume proyectos DBV.** Compilar, exportar y consultar operan sobre rutas de fichero, no sobre el modelo de Proyecto — para que el mismo motor sirva a un `.typ` suelto, a un proyecto ajeno y a uno creado por el asistente.
 
@@ -213,7 +213,7 @@ Leyenda: 🟢 Reutilizable sin cambios · 🟡 Adaptación menor · 🔴 Reempla
 | **[NUEVO]** Distribución del sidecar: hay que vendorizar y mantener actualizado un binario por plataforma (Windows/Linux/macOS) dentro del instalador, con su propia gestión de versión, en vez de una dependencia de Cargo declarativa. | Media | Automatizar en CI la descarga de los binarios de release oficiales (nombrados por *target triple*, compatibles con la convención de sidecar de Tauri — ver `TYPST_ECOSYSTEM_RESEARCH.md` §1.1) y su colocación en `src-tauri/binaries/` antes de `tauri build`. |
 | CodeMirror 6 es ES Modules-first — incompatible con el patrón "sin bundler" de DBV Markdown Reader. | Media | Introducir Vite solo para el frontend del Typst Editor — cambio consciente, ver §7.1. |
 | Sincronización editor↔preview por posición real y outline estructural dependen de que `typst query`/`typst-ide` (vía `tinymist` en Beta) expongan información de posición suficiente vía CLI/LSP; no hay precedente reutilizable directo (el de Markdown usa anclas de heading). | Media | Spike de validación en `/build` (ver `TYPST_ECOSYSTEM_RESEARCH.md` §1.5); plan B con `tinymist` si `typst query` no basta. Se pospone a Beta. |
-| Tamaño del instalador: vendorizar el binario `typst` (incluye fuentes/motor completo) por cada plataforma soportada puede superar el objetivo `<30MB`. | Media | Medir en spike temprano de `/build`; el binario CLI oficial no es necesariamente más ligero que las crates que sustituye — el objetivo de tamaño se valida igual, solo cambia qué se mide. |
+| ~~Tamaño del instalador~~ → **riesgo CERRADO y medido en el Slice 2: 18 MB**, por debajo incluso del objetivo original de 30 MB (que el usuario ya había relajado). | — | Hallazgo: el peso problemático no era el compilador Typst (51 MB sin comprimir, ~14 MB tras la compresión LZMA de NSIS) sino `webviewInstallMode: offlineInstaller` heredado de DBV Markdown Reader, que embebe el instalador completo de WebView2 (~200 MB) y llevaba el total a **268 MB**. Cambiado a `downloadBootstrapper`. Ver contrapartida en §7.15. |
 | **[NUEVO]** No existe comando CLI de "actualizar paquete" (`TYPST_ECOSYSTEM_RESEARCH.md` §2.4) — el Package Explorer debe reescribir el `#import` él mismo. | Baja | Documentado como decisión de diseño en §7.6.2; cubrir con test de la función de reescritura de versión. |
 | **[NUEVO]** Si en el futuro DBV enriquece plantillas *comunitarias* (no propias) con `dbv-template.toml`, un desajuste entre la versión que DBV curó y una versión más nueva del paquete comunitario puede producir metadatos obsoletos o un formulario que ya no corresponde a los ficheros reales de la plantilla. | Baja-Media | No co-ubicar el sidecar dentro de la caché de Typst (fuera del control de DBV); usar un overlay propio indexado por `(namespace/nombre, versión)` con degradación limpia a "sin formulario, solo `typst init`" si no hay overlay para la versión instalada — ver §7.6.3. |
 | **[NUEVO] Alcance del MVP creció tras el Spec Addendum** (lanzador, asistente de proyecto, Project Archive pasan a ser MVP). | Media | El core técnico no cambia; son capas de UI/orquestación sobre infraestructura ya heredada — ver estimación de complejidad actualizada en §8. Confirmar con el usuario expectativa de plazo. |
@@ -263,11 +263,11 @@ Justificación:
 
 | Funcionalidad de la app | Subcomando | Notas |
 | --- | --- | --- |
-| Crear proyecto desde plantilla (§7.6.4) | `typst init <template> <dir>` | Copia literal, sin sustitución de variables — el asistente de DBV post-procesa después |
+| Crear proyecto desde plantilla (§7.6.4) | `typst init --package-path <dir> @local/<n>:<v> <destino>` (propias) · `typst init @preview/<n>:<v> <destino>` (comunidad) | ⚠️ **Corregido en Slice 2:** `init` **no acepta rutas de fichero**, solo especificadores de paquete. Copia literal, sin sustitución de variables — el asistente de DBV post-procesa después |
 | Compilación / preview en vivo (§7.3) | `typst compile <input> [output] --format {svg,pdf} [--pages ...]` | *One-shot* por ciclo de debounce (recomendado, ver `TYPST_ECOSYSTEM_RESEARCH.md` §1.4) en vez de `typst watch` en el MVP |
 | Exportación PDF final (RF-10) | `typst compile input.typ -` | Escribe el PDF a stdout — sin fichero temporal |
 | Resolución de paquetes `@preview/*` | Transparente dentro de `compile`/`init` | Sin comando dedicado; no hay "instalar paquete" ni "actualizar paquete" como operación de CLI (ver `TYPST_ECOSYSTEM_RESEARCH.md` §2.4) |
-| Outline estructural (§7.8, Beta) | `typst query <input> heading [--field ...]` | Confirmar en spike si el JSON incluye posición de página utilizable para navegación |
+| Outline estructural (§7.8, Beta) | `typst eval 'query(heading).map(...)' --in <input> --format json` | ⚠️ **Corregido en Slice 2:** `typst query` está deprecado en 0.15.1 y no serializa la posición. ✅ **Spike cerrado:** `eval` sí devuelve nivel, texto, **página y coordenada `y`** por encabezado |
 | Terminal avanzado (§7.14, nuevo) | Cualquier subcomando oficial | Exposición directa para usuarios avanzados |
 
 **Consecuencias sobre decisiones ya tomadas en este documento (a propagar):**
@@ -386,7 +386,7 @@ Vista dedicada, visual y **orientada a proyecto**, distinta del Package Explorer
 
 **"Capa de Plantillas DBV" (`dbv-template.toml`) — MVP, plantillas propias de DBV:**
 
-Cada plantilla propia curada de DBV es un **proyecto Typst completo** (no solo un `.typ`) descrito con el **mismo formato oficial** `typst.toml` + sección `[template]` (path/entrypoint/thumbnail) que usa el propio ecosistema Typst — por compatibilidad y para poder, si se desea en el futuro, publicarlas también en el `typst/packages` oficial sin reescritura. Como Typst no tiene concepto de "campos de formulario para un asistente" ni de metadatos académicos, se añade un **fichero sidecar propio y opcional** `dbv-template.toml` (junto al `typst.toml`, nunca sustituyéndolo — coherente con el principio Universe-First de §0.1: DBV **enriquece**, no reemplaza) con:
+Cada plantilla propia curada de DBV es un **proyecto Typst completo** (no solo un `.typ`) descrito con el **mismo formato oficial** `typst.toml` + sección `[template]` (path/entrypoint/thumbnail) que usa el propio ecosistema Typst, **desplegada dentro de un árbol de namespace de paquete** (`<dir-plantillas-dbv>/local/<nombre>/<versión>/typst.toml`) para poder invocarla con `typst init --package-path <dir-plantillas-dbv> @local/<nombre>:<versión>` — mecanismo verificado en el Slice 2, ver `TYPST_ECOSYSTEM_RESEARCH.md` §1.2 — por compatibilidad y para poder, si se desea en el futuro, publicarlas también en el `typst/packages` oficial sin reescritura. Como Typst no tiene concepto de "campos de formulario para un asistente" ni de metadatos académicos, se añade un **fichero sidecar propio y opcional** `dbv-template.toml` (junto al `typst.toml`, nunca sustituyéndolo — coherente con el principio Universe-First de §0.1: DBV **enriquece**, no reemplaza) con:
 
 - `dbv_category` — taxonomía académica propia (§ más abajo).
 - `[[fields]]` — campos del formulario del asistente de creación (§7.6.4).
@@ -478,7 +478,16 @@ Cada asistente puede abrir un mini-formulario (vía `registerPanel()`) para los 
 
 ### 7.8. Panel de navegación estructural (Outline)
 
-Sustituye la fuente de datos del patrón `buildToc`/`setupScrollSpy` (§3 fila 20): en vez de parsear encabezados HTML, invoca `typst query <input> heading` (§7.2, mismo sidecar CLI) para obtener los encabezados del documento compilado en JSON, permitiendo clic→navegación tanto en el editor como en la vista previa. *(Spike pendiente en `/build`, ver `TYPST_ECOSYSTEM_RESEARCH.md` §1.5: confirmar que el JSON de `query` para el selector `heading` incluye información de posición/página suficiente para la navegación; si no, evaluar `tinymist` (Beta, LSP) como fuente alternativa de outline.)* Beta.
+Sustituye la fuente de datos del patrón `buildToc`/`setupScrollSpy` (§3 fila 20): en vez de parsear encabezados HTML, invoca el sidecar (§7.2) para obtener los encabezados del documento compilado en JSON, permitiendo clic→navegación tanto en el editor como en la vista previa.
+
+✅ **Spike cerrado en el Slice 2** (adelantado respecto al plan, que lo situaba en Beta). Comando verificado contra el binario real:
+
+```bash
+typst eval 'query(heading).map(h => (nivel: h.level, texto: h.body, pagina: h.location().page(), y: h.location().position().y))' \
+  --in main.typ --format json
+```
+
+Devuelve por cada encabezado: nivel, texto, **número de página y coordenada vertical** — suficiente para la navegación clic→posición sin necesidad de `tinymist` como plan B. Dos avisos de implementación: `typst query` está **deprecado** en 0.15.1 (usar `eval`), y el campo `texto` llega como objeto anidado `{func, text}`, no como cadena plana. Detalle en `TYPST_ECOSYSTEM_RESEARCH.md` §1.5. Beta.
 
 ### 7.9. Modos de escritura (Escritura / Edición / Dividido / Lectura)
 
@@ -507,6 +516,20 @@ Pantalla inicial nueva (no existe en DBV Markdown Reader, que abre directamente 
 ### 7.14. Terminal avanzado
 
 Panel opcional, oculto por defecto (coherente con la filosofía "el usuario no debe ver código si no quiere", `SPECIFICATIONS.md` §2), que expone una consola donde un usuario avanzado puede ejecutar directamente subcomandos oficiales de Typst (`compile`, `query`, `fonts`...) contra el proyecto activo, mostrando la salida (stdout/stderr) dentro de la propia app. Arquitectura: reutiliza exactamente el mismo mecanismo de sidecar de §7.2 (`tauri_plugin_shell::process::Command::sidecar("typst")`), sin lógica adicional de parseo — se limita a mostrar la salida cruda con formato monoespaciado. No sustituye a ningún flujo guiado de la app (creación de proyecto, exportar, etc.); es una vía de escape explícita para quien prefiera trabajar con comandos. Fase: Beta (bajo coste una vez existe la infraestructura de sidecar del MVP, pero es explícitamente una funcionalidad "avanzada", no del flujo principal).
+
+
+### 7.15. Modo de instalación de WebView2 en Windows (medido en el Slice 2)
+
+**Decisión (pendiente de confirmación del usuario):** `webviewInstallMode: downloadBootstrapper` en vez del `offlineInstaller` que hereda DBV Markdown Reader.
+
+| Modo | Instalador resultante (medido) | Instala sin conexión |
+| --- | --- | --- |
+| `offlineInstaller` (heredado) | **268 MB** | Sí, siempre |
+| `downloadBootstrapper` (elegido) | **18 MB** | Solo si WebView2 ya está en el sistema |
+
+Justificación: WebView2 viene preinstalado en Windows 11 y en Windows 10 actualizado, así que embeber su instalador completo (~200 MB) es peso muerto para la gran mayoría de usuarios. La promesa offline-first del producto es sobre **usar** la aplicación —compilar documentos sin red, que se cumple igual— no sobre instalarla sin red. El caso afectado (máquina sin WebView2 *y* sin conexión durante la instalación) es cada año más raro.
+
+*Si el usuario prefiere priorizar la instalación 100% offline, revertir es cambiar una línea en `tauri.windows.conf.json`, a cambio de multiplicar por 15 el tamaño del instalador.*
 
 ---
 

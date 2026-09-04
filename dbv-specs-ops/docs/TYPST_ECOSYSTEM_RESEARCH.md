@@ -1,7 +1,9 @@
 # 🔬 Technical Research Report — Typst Ecosystem
 
 > **Encargo:** investigación dedicada del ecosistema Typst (CLI, sistema de paquetes, Typst Universe, registros oficiales) antes de pasar de Specs a Plan, solicitada explícitamente por el usuario el 2026-09-04.
-> **Método:** documentación oficial de Typst (`typst.app/docs`), el repositorio oficial `typst/packages` (manifiesto, README, GitHub Actions de publicación), páginas de manual (`man`) generadas a partir del `--help` real del CLI, y el propio sitio `typst.app/universe`. Sin acceso a build/ejecución local del CLI en esta sesión — los detalles marcados **(a verificar en `/build`)** deben confirmarse contra una instalación real antes de comprometerse en código.
+> **Método:** documentación oficial de Typst (`typst.app/docs`), el repositorio oficial `typst/packages` (manifiesto, README, GitHub Actions de publicación), páginas de manual (`man`) generadas a partir del `--help` real del CLI, y el propio sitio `typst.app/universe`.
+>
+> ✅ **Verificado contra el binario real en el Slice 2 (2026-09-04, Typst v0.15.1).** El script `scripts/verify-typst-sidecar.mjs` ejecuta 8 comprobaciones automáticas sobre el sidecar vendorizado y es re-ejecutable (`npm run verify:typst`). **Tres supuestos de este informe resultaron falsos y están corregidos abajo, marcados como `⚠️ CORREGIDO (Slice 2)`.** El resto se confirmó tal cual.
 > **Consumidores de este informe:** `ARCHITECTURE.md` (decisiones §7.2, §7.6, §7.8, §7.14) y `SPECIFICATIONS.md` (RF de exploración de paquetes/plantillas y terminal avanzado).
 
 ---
@@ -30,7 +32,18 @@ Fuentes: [github.com/typst/typst](https://github.com/typst/typst), [typst.app/op
 typst init [OPTIONS] <TEMPLATE> [DIR]
 ```
 
-- `<TEMPLATE>`: especificador de paquete `@preview/nombre[:versión]` (si se omite versión, usa la última) **o** una ruta local a un directorio de plantilla — *"supports both local and published templates"*.
+- `<TEMPLATE>`: especificador de paquete `@preview/nombre[:versión]` (si se omite versión, usa la última) **o** una plantilla local.
+
+> ⚠️ **CORREGIDO (Slice 2).** La frase del `--help` *"Supports both local and published templates"* **no** significa que acepte una ruta de fichero. Ejecutar `typst init ./mi-plantilla destino` falla con:
+> `error: package specification must start with '@'`
+>
+> "Local" se refiere al **namespace `@local`** del sistema de paquetes. La forma verificada de usar una plantilla propia sin escribir en el directorio de datos del usuario es:
+>
+> ```bash
+> typst init --package-path <dir-de-plantillas-dbv> @local/<nombre>:<versión> <destino>
+> ```
+>
+> donde `<dir-de-plantillas-dbv>` contiene el árbol `local/<nombre>/<versión>/` con su `typst.toml`. Verificado en `V-07`. **Consecuencia arquitectónica:** las plantillas curadas de DBV deben distribuirse con esa estructura de namespace de paquete, no como carpetas sueltas — ver `ARCHITECTURE.md` §7.6.3.
 - `[DIR]`: directorio destino, opcional; por defecto usa el nombre de la plantilla.
 - Flags: `--package-path <DIR>` / `--package-cache-path <DIR>` (también vía `TYPST_PACKAGE_PATH` / `TYPST_PACKAGE_CACHE_PATH`).
 - **Comportamiento interno confirmado:** copia literal del contenido de `template.path` (declarado en el `typst.toml` de la plantilla) al directorio destino. **No hay sustitución de variables/tokens integrada en el propio comando.** Esto confirma que el asistente de creación de proyecto de DBV (formulario título/autor/tutor...) debe implementarse como un **paso posterior** a `typst init`, no como parte de él — ver `ARCHITECTURE.md` §7.6.4.
@@ -76,7 +89,27 @@ Compila el documento y evalúa un *selector* (una etiqueta como `<nota>`, o un s
 - `--format {json,yaml}`, `--pretty`.
 - Ejemplo oficial: `typst query --field value --one example.typ "<note>"`.
 
-**Aplicación directa:** es el mecanismo propuesto para el panel de navegación estructural (§7.8) — `typst query documento.typ heading` debería devolver los encabezados del documento compilado. **(a verificar en `/build`):** confirmar si el JSON de un selector `heading` incluye información de posición/página utilizable para navegación clic→ubicación (Typst expone `location()` como introspección del lenguaje; falta confirmar si `query` la serializa de forma directamente consumible sin escribir código Typst auxiliar en la propia plantilla).
+> ⚠️ **CORREGIDO (Slice 2), dos hallazgos:**
+>
+> **1. `typst query` está DEPRECADO en v0.15.1.** El propio CLI lo avisa al ejecutarlo:
+> `warning: the "typst query" subcommand is deprecated` · `hint: use "typst eval 'query(heading)' --in main.typ" instead`.
+> Sigue funcionando, pero el camino canónico es `typst eval`.
+>
+> **2. SPIKE DEL OUTLINE RESUELTO — y a favor.** `query --field location` devuelve `[]` (la localización no se serializa por esa vía), pero **`typst eval` sí da todo lo necesario para la navegación clic→posición**:
+>
+> ```bash
+> typst eval 'query(heading).map(h => (nivel: h.level, texto: h.body, pagina: h.location().page(), y: h.location().position().y))' \
+>   --in main.typ --format json
+> ```
+>
+> Salida real verificada (`V-06`):
+> `[{nivel:1, texto:…, pagina:1, y:"70.87pt"}, {nivel:2, …, pagina:1, y:"112.13pt"}, {nivel:1, …, pagina:2, y:"70.87pt"}]`
+>
+> Es decir: nivel, texto, **número de página y coordenada vertical** por encabezado. El riesgo del outline (§7.8) queda **cerrado antes de Beta**: no hace falta `tinymist` como plan B ni inyectar código Typst auxiliar en las plantillas.
+>
+> **3. Detalle de implementación:** el campo `body` de un encabezado **no es una cadena plana**, es un objeto anidado `{func: "text", text: "…"}`. Hay que aplanarlo al construir el árbol del outline.
+
+**Aplicación directa:** panel de navegación estructural (§7.8) mediante `typst eval`, no `typst query`.
 
 Fuentes: [typst.app/docs/reference/introspection/query](https://typst.app/docs/reference/introspection/query/), [manpages.opensuse.org — typst-query(1)](https://manpages.opensuse.org/Tumbleweed/typst/typst-query.1.en.html).
 

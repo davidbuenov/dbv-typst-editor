@@ -1,7 +1,7 @@
 # 🏗 Arquitectura Técnica: DBV Typst Editor
 
 > **Fase:** `/plan` (Planificación Técnica) — Informe de análisis de reutilización sobre DBV Markdown Reader
-> **Estado:** Borrador para validación — v3 (incorpora Spec Addendum, Additional Specification Clarification, TYPST CLI INTEGRATION y el research phase dedicado del usuario)
+> **Estado:** Borrador para validación — v4 (incorpora Spec Addendum, Additional Specification Clarification, TYPST CLI INTEGRATION, el research phase dedicado y el feedback de posicionamiento del usuario del 2026-09-04)
 > **Última Revisión:** 2026-09-04
 > **Fuente analizada:** `d:/Programacion/github-davidbuenov/dbv-md-reader` (v0.15.0, commit `23fccad`) + investigación del ecosistema Typst en [`TYPST_ECOSYSTEM_RESEARCH.md`](./TYPST_ECOSYSTEM_RESEARCH.md)
 
@@ -11,11 +11,20 @@
 
 DBV Markdown Reader es una base de reutilización **excelente en infraestructura de aplicación** (shell Tauri, ciclo de vida de ficheros, empaquetado, auto-actualización, i18n, theming) pero **insuficiente en el núcleo de edición**: es fundamentalmente un *visor* con capacidad de edición mínima (un `<textarea>` plano), mientras que DBV Typst Editor necesita ser una herramienta de escritura orientada a documento/proyecto desde el día 1 (ver Spec Addendum en `SPECIFICATIONS.md` §2: "para Typst lo que Obsidian es para Markdown", no un editor de código para desarrolladores). La integración con Typst en sí se resuelve **vía el CLI oficial vendorizado como sidecar de Tauri** (§7.2, decisión explícita del usuario, respaldada por la investigación de `TYPST_ECOSYSTEM_RESEARCH.md`), no embebiendo las crates Rust del compilador.
 
+### 0.1. Principios arquitectónicos guía
+
+Confirmados explícitamente por el usuario el 2026-09-04 tras revisar el informe de investigación; cualquier decisión de diseño posterior debe poder justificarse contra estos dos principios:
+
+1. **Reparto de responsabilidades Typst ↔ DBV.** Typst aporta la infraestructura (compilador, gestión de paquetes, inicialización de plantillas, caché, el propio ecosistema); **DBV Typst Editor aporta la experiencia** (gestión de proyectos, flujos académicos, exploración visual, productividad). El objetivo del producto no es "otra implementación de Typst", es **"el mejor cliente de escritorio para el ecosistema Typst"** — posicionamiento explícito del usuario, que sustituye a cualquier formulación anterior tipo "editor de código con soporte Typst".
+2. **Universe-First.** Siempre que sea posible, preferir consumir recursos oficiales del ecosistema Typst (`index.json`, paquetes/plantillas oficiales, flujos del propio CLI) antes que crear un registro paralelo propio de DBV. Solo se construye infraestructura propia cuando aporta un valor claro y verificable a la experiencia del usuario final (p. ej. el sidecar `dbv-template.toml`, §7.6.3 — enriquece, nunca sustituye, al `typst.toml` oficial).
+
+Estos dos principios explican por qué §7.6 (antes descrita como "marketplace de plantillas", una funcionalidad más entre otras) se reencuadra en esta revisión como **Universe Browser** — un punto de entrada de primer nivel de la aplicación, no un añadido — ver §7.6.0.1.
+
 | Categoría | % aprox. del esfuerzo total evitado | Ejemplos |
 | --- | --- | --- |
 | Reutilizable sin cambios | ~30% | Watcher de ficheros, single-instance, recent-files, updater, CI de release, patrón de tests Rust |
 | Adaptación menor o conceptual | ~30% | Theming CSS, paneles flotantes, file-tree→project-tree, atajos de teclado, toolbar de inserción (patrón, no código), empaquetado/asociación de fichero |
-| Trabajo nuevo (núcleo de producto) | ~40% | Integración del sidecar `typst`, editor CodeMirror 6, lanzador, asistente de proyecto, Package/Template Explorer sobre `index.json` oficial, outline, Project Archive, terminal avanzado |
+| Trabajo nuevo (núcleo de producto) | ~40% | Integración del sidecar `typst`, editor CodeMirror 6, lanzador, asistente de proyecto, Universe Browser (Package + Template Explorer) sobre `index.json` oficial, outline, Project Archive, terminal avanzado |
 
 ---
 
@@ -196,6 +205,7 @@ Leyenda: 🟢 Reutilizable sin cambios · 🟡 Adaptación menor · 🔴 Reempla
 | Sincronización editor↔preview por posición real y outline estructural dependen de que `typst query`/`typst-ide` (vía `tinymist` en Beta) expongan información de posición suficiente vía CLI/LSP; no hay precedente reutilizable directo (el de Markdown usa anclas de heading). | Media | Spike de validación en `/build` (ver `TYPST_ECOSYSTEM_RESEARCH.md` §1.5); plan B con `tinymist` si `typst query` no basta. Se pospone a Beta. |
 | Tamaño del instalador: vendorizar el binario `typst` (incluye fuentes/motor completo) por cada plataforma soportada puede superar el objetivo `<30MB`. | Media | Medir en spike temprano de `/build`; el binario CLI oficial no es necesariamente más ligero que las crates que sustituye — el objetivo de tamaño se valida igual, solo cambia qué se mide. |
 | **[NUEVO]** No existe comando CLI de "actualizar paquete" (`TYPST_ECOSYSTEM_RESEARCH.md` §2.4) — el Package Explorer debe reescribir el `#import` él mismo. | Baja | Documentado como decisión de diseño en §7.6.2; cubrir con test de la función de reescritura de versión. |
+| **[NUEVO]** Si en el futuro DBV enriquece plantillas *comunitarias* (no propias) con `dbv-template.toml`, un desajuste entre la versión que DBV curó y una versión más nueva del paquete comunitario puede producir metadatos obsoletos o un formulario que ya no corresponde a los ficheros reales de la plantilla. | Baja-Media | No co-ubicar el sidecar dentro de la caché de Typst (fuera del control de DBV); usar un overlay propio indexado por `(namespace/nombre, versión)` con degradación limpia a "sin formulario, solo `typst init`" si no hay overlay para la versión instalada — ver §7.6.3. |
 | **[NUEVO] Alcance del MVP creció tras el Spec Addendum** (lanzador, asistente de proyecto, Project Archive pasan a ser MVP). | Media | El core técnico no cambia; son capas de UI/orquestación sobre infraestructura ya heredada — ver estimación de complejidad actualizada en §8. Confirmar con el usuario expectativa de plazo. |
 | **[NUEVO] Marketplace de plantillas comunitarias (Beta) implica compilar código Typst de terceros** — riesgo de cadena de suministro, aunque Typst es un lenguaje de tipografía sin acceso arbitrario a red/FS fuera de su sandbox de compilación por diseño. | Media | Empezar con una whitelist curada (paquetes/plantillas verificados por DBV) antes de abrir a todo el registro `@preview` sin filtro; mostrar siempre autor/versión/origen en la ficha de la plantilla (ya previsto en el Addendum). Auditar en el gate de seguridad de `/code-simplify`. |
 | **[NUEVO] Project Archive `.dbvt` como ZIP**: importar un archivo `.dbvt` construido a mano/malicioso puede intentar un *zip-slip* (rutas `../` que escriben fuera del directorio destino). | Media | Sanitizar/normalizar cada ruta de entrada del ZIP en el comando de importación Rust antes de escribir a disco; rechazar cualquier entrada que resuelva fuera del directorio de proyecto destino. |
@@ -306,9 +316,11 @@ Justificación: SVG es vectorial, permite refresco incremental sin PDF.js, y reu
 
 Arquitectura: extiende `list_directory`/`filetree.js` (§3 fila 6) para mostrar la estructura completa del proyecto en vez de un único fichero; añade comandos Rust `create_project(template_id, target_dir, form_values)`, `open_project(dir)`, `read_project_manifest(dir)`. Un `.typ` suelto abierto directamente se trata como "proyecto de un solo fichero" (sin manifiesto) para mantener compatibilidad con documentos Typst ya existentes fuera de DBV Typst Editor.
 
-### 7.6. Ecosistema Typst Universe: Paquetes y Plantillas
+### 7.6. Universe Browser: Paquetes y Plantillas del ecosistema Typst
 
-> Sección revisada el 2026-09-04 tras una segunda clarificación del usuario (Additional Specification Clarification), que exige tratar **Paquetes** y **Plantillas** como dos ecosistemas distintos a nivel de producto/UX. La investigación técnica de esta revisión (documentación oficial de `typst/packages` y del propio `index.json` servido en producción) aclara además un matiz importante que refina —sin contradecir— esa petición: a nivel de **datos**, ambos comparten una única fuente de verdad; la separación real está en cómo cada uno se presenta y en qué acción principal dispara cada uno.
+> Sección revisada dos veces el 2026-09-04: primero tras la Additional Specification Clarification del usuario (que exige tratar **Paquetes** y **Plantillas** como dos ecosistemas distintos a nivel de producto/UX), después tras su feedback de posicionamiento (que eleva esta sección de "una funcionalidad más" a **punto de entrada de primer nivel de la aplicación** — ver principio "Universe-First" en §0.1: *"el valor de DBV Typst Editor no es solo editar ficheros Typst, es hacer accesible el ecosistema Typst"*). La investigación técnica (documentación oficial de `typst/packages` y del propio `index.json` servido en producción) aclara además un matiz importante que refina —sin contradecir— la separación pedida: a nivel de **datos**, Paquetes y Plantillas comparten una única fuente de verdad; la separación real está en cómo cada uno se presenta y en qué acción principal dispara cada uno.
+>
+> **Nota de alcance (no de arquitectura):** elevar el Universe Browser a "primer nivel" es una decisión de **posicionamiento e importancia conceptual** del producto, no una reapertura de la fase en la que se entrega (sigue siendo Beta según el roadmap ya acordado en `SPECIFICATIONS.md` §11, salvo las plantillas propias curadas de DBV, que ya eran MVP). La conexión concreta con el MVP es que **el Lanzador (§7.13, MVP) es, en efecto, una primera versión reducida del Template Explorer** — muestra el catálogo curado sin la pestaña Comunidad — por lo que el usuario ya experimenta el "Universe-first, piensa en documentos no en paquetes" desde el primer arranque, aunque el explorador completo llegue en Beta.
 
 #### 7.6.0. Hallazgo técnico: una única fuente de datos, dos superficies de producto
 
@@ -322,6 +334,20 @@ Investigación realizada contra la documentación pública de `typst/packages` y
 
 Consecuencia arquitectónica: **una sola capa de sincronización de datos** (descarga y cachea `index.json`, ~250-300+ entradas y creciendo), sobre la que se construyen **dos experiencias de producto separadas** (Package Explorer, §7.6.2, y Template Explorer, §7.6.3), tal como pide el usuario — la separación vive en la capa de presentación/interacción, no obliga a duplicar la capa de datos.
 
+#### 7.6.0.1. Estructura de navegación del Universe Browser
+
+Árbol de navegación propuesto (Beta), reflejando la petición explícita del usuario de que Paquetes y Plantillas sean secciones primarias bajo un mismo punto de entrada, no fusionadas entre sí:
+
+```text
+Universe
+├─ Plantillas (Template Explorer, §7.6.3)
+│   ├─ Instaladas · Comunidad · Favoritas · Recientes · Actualizaciones
+└─ Paquetes (Package Explorer, §7.6.2)
+    ├─ Instaladas · Comunidad · Favoritas · Recientes · Actualizaciones
+```
+
+"Plantillas" y "Paquetes" son el primer nivel de navegación (mismo peso, ninguno subordinado al otro); cada uno conserva sus propias pestañas Instaladas/Comunidad/Favoritas/Recientes/Actualizaciones ya especificadas en §7.6.2/§7.6.3 — no se fusionan entre kinds (p. ej. "Instaladas" de Paquetes y "Instaladas" de Plantillas son listas distintas), coherente con que representan modelos mentales de usuario distintos (funcionalidad reutilizable vs. arrancadores de proyecto). Ambas vistas comparten la misma capa de sincronización de datos (§7.6.0, §7.6.1) y el mismo componente de lista virtualizada/búsqueda local.
+
 #### 7.6.1. Descarga, caché y actualización del índice y de los paquetes
 
 - **Índice de metadatos:** descargar `index.json` (~cientos de KB) y cachearlo localmente (p. ej. `app_data_dir()/typst-universe-index.json` con timestamp), con un botón "Actualizar catálogo" bajo demanda — mismo patrón UX que el auto-actualizador ya existente en DBV Markdown Reader (`tauri-plugin-updater`, chequeo manual, nunca automático). Nunca bloquea el arranque offline: si no hay índice cacheado y no hay red, el Package/Template Explorer muestra un estado vacío con reintento, sin degradar el resto de la app.
@@ -332,7 +358,7 @@ Consecuencia arquitectónica: **una sola capa de sincronización de datos** (des
 
 Vista dedicada, distinta de la de plantillas, para el ecosistema de **paquetes** (funcionalidad reutilizable: figuras, diagramas, tablas, presentaciones, bibliografía, utilidades — nunca "arrancadores de proyecto"):
 
-- **Buscar / Explorar categorías / Instalados / Detalle de paquete / Documentación / Información de versión / Actualizaciones disponibles** (funcionalidades pedidas explícitamente por el usuario).
+- **Buscar / Explorar categorías / Instalados / Detalle de paquete / Documentación / Información de versión / Actualizaciones disponibles** (funcionalidades pedidas explícitamente por el usuario). La ficha de cada paquete instalado muestra explícitamente **Versión actual** / **Última versión** / una insignia "Actualización disponible" cuando difieren — campos concretos pedidos por el usuario, ya sustentados por el escaneo de "Paquetes usados" y el índice cacheado (§7.6.1) desde el diseño inicial de esta vista, no como añadido posterior.
 - Acción principal: **"Añadir al proyecto"** → inserta automáticamente `#import "@preview/{name}:{version}"` en el fichero activo (reutilizando el mecanismo de inserción de los asistentes rápidos, §7.7) y dispara la resolución/caché del paquete (§7.6.1) para que la siguiente compilación no tenga que ir a red.
 - **"Paquetes usados" (detección automática):** al abrir un proyecto, escanear sus ficheros `.typ` en busca de sentencias `#import "@preview/..."` y construir la lista de dependencias automáticamente (ejemplo del usuario: `✓ erna 0.1.0`, `✓ cetz 0.4.2`), cruzándola contra el índice cacheado para mostrar nombre/versión/actualizaciones disponibles. **Decisión técnica (revisada):** dado que la integración con Typst ahora es 100% vía CLI sidecar (§7.2), sin crates Rust embebidas, el escaneo se implementa como un **escaneo de texto ligero** (patrón acotado sobre líneas no comentadas) en vez de usar el parser `typst::syntax::parse` como librería — mantiene toda la interacción con Typst detrás de un único proceso externo. Detalle y plan B (vía `typst query`) en `TYPST_ECOSYSTEM_RESEARCH.md` §2.5.
 - **"Actualizar" un paquete:** no existe un subcomando de CLI equivalente a "actualizar paquete" (`TYPST_ECOSYSTEM_RESEARCH.md` §2.4) — el botón "Actualizar" reescribe directamente el string de versión en el `#import` correspondiente (transacción de CodeMirror 6, §7.7) y deja que la siguiente compilación descargue la nueva versión.
@@ -346,7 +372,20 @@ Vista dedicada, visual y **orientada a proyecto**, distinta del Package Explorer
 
 - Cada plantilla se presenta con **imagen de vista previa, nombre, descripción, autor, categoría, versión** — acción principal **"Crear Proyecto"**, nunca "Descargar código". El usuario piensa "quiero una tesis", no "necesito el paquete X y el paquete Y" — una plantilla puede depender internamente de varios paquetes sin que el usuario necesite saberlo (el Package Explorer y "Paquetes usados" del §7.6.2 quedan disponibles para quien sí quiera profundizar).
 - Pestañas (Addendum original): Instaladas / Comunidad / Favoritas / Recientes / Actualizaciones.
-- **Plantillas propias curadas de DBV (MVP):** cada una es un **proyecto Typst completo** (no solo un `.typ`) descrito con el **mismo formato oficial** `typst.toml` + sección `[template]` (path/entrypoint/thumbnail) que usa el propio ecosistema Typst — por compatibilidad y para poder, si se desea en el futuro, publicarlas también en el `typst/packages` oficial sin reescritura. Como Typst no tiene concepto de "campos de formulario para un asistente", se añade un **fichero sidecar propio** `dbv-template.toml` (junto al `typst.toml`, no sustituyéndolo) solo con los campos del asistente de creación (§7.6.4):
+- **Conexión con el MVP:** el Lanzador (§7.13, ya MVP) es funcionalmente un Template Explorer reducido al catálogo curado de DBV, sin las pestañas Comunidad/Favoritas/Recientes/Actualizaciones — el usuario ya vive el flujo "Nuevo Proyecto → Explorar plantillas → Configurar → Crear Proyecto" desde el primer arranque; Beta generaliza esa misma vista con el catálogo comunitario completo.
+
+**"Capa de Plantillas DBV" (`dbv-template.toml`) — MVP, plantillas propias de DBV:**
+
+Cada plantilla propia curada de DBV es un **proyecto Typst completo** (no solo un `.typ`) descrito con el **mismo formato oficial** `typst.toml` + sección `[template]` (path/entrypoint/thumbnail) que usa el propio ecosistema Typst — por compatibilidad y para poder, si se desea en el futuro, publicarlas también en el `typst/packages` oficial sin reescritura. Como Typst no tiene concepto de "campos de formulario para un asistente" ni de metadatos académicos, se añade un **fichero sidecar propio y opcional** `dbv-template.toml` (junto al `typst.toml`, nunca sustituyéndolo — coherente con el principio Universe-First de §0.1: DBV **enriquece**, no reemplaza) con:
+
+- `dbv_category` — taxonomía académica propia (§ más abajo).
+- `[[fields]]` — campos del formulario del asistente de creación (§7.6.4).
+- `localization` — nombre/descripción traducidos por idioma (ES/EN), independiente de la traducción que pueda o no tener el `typst.toml` oficial.
+- `screenshots` — galería de capturas adicionales más allá del único `thumbnail` oficial, para una ficha más rica en el Template Explorer.
+- `defaults` — valores por defecto sugeridos en el formulario (p. ej. precargar el nombre de universidad más usado por el usuario, leído de su configuración local — nunca datos remotos).
+- `validation` — reglas simples por campo (obligatorio, longitud, patrón) para el formulario del asistente.
+
+```toml
 
 ```toml
 # typst.toml (formato oficial Typst — reutilizable/publicable tal cual)
@@ -366,31 +405,47 @@ thumbnail = "thumbnail.png"
 ```
 
 ```toml
-# dbv-template.toml (sidecar propio de DBV — solo para el asistente, §7.6.4)
+# dbv-template.toml (sidecar propio de DBV — opcional, §7.6.3)
 dbv_category = "academico"   # taxonomía propia de DBV (más específica que las
                                # categorías oficiales: TFG/TFM no son categorías
                                # oficiales de Typst Universe, solo "thesis" lo es)
+
+[localization.es]
+name = "TFG"
+description = "Trabajo de Fin de Grado con portada, índice, capítulos y bibliografía"
+
+[localization.en]
+name = "Undergraduate Thesis"
+description = "Final year project with cover page, table of contents, chapters and bibliography"
+
+screenshots = ["screenshots/portada.png", "screenshots/capitulo.png"]
 
 [[fields]]
 key = "titulo"
 label = "Título"
 type = "text"
+validation = { required = true, max_length = 200 }
 
 [[fields]]
 key = "autor"
 label = "Autor"
 type = "text"
+default = "{{usuario.nombre}}"   # precargado desde la configuración local de DBV, nunca remoto
+validation = { required = true }
 # ... tutor, universidad, curso, titulación (Addendum original)
 ```
 
 - Catálogo inicial (MVP, curado): Artículo académico, TFG, TFM, Tesis doctoral, Informe técnico, CV, Presentación. Ampliación v1.0 (categorías completas del Addendum): Académico (+ IEEE, ACM, Springer, LNCS, informe de investigación), Docencia (apuntes, prácticas, examen, guía docente, material de curso), Profesional (propuesta, memorándum), Presentaciones (charlas técnicas, seminarios).
 - **Pestaña "Comunidad" (Beta):** filtra el mismo `index.json` cacheado (§7.6.0-7.6.1) por entradas con `template != null`, cruzado con una whitelist curada inicial de DBV antes de abrir al catálogo completo sin filtrar (mitigación de riesgo de cadena de suministro, §6). "Instalar" en una plantilla comunitaria = descargar/cachear su paquete (§7.6.1) + ejecutar el mismo flujo de scaffolding que una plantilla propia (§7.6.4), leyendo `template.path`/`template.entrypoint` de su `typst.toml` oficial (no requiere que la plantilla comunitaria tenga un `dbv-template.toml` — sin sidecar, el asistente simplemente no ofrece campos de formulario y crea el proyecto tal cual, igual que haría `typst init`).
+- **Enriquecer plantillas comunitarias con la Capa DBV (spike, pregunta abierta en `SPECIFICATIONS.md` §9):** si en el futuro DBV quisiera curar/enriquecer una plantilla *comunitaria* (no propia) con campos de asistente/localización, **no debe co-ubicarse un `dbv-template.toml` dentro de la caché de paquetes de Typst** (directorio que DBV no controla y que el propio CLI puede sobrescribir al actualizar el paquete). El diseño correcto es un **overlay indexado por `(namespace/nombre, versión)`** en la propia capa de catálogo de DBV (junto al `index.json` cacheado, §7.6.1), de forma que: si la plantilla comunitaria sube de versión y DBV no tiene overlay para la versión nueva, el asistente degrada limpiamente a "sin campos de formulario, scaffolding puro vía `typst init`" (nunca un error) — evita el problema de mantenimiento (metadatos DBV desincronizados de una plantilla de terceros) sin bloquear el uso básico de la plantilla.
 
 Para catálogos de "cientos o miles" de plantillas sin degradar la UX: lista virtualizada en el frontend + el índice de búsqueda local ya cacheado en §7.6.1 (sin repetir consultas de red por cada tecleo de búsqueda).
 
 #### 7.6.4. Asistente de creación de proyecto
 
-Formulario generado dinámicamente desde `dbv-template.toml.fields` de la plantilla elegida si existe (reutiliza `registerPanel()`, §3 fila 13, como modal/panel); si la plantilla no trae sidecar (caso de plantillas comunitarias sin curar por DBV), se crea el proyecto directamente desde `template.path`/`template.entrypoint` del `typst.toml` oficial, sin formulario. Al confirmar, invoca `create_project(template_id, target_dir, form_values)`, que copia el directorio `template.path` y sustituye los tokens (`{{titulo}}`, etc.) en los ficheros `.typ` mediante sustitución de texto simple (no requiere un motor de plantillas complejo tipo Handlebars). El usuario no edita variables Typst a mano salvo que lo desee explícitamente después.
+Pensado explícitamente como diferenciador de producto (§0.1): el usuario debe sentir que está **creando un documento**, no inicializando un paquete. Flujo: `typst init` (§7.2) hace el scaffolding real → formulario generado dinámicamente desde `dbv-template.toml.fields` de la plantilla elegida si existe (reutiliza `registerPanel()`, §3 fila 13, como modal/panel) → sustitución de tokens como paso posterior de DBV. Campos base recomendados, comunes a la mayoría de plantillas académicas (cada plantilla puede añadir los suyos propios vía `[[fields]]`): **nombre del proyecto** (carpeta/identificador, distinto del título del documento), **título**, **autor**, **institución**, **supervisor/tutor**, **curso/año académico**.
+
+Si la plantilla no trae sidecar (caso de plantillas comunitarias sin curar por DBV), se crea el proyecto directamente desde `template.path`/`template.entrypoint` del `typst.toml` oficial, sin formulario — sigue siendo un "Crear Proyecto" válido, solo que sin los campos de DBV. Al confirmar con sidecar, invoca `create_project(template_id, target_dir, form_values)`, que copia el directorio `template.path` (vía `typst init`) y sustituye los tokens (`{{titulo}}`, etc.) en los ficheros `.typ` mediante sustitución de texto simple (no requiere un motor de plantillas complejo tipo Handlebars). El usuario no edita variables Typst a mano salvo que lo desee explícitamente después.
 
 *(Pregunta abierta en `SPECIFICATIONS.md` §9, refinada: ya no es "si Comunidad se apoya en el registro oficial o no" —resuelto: sí, es el `index.json` público— sino el tamaño exacto de la whitelist curada inicial y el criterio de expansión hacia el catálogo completo.)*
 
@@ -509,4 +564,4 @@ Ver tabla completa en §6. Restricción transversal: cualquier desviación de la
 
 ---
 
-**Instrucción para la IA:** Este documento fija las decisiones de §7 como línea base para `/plan` y `/build`: editor CodeMirror 6 (reconfirmado tras re-evaluación de Monaco), integración con Typst **vía CLI oficial vendorizado como sidecar** (no crates embebidas — decisión revisada, ver §7.2 y `TYPST_ECOSYSTEM_RESEARCH.md`), preview SVG en vivo + PDF final por stdout, modelo de Proyecto, Package Explorer y Template Explorer como superficies separadas sobre el `index.json` oficial de Typst Universe, Project Archive `.dbvt` como ZIP con protección zip-slip, y terminal avanzado para usuarios avanzados. Cualquier cambio debe registrarse como Decisión Técnica en `memory.md` antes de implementarse.
+**Instrucción para la IA:** Este documento fija las decisiones de §7 como línea base para `/plan` y `/build`, gobernadas por los principios arquitectónicos de §0.1 (Typst aporta infraestructura, DBV aporta experiencia; Universe-First): editor CodeMirror 6 (reconfirmado tras re-evaluación de Monaco), integración con Typst **vía CLI oficial vendorizado como sidecar** (no crates embebidas — decisión revisada, ver §7.2 y `TYPST_ECOSYSTEM_RESEARCH.md`), preview SVG en vivo + PDF final por stdout, modelo de Proyecto, **Universe Browser** (Package Explorer + Template Explorer, §7.6) como punto de entrada de primer nivel sobre el `index.json` oficial de Typst Universe, Project Archive `.dbvt` como ZIP con protección zip-slip, y terminal avanzado para usuarios avanzados. Cualquier cambio debe registrarse como Decisión Técnica en `memory.md` antes de implementarse.

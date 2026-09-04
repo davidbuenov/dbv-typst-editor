@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Sin publicar] / [Unreleased]
 
 ### Added
+- **Modo de instalación de WebView2 en Windows (decisión cerrada):** el instalador por defecto usa `downloadBootstrapper` (18 MB) y se añade un overlay opcional `src-tauri/tauri.windows.offline.conf.json` con el script `npm run build:win:offline` para generar bajo demanda el instalador 100% offline (268 MB), pensado para aulas sin conexión.
 - Bootstrap del proyecto con el framework [dbv-specs-ops](https://github.com/davidbuenov/dbv-specs-ops) v2.8.0 (Spec-Driven Development).
 - Informe arquitectónico de reutilización de [DBV Markdown Reader](https://github.com/davidbuenov/dbv-md-reader) — ver `dbv-specs-ops/docs/ARCHITECTURE.md`.
 - Especificación inicial del producto (visión, MVP, roadmap) — ver `dbv-specs-ops/docs/SPECIFICATIONS.md`.

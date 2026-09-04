@@ -8,6 +8,7 @@
     "dev": "tauri dev",
     "dev:vite": "vite",
     "build": "tauri build",
+    "build:win:offline": "tauri build --config src-tauri/tauri.windows.offline.conf.json",
     "build:vite": "vite build",
     "preview:vite": "vite preview",
     "tauri": "tauri",

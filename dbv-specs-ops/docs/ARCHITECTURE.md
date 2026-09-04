@@ -518,18 +518,20 @@ Pantalla inicial nueva (no existe en DBV Markdown Reader, que abre directamente 
 Panel opcional, oculto por defecto (coherente con la filosofía "el usuario no debe ver código si no quiere", `SPECIFICATIONS.md` §2), que expone una consola donde un usuario avanzado puede ejecutar directamente subcomandos oficiales de Typst (`compile`, `query`, `fonts`...) contra el proyecto activo, mostrando la salida (stdout/stderr) dentro de la propia app. Arquitectura: reutiliza exactamente el mismo mecanismo de sidecar de §7.2 (`tauri_plugin_shell::process::Command::sidecar("typst")`), sin lógica adicional de parseo — se limita a mostrar la salida cruda con formato monoespaciado. No sustituye a ningún flujo guiado de la app (creación de proyecto, exportar, etc.); es una vía de escape explícita para quien prefiera trabajar con comandos. Fase: Beta (bajo coste una vez existe la infraestructura de sidecar del MVP, pero es explícitamente una funcionalidad "avanzada", no del flujo principal).
 
 
-### 7.15. Modo de instalación de WebView2 en Windows (medido en el Slice 2)
+### 7.15. Modo de instalación de WebView2 en Windows (medido en el Slice 2, cerrado en el Slice 3)
 
-**Decisión (pendiente de confirmación del usuario):** `webviewInstallMode: downloadBootstrapper` en vez del `offlineInstaller` que hereda DBV Markdown Reader.
+**Decisión (cerrada, 2026-09-05):** `webviewInstallMode: downloadBootstrapper` como configuración **por defecto**, más un *overlay* opcional (`src-tauri/tauri.windows.offline.conf.json`) que permite generar bajo demanda el instalador 100% offline sin tocar la configuración por defecto.
 
-| Modo | Instalador resultante (medido) | Instala sin conexión |
-| --- | --- | --- |
-| `offlineInstaller` (heredado) | **268 MB** | Sí, siempre |
-| `downloadBootstrapper` (elegido) | **18 MB** | Solo si WebView2 ya está en el sistema |
+| Modo | Instalador resultante (medido) | Instala sin conexión | Cómo se obtiene |
+| --- | --- | --- | --- |
+| `downloadBootstrapper` (por defecto) | **18 MB** | Solo si WebView2 ya está en el sistema | `npm run build` |
+| `offlineInstaller` (bajo demanda) | **268 MB** | Sí, siempre | `npm run build:win:offline` |
 
-Justificación: WebView2 viene preinstalado en Windows 11 y en Windows 10 actualizado, así que embeber su instalador completo (~200 MB) es peso muerto para la gran mayoría de usuarios. La promesa offline-first del producto es sobre **usar** la aplicación —compilar documentos sin red, que se cumple igual— no sobre instalarla sin red. El caso afectado (máquina sin WebView2 *y* sin conexión durante la instalación) es cada año más raro.
+Justificación de la elección por defecto: WebView2 viene preinstalado en Windows 11 y en Windows 10 actualizado, así que embeber su instalador completo (~200 MB) es peso muerto para la gran mayoría de usuarios. La promesa offline-first del producto es sobre **usar** la aplicación —compilar documentos sin red, que se cumple igual, con el compilador Typst dentro del binario— no sobre instalarla sin red.
 
-*Si el usuario prefiere priorizar la instalación 100% offline, revertir es cambiar una línea en `tauri.windows.conf.json`, a cambio de multiplicar por 15 el tamaño del instalador.*
+Justificación de conservar el overlay en vez de borrar la alternativa: el caso afectado (máquina sin WebView2 *y* sin conexión durante la instalación) existe de verdad en entornos educativos con aulas aisladas, que son parte del público objetivo del producto. Mantenerlo como una variante de empaquetado explícita —y no como una línea que haya que recordar cambiar a mano— convierte una decisión irreversible en una elección por release, con coste de mantenimiento cero: el overlay solo declara `webviewInstallMode` y hereda todo lo demás de `tauri.conf.json` + `tauri.windows.conf.json`.
+
+*Regla de release: el artefacto publicado por defecto es el de 18 MB. Si alguna vez se publican los dos, deben distinguirse por nombre de fichero para no confundir al usuario final.*
 
 ---
 

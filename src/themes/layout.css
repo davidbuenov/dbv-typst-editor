@@ -445,6 +445,54 @@
   white-space: pre-wrap;
 }
 
+/* ─── Modal de elección ───────────────────────────────────────────────────── */
+.modal {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 30;
+}
+
+.modal__card {
+  width: min(520px, calc(100vw - 32px));
+  padding: 20px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 32px var(--shadow);
+}
+
+.modal__title {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+.modal__text {
+  margin: 0 0 18px;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.modal__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.button--compact {
+  padding: 2px 10px;
+  font-size: 12px;
+}
+
+.button--danger {
+  border-color: var(--code-tag);
+  color: var(--code-tag);
+}
+
 /* ─── Aviso flotante ──────────────────────────────────────────────────────── */
 .toast {
   position: fixed;

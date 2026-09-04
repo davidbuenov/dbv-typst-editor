@@ -18,13 +18,24 @@ import { getTheme } from '../themes/theme.js';
 import {
   PROJECT_CHANGE_EVENT,
   addRecentProject,
+  fileModifiedMs,
   on,
   openProject,
+  pickSaveTarget,
   readFile,
   revealInFileManager,
   unwatchProject,
   watchProject,
+  writeFile,
 } from '../services/backend.js';
+
+/**
+ * Ventana durante la que se ignoran los avisos del watcher sobre el documento
+ * activo tras un guardado propio. Sin ella, cada `Guardar` se detectaría a sí
+ * mismo como "alguien ha modificado el fichero por fuera" — el mismo mecanismo
+ * de supresión de auto-eco (`suppressSelfWriteUntil`) de DBV Markdown Reader.
+ */
+const SELF_WRITE_GRACE_MS = 1500;
 
 /** Une carpeta y nombre de fichero respetando el separador ya presente. */
 export function joinPath(dir, name) {
@@ -45,8 +56,9 @@ export function baseName(path) {
  * @param {ReturnType<import('../project-explorer/projectTree.js').createProjectTree>} deps.tree
  * @param {Record<string, HTMLElement>} deps.elements
  * @param {(message: string, tone?: 'info'|'error') => void} deps.notify
+ * @param {ReturnType<import('../ui/choiceDialog.js').createChoiceDialog>} deps.dialog
  */
-export function createWorkspace({ tree, elements, notify }) {
+export function createWorkspace({ tree, elements, notify, dialog }) {
   const editor = createEditor(elements.editorHost, {
     theme: getTheme(),
     onChange: (content) => {
@@ -63,6 +75,8 @@ export function createWorkspace({ tree, elements, notify }) {
     /** @type {null | {path: string, fileName: string, modifiedMs: number}} */
     document: null,
     dirty: false,
+    /** Instante hasta el que se ignora el eco del propio guardado. */
+    suppressSelfWriteUntil: 0,
   };
 
   /** Ganchos que rellenan los slices posteriores (vista previa, guardado). */
@@ -77,6 +91,8 @@ export function createWorkspace({ tree, elements, notify }) {
     documentOpened: null,
     /** @type {null | (() => void)} */
     saveRequested: null,
+    /** @type {null | (() => void)} */
+    saved: null,
   };
 
   function renderDocumentBar() {
@@ -192,13 +208,126 @@ export function createWorkspace({ tree, elements, notify }) {
     revealInFileManager(state.project.root);
   }
 
+  /**
+   * Alguien ha modificado por fuera el documento que hay abierto.
+   *
+   * Tres casos distintos, y la diferencia importa:
+   *   · es el eco de nuestro propio guardado → se ignora;
+   *   · no hay cambios locales → se recarga en silencio (es lo que espera quien
+   *     acaba de hacer `git pull` o de editar en otro programa);
+   *   · hay cambios locales → conflicto real, y solo entonces se interrumpe.
+   */
+  async function handleActiveDocumentChanged() {
+    if (Date.now() < state.suppressSelfWriteUntil) return;
+    if (!state.document) return;
+
+    if (!state.dirty) {
+      await openDocument(state.document.path, { force: true });
+      notify(t('conflict.reloaded'));
+      return;
+    }
+
+    const choice = await dialog.ask({
+      titleKey: 'conflict.title',
+      textKey: 'conflict.text',
+      text: state.document.path,
+      choices: [
+        { key: 'keep', labelKey: 'conflict.keepMine', tone: 'primary' },
+        { key: 'reload', labelKey: 'conflict.reload', tone: 'danger' },
+      ],
+    });
+
+    if (choice === 'reload') {
+      await openDocument(state.document.path, { force: true });
+      return;
+    }
+    // "Conservar lo mío": se actualiza la referencia de disco para que el
+    // siguiente `Guardar` no vuelva a preguntar por el mismo cambio ya visto.
+    const stamp = await fileModifiedMs(state.document.path);
+    if (stamp.ok) state.document.modifiedMs = stamp.value;
+  }
+
   // Un cambio en disco refresca el árbol (ficheros nuevos de un `git pull`, por
-  // ejemplo) y se reenvía a quien lo necesite: la vista previa recompila
-  // (Slice 5) y el guardado detecta conflicto (Slice 6).
+  // ejemplo) y se reenvía a la vista previa para que recompile.
   on(PROJECT_CHANGE_EVENT, (change) => {
     listeners.externalChange?.(change);
-    if (!change.isActiveDocument) tree.refresh();
+    if (change.isActiveDocument) handleActiveDocumentChanged();
+    else tree.refresh();
   });
+
+  /**
+   * Guarda el documento activo (RF-07).
+   *
+   * Antes de escribir compara la marca de modificación del disco con la que se
+   * leyó al abrir: si no coinciden, otro programa ha tocado el fichero y
+   * sobrescribirlo sin preguntar destruiría ese trabajo.
+   */
+  async function save() {
+    if (!state.document) return false;
+
+    const stamp = await fileModifiedMs(state.document.path);
+    const changedOnDisk = stamp.ok && stamp.value !== state.document.modifiedMs;
+    if (changedOnDisk) {
+      const choice = await dialog.ask({
+        titleKey: 'conflict.title',
+        textKey: 'conflict.saveText',
+        text: state.document.path,
+        choices: [
+          { key: 'cancel', labelKey: 'action.cancel' },
+          { key: 'reload', labelKey: 'conflict.reload' },
+          { key: 'overwrite', labelKey: 'conflict.overwrite', tone: 'danger' },
+        ],
+      });
+      if (choice === 'cancel') return false;
+      if (choice === 'reload') {
+        await openDocument(state.document.path, { force: true });
+        return false;
+      }
+    }
+
+    const result = await writeFile(state.document.path, editor.getContent());
+    if (!result.ok) {
+      notify(`${t('doc.saveError')} — ${result.error.message}`, 'error');
+      return false;
+    }
+
+    // La supresión se arma ANTES de que llegue el evento del watcher.
+    state.suppressSelfWriteUntil = Date.now() + SELF_WRITE_GRACE_MS;
+    state.document.modifiedMs = result.value;
+    state.dirty = false;
+    renderDocumentBar();
+    listeners.saved?.();
+    notify(t('doc.saved'));
+    return true;
+  }
+
+  /** Guardar como… (RF-07): escribe en un destino nuevo y sigue editándolo. */
+  async function saveAs() {
+    if (!state.document) return false;
+
+    const picked = await pickSaveTarget(state.document.fileName, 'Typst', ['typ']);
+    if (!picked.ok || !picked.value) return false;
+
+    const result = await writeFile(picked.value, editor.getContent());
+    if (!result.ok) {
+      notify(`${t('doc.saveError')} — ${result.error.message}`, 'error');
+      return false;
+    }
+
+    state.suppressSelfWriteUntil = Date.now() + SELF_WRITE_GRACE_MS;
+    state.dirty = false;
+    // Guardar fuera del proyecto activo convierte el destino en el proyecto
+    // nuevo; dentro, basta con seguir editando el fichero recién creado.
+    const insideProject = state.project && picked.value.startsWith(state.project.root);
+    if (insideProject) {
+      await openDocument(picked.value, { force: true });
+      await tree.refresh();
+    } else {
+      await openProjectAt(picked.value);
+    }
+    notify(t('doc.saved'));
+    return true;
+  }
 
   renderProjectBar();
   renderDocumentBar();
@@ -210,6 +339,8 @@ export function createWorkspace({ tree, elements, notify }) {
     openDocument,
     closeProject,
     revealProject,
+    save,
+    saveAs,
     confirmDiscardChanges,
     /** @param {'dark'|'light'} theme */
     setTheme(theme) {

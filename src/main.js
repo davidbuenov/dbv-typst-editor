@@ -21,6 +21,7 @@ import {
   pickProjectFolder,
   pickTypstFile,
 } from './services/backend.js';
+import { createChoiceDialog } from './ui/choiceDialog.js';
 import { createSplitter } from './ui/splitter.js';
 import { createToast } from './ui/toast.js';
 import { initTheme, toggleTheme } from './themes/theme.js';
@@ -113,6 +114,12 @@ async function bootstrap() {
   wireAboutPanel();
 
   const toast = createToast(el('toast'));
+  const dialog = createChoiceDialog({
+    dialogEl: el('choice-dialog'),
+    titleEl: el('choice-title'),
+    textEl: el('choice-text'),
+    actionsEl: el('choice-actions'),
+  });
   const recentListEl = el('recent-list');
 
   const tree = createProjectTree(el('project-tree'), {
@@ -121,6 +128,7 @@ async function bootstrap() {
 
   const workspace = createWorkspace({
     tree,
+    dialog,
     notify: toast.show,
     elements: {
       editorHost: el('editor-host'),
@@ -158,6 +166,12 @@ async function bootstrap() {
   workspace.setListener('externalChange', (change) => {
     if (!change.isActiveDocument) preview.onExternalChange();
   });
+
+  // Guardado: botones, Ctrl/Cmd+S desde el editor y refresco de la vista previa.
+  workspace.setListener('saveRequested', () => workspace.save());
+  workspace.setListener('saved', () => preview.onSaved());
+  el('btn-save').addEventListener('click', () => workspace.save());
+  el('btn-save-as').addEventListener('click', () => workspace.saveAs());
 
   el('btn-zoom-in').addEventListener('click', preview.zoomIn);
   el('btn-zoom-out').addEventListener('click', preview.zoomOut);

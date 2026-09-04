@@ -98,6 +98,8 @@
           <div class="document__bar">
             <span class="document__name" id="document-name">—</span>
             <span class="document__dirty hidden" id="document-dirty" data-i18n="doc.unsaved"></span>
+            <button id="btn-save" class="button button--compact" type="button" data-i18n="action.save"></button>
+            <button id="btn-save-as" class="button button--compact button--ghost" type="button" data-i18n="action.saveAs"></button>
             <span class="document__path" id="document-path"></span>
           </div>
           <div class="editor" id="editor-host"></div>
@@ -122,6 +124,15 @@
     </main>
 
     <div class="toast hidden" id="toast"></div>
+
+    <!-- Modal de elección: solo para decisiones que pueden destruir trabajo. -->
+    <div class="modal hidden" id="choice-dialog" role="dialog" aria-modal="true">
+      <div class="modal__card">
+        <h2 class="modal__title" id="choice-title"></h2>
+        <p class="modal__text" id="choice-text"></p>
+        <div class="modal__actions" id="choice-actions"></div>
+      </div>
+    </div>
 
     <div id="about-panel" class="floating-panel hidden" role="dialog" aria-modal="false">
       <h2 class="floating-panel__title" data-i18n="about.title"></h2>

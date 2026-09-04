@@ -1,0 +1,48 @@
+# Capa de Plantillas DBV — sidecar opcional (ARCHITECTURE.md §7.6.3).
+dbv_category = "academico"
+
+[localization.es]
+name = "Articulo academico"
+description = "Paper corto a dos columnas, con resumen, palabras clave y bibliografia."
+
+[localization.en]
+name = "Academic paper"
+description = "Short two-column paper with abstract, keywords and bibliography."
+
+[[fields]]
+key = "titulo"
+label = "Titulo del articulo"
+type = "text"
+validation = { required = true, max_length = 200 }
+
+[[fields]]
+key = "autor"
+label = "Autoria"
+type = "text"
+placeholder = "Nombre Apellido"
+validation = { required = true, max_length = 160 }
+
+[[fields]]
+key = "institucion"
+label = "Afiliacion"
+type = "text"
+validation = { max_length = 160 }
+
+[[fields]]
+key = "correo"
+label = "Correo de contacto"
+type = "text"
+validation = { max_length = 120 }
+
+[[fields]]
+key = "resumen"
+label = "Resumen"
+type = "text"
+validation = { required = true, max_length = 1500 }
+
+[[fields]]
+key = "palabrasClave"
+label = "Palabras clave"
+type = "text"
+placeholder = "separadas, por, comas"
+validation = { max_length = 200 }

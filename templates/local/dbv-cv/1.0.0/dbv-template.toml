@@ -1,0 +1,42 @@
+# Capa de Plantillas DBV — sidecar opcional (ARCHITECTURE.md §7.6.3).
+dbv_category = "profesional"
+
+[localization.es]
+name = "Curriculum vitae"
+description = "Una pagina, sobria y legible: contacto, experiencia, formacion y competencias."
+
+[localization.en]
+name = "Curriculum vitae"
+description = "One page, plain and readable: contact details, experience, education and skills."
+
+[[fields]]
+key = "autor"
+label = "Nombre completo"
+type = "text"
+validation = { required = true, max_length = 120 }
+
+[[fields]]
+key = "titulo"
+label = "Titular profesional"
+type = "text"
+placeholder = "Ingeniera de software"
+validation = { max_length = 120 }
+
+[[fields]]
+key = "correo"
+label = "Correo electronico"
+type = "text"
+validation = { max_length = 120 }
+
+[[fields]]
+key = "telefono"
+label = "Telefono"
+type = "text"
+validation = { max_length = 40 }
+
+[[fields]]
+key = "web"
+label = "Web o perfil"
+type = "text"
+placeholder = "https://..."
+validation = { max_length = 160 }

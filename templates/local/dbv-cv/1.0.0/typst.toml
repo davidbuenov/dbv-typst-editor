@@ -1,0 +1,12 @@
+[package]
+name = "dbv-cv"
+version = "1.0.0"
+entrypoint = "template/main.typ"
+authors = ["David Bueno Vallejo <https://github.com/davidbuenov>"]
+license = "MIT"
+description = "Curriculum vitae de una pagina, sobrio y legible"
+categories = ["cv"]
+
+[template]
+path = "template"
+entrypoint = "main.typ"

@@ -119,9 +119,22 @@ function verifyTemplate(typst, name, version) {
     );
 
     const pdf = join(workdir, 'salida.pdf');
-    execFileSync(typst, ['compile', '--root', target, entrypoint, pdf], { stdio: 'pipe' });
+    const compileOutput = execFileSync(typst, ['compile', '--root', target, entrypoint, pdf], {
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
     const size = statSync(pdf).size;
     record(size > 1000, `${name}:${version} — compila a PDF (${size} bytes)`);
+
+    // Una plantilla curada no debe dejar avisos del compilador: el usuario los
+    // vería en la banda de la vista previa en cada recompilación, y aprendería
+    // a ignorarla — justo cuando avise de algo suyo que sí importa.
+    const warnings = compileOutput.toString().trim();
+    record(
+      warnings === '',
+      warnings === ''
+        ? `${name}:${version} — compila sin avisos`
+        : `${name}:${version} — avisos del compilador: ${warnings.split(String.fromCharCode(10))[0]}`
+    );
   } catch (error) {
     const detail = error.stderr ? error.stderr.toString().trim().split('\n')[0] : error.message;
     record(false, `${name}:${version} — ${detail}`);

@@ -83,7 +83,11 @@ pub fn modified_ms(path: &Path) -> u64 {
 
 /// Directorios de infraestructura que nunca son contenido del documento.
 fn is_noise(name: &str) -> bool {
+    // `.dbv-preview.typ` es el espejo transitorio del documento con cambios sin
+    // guardar que compila la vista previa (typst_engine::compile): existe unos
+    // milisegundos y no es contenido del proyecto.
     matches!(name, ".git" | ".svn" | "node_modules" | ".DS_Store" | "target")
+        || name.starts_with(".dbv-preview")
 }
 
 /// Lee un nivel de `dir`: carpetas primero, después ficheros, ambos en orden

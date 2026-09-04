@@ -102,6 +102,22 @@
           </div>
           <div class="editor" id="editor-host"></div>
         </div>
+
+        <div class="splitter" id="splitter-preview" role="separator" aria-orientation="vertical"></div>
+
+        <aside class="preview">
+          <div class="preview__bar">
+            <span class="preview__title" data-i18n="preview.title"></span>
+            <span class="preview__status" id="preview-status"></span>
+            <div class="preview__zoom">
+              <button id="btn-zoom-out" class="icon-button icon-button--small" type="button" data-i18n-title="preview.zoomOut">−</button>
+              <button id="btn-zoom-reset" class="preview__zoom-label" type="button" data-i18n-title="preview.zoomReset"><span id="preview-zoom-label">100%</span></button>
+              <button id="btn-zoom-in" class="icon-button icon-button--small" type="button" data-i18n-title="preview.zoomIn">+</button>
+            </div>
+          </div>
+          <div class="preview__pages" id="preview-pages"></div>
+          <pre class="preview__band hidden" id="preview-band"></pre>
+        </aside>
       </section>
     </main>
 

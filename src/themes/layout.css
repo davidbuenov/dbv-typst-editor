@@ -150,7 +150,9 @@
 .workspace {
   height: 100%;
   display: grid;
-  grid-template-columns: var(--sidebar-width, 260px) 5px 1fr;
+  grid-template-columns:
+    var(--sidebar-width, 260px) 5px minmax(0, 1fr) 5px
+    var(--preview-width, 46%);
   min-height: 0;
 }
 
@@ -327,6 +329,121 @@
 /* El resto del aspecto del editor vive en `editor/editor.js` (EditorView.theme),
    no aquí: CodeMirror necesita sus estilos inyectados para poder reconfigurarlos
    al cambiar de tema, y tenerlos en dos sitios sería una fuente de divergencia. */
+
+/* ─── Vista previa ────────────────────────────────────────────────────────── */
+.preview {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  min-width: 0;
+  min-height: 0;
+  background: var(--bg-secondary);
+  border-left: 1px solid var(--border);
+}
+
+.preview__bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.preview__title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.preview__status {
+  font-size: 11px;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.preview__zoom {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.icon-button--small {
+  width: 22px;
+  height: 22px;
+  font-size: 12px;
+}
+
+.preview__zoom-label {
+  min-width: 46px;
+  padding: 2px 4px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.preview__zoom-label:hover {
+  border-color: var(--border);
+}
+
+.preview__pages {
+  overflow: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+/* Cada página conserva su tamaño natural y se escala con el zoom: escalar el
+   contenedor en vez del SVG mantiene la nitidez vectorial a cualquier nivel. */
+/* El hueco se reserva con la proporción real de la página ANTES de traer su
+   marcado (carga perezosa): así la barra de desplazamiento no salta mientras
+   se cargan páginas, y el documento tiene su altura definitiva desde el
+   primer momento. `flex: 0 0 auto` impide que el contenedor flex las encoja. */
+.preview-page {
+  flex: 0 0 auto;
+  width: calc(100% * var(--preview-zoom, 1));
+  max-width: calc(920px * var(--preview-zoom, 1));
+  aspect-ratio: 1 / var(--page-ratio, 1.414);
+  background: #fff;
+  box-shadow: 0 2px 10px var(--shadow);
+  border-radius: 2px;
+  overflow: hidden;
+  line-height: 0;
+}
+
+/* Una vez cargada, manda la altura natural del SVG, no la proporción estimada. */
+.preview-page[data-loaded] {
+  aspect-ratio: auto;
+}
+
+.preview-page svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Banda de error: no intrusiva y sin borrar la última vista buena (requisito
+   (d) del Adversarial Architect Review del plan). */
+.preview__band {
+  margin: 0;
+  max-height: 30%;
+  overflow: auto;
+  padding: 8px 12px;
+  border-top: 1px solid var(--code-tag);
+  background: var(--bg-tertiary);
+  color: var(--code-tag);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  white-space: pre-wrap;
+}
 
 /* ─── Aviso flotante ──────────────────────────────────────────────────────── */
 .toast {

@@ -53,6 +53,9 @@ pub fn is_relevant_change(path: &Path) -> bool {
     let is_temp = name.ends_with('~')
         || name.ends_with(".tmp")
         || name.starts_with(".goutputstream")
+        // Espejo de la vista previa (typst_engine::compile): si disparase el
+        // watcher, cada compilación provocaría otra compilación — un bucle.
+        || name.starts_with(".dbv-preview")
         || (name.starts_with('.') && name.contains(".sw"));
     let in_noise_dir = path.components().any(|component| {
         matches!(
@@ -160,6 +163,13 @@ mod tests {
         assert!(!is_relevant_change(Path::new("/proyecto/main.typ.tmp")));
         assert!(!is_relevant_change(Path::new("/proyecto/.goutputstream-XY12")));
         assert!(!is_relevant_change(Path::new("/proyecto/.main.typ.swp")));
+    }
+
+    #[test]
+    fn is_relevant_change_descarta_el_espejo_de_la_vista_previa() {
+        // Si este fichero disparase el watcher, cada compilación provocaría la
+        // siguiente y la vista previa entraría en bucle.
+        assert!(!is_relevant_change(Path::new("/proyecto/.dbv-preview.typ")));
     }
 
     #[test]

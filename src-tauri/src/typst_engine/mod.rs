@@ -14,12 +14,14 @@
 // WebView no necesita permisos de shell (principio de menor privilegio) y toda
 // ejecución pasa por comandos nuestros, validados.
 
+pub mod compile;
+
 use serde::Serialize;
 use tauri::AppHandle;
 use tauri_plugin_shell::ShellExt;
 
 /// Nombre del sidecar declarado en `tauri.conf.json` (`bundle.externalBin`).
-const SIDECAR: &str = "typst";
+pub(crate) const SIDECAR: &str = "typst";
 
 /// Error tipado del motor. Cruza el puente IPC hacia el frontend.
 #[derive(Debug, Clone, Serialize)]
@@ -31,6 +33,9 @@ pub enum TypstError {
     ExecutionFailed(String),
     /// El proceso terminó con un código de salida distinto de cero.
     CompilationFailed { code: Option<i32>, stderr: String },
+    /// Se pidió una página de una vista previa ya sustituida por otra más
+    /// reciente. No es un fallo: el frontend espera a la compilación nueva.
+    PreviewExpired(String),
 }
 
 /// Salida completa de una invocación del CLI.

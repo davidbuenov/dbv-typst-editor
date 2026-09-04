@@ -94,6 +94,22 @@ export const addRecentProject = (project) =>
   });
 export const clearRecentProjects = () => call('clear_recent_projects');
 
+// ─── Compilación (vista previa y exportación) ────────────────────────────────
+
+export const compilePreview = ({ document, root, content, firstPage, windowSize }) =>
+  call('typst_compile_preview', {
+    document,
+    root,
+    content: content ?? null,
+    firstPage: firstPage ?? 0,
+    windowSize: windowSize ?? 2,
+  });
+export const previewPage = (generation, index) =>
+  call('typst_preview_page', { generation, index });
+export const cancelPreview = () => call('typst_cancel_preview');
+export const exportPdf = ({ document, root, output, content }) =>
+  call('typst_export_pdf', { document, root, output, content: content ?? null });
+
 // ─── Observador de cambios ───────────────────────────────────────────────────
 
 /** Nombre del evento emitido por `watcher.rs` en cada cambio relevante. */

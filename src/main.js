@@ -12,6 +12,7 @@
 import { createWorkspace, baseName } from './app/workspace.js';
 import { applyTranslations, getLanguage, t, toggleLanguage } from './i18n/i18n.js';
 import { closeAllPanels, registerPanel } from './panels/registerPanel.js';
+import { createPreview } from './preview/preview.js';
 import { createProjectTree } from './project-explorer/projectTree.js';
 import {
   getAppInfo,
@@ -137,6 +138,31 @@ async function bootstrap() {
   // El editor (CodeMirror) necesita reconfigurar su tema, no solo heredar CSS.
   wireThemeToggle((theme) => workspace.setTheme(theme));
 
+  const preview = createPreview({
+    pagesEl: el('preview-pages'),
+    bandEl: el('preview-band'),
+    statusEl: el('preview-status'),
+    zoomLabelEl: el('preview-zoom-label'),
+  });
+
+  // El bucle de vista previa se engancha al workspace en vez de vivir dentro de
+  // él: el workspace sabe qué documento está abierto, no cómo se compila.
+  workspace.setListener('documentOpened', (doc) =>
+    preview.setDocument({
+      document: doc.path,
+      root: workspace.state.project.root,
+      content: doc.content,
+    })
+  );
+  workspace.setListener('documentChanged', (content) => preview.onContentChanged(content));
+  workspace.setListener('externalChange', (change) => {
+    if (!change.isActiveDocument) preview.onExternalChange();
+  });
+
+  el('btn-zoom-in').addEventListener('click', preview.zoomIn);
+  el('btn-zoom-out').addEventListener('click', preview.zoomOut);
+  el('btn-zoom-reset').addEventListener('click', preview.zoomReset);
+
   const openPath = async (path) => {
     const opened = await workspace.openProjectAt(path);
     if (opened) await renderRecentProjects(recentListEl, openPath);
@@ -158,7 +184,9 @@ async function bootstrap() {
   el('btn-empty-open-file').addEventListener('click', openFile);
   el('btn-reveal').addEventListener('click', workspace.revealProject);
   el('btn-close-project').addEventListener('click', async () => {
-    await workspace.closeProject();
+    const closed = await workspace.closeProject();
+    if (!closed) return;
+    await preview.clear();
     await renderRecentProjects(recentListEl, openPath);
   });
 
@@ -172,6 +200,15 @@ async function bootstrap() {
     max: 520,
   });
 
+  createSplitter(el('splitter-preview'), {
+    hostEl: el('workspace-view'),
+    cssVariable: '--preview-width',
+    storageKey: 'dbv-typst-preview-width',
+    measureFrom: 'end',
+    min: 240,
+    max: 1200,
+  });
+
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') closeAllPanels();
   });
@@ -181,6 +218,7 @@ async function bootstrap() {
   document.addEventListener('dbv-lang-changed', () => {
     renderRecentProjects(recentListEl, openPath);
     workspace.renderDocumentBar();
+    preview.refreshStatus();
   });
 
   await Promise.all([renderAbout(), renderRecentProjects(recentListEl, openPath)]);

@@ -22,6 +22,7 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .manage(watcher::WatcherState::default())
+        .manage(typst_engine::compile::EngineState::default())
         .invoke_handler(tauri::generate_handler![
             commands::app_info::app_info,
             commands::file_io::file_modified_ms,
@@ -37,6 +38,10 @@ pub fn run() {
             commands::recent_projects::get_recent_projects,
             project::open_project,
             project::read_project_manifest,
+            typst_engine::compile::typst_cancel_preview,
+            typst_engine::compile::typst_compile_preview,
+            typst_engine::compile::typst_export_pdf,
+            typst_engine::compile::typst_preview_page,
             typst_engine::typst_version,
             watcher::unwatch_project,
             watcher::watch_project,

@@ -24,6 +24,9 @@ serde_json = "1"
 notify = "8"
 # Slice 3: manifiesto propio de proyecto `settings/dbv-project.toml` (project.rs).
 toml = "0.8"
+# Slice 5: un directorio temporal por compilación de vista previa, borrado en Drop
+# (requisito (c) del Adversarial Architect Review del plan).
+tempfile = "3"
 
 [dev-dependencies]
 tempfile = "3"

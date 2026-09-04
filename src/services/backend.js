@@ -93,12 +93,17 @@ export const createProject = ({ templateName, templateVersion, parentDir, projec
 // ─── Proyectos recientes ─────────────────────────────────────────────────────
 
 export const getRecentProjects = () => call('get_recent_projects');
-export const addRecentProject = (project) =>
+/**
+ * Registra una apertura. `path` es lo que habrá que reabrir: la carpeta del
+ * proyecto, o el fichero en el caso de un `.typ` suelto — quien llama lo
+ * calcula, porque componer rutas es asunto suyo y no de esta capa.
+ */
+export const addRecentProject = ({ path, name, entrypoint, isSingleFile }) =>
   call('add_recent_project', {
-    path: project.isSingleFile ? `${project.root}/${project.entrypoint}` : project.root,
-    name: project.name,
-    entrypoint: project.entrypoint ?? null,
-    isSingleFile: Boolean(project.isSingleFile),
+    path,
+    name,
+    entrypoint: entrypoint ?? null,
+    isSingleFile: Boolean(isSingleFile),
   });
 export const clearRecentProjects = () => call('clear_recent_projects');
 

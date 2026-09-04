@@ -435,6 +435,11 @@
 }
 
 .preview__pages {
+  /* `position: relative` no es decorativo: hace de este contenedor el
+     `offsetParent` de las páginas, que es contra lo que `firstVisiblePage()`
+     compara `scrollTop` para saber por dónde va leyendo el usuario. Sin él, el
+     origen sería <body> y la recompilación traería siempre las páginas 1-2. */
+  position: relative;
   overflow: auto;
   padding: 16px;
   display: flex;

@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Sin publicar] / [Unreleased]
 
+### Fixed
+- El historial de deshacer se vacía al abrir otro documento: antes, un Ctrl+Z justo después de cambiar de fichero podía deshacer hasta el texto del documento anterior y escribirlo encima del nuevo.
+- La vista previa vuelve a compilar por la página que se está leyendo: el contenedor de páginas no era el origen de coordenadas de sus hijos, así que al recompilar traía siempre las dos primeras.
+- Un documento `.typ` suelto se guarda en Proyectos recientes con el separador de ruta de la plataforma, en vez de forzar siempre `/`.
+
 ### Added
 - **Slice 10 — Empaquetado y CI (RF-12):** asociación de fichero `.typ` (doble clic en el explorador del sistema abre el documento directamente), plantillas empaquetadas como recurso de la aplicación, workflow de Release para Linux (AppImage + `.deb`) con vendorizado del compilador Typst y fallo explícito si falta, y workflow de CI que ejecuta en cada push los tests, el build del frontend y las dos verificaciones contra el compilador real. README actualizado con el proceso de empaquetado y publicación por plataforma.
 - **Slice 9 — Exportación PDF (RF-10):** genera el PDF final del documento donde el usuario elija, con el nombre sugerido a partir del documento abierto. Exporta lo que se ve en pantalla, incluidos los cambios sin guardar, y el PDF sale directamente del compilador sin pasar por ningún fichero intermedio.

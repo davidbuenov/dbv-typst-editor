@@ -3,50 +3,40 @@
 ## Contexto del Proyecto (Context Snapshot)
 
 * **Objetivo**: Construir "el entorno de escritorio más accesible para el ecosistema Typst" (posicionamiento oficial) — no un editor de código con soporte Typst — orientado a documento/proyecto ("para Typst lo que Obsidian es para Markdown"), ligero, offline-first y multiplataforma, reutilizando al máximo la arquitectura de [DBV Markdown Reader](https://github.com/davidbuenov/dbv-md-reader).
-* **Estado actual**: Fases `/spec` y `/plan` **cerradas y congeladas** (`SPECIFICATIONS.md` v1.1, `ARCHITECTURE.md` v1.0, ambas con regla de congelación activa). `/build` **en curso**: **Slices 1 y 2 completados, verificados y commiteados**. La aplicación arranca, tiene shell con temas claro/oscuro e i18n ES/EN, y lleva el compilador Typst v0.15.1 embebido como sidecar y respondiendo.
-* **Última decisión técnica**: Ver `memory.md` — editor CodeMirror 6 (reconfirmado dos veces), Typst vía CLI oficial como sidecar, principios guía (Typst=infraestructura/DBV=experiencia, Universe-First), Universe Browser, Capa de Plantillas DBV, `.dbvt` como ZIP con protección zip-slip. En el Slice 2 se corrigieron **3 supuestos falsos** del research phase y se **cerró por adelantado el spike del outline**.
-* **Próximo paso**: **Slice 3** (ver punto de retorno al final de este fichero).
+* **Estado actual**: Fases `/spec` y `/plan` **cerradas y congeladas**. **`/build` COMPLETADA: los 10 slices del MVP v0.1 están construidos, verificados y commiteados.** El bucle de valor completo funciona de punta a punta: crear un proyecto desde una plantilla → escribirlo con resaltado Typst → ver el PDF actualizarse solo → guardarlo → exportarlo a PDF.
+* **Última decisión técnica**: Ver `memory.md`. Del `/build`: modo de lenguaje Typst por parser Lezer sin WASM (R-02 cerrado), carga perezosa de páginas en la vista previa tras medir 82 MB de SVG en una tesis de 209 páginas (R-03 cerrado), plantillas curadas autocontenidas y con fuentes embebidas, e instalador de WebView2 con variante offline bajo demanda.
+* **Próximo paso**: **Fase `/test`** — la cobertura automática actual (75 tests Rust + 28 comprobaciones contra el compilador real) no incluye pruebas de la capa de frontend ni de integración de la ventana. Ver "Pendiente" al final.
 
 ## Checklist de Tareas
 
 - [x] **Fase 0: Bootstrap del framework**
-  - [x] Copiar `dbv-specs-ops` v2.8.0 (última versión confirmada contra `origin/master`) a la raíz del proyecto.
-  - [x] Generar activadores en la raíz (`CLAUDE.md`, `GEMINI.md`, `ANTIGRAVITY.md`, `.windsurfrules`, `.github/copilot-instructions.md`).
-  - [x] Rellenar `project.config.md` (nombre, autor, licencia, stack, Agent Readiness).
-  - [x] Generar `README.md` / `README.en.md`, `LICENSE` (MIT), `.gitignore`.
+  - [x] Copiar `dbv-specs-ops` v2.8.0 a la raíz del proyecto y generar activadores.
+  - [x] Rellenar `project.config.md`, generar `README.md` / `README.en.md`, `LICENSE` (MIT), `.gitignore`.
   - [x] `git init` + commit inicial (confirmado explícitamente por el usuario).
-  - [x] Resetear `CHANGELOG.md`, `memory.md`, `task.md` (venían con el historial del propio framework, no del proyecto).
 
 - [x] **Fase 1: Especificación y arquitectura (`/spec` + análisis `/plan` inicial)**
-  - [x] Análisis exhaustivo de DBV Markdown Reader vía agente de exploración de código; clasificación explícita de componentes reutilizables (`ARCHITECTURE.md` §3); dependencias a mantener/sustituir (§4-5); riesgos (§6).
-  - [x] **Spec Addendum procesado:** filosofía "Obsidian for Typst", lanzador, modelo de Proyecto, plantillas + marketplace inicial, asistente de creación, asistentes de inserción, outline, modos de escritura, imágenes por arrastre, bibliografía, Project Archive `.dbvt`, re-evaluación Monaco vs. CodeMirror 6 (reconfirmado CM6), roadmap reconciliado.
-  - [x] **Additional Specification Clarification procesada:** Package Explorer y Template Explorer separados a nivel de producto; hallazgo técnico de fuente de datos única (`index.json`) tras investigación; detección automática de "Paquetes usados".
-  - [x] **TYPST CLI INTEGRATION procesada:** integración vía CLI oficial vendorizado como sidecar (reversión de la decisión anterior de crates embebidas, propagada a §7.6/§7.8/§3/§4-5/§6/§8); terminal avanzado para power users (§7.14).
-  - [x] **Research phase dedicado completado** (`docs/TYPST_ECOSYSTEM_RESEARCH.md`): CLI (init/compile/watch/query/update/instalación), sistema de paquetes (manifiesto, resolución, caché, flujo de actualización), Typst Universe (paquetes y plantillas), registros oficiales (`index.json` vs. `api.typst.app` privada), oportunidades de integración. Hallazgos propagados a `ARCHITECTURE.md` y `SPECIFICATIONS.md`.
-  - [x] **Feedback de posicionamiento de producto procesado:** dos principios arquitectónicos guía en `ARCHITECTURE.md` §0.1 (Typst=infraestructura/DBV=experiencia; Universe-First); Universe Browser reencuadrado como punto de entrada de primer nivel con árbol de navegación explícito (§7.6.0.1); Capa de Plantillas DBV ampliada (localización, capturas, defaults, validación) y diseño de overlay para enriquecer plantillas comunitarias sin riesgo de desincronización; campos base canónicos del asistente de creación; posicionamiento oficial de producto en `SPECIFICATIONS.md` §2.
-  - [x] **Architecture Review final entregado** (decisiones, ADRs, asunciones, spikes, riesgos, alcance MVP recomendado).
-  - [x] **🔒 Especificaciones y arquitectura CONGELADAS v1.0 (2026-09-04).** Cambios posteriores exigen ADR en `memory.md` + nueva versión del documento + revisión de impacto en `implementation_plan.md`.
-  - [ ] `docs/DESIGN.md` — sistema de diseño visual (pendiente, opcional en esta fase según `MASTER_PROMPT.md`; se abordará antes del Slice 4).
+  - [x] Análisis exhaustivo de DBV Markdown Reader y clasificación de componentes reutilizables.
+  - [x] Spec Addendum, Additional Specification Clarification, TYPST CLI INTEGRATION y feedback de posicionamiento procesados.
+  - [x] Research phase dedicado del ecosistema Typst (`docs/TYPST_ECOSYSTEM_RESEARCH.md`).
+  - [x] **🔒 Especificaciones y arquitectura CONGELADAS v1.0/v1.1 (2026-09-04).**
+  - [ ] `docs/DESIGN.md` — sistema de diseño visual. **Deuda documental consciente:** el sistema visual existe y es coherente (tokens en `src/themes/tokens.css`, layout en `layout.css`), pero no está escrito como documento de diseño. No bloquea nada; conviene escribirlo antes de tocar la interfaz a fondo.
 
 - [x] **Fase 2: Planificación de implementación (`/plan`)** — plan generado y **APROBADO por el usuario** (2026-09-04) con alcance reducido de v0.1.
-  - [x] `implementation_plan.md` con frontmatter YAML (dependencies, risks R-01..R-05, rollback_strategy) y desglose en 10 slices.
-  - [x] Adversarial Architect Review formal (condición de carrera del bucle de preview con el sidecar `typst` en tesis largas → 4 requisitos obligatorios añadidos al Slice 5).
-  - [x] Gate de app nativa compilada resuelto: Linux automatizado por GitHub Actions, Windows manual por el mantenedor, macOS fuera del MVP; paso nuevo de vendorizado del sidecar antes de `tauri build`.
-  - [x] Aprobación del usuario del plan y del alcance de v0.1: **alcance reducido** — slices 1-7, slice 8 con 4 plantillas (Proyecto en blanco, TFG, Artículo académico, CV), slice 9 solo PDF, slice 10. `.dbvt` y las 4 plantillas restantes → v0.2.
 
-- [ ] **Fase 3: Construcción (`/build`)** — EN CURSO. Desglose por slices (ver `implementation_plan.md` §3):
-  - [x] **Slice 1 — Andamiaje Tauri v2 + Vite + shell (theming, paneles, i18n).** ✅ Verificado: `cargo check` limpio, 2 tests Rust en verde, `vite build` OK (4,7 kB JS + 3,6 kB CSS), `npm run dev` arranca la ventana sin errores ni warnings y el `invoke('app_info')` responde — **R-04 (convivencia Vite ↔ `withGlobalTauri`) descartado**. RAM en reposo medida: ~33 MB.
-  - [x] **Slice 2 — Sidecar `typst` verificado contra binario real.** ✅ Typst v0.15.1 vendorizado (`scripts/vendor-typst.mjs`), módulo `typst_engine` con error tipado, comando `typst_version` operativo en la app, y `scripts/verify-typst-sidecar.mjs` con **8/8 comprobaciones en verde** (re-ejecutable con `npm run verify:typst`). **3 supuestos del research phase resultaron falsos y están corregidos** (ver `memory.md`); el **spike del outline quedó cerrado a favor**, adelantándose a Beta. Riesgo R-05 mitigado. **Instalador medido: 18 MB** (por debajo del objetivo original de 30 MB) tras detectar que `offlineInstaller` de WebView2 —heredado de dbv-md-reader— lo inflaba a 268 MB; R-01 cerrado con dato real.
-  - [ ] **Slice 3 — Modelo de Proyecto + explorador + operaciones de proyecto. ⬅️ SIGUIENTE** (detalle al final de este fichero).
-  - [ ] Slice 4 — Editor CodeMirror 6 + lenguaje Typst.
-  - [ ] Slice 5 — Bucle de vista previa SVG (cancelación, token de generación, TempDir, última vista buena).
-  - [ ] Slice 6 — Guardar / Guardar como / conflicto externo.
-  - [ ] Slice 7 — Lanzador orientado a tareas + asistente de creación de proyecto.
-  - [ ] Slice 8 — Plantillas curadas de v0.1: Proyecto en blanco, TFG, Artículo académico, CV.
-  - [ ] Slice 9 — Exportación PDF (`.dbvt` diferido a v0.2).
-  - [ ] Slice 10 — Empaquetado Windows/Linux y CI.
+- [x] **Fase 3: Construcción (`/build`) — COMPLETADA (2026-09-05).** Un commit por slice, la app arrancable al final de cada uno:
+  - [x] **Slice 1** — Andamiaje Tauri v2 + Vite + shell (theming, paneles, i18n). ✅ `7a77fe2`
+  - [x] **Slice 2** — Sidecar `typst` v0.15.1 verificado contra binario real (8/8). ✅ `8023821`
+  - [x] **Decisión de instalador WebView2 cerrada** — `downloadBootstrapper` (18 MB) por defecto + overlay `npm run build:win:offline` (268 MB) para aulas sin conexión. ✅ `bc74407`
+  - [x] **Slice 3** — Modelo de Proyecto, explorador y operaciones de proyecto (RF-02, RF-02b, RF-02c). ✅ `5c695d8`
+  - [x] **Slice 4** — Editor CodeMirror 6 + lenguaje Typst (RF-05). R-02 cerrado a favor. ✅ `50e72a1`
+  - [x] **Slice 5** — Bucle de vista previa SVG (RF-06), con los 4 requisitos del Adversarial Review. R-03 cerrado a favor. ✅ `78fb3bc`
+  - [x] **Slice 6** — Guardar / Guardar como / conflicto externo (RF-07). ✅ `dadb582`
+  - [x] **Slice 7** — Lanzador orientado a tareas + asistente de creación (RF-01, RF-03). ✅ `08bdf0e`
+  - [x] **Slice 8** — Plantillas curadas: Proyecto en blanco, TFG, Artículo académico, CV (RF-04). ✅ `d9800b6`
+  - [x] **Slice 9** — Exportación PDF (RF-10). ✅ `d26b257`
+  - [x] **Slice 10** — Empaquetado, asociación `.typ` y CI (RF-12). ✅ `ccce34a`
 
-- [ ] **Fase 4: Pruebas (`/test`)** — no iniciada.
+- [ ] **Fase 4: Pruebas (`/test`)** — parcialmente cubierta durante `/build`, no ejecutada como fase.
 - [ ] **Fase 5: Simplificar (`/code-simplify`)** — no iniciada.
 - [ ] **Fase 6: Entrega (`/ship`)** — no iniciada.
 
@@ -56,64 +46,81 @@
 
 > ### 👉 CÓMO RETOMAR ESTE PROYECTO (leer esto primero)
 >
-> **Si el usuario dice solo "continuar": el trabajo pendiente es el SLICE 3.** No hay que replanificar
-> nada ni volver a analizar: las fases `/spec` y `/plan` están cerradas y congeladas, y los slices 1 y 2
-> están terminados, verificados y commiteados. Entra directamente en `/build` por el Slice 3.
+> **Si el usuario dice solo "continuar": el trabajo pendiente es la fase `/test`.** El `/build` del MVP
+> está terminado y commiteado, slice a slice. No hay que replanificar ni volver a analizar nada.
 >
-> **Última sesión:** 2026-09-04 · **Rama:** `master` · **Árbol de trabajo limpio, sin cambios sin commitear.**
+> **Última sesión:** 2026-09-05 · **Rama:** `master` · **Árbol de trabajo limpio.**
 
-### ✅ Hecho hasta ahora
+### ✅ Qué funciona hoy (MVP v0.1 completo)
 
-| Fase | Estado |
-| --- | --- |
-| Bootstrap del framework (dbv-specs-ops v2.8.0) | ✅ commit `26dfdb2` |
-| Análisis de reutilización de DBV Markdown Reader | ✅ commit `31b5ae4` |
-| 4 rondas de refinamiento de specs con el usuario | ✅ commits `9d100f4`, `06256c4`, `10558f2` |
-| Congelación de specs + `implementation_plan.md` (10 slices) | ✅ commit `445fe9d` |
-| **Slice 1** — Andamiaje Tauri v2 + Vite + shell | ✅ commit `7a77fe2` |
-| **Slice 2** — Sidecar Typst verificado + `typst_engine` | ✅ commit `8023821` |
+| Funcionalidad | Requisito | Estado |
+| --- | --- | --- |
+| Lanzador orientado a tareas | RF-01 | ✅ |
+| Modelo de Proyecto + explorador | RF-02 | ✅ |
+| Proyectos ajenos sin manifiesto | RF-02b | ✅ (y no se escribe nada en su carpeta) |
+| Abrir carpeta / Mostrar en el SO / Recientes | RF-02c | ✅ |
+| Asistente de creación de proyecto | RF-03 | ✅ |
+| 4 plantillas curadas | RF-04 | ✅ |
+| Editor Typst (CodeMirror 6) | RF-05 | ✅ |
+| Vista previa en tiempo real | RF-06 | ✅ |
+| Guardar / Guardar como / conflicto | RF-07 | ✅ |
+| Temas claro y oscuro | RF-08 | ✅ |
+| Configuración persistente (tema, idioma, anchos, zoom, recientes) | RF-09 | ✅ |
+| Exportación PDF | RF-10 | ✅ |
+| Empaquetado Windows/Linux + asociación `.typ` | RF-12 | ✅ |
+| Project Archive `.dbvt` | RF-11 | ⏸ diferido a v0.2 por decisión de alcance |
 
-### ▶️ SLICE 3 — lo que toca hacer ahora
+### 📊 Verificación disponible (ejecutable, no manual)
 
-**Modelo de Proyecto, explorador de ficheros y operaciones de proyecto** (RF-02, RF-02b, RF-02c de
-`docs/SPECIFICATIONS.md`; detalle en `implementation_plan.md` §3).
+```bash
+npm test                 # 75 tests del backend Rust
+npm run verify:typst     # 8 comprobaciones del sidecar contra el binario real
+npm run verify:templates # 20 comprobaciones: cada plantilla se instancia y compila sin avisos
+npm run build:vite       # build del frontend
+```
 
-1. **Portar de DBV Markdown Reader** (`d:/Programacion/github-davidbuenov/dbv-md-reader/src-tauri/src/lib.rs`,
-   con las referencias de línea en `docs/ARCHITECTURE.md` §3): watcher `notify` sobre el **directorio padre**
-   (no el fichero), `list_directory`, recent-files → recent-**projects**, `read_file`/`write_file`
-   (sin la rama de descarga remota), `open_file_dialog` (filtro `.typ`) y `reveal_in_file_manager`.
-2. **Crear `src-tauri/src/project.rs`**: `create_project`, `open_project`, `read_project_manifest`
-   (`settings/dbv-project.toml`, **opcional**). Un `.typ` suelto = proyecto de un solo fichero.
-3. **RF-02b (crítico, restricción R-MVP-3):** abrir un repositorio Git clonado o un proyecto Typst ajeno
-   debe funcionar **igual de bien y sin que la app escriba el manifiesto por su cuenta**.
-4. **RF-02c:** Abrir carpeta de proyecto · Mostrar carpeta en el explorador del SO · Proyectos recientes.
-5. **Portar `filetree.js`** (`dbv-md-reader/src/filetree.js`) como explorador de proyecto, adaptado a ESM.
-6. **Criterio de aceptación:** abrir una carpeta con `main.typ` **sin manifiesto DBV** muestra el árbol y
-   permite editar/compilar igual que un proyecto creado por la app; los tres comandos de RF-02c funcionan;
-   los tests Rust de las funciones puras portadas pasan.
+Los tres primeros se ejecutan también en CI (`.github/workflows/ci.yml`) en cada push.
 
-### ⚠️ Pendiente de decisión del usuario (NO bloquea el Slice 3)
+### ▶️ PENDIENTE — Fase `/test`
 
-**Modo de instalación de WebView2 en Windows.** Se eligió `downloadBootstrapper` (instalador de **18 MB**)
-frente al `offlineInstaller` heredado de dbv-md-reader (**268 MB**, pero instala sin conexión). Contrapartida:
-con el bootstrapper, instalar en una máquina que a la vez carezca de WebView2 y de red falla. Revertir es una
-línea en `src-tauri/tauri.windows.conf.json`. Detalle en `docs/ARCHITECTURE.md` §7.15.
+Lo que la cobertura actual **no** cubre y debería cubrir la fase `/test`:
+
+1. **Frontend sin pruebas automáticas.** No hay runner de tests de JavaScript en el proyecto. Candidatos
+   naturales, todos funciones puras ya aisladas a propósito: `validateFields` (wizard), `localizeTemplate`
+   (launcher), `joinPath`/`baseName` (workspace) y `normalizeError` (services/backend).
+2. **Prueba de integración de la ventana real:** arrancar la app, abrir un proyecto de prueba, teclear y
+   comprobar que la vista previa cambia. Hoy es prueba manual.
+3. **Escenarios de conflicto (RF-07) en integración:** editar el mismo fichero desde otro programa y
+   comprobar las tres ramas (eco propio ignorado, recarga silenciosa, modal de conflicto).
+4. **Prueba del instalador generado**, en las dos variantes de Windows y en Linux.
+
+### ⚠️ Deuda técnica registrada durante `/build`
+
+- **`docs/DESIGN.md` sin escribir** (ver Fase 1). El sistema visual existe y es coherente; falta documentarlo.
+- **El bundle del frontend son 520 kB** (161 kB gzip), por encima de los 200-400 kB estimados en
+  ADR-EDITOR-001. Son los datos de autocompletado de la biblioteca estándar de Typst. Aceptado y
+  registrado; si molestase, la vía es cargar el paquete de lenguaje con `import()` dinámico.
+- **Sin instancia única ni multiventana.** DBV Markdown Reader tiene ambas (`tauri-plugin-single-instance`);
+  aquí, abrir un segundo `.typ` desde el explorador arranca una segunda instancia. No estaba en el alcance
+  del MVP, pero es visible para el usuario en cuanto usa la asociación de fichero más de una vez.
+- **El espejo de vista previa (`.dbv-preview.typ`)** es un fichero oculto y transitorio en la carpeta del
+  usuario mientras hay cambios sin guardar. Filtrado del explorador y del watcher; si la aplicación muriese
+  a mitad de una compilación podría quedar uno huérfano (se sobrescribe en el siguiente arranque).
 
 ### 🛠️ Comandos útiles
 
 ```bash
-npm install              # dependencias (ya instaladas)
+npm install              # dependencias
 npm run vendor:typst     # descarga el sidecar Typst (OBLIGATORIO tras clonar; no se versiona)
-npm run verify:typst     # 8 comprobaciones del sidecar contra el binario real
 npm run dev              # arranca la app (start.cmd / start.sh equivalentes)
 ./stop.cmd               # cierra app + libera el puerto 1420 de Vite
-npm test                 # tests Rust (5 en verde ahora mismo)
-npm run build            # instalador release
+npm run build            # instalador release (Windows: NSIS ~18 MB)
+npm run build:win:offline # variante Windows con WebView2 embebido (~268 MB)
 ```
 
-### 📌 Reglas vigentes en `/build`
+### 📌 Reglas vigentes
 
 - **Priorizar software funcionando** sobre refinamiento arquitectónico (regla fijada por el usuario).
-- **No reabrir decisiones congeladas** salvo bloqueante real, asunción del research phase demostrada falsa,
-  o ADR explícito. En los tres casos: **ADR en `memory.md` primero, cambio después.**
-- Un commit por slice, con la app arrancable al final de cada uno.
+- **No reabrir decisiones congeladas** salvo bloqueante real, asunción demostrada falsa, o ADR explícito.
+  En los tres casos: **ADR en `memory.md` primero, cambio después.**
+- Un commit por slice o por unidad de trabajo cerrada, con la app arrancable al final de cada uno.

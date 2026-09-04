@@ -181,7 +181,14 @@ export function createWorkspace({ tree, elements, notify, dialog }) {
     renderDocumentBar();
 
     await tree.setRoot(state.project.root, { force: true });
-    await addRecentProject(state.project);
+    // Un `.typ` suelto se reabre por su fichero, no por su carpeta; el separador
+    // lo pone `joinPath`, que respeta el de la plataforma.
+    await addRecentProject({
+      ...state.project,
+      path: state.project.isSingleFile
+        ? joinPath(state.project.root, state.project.entrypoint)
+        : state.project.root,
+    });
     listeners.projectOpened?.(state.project);
 
     if (state.project.entrypoint) {

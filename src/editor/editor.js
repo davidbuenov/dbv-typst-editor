@@ -128,6 +128,11 @@ export function createEditor(hostEl, { onChange, onSave, theme = 'dark' } = {}) 
 
   const themeCompartment = new Compartment();
   const readOnlyCompartment = new Compartment();
+  // El historial vive en su propio compartimento por un motivo concreto: al
+  // abrir otro documento hay que VACIARLO. Si no, un Ctrl+Z justo después de
+  // cambiar de fichero deshace hasta el texto del documento anterior y lo
+  // escribe encima del nuevo — una forma silenciosa de destruir trabajo.
+  const historyCompartment = new Compartment();
 
   let currentPath = null;
   // Distingue "el usuario ha escrito" de "hemos cargado un documento": sin esta
@@ -153,7 +158,7 @@ export function createEditor(hostEl, { onChange, onSave, theme = 'dark' } = {}) 
         lineNumbers(),
         highlightActiveLineGutter(),
         highlightActiveLine(),
-        history(),
+        historyCompartment.of(history()),
         foldGutter(),
         drawSelection(),
         rectangularSelection(),
@@ -195,9 +200,12 @@ export function createEditor(hostEl, { onChange, onSave, theme = 'dark' } = {}) 
       view.dispatch({
         changes: { from: 0, to: view.state.doc.length, insert: content },
         selection: { anchor: 0 },
-        // Un documento nuevo no debe poder deshacerse hasta el anterior.
-        annotations: [],
       });
+      // Reconfigurar el compartimento descarta el historial acumulado y vuelve
+      // a instalarlo vacío: deshacer en el documento recién abierto ya no puede
+      // llegar al contenido del anterior.
+      view.dispatch({ effects: historyCompartment.reconfigure([]) });
+      view.dispatch({ effects: historyCompartment.reconfigure(history()) });
       currentPath = path ?? null;
       loading = false;
     },

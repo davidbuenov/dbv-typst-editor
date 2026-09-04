@@ -457,6 +457,91 @@ mod tests {
         assert!(scan_catalog(Path::new("dbv-no-existe")).is_empty());
     }
 
+    /// El catálogo REAL que se empaqueta, no una copia de prueba.
+    ///
+    /// Un `typst.toml` mal escrito o un `dbv-template.toml` corrupto haría
+    /// desaparecer la plantilla del lanzador en silencio (`read_template`
+    /// devuelve `None` a propósito, para que una plantilla rota no tumbe el
+    /// catálogo entero). Sin este test, ese silencio solo se notaría abriendo
+    /// la aplicación y viendo un hueco.
+    #[test]
+    fn el_catalogo_empaquetado_se_lee_completo_y_con_su_capa_dbv() {
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../templates");
+        let catalog = scan_catalog(&root);
+
+        let nombres: Vec<&str> = catalog.iter().map(|t| t.name.as_str()).collect();
+        assert_eq!(
+            nombres,
+            vec!["dbv-articulo", "dbv-blank", "dbv-cv", "dbv-tfg"],
+            "el catálogo de v0.1 son estas 4 plantillas"
+        );
+
+        for template in &catalog {
+            assert!(!template.version.is_empty(), "{} sin versión", template.name);
+            assert_eq!(template.entrypoint, "main.typ", "{}", template.name);
+            let dbv = template
+                .dbv
+                .as_ref()
+                .unwrap_or_else(|| panic!("{} debería traer sidecar DBV", template.name));
+            assert!(dbv.dbv_category.is_some(), "{} sin categoría", template.name);
+            // El lanzador cae al nombre del paquete si falta la localización, y
+            // "dbv-tfg" no es lo que debe leer un usuario.
+            for idioma in ["es", "en"] {
+                let localizado = dbv
+                    .localization
+                    .get(idioma)
+                    .unwrap_or_else(|| panic!("{} sin localización {idioma}", template.name));
+                assert!(!localizado.name.is_empty());
+                assert!(!localizado.description.is_empty());
+            }
+        }
+    }
+
+    /// Los campos del formulario deben corresponderse con marcadores reales de
+    /// la plantilla: un campo que no sustituye nada le pide al usuario un dato
+    /// que después no aparece en su documento.
+    #[test]
+    fn cada_campo_del_formulario_tiene_su_marcador_en_la_plantilla() {
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../templates");
+        for template in scan_catalog(&root) {
+            let Some(dbv) = template.dbv.as_ref() else { continue };
+            let dir = root
+                .join(LOCAL_NAMESPACE)
+                .join(&template.name)
+                .join(&template.version)
+                .join("template");
+            let contenido: String = walk(&dir)
+                .into_iter()
+                .filter_map(|file| fs::read_to_string(file).ok())
+                .collect();
+
+            for field in &dbv.fields {
+                assert!(
+                    contenido.contains(&format!("{{{{{}}}}}", field.key)),
+                    "el campo '{}' de {} no aparece en ningún fichero de la plantilla",
+                    field.key,
+                    template.name
+                );
+            }
+        }
+    }
+
+    fn walk(dir: &Path) -> Vec<PathBuf> {
+        let Ok(entries) = fs::read_dir(dir) else {
+            return Vec::new();
+        };
+        let mut found = Vec::new();
+        for entry in entries.filter_map(|entry| entry.ok()) {
+            let path = entry.path();
+            if path.is_dir() {
+                found.extend(walk(&path));
+            } else {
+                found.push(path);
+            }
+        }
+        found
+    }
+
     #[test]
     fn substitute_in_tree_solo_toca_los_ficheros_de_texto_del_proyecto() {
         let dir = tempfile::tempdir().unwrap();

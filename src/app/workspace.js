@@ -17,17 +17,20 @@ import { createEditor } from '../editor/editor.js';
 import { createSymbolPicker } from '../editor/symbolPicker.js';
 import { createTableDialog } from '../editor/tableDialog.js';
 import { createToolbar } from '../editor/toolbar.js';
+import { figureActionForPath } from '../editor/toolbarActions.js';
 import { t } from '../i18n/i18n.js';
 import { getTheme } from '../themes/theme.js';
 import {
   PROJECT_CHANGE_EVENT,
   addRecentProject,
+  copyAssetIntoProject,
   exportPdf,
   exportPng as backendExportPng,
   exportProjectArchive,
   fileModifiedMs,
   on,
   openProject,
+  pickImageFile,
   pickSaveTarget,
   readFile,
   revealInFileManager,
@@ -104,6 +107,10 @@ export function createWorkspace({ tree, elements, notify, dialog }) {
       citation: (button) => citationPicker?.openNear(button),
       symbols: (button) => symbolPicker?.openNear(button),
       table: (button) => tableDialog?.openNear(button),
+      // Beta, §7.7.4: vía alternativa a arrastrar y soltar (Slice 19) — un
+      // selector nativo de fichero, mismo destino final (`images/` del
+      // proyecto) y misma inserción con el hueco en el pie de figura.
+      figure: () => insertFigureFromDialog(),
     },
   });
 
@@ -388,6 +395,27 @@ export function createWorkspace({ tree, elements, notify, dialog }) {
     }
     notify(`${t('archive.exportDone')} ${output}`);
     return true;
+  }
+
+  /**
+   * Asistente "Insertar figura" vía selector nativo (Beta, §7.7.4) — la vía
+   * alternativa a arrastrar y soltar (Slice 19) para quien lo prefiera.
+   */
+  async function insertFigureFromDialog() {
+    if (!state.project) return;
+
+    const picked = await pickImageFile();
+    if (!picked.ok || !picked.value) return;
+
+    const result = await copyAssetIntoProject(state.project.root, picked.value);
+    if (!result.ok) {
+      notify(`${t('asset.copyFailed')} — ${result.error.message}`, 'error');
+      return;
+    }
+
+    const view = editor.getView();
+    view.dispatch(figureActionForPath(result.value)(view.state));
+    view.focus();
   }
 
   /**

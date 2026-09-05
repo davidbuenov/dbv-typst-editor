@@ -32,6 +32,7 @@ pub fn run() {
             archive::import_project_archive,
             archive::pick_archive_dialog,
             assets::copy_asset_into_project,
+            assets::pick_image_dialog,
             bibliography::bibliography_keys,
             commands::app_info::app_info,
             commands::file_io::file_modified_ms,

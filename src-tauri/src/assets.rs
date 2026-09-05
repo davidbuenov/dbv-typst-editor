@@ -11,12 +11,34 @@
 // el fichero soltado a `images/` del proyecto activo. El frontend usa la ruta
 // relativa que devuelve este comando para invocar el asistente "Insertar
 // figura" (§7.7) con la ruta ya rellena.
+//
+// `pick_image_dialog` es la vía alternativa sin arrastrar: un selector nativo
+// de fichero de imagen, para quien lo prefiera al drag-and-drop. Reutiliza el
+// mismo `copy_asset_into_project` de abajo — la única diferencia es cómo se
+// obtiene la ruta de origen.
 
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use tauri::AppHandle;
+use tauri_plugin_dialog::DialogExt;
+
 use crate::commands::file_io::path_to_string;
 use crate::error::AppError;
+
+/// Extensiones de imagen que Typst sabe incrustar con `image(...)`.
+const IMAGE_EXTENSIONS: [&str; 6] = ["png", "jpg", "jpeg", "gif", "svg", "webp"];
+
+/// Selector nativo de una imagen a copiar al proyecto (alternativa a
+/// arrastrar y soltar).
+#[tauri::command]
+pub async fn pick_image_dialog(app: AppHandle) -> Option<String> {
+    app.dialog()
+        .file()
+        .add_filter("Imagen", &IMAGE_EXTENSIONS)
+        .blocking_pick_file()
+        .map(|file| file.to_string())
+}
 
 const ASSETS_DIR: &str = "images";
 

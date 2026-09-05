@@ -136,6 +136,7 @@ export const getBibliographyKeys = (root) => call('bibliography_keys', { root })
 
 export const copyAssetIntoProject = (projectRoot, sourcePath) =>
   call('copy_asset_into_project', { projectRoot, sourcePath });
+export const pickImageFile = () => call('pick_image_dialog');
 
 // ─── Terminal avanzado (Beta, §7.14) ──────────────────────────────────────────
 

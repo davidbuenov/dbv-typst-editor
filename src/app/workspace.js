@@ -14,6 +14,8 @@
 
 import { createCitationPicker } from '../editor/citationPicker.js';
 import { createEditor } from '../editor/editor.js';
+import { createSymbolPicker } from '../editor/symbolPicker.js';
+import { createTableDialog } from '../editor/tableDialog.js';
 import { createToolbar } from '../editor/toolbar.js';
 import { t } from '../i18n/i18n.js';
 import { getTheme } from '../themes/theme.js';
@@ -74,6 +76,8 @@ export function createWorkspace({ tree, elements, notify, dialog }) {
   // referenciar `toolbar` aunque todavía no se le haya asignado nada.
   let toolbar;
   let citationPicker;
+  let symbolPicker;
+  let tableDialog;
   const editor = createEditor(elements.editorHost, {
     theme: getTheme(),
     onChange: (content) => {
@@ -94,9 +98,13 @@ export function createWorkspace({ tree, elements, notify, dialog }) {
   toolbar = createToolbar({
     containerEl: elements.editorToolbar,
     getView: editor.getView,
-    // Beta, §7.7.4: "Cite" abre el desplegable de claves reales del .bib en
-    // vez de insertar un marcador genérico.
-    onCitationRequested: (button) => citationPicker?.openNear(button),
+    // Beta, §7.7.4: estos tres botones abren un asistente con formulario en
+    // vez de aplicar directamente la acción simple de `toolbarActions.js`.
+    specialHandlers: {
+      citation: (button) => citationPicker?.openNear(button),
+      symbols: (button) => symbolPicker?.openNear(button),
+      table: (button) => tableDialog?.openNear(button),
+    },
   });
 
   const state = {
@@ -114,6 +122,22 @@ export function createWorkspace({ tree, elements, notify, dialog }) {
     listEl: elements.citationList,
     filterEl: elements.citationFilter,
     getRoot: () => state.project?.root ?? null,
+    getView: editor.getView,
+  });
+
+  symbolPicker = createSymbolPicker({
+    panelEl: elements.symbolPanel,
+    gridEl: elements.symbolGrid,
+    filterEl: elements.symbolFilter,
+    getView: editor.getView,
+  });
+
+  tableDialog = createTableDialog({
+    panelEl: elements.tablePanel,
+    rowsEl: elements.tableRows,
+    colsEl: elements.tableCols,
+    headerEl: elements.tableHeader,
+    insertButtonEl: elements.tableInsert,
     getView: editor.getView,
   });
 

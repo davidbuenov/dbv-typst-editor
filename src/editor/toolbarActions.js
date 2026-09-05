@@ -173,6 +173,44 @@ export function figureActionForPath(path) {
   });
 }
 
+/**
+ * Inserta un símbolo Typst elegido en la galería (Beta, §7.7.4): dentro de una
+ * ecuación, el nombre tal cual (`alpha`, `arrow.r`...); fuera, envuelto en
+ * `$...$` — misma comprobación de contexto que el resto de la barra.
+ */
+export function insertSymbolAction(symbolName) {
+  return (state) => {
+    const text = isInsideMath(state) ? symbolName : `$${symbolName}$`;
+    const { from, to } = state.selection.main;
+    return { changes: { from, to, insert: text }, selection: { anchor: from + text.length } };
+  };
+}
+
+/**
+ * Genera una tabla real con las dimensiones elegidas en el diálogo (Beta,
+ * §7.7.4) — a diferencia del botón liso de la barra, que siempre es 2×2. La
+ * fila de cabecera, si se pide, usa `table.header(...)` (la forma oficial,
+ * no una fila normal más), y el hueco de edición cae en la primera celda del
+ * CUERPO — nunca en la cabecera, que ya lleva un texto de ejemplo propio.
+ */
+export function tableAction({ rows, cols, header }) {
+  return blockTemplate(() => {
+    const headerLine = header
+      ? `  table.header(${Array.from({ length: cols }, (_, i) => `[Encabezado ${i + 1}]`).join(', ')}),\n`
+      : '';
+    const bodyRows = Array.from(
+      { length: rows },
+      () => `  ${Array.from({ length: cols }, () => '[Celda]').join(', ')},`
+    ).join('\n');
+    const text = `#table(\n  columns: ${cols},\n${headerLine}${bodyRows}\n)`;
+
+    const celdaIndex = text.indexOf('[Celda]');
+    const holeStart = celdaIndex >= 0 ? celdaIndex + 1 : text.length;
+    const holeLength = celdaIndex >= 0 ? 'Celda'.length : 0;
+    return { text, holeStart, holeLength };
+  });
+}
+
 const HEADING_PREFIXES = ['= ', '== ', '=== '];
 const LIST_PREFIXES = ['- ', '+ ', '/ '];
 
@@ -264,6 +302,22 @@ export const TOOLBAR_ACTIONS = [
   },
 
   // ── Typst ────────────────────────────────────────────────────────────────
+  {
+    id: 'symbols',
+    group: 'typst',
+    glyph: 'Σ',
+    i18nKey: 'toolbar.symbols',
+    // Fallback si no hay galería wireada (Beta, §7.7.4): inserta un símbolo de
+    // ejemplo, envuelto en `$...$` si el cursor no está ya en modo matemático
+    // — la misma comprobación que usa `insertSymbol()` de verdad.
+    buildTransaction: (state) => {
+      const inMath = isInsideMath(state);
+      const symbol = 'alpha';
+      const text = inMath ? symbol : `$${symbol}$`;
+      const { from, to } = state.selection.main;
+      return { changes: { from, to, insert: text }, selection: { anchor: from + text.length } };
+    },
+  },
   { id: 'equationInline', group: 'typst', glyph: '$x$', i18nKey: 'toolbar.equationInline', buildTransaction: wrapToggle('$', '$') },
   {
     id: 'equationBlock',

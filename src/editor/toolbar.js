@@ -24,13 +24,15 @@ function formatShortcut(shortcut) {
  * @param {object} deps
  * @param {HTMLElement} deps.containerEl
  * @param {() => import('@codemirror/view').EditorView | null} deps.getView
- * @param {(triggerEl: HTMLButtonElement) => void} [deps.onCitationRequested]
- *   Beta, §7.7.4: el botón "Cite" abre el desplegable de claves reales del
- *   `.bib` del proyecto en vez de insertar un marcador genérico. Si no se da
- *   (por ejemplo en un test), el botón degrada limpiamente al marcador simple
- *   de `toolbarActions.js`.
+ * @param {Record<string, (triggerEl: HTMLButtonElement) => void>} [deps.specialHandlers]
+ *   Beta, §7.7.4: algunos botones abren un asistente con formulario en vez de
+ *   aplicar directamente `buildTransaction` — "Cite" el desplegable de claves
+ *   del `.bib`, "Σ" la galería de símbolos, "Tabla" el diálogo de dimensiones.
+ *   Se indexa por `id` de la acción; un botón sin entrada aquí (o si no se
+ *   pasa el mapa, como en un test) degrada limpiamente al marcador simple de
+ *   `toolbarActions.js`.
  */
-export function createToolbar({ containerEl, getView, onCitationRequested }) {
+export function createToolbar({ containerEl, getView, specialHandlers = {} }) {
   /** @type {Map<string, HTMLButtonElement>} */
   const buttons = new Map();
 
@@ -56,8 +58,9 @@ export function createToolbar({ containerEl, getView, onCitationRequested }) {
         button.textContent = action.glyph;
         button.dataset.action = action.id;
         button.addEventListener('click', () => {
-          if (action.id === 'citation' && onCitationRequested) {
-            onCitationRequested(button);
+          const special = specialHandlers[action.id];
+          if (special) {
+            special(button);
             return;
           }
           const view = getView();

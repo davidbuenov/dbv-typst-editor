@@ -15,7 +15,14 @@
 import { EditorState } from '@codemirror/state';
 import { typst_lezer } from 'codemirror-lang-typst/lezer';
 import { describe, expect, it } from 'vitest';
-import { TOOLBAR_ACTIONS, buildToolbarKeymap, figureActionForPath, isInsideMath } from './toolbarActions.js';
+import {
+  TOOLBAR_ACTIONS,
+  buildToolbarKeymap,
+  figureActionForPath,
+  insertSymbolAction,
+  isInsideMath,
+  tableAction,
+} from './toolbarActions.js';
 
 function action(id) {
   const found = TOOLBAR_ACTIONS.find((candidate) => candidate.id === id);
@@ -193,6 +200,50 @@ describe('figureActionForPath (arrastrar y soltar una imagen, Beta §7.10)', () 
     );
     const { from, to } = next.selection.main;
     expect(next.sliceDoc(from, to)).toBe('pie de figura');
+  });
+});
+
+describe('insertSymbolAction (galería de símbolos, Beta §7.7.4)', () => {
+  it('fuera de una ecuación, envuelve el símbolo en $...$', () => {
+    const state = stateWithSelection('Texto ', 6);
+    const spec = insertSymbolAction('alpha')(state);
+    const next = state.update(spec).state;
+    expect(next.doc.toString()).toBe('Texto $alpha$');
+  });
+
+  it('dentro de una ecuación, inserta el nombre desnudo', () => {
+    const doc = '$ x + $';
+    const state = stateWithSelection(doc, doc.indexOf('+') + 2);
+    const spec = insertSymbolAction('alpha')(state);
+    const next = state.update(spec).state;
+    expect(next.doc.toString()).toBe('$ x + alpha$');
+  });
+});
+
+describe('tableAction (diálogo de dimensiones, Beta §7.7.4)', () => {
+  it('genera una tabla 3x2 sin cabecera, con el hueco en la primera celda', () => {
+    const state = stateWithSelection('', 0);
+    const spec = tableAction({ rows: 3, cols: 2, header: false })(state);
+    const next = state.update(spec).state;
+    expect(next.doc.toString()).toBe(
+      '#table(\n  columns: 2,\n  [Celda], [Celda],\n  [Celda], [Celda],\n  [Celda], [Celda],\n)'
+    );
+    const { from, to } = next.selection.main;
+    expect(next.sliceDoc(from, to)).toBe('Celda');
+  });
+
+  it('con cabecera, usa table.header y el hueco sigue cayendo en el cuerpo', () => {
+    const state = stateWithSelection('', 0);
+    const spec = tableAction({ rows: 1, cols: 2, header: true })(state);
+    const next = state.update(spec).state;
+    const doc = next.doc.toString();
+    expect(doc).toContain('table.header([Encabezado 1], [Encabezado 2])');
+    expect(doc).toContain('[Celda], [Celda]');
+
+    const { from, to } = next.selection.main;
+    // El hueco cae en el CUERPO, después de la línea de cabecera, no en ella.
+    expect(from).toBeGreaterThan(doc.indexOf('table.header'));
+    expect(next.sliceDoc(from, to)).toBe('Celda');
   });
 });
 

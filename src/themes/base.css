@@ -266,6 +266,67 @@ body {
   font-size: 12px;
 }
 
+/* Galería de símbolos (Beta, §7.7.4): misma posición dinámica que el
+   desplegable de citas, rejilla en vez de lista. */
+.floating-panel--symbols {
+  top: 0;
+  left: 0;
+  right: auto;
+  width: min(280px, calc(100vw - 32px));
+  max-height: 50vh;
+  overflow: auto;
+  padding: 8px;
+}
+
+.symbol-picker__grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+}
+
+.symbol-picker__item {
+  aspect-ratio: 1;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.symbol-picker__item:hover {
+  border-color: var(--accent);
+  background: var(--bg-primary);
+}
+
+/* Diálogo de dimensiones de tabla (Beta, §7.7.4): posición dinámica igual que
+   los otros dos, pero de formulario, no de lista/rejilla. */
+.floating-panel--table {
+  top: 0;
+  left: 0;
+  right: auto;
+  width: min(240px, calc(100vw - 32px));
+}
+
+.table-dialog__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+.table-dialog__row input[type='number'] {
+  width: 60px;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: inherit;
+}
+
 /* Terminal avanzado (Beta, §7.14): panel más grande y centrado, oculto por
    defecto — es una vía de escape para usuarios avanzados, no parte del flujo
    principal, así que no compite visualmente con el resto de la interfaz. */

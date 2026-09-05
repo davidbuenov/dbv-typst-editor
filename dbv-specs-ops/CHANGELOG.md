@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Sin publicar] / [Unreleased]
 
 ### Added
+- **Galería de símbolos y diálogo de tabla (Slice 20, Beta, §7.7.4).** Cierra los cuatro asistentes con formulario de §7.7.4. Los 40 símbolos se verificaron contra el binario real antes de escribir la galería (0 avisos). `toolbar.js` generaliza a un mapa `specialHandlers` en vez de un caso especial por botón. 4 tests nuevos.
 - **Gestión de imágenes por arrastre (Slice 19, Beta, §7.10).** Soltar una imagen sobre el editor la copia a `images/` del proyecto (sin sobrescribir nunca una existente) e inserta la figura con la ruta ya rellena. Usa el evento de ventana propio de Tauri (`getCurrentWebview().onDragDropEvent()`), no el `drop` del DOM, que no expone rutas reales del sistema. 9 tests nuevos.
 - **Modos de escritura: Edición / Escritura / Dividido / Lectura (Slice 18, Beta, §7.9).** Sin infraestructura nueva — cuatro preajustes de columnas de la rejilla, con persistencia. El conmutador vive en la cabecera, siempre alcanzable incluso en modo Lectura.
 - **Terminal avanzado (Slice 17, Beta, §7.14).** Panel oculto por defecto para ejecutar subcomandos directos del CLI de Typst contra el proyecto activo. Sin lógica de parseo (separa por espacios, tal cual pide la especificación); sin superficie de inyección nueva (mismo sidecar vendorizado, argumentos como array).

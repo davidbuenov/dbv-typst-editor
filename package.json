@@ -16,7 +16,8 @@
     "verify:typst": "node scripts/verify-typst-sidecar.mjs",
     "verify:templates": "node scripts/verify-templates.mjs",
     "verify:frontend": "node scripts/verify-frontend.mjs",
-    "test": "cargo test --manifest-path src-tauri/Cargo.toml --lib",
+    "test:frontend": "vitest run",
+    "test": "npm run test:frontend && cargo test --manifest-path src-tauri/Cargo.toml --lib",
     "icons": "node scripts/generate-base-icon.mjs && tauri icon src-tauri/icons/base.png"
   },
   "dependencies": {
@@ -34,6 +35,8 @@
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.9.0",
-    "vite": "^7.1.0"
+    "jsdom": "^29.1.1",
+    "vite": "^7.1.0",
+    "vitest": "^5.0.0"
   }
 }

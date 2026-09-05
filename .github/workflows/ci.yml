@@ -4,7 +4,7 @@ name: CI
 # local antes de un commit, y en el mismo orden, para que "en mi máquina va" y
 # "en CI va" no puedan divergir:
 #
-#   · tests del backend Rust,
+#   · tests de logica pura del frontend (Vitest) + tests del backend Rust,
 #   · build del frontend,
 #   · verificación del frontend sin navegador: la lista de extensiones del
 #     editor y los elementos que busca el arranque,
@@ -52,7 +52,7 @@ jobs:
       - name: Vendorizar el compilador Typst (sidecar)
         run: npm run vendor:typst
 
-      - name: Tests del backend
+      - name: Tests (frontend Vitest + backend Rust)
         run: npm test
 
       - name: Build del frontend

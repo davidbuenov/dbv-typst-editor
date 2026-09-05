@@ -163,7 +163,7 @@ Leyenda: 🟢 Reutilizable sin cambios · 🟡 Adaptación menor · 🔴 Reempla
 | 16 | Menú nativo macOS + eventos `menu-open-file`/`menu-save` | `lib.rs:643-779, 846-866` | 🟡 | Media |
 | 17 | Gestión de "guardar"/dirty-state/confirmación de descarte | `app.js` (`setDirty`, `confirmDiscardUnsavedChanges:89-99`) | 🟡 | Baja — formato-agnóstico |
 | 18 | Capabilities/permisos Tauri (`capabilities/main.json`) | `src-tauri/capabilities/` | 🟡 | Baja |
-| 19 | **Toolbar de inserción por manipulación de string** (patrón) | `app.js:1901-2037` | 🟡 | Media — mismo patrón conceptual, nueva API (CM6) y nuevo marcado (Typst); base de los asistentes de inserción rápida (§7.7) |
+| 19 | **Toolbar de inserción por manipulación de string** (patrón) | `app.js:1901-2037` | 🟡 | Media — mismo patrón conceptual, nueva API (CM6) y nuevo marcado (Typst); base de la barra de herramientas **RF-13 (v0.2)** y de los asistentes con formulario (Beta) — §7.7 |
 | 20 | Construcción de TOC / scroll-spy (patrón) | `app.js` (`buildToc`/`setupScrollSpy`) | 🟡 | Media — mismo patrón conceptual, nueva fuente de datos (outline de Typst vía `typst-ide`, §7.8) |
 | 21 | Pipeline `markdown-it → DOMPurify → Prism/Mermaid/KaTeX` | `app.js:598-627` | 🔴 | Sustituido por invocación al compilador Typst (§7.2) |
 | 22 | Componente de edición: `<textarea>` + numeración manual | `index.html:239`, `app.js:1901-2037` | 🔴 | Sustituido por CodeMirror 6 (§7.1). No existe resaltado, autocompletado ni plegado en el original |
@@ -459,22 +459,63 @@ Si la plantilla no trae sidecar (caso de plantillas comunitarias sin curar por D
 
 *(Pregunta abierta en `SPECIFICATIONS.md` §9, refinada: ya no es "si Comunidad se apoya en el registro oficial o no" —resuelto: sí, es el `index.json` público— sino el tamaño exacto de la whitelist curada inicial y el criterio de expansión hacia el catálogo completo.)*
 
-### 7.7. Asistentes de inserción rápida
+### 7.7. Barra de herramientas de inserción (RF-13, v0.2) y asistentes con formulario (Beta)
 
-Extiende el patrón ya existente en DBV Markdown Reader (§1.3, §3 fila 19: botones de toolbar que insertan marcado en la posición del cursor) a la API de transacciones de CodeMirror 6 (`EditorView.dispatch({changes, selection})`), generando Typst en vez de Markdown:
+> Sección reescrita el 2026-09-05 tras ADR-EDITOR-002. Antes describía una única funcionalidad "asistentes de inserción rápida" diferida entera a Beta; se parte en dos por coste de implementación: la **barra de botones** (v0.2) no necesita infraestructura nueva —es una transacción de CodeMirror 6— mientras que los **asistentes con formulario** (Beta) requieren UI y datos propios.
 
-| Botón | Marcado Typst generado (orientativo) |
-| --- | --- |
-| Insertar figura | `#figure(image("images/..."), caption: [...])` |
-| Insertar tabla | `#table(columns: ..., [...], [...])` |
-| Insertar ecuación | `$ ... $` |
-| Insertar cita | `#cite(<clave>)` |
-| Insertar bibliografía | `#bibliography("refs.bib")` |
-| Insertar bloque de código | ```` ```lang\n...\n``` ```` |
-| Insertar sección | `= Título de sección` |
-| Insertar referencia cruzada | `@etiqueta` |
+#### 7.7.1. Mecanismo común
 
-Cada asistente puede abrir un mini-formulario (vía `registerPanel()`) para los casos que necesiten datos (p. ej. "Insertar tabla" pide número de filas/columnas antes de generar el esqueleto). Beta, según roadmap de `SPECIFICATIONS.md` §6.
+Extiende el patrón ya existente en DBV Markdown Reader (§1.3, §3 fila 19: botones que insertan marcado en la posición del cursor) a la API de transacciones de CodeMirror 6, generando Typst en vez de Markdown. Cada acción es **una sola transacción** `view.dispatch({changes, selection})` — de ahí el requisito de "un solo paso de deshacer por acción" de RF-13, que el `<textarea>` del proyecto origen no podía garantizar (el historial nativo del navegador troceaba las inserciones largas). Tras cada acción, el foco vuelve al editor y la selección queda donde el usuario va a seguir escribiendo (dentro del `[...]`, no al final del marcado).
+
+Módulo: `src/editor/toolbar.js` (junto al editor, no en el shell), con la tabla de acciones como dato — una entrada por botón: `{ id, icono, grupo, atajo, i18n, aplicar(view) }`. Que sea una tabla y no un `switch` es lo que permite reordenar/ocultar botones por modo de escritura (§7.9) sin tocar la lógica.
+
+#### 7.7.2. Inventario de botones (v0.2)
+
+Grupos separados por divisor visual, en el mismo orden que la barra de DBV Markdown Reader para que el usuario que venga de allí no tenga que reaprender nada.
+
+| Grupo | Botón | Marcado Typst generado | Nota respecto a DBV Markdown Reader |
+| --- | --- | --- | --- |
+| Formato | Negrita | `*seleccion*` | Paridad |
+| Formato | Cursiva | `_seleccion_` | Paridad |
+| Formato | Tachado | `#strike[seleccion]` | Paridad (en Typst es una función, no `~~`) |
+| Formato | Código en línea | `` `seleccion` `` | Paridad |
+| Formato | Superíndice / subíndice | `#super[..]` / `#sub[..]` | **Nuevo** — trivial en Typst, no existía en Markdown |
+| Estructura | Encabezado 1/2/3 | `= `, `== `, `=== ` | Paridad |
+| Estructura | Lista con viñetas | `- ` | Paridad |
+| Estructura | Lista numerada | `+ ` | Paridad |
+| Estructura | Lista de términos | `/ Término: descripción` | **Sustituye** a la lista de tareas: Typst no tiene checklist nativa, pero sí lista de términos, que además encaja mejor con el uso académico |
+| Contenido | Enlace | `#link("url")[texto]` | Paridad |
+| Contenido | Imagen / figura | `#figure(image("images/.."), caption: [..])` | Mejora: genera figura con pie, no solo `![]()` |
+| Contenido | Cita en bloque | `#quote(block: true)[..]` | Paridad |
+| Contenido | Bloque de código | ` ```lang … ``` ` | Paridad |
+| Contenido | Tabla | `#table(columns: N, ..)` | Paridad (esqueleto 2×2; el diálogo de dimensiones es Beta) |
+| Contenido | Regla horizontal | `#line(length: 100%)` | Paridad (Typst no tiene `---`) |
+| Typst | Ecuación en línea / bloque | `$..$` · `$ .. $` | **Nuevo** |
+| Typst | Etiqueta | `<etiqueta>` | **Nuevo** |
+| Typst | Referencia cruzada | `@etiqueta` | **Nuevo** |
+| Typst | Cita bibliográfica | `#cite(<clave>)` | **Nuevo** |
+| Typst | Bibliografía | `#bibliography("refs.bib")` | **Nuevo** |
+| Typst | Salto de página | `#pagebreak()` | **Nuevo** |
+
+#### 7.7.3. Requisitos de comportamiento (lo que separa esta barra de una fila de botones)
+
+1. **Envolver, no solo insertar.** Con texto seleccionado, el marcado lo envuelve conservando la selección; sin selección, inserta el par y deja el cursor dentro.
+2. **Alternancia.** Volver a pulsar sobre texto ya marcado retira el marcado, en vez de anidarlo (`**doble**` accidental es el defecto clásico de estas barras).
+3. **Sensibilidad al contexto.** Dentro de `$...$` el árbol Lezer del modo Typst (§7.1) ya dice que estamos en modo matemático: los botones de formato de texto se desactivan y el grupo de ecuación pasa al frente. Es información que ya tenemos por el parser, sin análisis adicional.
+4. **Un paso de deshacer por acción** (ver §7.7.1).
+5. **Atajos de teclado** registrados en el `keymap` de CodeMirror, con el atajo mostrado en el tooltip del botón — requisito heredado del DoD de experiencia de escritorio (`NATIVE_DESKTOP_APPS.md` §7: los atajos deben funcionar también con el foco en un input).
+6. **i18n ES/EN y offline**, como todo el resto de la aplicación.
+
+*Verificación pendiente (deuda explícita registrada en ADR-EDITOR-002):* el objetivo declarado por el usuario es **superar la barra del editor web oficial de Typst**. La tabla comparativa definitiva contra ese producto debe elaborarse comprobándolo **contra la aplicación web real** antes de construir, no de memoria — misma regla que se aplicó a los flags del CLI en el Slice 2. Lo anterior es el objetivo de producto de DBV, no una descripción verificada del producto ajeno.
+
+#### 7.7.4. Asistentes con formulario (Beta)
+
+Capa por encima de la barra, para las acciones que necesitan datos antes de generar marcado. Cada una reutiliza `registerPanel()` (§3 fila 13) como modal y termina llamando a la misma acción de §7.7.1:
+
+- **Galería de símbolos** con búsqueda (`∑`, `α`, `→`…) — el hueco más visible de una barra plana para escritura matemática.
+- **Diálogo de tabla:** filas, columnas, alineación y cabecera antes de generar el `#table`.
+- **Insertar figura** con selector de fichero + copia al proyecto (§7.10) y pie.
+- **Insertar cita** con autocompletado sobre las claves reales del `.bib` del proyecto (§7.11).
 
 ### 7.8. Panel de navegación estructural (Outline)
 

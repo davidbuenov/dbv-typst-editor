@@ -37,6 +37,10 @@
   - [x] **Slice 9** — Exportación PDF (RF-10). ✅ `d26b257`
   - [x] **Slice 10** — Empaquetado, asociación `.typ` y CI (RF-12). ✅ `ccce34a`
 
+- [ ] **Alcance v0.2 registrado (no bloquea `/test`)**
+  - [ ] **RF-13 — Barra de herramientas de inserción del editor** (Slice 11). Subida de Beta a v0.2 el 2026-09-05 a petición del usuario: sin ella el producto contradice su principio nº2 ("el usuario no debe ver código si no quiere") y es una regresión frente a DBV Markdown Reader. ADR-EDITOR-002 · `SPECIFICATIONS.md` v1.2 RF-13 · `ARCHITECTURE.md` §7.7 · `implementation_plan.md` §6. Diseño cerrado, sin infraestructura nueva.
+  - [ ] Project Archive `.dbvt` + 4 plantillas restantes (TFM, Tesis, Informe técnico, Presentación) — ya estaban en v0.2.
+
 - [ ] **Fase 4: Pruebas (`/test`)** — parcialmente cubierta durante `/build`, no ejecutada como fase. **⬅️ SIGUIENTE**
 - [ ] **Fase 5: Simplificar (`/code-simplify`)** — no iniciada.
 - [ ] **Fase 6: Entrega (`/ship`)** — no iniciada.
@@ -136,7 +140,7 @@ ni forma de publicar la Release de Linux. Es probablemente lo primero que convie
    instalador de Windows subido al borrador de Release. Su gate exige no cerrar con hallazgos críticos
    pendientes, y por eso va después de `/test` y `/code-simplify`.
 
-*Candidatos que pueden colarse antes si el usuario lo prefiere:* **instancia única** (con la asociación
+*Candidatos que pueden colarse antes si el usuario lo prefiere:* **la barra de herramientas del editor (RF-13)** — el usuario la ha señalado como funcionalidad que debería haber estado desde el principio, y es la más visible de las tres —, **instancia única** (con la asociación
 `.typ` ya activa, abrir dos documentos lanza dos instancias — es el defecto de producto más visible que
 queda) y **`docs/DESIGN.md`**.
 

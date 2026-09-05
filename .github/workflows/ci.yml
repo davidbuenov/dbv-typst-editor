@@ -66,3 +66,12 @@ jobs:
 
       - name: Verificar el catálogo de plantillas
         run: npm run verify:templates
+
+      # Los ficheros de `testfiles/` son lo primero que abre alguien que estrena
+      # la aplicación. Si dejaran de compilar, la primera impresión sería un
+      # error — y nadie se enteraría hasta abrirlos a mano.
+      - name: Comprobar que los ficheros de prueba siguen compilando
+        run: |
+          TYPST=./src-tauri/binaries/typst-x86_64-unknown-linux-gnu
+          "$TYPST" compile --root testfiles testfiles/demo-suelto.typ /tmp/suelto.pdf
+          "$TYPST" compile --root testfiles/demo-proyecto testfiles/demo-proyecto/main.typ /tmp/proyecto.pdf

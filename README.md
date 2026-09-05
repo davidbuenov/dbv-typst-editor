@@ -24,6 +24,7 @@
 - [Cómo ejecutar](#-cómo-ejecutar)
 - [Cómo parar](#-cómo-parar)
 - [Estructura del proyecto](#-estructura-del-proyecto)
+- [Probar la aplicación](#-probar-la-aplicación)
 - [Empaquetado y publicación](#-empaquetado-y-publicación)
 - [Changelog](#-changelog)
 - [Licencia](#-licencia)
@@ -160,12 +161,28 @@ stop.cmd
 │   └── src/                     # commands/, project.rs, templates.rs,
 │                                 # typst_engine/, watcher.rs, error.rs
 ├── templates/local/            # Plantillas curadas, como paquetes `@local`
+├── testfiles/                  # Documento y proyecto de prueba para abrir en la app
 ├── scripts/                    # Vendorizado y verificaciones sin dependencias
 ├── dbv-specs-ops/              # Documentación SDD (specs, arquitectura, memoria)
 ├── start.cmd / start.sh        # Scripts de arranque
 ├── stop.cmd / stop.sh          # Scripts de parada
 └── README.md                   # Este fichero
 ```
+
+---
+
+## 🧪 Probar la aplicación
+
+Si acabas de arrancarla y quieres algo que abrir, hay dos ficheros de prueba en [`testfiles/`](./testfiles/):
+
+| Qué | Cómo abrirlo | Qué comprueba |
+| --- | --- | --- |
+| `testfiles/demo-suelto.typ` | **Abrir documento .typ** | Un `.typ` suelto como proyecto de un solo fichero: edición, vista previa en vivo, banda de error y exportación |
+| `testfiles/demo-proyecto/` | **Abrir carpeta de proyecto** | Proyecto multi-fichero real: explorador, capítulos con `#include`, imagen desde `images/`, bibliografía y referencias cruzadas |
+
+`demo-proyecto` **no trae manifiesto DBV a propósito**: se comporta como un repositorio clonado o un proyecto Typst hecho a mano, así que la cabecera debe etiquetarlo como *proyecto externo* y la aplicación no debe escribir nada en su carpeta (RF-02b).
+
+Cada fichero lleva dentro una lista de lo que conviene probar con él. La otra vía, si prefieres empezar de cero, es el propio lanzador: **Proyecto en blanco** → elegir carpeta → *Crear proyecto*.
 
 ---
 

@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Un documento `.typ` suelto se guarda en Proyectos recientes con el separador de ruta de la plataforma, en vez de forzar siempre `/`.
 
 ### Added
+- **Ficheros de prueba en `testfiles/`:** un documento `.typ` suelto y un proyecto multi-fichero (capítulos, imagen y bibliografía) para tener algo que abrir nada más instalar la aplicación. El proyecto no trae manifiesto DBV a propósito, para que sirva de comprobación del caso "proyecto ajeno". Cada fichero lleva dentro la lista de lo que conviene probar con él, y la CI verifica que siguen compilando.
+
 - **`npm run verify:frontend`:** comprobación del frontend sin navegador, añadida a raíz del fallo de arranque anterior. Resuelve la lista completa de extensiones del editor y el árbol sintáctico de Typst con `EditorState`, que no necesita DOM, y verifica que todos los elementos que el arranque busca por id existen realmente en `index.html`. Se ejecuta también en CI.
 
 - **Slice 10 — Empaquetado y CI (RF-12):** asociación de fichero `.typ` (doble clic en el explorador del sistema abre el documento directamente), plantillas empaquetadas como recurso de la aplicación, workflow de Release para Linux (AppImage + `.deb`) con vendorizado del compilador Typst y fallo explícito si falta, y workflow de CI que ejecuta en cada push los tests, el build del frontend y las dos verificaciones contra el compilador real. README actualizado con el proceso de empaquetado y publicación por plataforma.

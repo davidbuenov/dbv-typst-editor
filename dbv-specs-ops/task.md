@@ -110,12 +110,9 @@ Lo que la cobertura actual **no** cubre y debería cubrir la fase `/test`:
    comprobar las tres ramas (eco propio ignorado, recarga silenciosa, modal de conflicto).
 4. **Prueba del instalador generado**, en las dos variantes de Windows y en Linux.
 
-### 🚧 Bloqueante de infraestructura (no de código)
+### ✅ Infraestructura resuelta (2026-09-05)
 
-**El repositorio NO tiene remoto configurado** (`git remote -v` está vacío). Consecuencia concreta: los dos
-workflows escritos en el Slice 10 —`ci.yml` y `release-linux.yml`— **no se han ejecutado nunca**, así que
-están verificados solo por lectura. Hasta que exista un `origin` en GitHub no hay ni comprobación continua
-ni forma de publicar la Release de Linux. Es probablemente lo primero que conviene resolver.
+**Remoto configurado y código empujado.** `origin` = `https://github.com/davidbuenov/dbv-typst-editor` (repositorio **público**, creado por el usuario). `git push -u origin master` hecho: 147 ficheros, sin `node_modules`, `dist`, binarios ni claves. `ci.yml` dispara con `["master", "main"]`, así que no hizo falta renombrar la rama. **`ci.yml` se ha ejecutado por primera vez y pasa en verde** (run `33957280085`, 6/6 pasos: tests de backend, build del frontend, verify:frontend, verify:typst, verify:templates y compilación de los ficheros de prueba) — deja de estar "verificado solo por lectura". `release-linux.yml` sigue sin ejecutarse nunca: dispara con tags `v*.*.*`, así que su primera ejecución real será en `/ship`.
 
 ### ⚠️ Deuda técnica registrada durante `/build`
 
@@ -132,8 +129,7 @@ ni forma de publicar la Release de Linux. Es probablemente lo primero que convie
 
 ### 🧭 Pasos siguientes acordados (orden recomendado)
 
-1. **Crear el repositorio remoto y empujar.** Coste casi nulo y desbloquea lo que hoy es código muerto:
-   `ci.yml` y `release-linux.yml` no se han ejecutado nunca. Sugerido: `gh repo create davidbuenov/dbv-typst-editor --private --source=. --remote=origin` y `git push -u origin master`.
+1. ~~**Crear el repositorio remoto y empujar.**~~ ✅ **HECHO el 2026-09-05** — ver "Infraestructura resuelta" más arriba.
 2. **Fase `/test`** (ver la lista de arriba). Es lo que toca en el ciclo, y esta sesión demostró por qué.
 3. **Fase `/code-simplify`** — los tres pases de `docs/REVIEW.md` (bugs, seguridad, cumplimiento).
 4. **Fase `/ship` v0.1.0** — versionado, `CHANGELOG` a sección fechada, tag, `walkthrough.md`, README e

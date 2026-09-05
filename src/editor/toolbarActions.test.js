@@ -15,7 +15,7 @@
 import { EditorState } from '@codemirror/state';
 import { typst_lezer } from 'codemirror-lang-typst/lezer';
 import { describe, expect, it } from 'vitest';
-import { TOOLBAR_ACTIONS, buildToolbarKeymap, isInsideMath } from './toolbarActions.js';
+import { TOOLBAR_ACTIONS, buildToolbarKeymap, figureActionForPath, isInsideMath } from './toolbarActions.js';
 
 function action(id) {
   const found = TOOLBAR_ACTIONS.find((candidate) => candidate.id === id);
@@ -180,6 +180,19 @@ describe('isInsideMath', () => {
     const doc = 'Texto normal, sin matemáticas.';
     const state = stateWithSelection(doc, 5);
     expect(isInsideMath(state)).toBe(false);
+  });
+});
+
+describe('figureActionForPath (arrastrar y soltar una imagen, Beta §7.10)', () => {
+  it('deja la ruta ya rellena y el hueco en el pie de figura', () => {
+    const state = stateWithSelection('', 0);
+    const spec = figureActionForPath('images/diagrama-1.png')(state);
+    const next = state.update(spec).state;
+    expect(next.doc.toString()).toBe(
+      '#figure(\n  image("images/diagrama-1.png"),\n  caption: [pie de figura],\n)'
+    );
+    const { from, to } = next.selection.main;
+    expect(next.sliceDoc(from, to)).toBe('pie de figura');
   });
 });
 

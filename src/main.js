@@ -12,6 +12,7 @@
 
 import { createWorkspace } from './app/workspace.js';
 import { WRITING_MODES, getWritingMode, setWritingMode } from './app/writingMode.js';
+import { figureActionForPath } from './editor/toolbarActions.js';
 import { applyTranslations, getLanguage, t, toggleLanguage } from './i18n/i18n.js';
 import { createLauncher } from './launcher/launcher.js';
 import { createOutline } from './outline/outline.js';
@@ -21,6 +22,7 @@ import { createTerminal } from './terminal/terminal.js';
 import { createProjectTree } from './project-explorer/projectTree.js';
 import { createWizard } from './project-wizard/wizard.js';
 import {
+  copyAssetIntoProject,
   getAppInfo,
   getStartupDocument,
   getTypstVersion,
@@ -34,6 +36,7 @@ import { createChoiceDialog } from './ui/choiceDialog.js';
 import { createSplitter } from './ui/splitter.js';
 import { createToast } from './ui/toast.js';
 import { initTheme, toggleTheme } from './themes/theme.js';
+import { getCurrentWebview } from '@tauri-apps/api/webview';
 
 const el = (id) => document.getElementById(id);
 
@@ -82,6 +85,47 @@ function wireModeSwitcher(workspaceEl) {
   }
 
   applyMode(getWritingMode());
+}
+
+/**
+ * Gestión de imágenes por arrastre (Beta, ARCHITECTURE.md §7.10).
+ *
+ * Se usa el evento de ventana propio de Tauri, no el `drop` del DOM: el `File`
+ * del navegador nunca expone una ruta absoluta del sistema (por diseño de la
+ * API web), y en Tauri v2 el drop nativo de ficheros intercepta además el
+ * evento del DOM por defecto — `getCurrentWebview().onDragDropEvent()` es la
+ * única vía fiable para obtener la ruta real del fichero soltado.
+ */
+function wireImageDrop(workspace, editorHostEl, notify) {
+  const IMAGE_EXTENSIONS = /\.(png|jpe?g|gif|svg|webp|bmp)$/i;
+
+  async function handleDrop(imagePath) {
+    const result = await copyAssetIntoProject(workspace.state.project.root, imagePath);
+    if (!result.ok) {
+      notify(`${t('asset.copyFailed')} — ${result.error.message}`, 'error');
+      return;
+    }
+    const view = workspace.editor.getView();
+    view.dispatch(figureActionForPath(result.value)(view.state));
+    view.focus();
+  }
+
+  getCurrentWebview().onDragDropEvent((event) => {
+    if (event.payload.type !== 'drop' || !workspace.state.project) return;
+
+    // `position` llega en píxeles físicos de ventana; `getBoundingClientRect()`
+    // en píxeles lógicos — hay que pasar por `devicePixelRatio` para comparar.
+    const { position, paths } = event.payload;
+    const ratio = window.devicePixelRatio || 1;
+    const x = position.x / ratio;
+    const y = position.y / ratio;
+    const rect = editorHostEl.getBoundingClientRect();
+    const droppedOnEditor = x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+    if (!droppedOnEditor) return;
+
+    const imagePath = paths.find((path) => IMAGE_EXTENSIONS.test(path));
+    if (imagePath) handleDrop(imagePath);
+  });
 }
 
 function wireLanguageToggle() {
@@ -143,6 +187,7 @@ async function bootstrap() {
   // El editor (CodeMirror) necesita reconfigurar su tema, no solo heredar CSS.
   wireThemeToggle((theme) => workspace.setTheme(theme));
   wireModeSwitcher(el('workspace-view'));
+  wireImageDrop(workspace, el('editor-host'), toast.show);
 
   const preview = createPreview({
     pagesEl: el('preview-pages'),

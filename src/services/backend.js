@@ -132,6 +132,11 @@ export const getOutline = ({ document, root, content }) =>
   call('typst_outline', { document, root, content: content ?? null });
 export const getBibliographyKeys = (root) => call('bibliography_keys', { root });
 
+// ─── Gestión de imágenes por arrastre (Beta, §7.10) ──────────────────────────
+
+export const copyAssetIntoProject = (projectRoot, sourcePath) =>
+  call('copy_asset_into_project', { projectRoot, sourcePath });
+
 // ─── Terminal avanzado (Beta, §7.14) ──────────────────────────────────────────
 
 /** `args` ya viene troceado — el frontend separa por espacios, sin más. */

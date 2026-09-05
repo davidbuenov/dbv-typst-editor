@@ -157,6 +157,22 @@ function blockTemplate(build) {
   };
 }
 
+/**
+ * Variante de la acción "figura" para una ruta ya conocida (arrastrar y
+ * soltar una imagen sobre el editor, Beta §7.10): a diferencia del botón de la
+ * barra, el hueco no se deja en la ruta —ya se sabe cuál es, la acaba de
+ * copiar `copy_asset_into_project`— sino en el pie de figura, que es lo único
+ * que queda por escribir.
+ */
+export function figureActionForPath(path) {
+  return blockTemplate((selected) => {
+    const caption = selected || 'pie de figura';
+    const text = `#figure(\n  image("${path}"),\n  caption: [${caption}],\n)`;
+    const captionStart = text.indexOf('[', text.indexOf('caption')) + 1;
+    return { text, holeStart: captionStart, holeLength: caption.length };
+  });
+}
+
 const HEADING_PREFIXES = ['= ', '== ', '=== '];
 const LIST_PREFIXES = ['- ', '+ ', '/ '];
 

@@ -27,6 +27,7 @@ import {
   getStartupDocument,
   getTypstVersion,
   importProjectArchive,
+  on,
   pickArchiveFile,
   pickProjectFolder,
   pickSaveTarget,
@@ -400,6 +401,13 @@ async function bootstrap() {
   // RF-12): se abre ese documento en vez del lanzador.
   const startup = await getStartupDocument();
   if (startup.ok && startup.value) await openPath(startup.value);
+
+  // Instancia única (Beta): un segundo lanzamiento (otro doble clic sobre un
+  // `.typ` con la app ya abierta) no crea un proceso nuevo — el backend
+  // enfoca esta misma ventana y emite este evento con la ruta a abrir.
+  on('open-document', (path) => {
+    if (path) openPath(path);
+  });
 }
 
 bootstrap();

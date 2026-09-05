@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Sin publicar] / [Unreleased]
 
 ### Added
+- **Instancia única (Slice 23).** Abrir un segundo `.typ` con la app ya abierta enfoca la ventana existente en vez de lanzar un proceso nuevo — el defecto de producto más visible que quedaba, registrado desde el cierre del `/build`. `tauri-plugin-single-instance`, solo desktop.
 - **Asistente "Nueva entrada bibliográfica" (Slice 22, Beta, §7.11), a petición explícita del usuario.** Genera BibTeX (6 tipos de entrada), sugiere la clave a partir de autor+año, comprueba que no colisiona con una existente, añade la entrada a `refs.bib` (creándolo si hace falta) e inserta la cita en el cursor. Se abre desde un botón "+ Nueva entrada" en el desplegable de citas (Slice 16). Refactor incidental: `joinPath`/`isTypstPath`/`baseName` se mueven a un nuevo módulo hoja `app/paths.js` para evitar un ciclo de módulos. 13 tests nuevos.
 - **Selector manual de imagen (Slice 21, Beta, §7.7.4).** El botón "Fig" de la barra abre un selector nativo de fichero como alternativa a arrastrar y soltar. Puro cableado sobre infraestructura ya existente (Slices 19-20).
 - **Galería de símbolos y diálogo de tabla (Slice 20, Beta, §7.7.4).** Cierra los cuatro asistentes con formulario de §7.7.4. Los 40 símbolos se verificaron contra el binario real antes de escribir la galería (0 avisos). `toolbar.js` generaliza a un mapa `specialHandlers` en vez de un caso especial por botón. 4 tests nuevos.

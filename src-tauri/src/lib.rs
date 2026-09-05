@@ -19,10 +19,33 @@ pub mod templates;
 pub mod typst_engine;
 pub mod watcher;
 
+#[cfg(desktop)]
+use tauri::{Emitter, Manager};
+
 /// Arranca la aplicación. Invocado desde `main.rs`.
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let builder = tauri::Builder::default();
+
+    // Instancia única (Beta) — mismo patrón que DBV Markdown Reader
+    // (ARCHITECTURE.md, "solo desktop": el plugin no existe en móvil). Debe
+    // registrarse ANTES que el resto de plugins, tal como exige su propia
+    // documentación, para que la comprobación de instancia ya existente
+    // ocurra antes de que arranque nada más. Un segundo lanzamiento (doble
+    // clic en otro `.typ` con la app ya abierta) no crea un proceso nuevo:
+    // enfoca la ventana existente y le pide abrir el documento nuevo.
+    #[cfg(desktop)]
+    let builder = builder.plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
+        if let Some(window) = app.get_webview_window("main") {
+            let _ = window.unminimize();
+            let _ = window.set_focus();
+        }
+        if let Some(document) = commands::startup::first_document_argument(argv) {
+            let _ = app.emit("open-document", document);
+        }
+    }));
+
+    builder
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .manage(watcher::WatcherState::default())

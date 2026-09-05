@@ -21,6 +21,8 @@ import {
   getAppInfo,
   getStartupDocument,
   getTypstVersion,
+  importProjectArchive,
+  pickArchiveFile,
   pickProjectFolder,
   pickSaveTarget,
   pickTypstFile,
@@ -173,11 +175,34 @@ async function bootstrap() {
     if (picked.ok && picked.value) await openPath(picked.value);
   };
 
+  // Importar Project Archive (RF-11, v0.2): elegir el .dbvt, elegir dónde
+  // desempaquetarlo, y abrir el proyecto resultante como si acabara de crearse.
+  const importArchive = async () => {
+    const archive = await pickArchiveFile();
+    if (!archive.ok || !archive.value) return;
+
+    const destination = await pickProjectFolder();
+    if (!destination.ok || !destination.value) return;
+
+    toast.show(t('archive.importWorking'));
+    const imported = await importProjectArchive(archive.value, destination.value);
+    if (!imported.ok) {
+      toast.show(`${t('archive.importFailed')} — ${imported.error.message}`, 'error');
+      return;
+    }
+    await openPath(imported.value.root);
+  };
+
   el('btn-open-folder').addEventListener('click', openFolder);
   el('btn-empty-open-folder').addEventListener('click', openFolder);
   el('btn-open-file').addEventListener('click', openFile);
   el('btn-empty-open-file').addEventListener('click', openFile);
+  el('btn-import-archive').addEventListener('click', importArchive);
   el('btn-reveal').addEventListener('click', workspace.revealProject);
+  el('btn-export-archive').addEventListener('click', async () => {
+    const picked = await pickSaveTarget(workspace.suggestedArchiveName(), 'DBV Typst Archive', ['dbvt']);
+    if (picked.ok && picked.value) await workspace.exportArchive(picked.value);
+  });
   el('btn-close-project').addEventListener('click', async () => {
     const closed = await workspace.closeProject();
     if (!closed) return;

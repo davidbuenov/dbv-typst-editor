@@ -78,11 +78,19 @@ export const pickTypstFile = () => call('open_file_dialog');
 export const pickProjectFolder = () => call('open_folder_dialog');
 export const pickSaveTarget = (defaultName, filterName, extensions) =>
   call('save_file_dialog', { defaultName, filterName, extensions });
+export const pickArchiveFile = () => call('pick_archive_dialog');
 
 // ─── Proyecto ────────────────────────────────────────────────────────────────
 
 export const openProject = (path) => call('open_project', { path });
 export const readProjectManifest = (root) => call('read_project_manifest', { root });
+
+// ─── Project Archive .dbvt (RF-11, v0.2) ─────────────────────────────────────
+
+export const exportProjectArchive = (projectDir, outputPath) =>
+  call('export_project_archive', { projectDir, outputPath });
+export const importProjectArchive = (archivePath, targetDir) =>
+  call('import_project_archive', { archivePath, targetDir });
 
 // ─── Plantillas y creación de proyecto ───────────────────────────────────────
 

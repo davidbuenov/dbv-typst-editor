@@ -27,6 +27,9 @@ toml = "0.8"
 # Slice 5: un directorio temporal por compilación de vista previa, borrado en Drop
 # (requisito (c) del Adversarial Architect Review del plan).
 tempfile = "3"
+# v0.2: Project Archive `.dbvt` (archive.rs) — decisión cerrada en
+# ARCHITECTURE.md §7.12. Licencia MIT/Apache-2.0, ampliamente usada.
+zip = "2"
 
 [dev-dependencies]
 tempfile = "3"

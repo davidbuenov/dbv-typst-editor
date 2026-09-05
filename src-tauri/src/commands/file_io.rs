@@ -82,7 +82,11 @@ pub fn modified_ms(path: &Path) -> u64 {
 }
 
 /// Directorios de infraestructura que nunca son contenido del documento.
-fn is_noise(name: &str) -> bool {
+///
+/// `pub(crate)`: también la usa `archive.rs` para no empaquetar ruido de
+/// repositorio en el Project Archive (§7.12) — un solo criterio compartido,
+/// igual que `has_extension` para el filtro del diálogo y el explorador.
+pub(crate) fn is_noise(name: &str) -> bool {
     // `.dbv-preview.typ` es el espejo transitorio del documento con cambios sin
     // guardar que compila la vista previa (typst_engine::compile): existe unos
     // milisegundos y no es contenido del proyecto.

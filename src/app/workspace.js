@@ -20,6 +20,7 @@ import {
   PROJECT_CHANGE_EVENT,
   addRecentProject,
   exportPdf,
+  exportProjectArchive,
   fileModifiedMs,
   on,
   openProject,
@@ -295,6 +296,32 @@ export function createWorkspace({ tree, elements, notify, dialog }) {
     revealInFileManager(state.project.root);
   }
 
+  /** Nombre de archivo sugerido: el del proyecto, con extensión `.dbvt`. */
+  function suggestedArchiveName() {
+    return `${state.project?.name ?? 'proyecto'}.dbvt`;
+  }
+
+  /**
+   * Exporta el proyecto activo como Project Archive `.dbvt` (RF-11, v0.2).
+   *
+   * Empaqueta lo que hay en disco, no lo que se está editando: a diferencia del
+   * PDF (que es un artefacto final), un `.dbvt` es un proyecto Typst completo
+   * que alguien va a seguir editando, así que primero hay que guardar.
+   */
+  async function exportArchive(output) {
+    if (!state.project) return false;
+    if (state.dirty && !(await save())) return false;
+
+    notify(t('archive.exportWorking'));
+    const result = await exportProjectArchive(state.project.root, output);
+    if (!result.ok) {
+      notify(`${t('archive.exportFailed')} — ${result.error.message}`, 'error');
+      return false;
+    }
+    notify(`${t('archive.exportDone')} ${output}`);
+    return true;
+  }
+
   /**
    * Alguien ha modificado por fuera el documento que hay abierto.
    *
@@ -430,6 +457,8 @@ export function createWorkspace({ tree, elements, notify, dialog }) {
     saveAs,
     suggestedPdfName,
     exportPdf: exportToPdf,
+    suggestedArchiveName,
+    exportArchive,
     confirmDiscardChanges,
     /** @param {'dark'|'light'} theme */
     setTheme(theme) {

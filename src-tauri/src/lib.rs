@@ -9,6 +9,7 @@
 // vive en submódulos (ARCHITECTURE.md §7.4) — decisión consciente frente al
 // monolito de DBV Markdown Reader.
 
+pub mod archive;
 pub mod commands;
 pub mod error;
 pub mod project;
@@ -25,6 +26,9 @@ pub fn run() {
         .manage(watcher::WatcherState::default())
         .manage(typst_engine::compile::EngineState::default())
         .invoke_handler(tauri::generate_handler![
+            archive::export_project_archive,
+            archive::import_project_archive,
+            archive::pick_archive_dialog,
             commands::app_info::app_info,
             commands::file_io::file_modified_ms,
             commands::file_io::list_directory,

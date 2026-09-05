@@ -12,6 +12,7 @@
 // Regla de RF-02b / R-MVP-3 que se hace visible aquí: abrir un proyecto NUNCA
 // escribe nada en su carpeta. `openProjectAt` solo lee.
 
+import { createCitationPicker } from '../editor/citationPicker.js';
 import { createEditor } from '../editor/editor.js';
 import { createToolbar } from '../editor/toolbar.js';
 import { t } from '../i18n/i18n.js';
@@ -72,6 +73,7 @@ export function createWorkspace({ tree, elements, notify, dialog }) {
   // tiempo de ejecución, no al construir el objeto, así que el cierre puede
   // referenciar `toolbar` aunque todavía no se le haya asignado nada.
   let toolbar;
+  let citationPicker;
   const editor = createEditor(elements.editorHost, {
     theme: getTheme(),
     onChange: (content) => {
@@ -89,7 +91,13 @@ export function createWorkspace({ tree, elements, notify, dialog }) {
   });
   // RF-13: la barra de herramientas de inserción vive junto al editor que
   // controla, igual que en DBV Markdown Reader (ARCHITECTURE.md §3 fila 19).
-  toolbar = createToolbar({ containerEl: elements.editorToolbar, getView: editor.getView });
+  toolbar = createToolbar({
+    containerEl: elements.editorToolbar,
+    getView: editor.getView,
+    // Beta, §7.7.4: "Cite" abre el desplegable de claves reales del .bib en
+    // vez de insertar un marcador genérico.
+    onCitationRequested: (button) => citationPicker?.openNear(button),
+  });
 
   const state = {
     /** @type {null | {root: string, name: string, entrypoint: string|null, isSingleFile: boolean, hasManifest: boolean}} */
@@ -100,6 +108,14 @@ export function createWorkspace({ tree, elements, notify, dialog }) {
     /** Instante hasta el que se ignora el eco del propio guardado. */
     suppressSelfWriteUntil: 0,
   };
+
+  citationPicker = createCitationPicker({
+    panelEl: elements.citationPanel,
+    listEl: elements.citationList,
+    filterEl: elements.citationFilter,
+    getRoot: () => state.project?.root ?? null,
+    getView: editor.getView,
+  });
 
   /** Ganchos que rellenan los slices posteriores (vista previa, guardado). */
   const listeners = {

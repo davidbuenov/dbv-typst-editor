@@ -165,6 +165,17 @@
       </div>
     </div>
 
+    <!-- Desplegable de citas (Beta, ARCHITECTURE.md §7.7.4). -->
+    <div id="citation-panel" class="floating-panel floating-panel--citation hidden" role="dialog" aria-modal="false">
+      <input
+        id="citation-filter"
+        class="citation-picker__filter"
+        type="search"
+        data-i18n-placeholder="citation.filterPlaceholder"
+      />
+      <div class="citation-picker__list" id="citation-list"></div>
+    </div>
+
     <!-- Panel de navegación estructural (Outline, Beta, ARCHITECTURE.md §7.8). -->
     <div id="outline-panel" class="floating-panel floating-panel--outline hidden" role="dialog" aria-modal="false">
       <h2 class="floating-panel__title" data-i18n="outline.title"></h2>

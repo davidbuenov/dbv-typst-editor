@@ -104,6 +104,9 @@ async function bootstrap() {
     elements: {
       editorHost: el('editor-host'),
       editorToolbar: el('editor-toolbar'),
+      citationPanel: el('citation-panel'),
+      citationList: el('citation-list'),
+      citationFilter: el('citation-filter'),
       documentName: el('document-name'),
       documentDirty: el('document-dirty'),
       documentPath: el('document-path'),

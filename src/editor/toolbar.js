@@ -24,8 +24,13 @@ function formatShortcut(shortcut) {
  * @param {object} deps
  * @param {HTMLElement} deps.containerEl
  * @param {() => import('@codemirror/view').EditorView | null} deps.getView
+ * @param {(triggerEl: HTMLButtonElement) => void} [deps.onCitationRequested]
+ *   Beta, §7.7.4: el botón "Cite" abre el desplegable de claves reales del
+ *   `.bib` del proyecto en vez de insertar un marcador genérico. Si no se da
+ *   (por ejemplo en un test), el botón degrada limpiamente al marcador simple
+ *   de `toolbarActions.js`.
  */
-export function createToolbar({ containerEl, getView }) {
+export function createToolbar({ containerEl, getView, onCitationRequested }) {
   /** @type {Map<string, HTMLButtonElement>} */
   const buttons = new Map();
 
@@ -51,6 +56,10 @@ export function createToolbar({ containerEl, getView }) {
         button.textContent = action.glyph;
         button.dataset.action = action.id;
         button.addEventListener('click', () => {
+          if (action.id === 'citation' && onCitationRequested) {
+            onCitationRequested(button);
+            return;
+          }
           const view = getView();
           if (!view) return;
           const spec = action.buildTransaction(view.state);

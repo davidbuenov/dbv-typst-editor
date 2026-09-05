@@ -217,6 +217,55 @@ body {
   font-size: 12px;
 }
 
+/* Desplegable de citas (Beta, §7.7.4): posición dinámica, fijada en JS
+   (`citationPicker.js`) justo debajo del botón "Cite" que lo abre — por eso
+   aquí solo se fijan tamaño y aspecto, no `top`/`left`. */
+.floating-panel--citation {
+  top: 0;
+  left: 0;
+  right: auto;
+  width: min(260px, calc(100vw - 32px));
+  max-height: 50vh;
+  overflow: auto;
+  padding: 8px;
+}
+
+.citation-picker__filter {
+  width: 100%;
+  margin-bottom: 6px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 12px;
+}
+
+.citation-picker__item {
+  display: block;
+  width: 100%;
+  padding: 5px 8px;
+  border: none;
+  border-radius: var(--radius);
+  background: none;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.citation-picker__item:hover {
+  background: var(--bg-tertiary);
+}
+
+.citation-picker__empty {
+  margin: 4px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
 .hidden {
   display: none !important;
 }

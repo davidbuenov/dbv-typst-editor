@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Sin publicar] / [Unreleased]
 
 ### Added
+- **Asistente "Insertar cita" con autocompletado (Slice 16, Beta, §7.7.4).** El botón "Cite" de la barra abre un desplegable filtrable con las claves reales del `.bib` del proyecto (`bibliography.rs`, escaneo ligero, sin parser BibTeX completo). Es la mejora pedida por el usuario al validar el Slice 11. 8 tests nuevos.
 - **Exportación PNG de la página actual (Slice 15, Beta, §7.12).** Botón junto a "Exportar PDF". No cubre rango de páginas ni documento completo.
 - **Panel de navegación estructural / Outline (Slice 14, Beta, §7.8).** Lista de encabezados del documento con clic→navegación a la vista previa. Lleva a producción el spike de `typst eval` del Slice 2. 6 tests nuevos.
 - **RF-04 — 4 plantillas restantes: TFM, Tesis doctoral, Informe técnico, Presentación (Slice 13, v0.2).** Catálogo: 4 → 8 plantillas. La Presentación es diapositivas 16:9 sin ningún paquete de Typst Universe (preset nativo `presentation-16-9`), coherente con que las plantillas de v0.1 ya eran autocontenidas. `npm run verify:templates`: 40/40 en verde.

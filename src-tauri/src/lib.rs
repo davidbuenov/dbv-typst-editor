@@ -10,6 +10,7 @@
 // monolito de DBV Markdown Reader.
 
 pub mod archive;
+pub mod bibliography;
 pub mod commands;
 pub mod error;
 pub mod project;
@@ -29,6 +30,7 @@ pub fn run() {
             archive::export_project_archive,
             archive::import_project_archive,
             archive::pick_archive_dialog,
+            bibliography::bibliography_keys,
             commands::app_info::app_info,
             commands::file_io::file_modified_ms,
             commands::file_io::list_directory,

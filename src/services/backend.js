@@ -130,6 +130,7 @@ export const previewPage = (generation, index) =>
 export const cancelPreview = () => call('typst_cancel_preview');
 export const getOutline = ({ document, root, content }) =>
   call('typst_outline', { document, root, content: content ?? null });
+export const getBibliographyKeys = (root) => call('bibliography_keys', { root });
 export const exportPdf = ({ document, root, output, content }) =>
   call('typst_export_pdf', { document, root, output, content: content ?? null });
 export const exportPng = ({ document, root, output, page, content }) =>

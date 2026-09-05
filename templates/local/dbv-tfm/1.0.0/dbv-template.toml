@@ -1,0 +1,58 @@
+# Capa de Plantillas DBV — sidecar opcional (ARCHITECTURE.md §7.6.3).
+# "TFM" no existe como categoria oficial de Typst Universe, donde lo mas
+# cercano es "thesis" (ya declarado en typst.toml) — dbv_category es la
+# taxonomia propia que si distingue TFG de TFM.
+dbv_category = "academico"
+
+[localization.es]
+name = "Trabajo de Fin de Master"
+description = "Portada institucional, indice, capitulos en ficheros separados y bibliografia."
+
+[localization.en]
+name = "Master's Thesis"
+description = "Institutional cover page, table of contents, chapters in separate files and bibliography."
+
+[[fields]]
+key = "titulo"
+label = "Titulo del trabajo"
+type = "text"
+placeholder = "Analisis de ..."
+validation = { required = true, max_length = 200 }
+
+[[fields]]
+key = "autor"
+label = "Autor"
+type = "text"
+validation = { required = true, max_length = 120 }
+
+[[fields]]
+key = "tutor"
+label = "Tutor o tutora"
+type = "text"
+validation = { max_length = 120 }
+
+[[fields]]
+key = "institucion"
+label = "Universidad o centro"
+type = "text"
+validation = { required = true, max_length = 160 }
+
+[[fields]]
+key = "titulacion"
+label = "Titulacion"
+type = "text"
+placeholder = "Master en ..."
+validation = { max_length = 160 }
+
+[[fields]]
+key = "curso"
+label = "Curso academico"
+type = "text"
+placeholder = "2025/2026"
+validation = { max_length = 40 }
+
+[[fields]]
+key = "resumen"
+label = "Resumen"
+type = "text"
+validation = { max_length = 1200 }

@@ -1,0 +1,40 @@
+# Capa de Plantillas DBV — sidecar opcional (ARCHITECTURE.md §7.6.3).
+dbv_category = "profesional"
+
+[localization.es]
+name = "Informe tecnico"
+description = "Portada, resumen ejecutivo y secciones numeradas. Mas ligero que un TFG: sin capitulos en ficheros separados."
+
+[localization.en]
+name = "Technical report"
+description = "Cover page, executive summary and numbered sections. Lighter than a thesis: no chapters in separate files."
+
+[[fields]]
+key = "titulo"
+label = "Titulo del informe"
+type = "text"
+validation = { required = true, max_length = 200 }
+
+[[fields]]
+key = "autor"
+label = "Autor"
+type = "text"
+validation = { required = true, max_length = 120 }
+
+[[fields]]
+key = "departamento"
+label = "Departamento u organizacion"
+type = "text"
+validation = { max_length = 160 }
+
+[[fields]]
+key = "correo"
+label = "Correo de contacto"
+type = "text"
+validation = { max_length = 120 }
+
+[[fields]]
+key = "resumen"
+label = "Resumen ejecutivo"
+type = "text"
+validation = { max_length = 1200 }

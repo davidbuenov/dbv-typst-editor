@@ -1,0 +1,12 @@
+[package]
+name = "dbv-tfm"
+version = "1.0.0"
+entrypoint = "template/main.typ"
+authors = ["David Bueno Vallejo <https://github.com/davidbuenov>"]
+license = "MIT"
+description = "Trabajo de Fin de Master con portada, indice, capitulos y bibliografia"
+categories = ["thesis"]
+
+[template]
+path = "template"
+entrypoint = "main.typ"

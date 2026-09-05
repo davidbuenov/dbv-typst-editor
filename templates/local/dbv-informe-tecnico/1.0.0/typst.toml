@@ -1,0 +1,12 @@
+[package]
+name = "dbv-informe-tecnico"
+version = "1.0.0"
+entrypoint = "template/main.typ"
+authors = ["David Bueno Vallejo <https://github.com/davidbuenov>"]
+license = "MIT"
+description = "Informe tecnico con portada, resumen ejecutivo y secciones numeradas"
+categories = ["report"]
+
+[template]
+path = "template"
+entrypoint = "main.typ"

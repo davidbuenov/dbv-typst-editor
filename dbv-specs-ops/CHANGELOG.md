@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Sin publicar] / [Unreleased]
 
 ### Added
+- **RF-04 — 4 plantillas restantes: TFM, Tesis doctoral, Informe técnico, Presentación (Slice 13, v0.2).** Catálogo: 4 → 8 plantillas. La Presentación es diapositivas 16:9 sin ningún paquete de Typst Universe (preset nativo `presentation-16-9`), coherente con que las plantillas de v0.1 ya eran autocontenidas. `npm run verify:templates`: 40/40 en verde.
 - **RF-11 — Project Archive `.dbvt` (Slice 12, v0.2):** exportar/importar el proyecto completo como archivo ZIP portable, con `manifest.json` propio (versión de la app y del compilador, plantilla de origen) y doble protección contra zip-slip en la importación. 8 tests nuevos.
 - **RF-13 — Barra de herramientas de inserción del editor (Slice 11, v0.2):** 21 botones (formato, estructura, contenido, elementos propios de Typst) que emiten marcado en la posición del cursor, con envolver-y-alternar, sensibilidad al contexto dentro de una ecuación y 7 atajos de teclado. Ver ADR-EDITOR-002 en `memory.md`. 24 tests nuevos sobre la lógica de generación de marcado, sin DOM.
 

@@ -472,8 +472,17 @@ mod tests {
         let nombres: Vec<&str> = catalog.iter().map(|t| t.name.as_str()).collect();
         assert_eq!(
             nombres,
-            vec!["dbv-articulo", "dbv-blank", "dbv-cv", "dbv-tfg"],
-            "el catálogo de v0.1 son estas 4 plantillas"
+            vec![
+                "dbv-articulo",
+                "dbv-blank",
+                "dbv-cv",
+                "dbv-informe-tecnico",
+                "dbv-presentacion",
+                "dbv-tesis",
+                "dbv-tfg",
+                "dbv-tfm",
+            ],
+            "el catálogo de v0.2 son estas 8 plantillas (v0.1 diferió 4 a este slice)"
         );
 
         for template in &catalog {

@@ -1,0 +1,12 @@
+[package]
+name = "dbv-tesis"
+version = "1.0.0"
+entrypoint = "template/main.typ"
+authors = ["David Bueno Vallejo <https://github.com/davidbuenov>"]
+license = "MIT"
+description = "Tesis doctoral con dedicatoria, agradecimientos, resumen bilingue, capitulos, apendice y bibliografia"
+categories = ["thesis"]
+
+[template]
+path = "template"
+entrypoint = "main.typ"

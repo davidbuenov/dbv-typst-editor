@@ -1,0 +1,54 @@
+# Capa de Plantillas DBV — sidecar opcional (ARCHITECTURE.md §7.6.3).
+dbv_category = "academico"
+
+[localization.es]
+name = "Tesis doctoral"
+description = "Dedicatoria, agradecimientos, resumen bilingue, capitulos, apendice y bibliografia."
+
+[localization.en]
+name = "Doctoral thesis"
+description = "Dedication, acknowledgements, bilingual abstract, chapters, appendix and bibliography."
+
+[[fields]]
+key = "titulo"
+label = "Titulo de la tesis"
+type = "text"
+placeholder = "Contribuciones a ..."
+validation = { required = true, max_length = 220 }
+
+[[fields]]
+key = "autor"
+label = "Doctorando o doctoranda"
+type = "text"
+validation = { required = true, max_length = 120 }
+
+[[fields]]
+key = "tutor"
+label = "Director o directora de tesis"
+type = "text"
+validation = { max_length = 120 }
+
+[[fields]]
+key = "institucion"
+label = "Universidad"
+type = "text"
+validation = { required = true, max_length = 160 }
+
+[[fields]]
+key = "titulacion"
+label = "Programa de doctorado"
+type = "text"
+validation = { max_length = 160 }
+
+[[fields]]
+key = "curso"
+label = "Curso academico"
+type = "text"
+placeholder = "2025/2026"
+validation = { max_length = 40 }
+
+[[fields]]
+key = "resumen"
+label = "Resumen"
+type = "text"
+validation = { max_length = 1500 }

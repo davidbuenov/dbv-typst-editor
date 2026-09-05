@@ -1,0 +1,41 @@
+# Capa de Plantillas DBV — sidecar opcional (ARCHITECTURE.md §7.6.3).
+dbv_category = "profesional"
+
+[localization.es]
+name = "Presentacion"
+description = "Diapositivas en formato 16:9, sin depender de ningun paquete: solo el compilador Typst."
+
+[localization.en]
+name = "Presentation"
+description = "16:9 slides, no package dependency: the Typst compiler alone is enough."
+
+[[fields]]
+key = "titulo"
+label = "Titulo de la presentacion"
+type = "text"
+validation = { required = true, max_length = 160 }
+
+[[fields]]
+key = "subtitulo"
+label = "Subtitulo"
+type = "text"
+validation = { max_length = 200 }
+
+[[fields]]
+key = "autor"
+label = "Autor o autores"
+type = "text"
+validation = { required = true, max_length = 160 }
+
+[[fields]]
+key = "institucion"
+label = "Institucion o empresa"
+type = "text"
+validation = { max_length = 160 }
+
+[[fields]]
+key = "curso"
+label = "Fecha o evento"
+type = "text"
+placeholder = "Marzo 2026"
+validation = { max_length = 60 }

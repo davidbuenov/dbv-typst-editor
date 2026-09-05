@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Sin publicar] / [Unreleased]
 
+Sin cambios todavía sobre `v0.1.0`.
+
+---
+
+## [0.1.0] - 2026-09-05
+
+Primer `/ship`: bucle de valor completo del MVP (crear proyecto desde plantilla → escribir con resaltado Typst → ver el PDF actualizarse solo → guardar → exportar PDF), validado a mano por el usuario, con la fase `/test` y la revisión de `/code-simplify` ya cerradas. **Nota:** esta entrada documenta el contenido que se etiqueta como versión; no implica todavía una Release publicada en GitHub — eso queda pendiente de confirmación explícita (ver `task.md`).
+
 ### Added (fase `/test`, 2026-09-05)
 - **Vitest + jsdom, 33 tests de lógica del frontend** (cobertura de comportamiento era cero antes de esta fase): utilidades de ruta de `workspace.js`, validación del asistente de creación, localización de plantillas del lanzador y el contrato `Result` de la capa de acceso al backend. `npm test` ejecuta ahora Vitest antes que los tests de Rust.
 

@@ -6,7 +6,7 @@
 * **Ubicación**: `d:/Programacion/github-davidbuenov/dbv-typst-editor` (renombrado el 2026-09-05 desde `dbv-academic-writer` para cerrar la ambigüedad con el nombre oficial del producto; si esa ruta no existe, probar el nombre antiguo).
 * **Estado actual**: Fases `/spec` y `/plan` **cerradas y congeladas**. **`/build` COMPLETADA: los 10 slices del MVP v0.1 están construidos, verificados y commiteados.** El bucle de valor completo funciona de punta a punta: crear un proyecto desde una plantilla → escribirlo con resaltado Typst → ver el PDF actualizarse solo → guardarlo → exportarlo a PDF.
 * **Última decisión técnica**: Ver `memory.md`. Del `/build`: modo de lenguaje Typst por parser Lezer sin WASM (R-02 cerrado), carga perezosa de páginas en la vista previa tras medir 82 MB de SVG en una tesis de 209 páginas (R-03 cerrado), plantillas curadas autocontenidas y con fuentes embebidas, e instalador de WebView2 con variante offline bajo demanda.
-* **Próximo paso**: **Fase `/test`** — la cobertura automática actual (75 tests Rust + 28 comprobaciones contra el compilador real) no incluye pruebas de la capa de frontend ni de integración de la ventana. Ver "Pendiente" al final.
+* **Próximo paso**: `/build`, `/test`, `/code-simplify` y la documentación de `/ship` de v0.1.0 están cerrados (2026-09-05: 110 tests automáticos — 33 Vitest + 77 Rust —, 0 hallazgos Críticos, remoto configurado con CI en verde). Queda una **decisión de publicación** (etiquetar `v0.1.0` y publicar la Release) y, como siguiente trabajo técnico, el **Slice 11 (RF-13, v0.2)**. Ver Context Snapshot.
 
 ## Checklist de Tareas
 
@@ -51,7 +51,7 @@
     - Prueba del instalador generado en las dos variantes de Windows y en Linux. Razón: exige máquinas limpias sin WebView2/deps preinstaladas; el instalador de Linux ni siquiera se ha generado nunca (`release-linux.yml` solo dispara con tags `v*.*.*`).
 
 - [x] **Fase 5: Simplificar (`/code-simplify`) — cerrada el 2026-09-05.** Revisión de tres pases de `docs/REVIEW.md` sobre el estado del repo (construcción de argumentos del sidecar `typst`, `reveal_in_file_manager`, manejo de rutas, secretos): **0 hallazgos Críticos.** 1 hallazgo Importante — `baseName()` duplicada en `app/workspace.js` y `launcher/launcher.js` — corregido (launcher importa la de workspace). Registrado en `CHANGELOG.md`.
-- [ ] **Fase 6: Entrega (`/ship`)** — no iniciada.
+- [x] **Fase 6: Entrega (`/ship`) — cerrada el 2026-09-05** en lo que es documentación: README raíz actualizado, `walkthrough.md` completado, gate de `/code-simplify` satisfecho (0 Críticos), `CHANGELOG.md` con sección fechada `[0.1.0] - 2026-09-05`. **No incluye** crear el tag `v0.1.0` ni publicar la Release de GitHub — acción de mayor alcance, dispara `release-linux.yml` y produce artefactos públicos, dejada pendiente de confirmación explícita del usuario.
 
 ---
 
@@ -59,19 +59,27 @@
 
 > ### 👉 CÓMO RETOMAR ESTE PROYECTO (leer esto primero)
 >
-> **Si el usuario dice solo "continuar": el trabajo pendiente es la fase `/test`.** El `/build` del MVP
-> está terminado y commiteado, slice a slice. No hay que replanificar ni volver a analizar nada.
+> **`/build`, `/test`, `/code-simplify` y la parte documental de `/ship` están cerrados para v0.1.0.**
+> Si el usuario dice solo "continuar", lo pendiente es una decisión suya, no trabajo técnico: **¿se etiqueta
+> `v0.1.0` y se publica la Release?** (ver "Decisión pendiente" más abajo). Si la respuesta es no o se
+> aplaza, el siguiente trabajo técnico es el **Slice 11 (RF-13, barra de herramientas del editor, v0.2)**.
 >
-> **Última sesión:** 2026-09-05 · **Rama:** `master` · **Árbol de trabajo limpio.**
+> **Última sesión:** 2026-09-05 · **Rama:** `master` · remoto `origin` = `github.com/davidbuenov/dbv-typst-editor` (público) · **Árbol de trabajo limpio tras el push.**
 >
 > **✅ MVP VALIDADO A MANO POR EL USUARIO (2026-09-05).** Probó el bucle completo en la aplicación real
 > y funciona. Es la primera confirmación de producto, no solo de tests.
 >
-> **Aviso de la sesión:** los tres fallos que aparecieron al usarla de verdad (arranque muerto por un
-> import mal usado, `window.confirm` sin permiso, y la vista previa intentando compilar `refs.bib`)
-> **no los detectó ninguna verificación automática**. Los tres están corregidos y `npm run verify:frontend`
-> cubre ya sus categorías, pero es la señal de que **la fase `/test` no es opcional**: el frontend sigue
-> siendo la capa con menos red de seguridad del proyecto.
+> **Decisión pendiente — crear el tag `v0.1.0` y publicar la Release.** No se hizo en esta sesión a
+> propósito: es una acción de mayor alcance que documentar la versión en `CHANGELOG.md` (ya hecho) —
+> dispara `release-linux.yml`, genera artefactos públicos descargables (AppImage, `.deb`) y, para
+> Windows, exige subir el instalador a mano al borrador de Release. Ver `walkthrough.md` de esta sesión.
+>
+> **Aviso permanente (de la sesión anterior, sigue vigente):** los tres fallos que aparecieron al usar la
+> app de verdad (arranque muerto por un import mal usado, `window.confirm` sin permiso, y la vista previa
+> intentando compilar `refs.bib`) no los detectó ninguna verificación automática de entonces. Siguen
+> corregidos; `npm run verify:frontend` cubre ya sus categorías y esta sesión añadió 33 tests de lógica
+> de frontend (antes, cero) — pero el frontend sigue siendo la capa con menos red de seguridad del
+> proyecto, y las pruebas de integración de ventana real (ver más abajo) siguen sin automatizar.
 
 ### ✅ Qué funciona hoy (MVP v0.1 completo)
 
@@ -95,7 +103,7 @@
 ### 📊 Verificación disponible (ejecutable, no manual)
 
 ```bash
-npm test                 # 77 tests del backend Rust
+npm test                 # 33 tests de lógica del frontend (Vitest) + 77 del backend Rust
 npm run verify:frontend  # 8 comprobaciones: extensiones del editor, parser Typst, elementos del DOM y ausencia de diálogos nativos
 npm run verify:typst     # 8 comprobaciones del sidecar contra el binario real
 npm run verify:templates # 20 comprobaciones: cada plantilla se instancia y compila sin avisos
@@ -104,19 +112,16 @@ npm run build:vite       # build del frontend
 
 Los cuatro primeros se ejecutan también en CI (`.github/workflows/ci.yml`) en cada push.
 
-### ▶️ PENDIENTE — Fase `/test`
+### ⏸ Diferido conscientemente de la fase `/test` (no bloquea `/ship`)
 
-Lo que la cobertura actual **no** cubre y debería cubrir la fase `/test`:
-
-1. **Frontend con cobertura parcial.** `npm run verify:frontend` cubre ya lo que tumbaba el arranque
-   (extensiones del editor y elementos del DOM), pero no hay runner de tests de JavaScript para la lógica.
-   Candidatos naturales, todos funciones puras ya aisladas a propósito: `validateFields` (wizard),
-   `localizeTemplate` (launcher), `joinPath`/`baseName` (workspace) y `normalizeError` (services/backend).
-2. **Prueba de integración de la ventana real:** arrancar la app, abrir un proyecto de prueba, teclear y
-   comprobar que la vista previa cambia. Hoy es prueba manual.
-3. **Escenarios de conflicto (RF-07) en integración:** editar el mismo fichero desde otro programa y
-   comprobar las tres ramas (eco propio ignorado, recarga silenciosa, modal de conflicto).
-4. **Prueba del instalador generado**, en las dos variantes de Windows y en Linux.
+1. **Prueba de integración de la ventana real:** arrancar la app, abrir un proyecto de prueba, teclear y
+   comprobar que la vista previa cambia. Razón: exige `tauri-driver` + WebDriver (Edge/WebKitGTK), infraestructura
+   no montada aún y con riesgo de fragilidad cross-plataforma; el flujo ya está validado a mano por el usuario.
+2. **Escenarios de conflicto (RF-07) en integración:** editar el mismo fichero desde otro programa y
+   comprobar las tres ramas (eco propio ignorado, recarga silenciosa, modal de conflicto). Misma razón —
+   cubiertos hoy por prueba manual más la lógica ya testeada de `workspace.js`.
+3. **Prueba del instalador generado**, en las dos variantes de Windows y en Linux. Razón: exige máquinas
+   limpias sin WebView2/deps preinstaladas; el instalador de Linux ni siquiera se ha generado nunca.
 
 ### ✅ Infraestructura resuelta (2026-09-05)
 
@@ -137,16 +142,16 @@ Lo que la cobertura actual **no** cubre y debería cubrir la fase `/test`:
 
 ### 🧭 Pasos siguientes acordados (orden recomendado)
 
-1. ~~**Crear el repositorio remoto y empujar.**~~ ✅ **HECHO el 2026-09-05** — ver "Infraestructura resuelta" más arriba.
-2. **Fase `/test`** (ver la lista de arriba). Es lo que toca en el ciclo, y esta sesión demostró por qué.
-3. **Fase `/code-simplify`** — los tres pases de `docs/REVIEW.md` (bugs, seguridad, cumplimiento).
-4. **Fase `/ship` v0.1.0** — versionado, `CHANGELOG` a sección fechada, tag, `walkthrough.md`, README e
-   instalador de Windows subido al borrador de Release. Su gate exige no cerrar con hallazgos críticos
-   pendientes, y por eso va después de `/test` y `/code-simplify`.
+1. ~~**Crear el repositorio remoto y empujar.**~~ ✅ **HECHO el 2026-09-05.**
+2. ~~**Fase `/test`.**~~ ✅ **CERRADA el 2026-09-05** — 33 tests de frontend nuevos; 3 puntos diferidos a propósito (ver arriba).
+3. ~~**Fase `/code-simplify`.**~~ ✅ **CERRADA el 2026-09-05** — 0 hallazgos Críticos, 1 Importante corregido.
+4. ~~**Fase `/ship` v0.1.0 (documentación).**~~ ✅ **CERRADA el 2026-09-05** — README, `walkthrough.md`, `CHANGELOG.md` con sección `[0.1.0]`.
+5. **Decisión pendiente del usuario:** etiquetar `v0.1.0` (`git tag` + Release de GitHub, con el instalador de Windows subido a mano). No es trabajo técnico nuevo — es una decisión de publicación.
+6. **Slice 11 (RF-13, v0.2)** — barra de herramientas del editor. Diseño ya cerrado en `ARCHITECTURE.md` §7.7, listo para construir sin re-análisis.
 
-*Candidatos que pueden colarse antes si el usuario lo prefiere:* **la barra de herramientas del editor (RF-13)** — el usuario la ha señalado como funcionalidad que debería haber estado desde el principio, y es la más visible de las tres —, **instancia única** (con la asociación
-`.typ` ya activa, abrir dos documentos lanza dos instancias — es el defecto de producto más visible que
-queda) y **`docs/DESIGN.md`**.
+*Candidatos que pueden colarse antes del Slice 11 si el usuario lo prefiere:* **instancia única** (con la
+asociación `.typ` ya activa, abrir dos documentos lanza dos instancias — es el defecto de producto más
+visible que queda) y **`docs/DESIGN.md`**.
 
 ### 📜 Commits de la sesión del 2026-09-05
 

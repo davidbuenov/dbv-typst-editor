@@ -44,7 +44,7 @@ Sigue la misma filosofía que su proyecto hermano [DBV Markdown Reader](https://
 
 ## 🚦 Estado actual
 
-`v0.1.0` en desarrollo, con el **MVP completo ya construido**: crear un proyecto desde una plantilla, escribirlo con resaltado de sintaxis Typst, ver el PDF actualizarse solo mientras escribes y exportarlo. Todavía no hay releases publicadas.
+`v0.1.0` — MVP completo, con las fases `/build`, `/test` y `/code-simplify` del ciclo Spec-Driven Development cerradas: crear un proyecto desde una plantilla, escribirlo con resaltado de sintaxis Typst, ver el PDF actualizarse solo mientras escribes y exportarlo. Validado a mano en la aplicación real y con 110 tests automáticos en verde (33 de frontend + 77 de backend). Todavía no hay releases publicadas.
 
 La documentación de especificación y arquitectura vive en [`dbv-specs-ops/`](./dbv-specs-ops/) y se actualiza en cada fase del ciclo Spec-Driven Development.
 
@@ -81,7 +81,7 @@ El detalle completo de requisitos y criterios de aceptación vive en [`dbv-specs
 
 - [Rust](https://www.rust-lang.org/) 1.76+ y toolchain de [Tauri v2](https://v2.tauri.app/start/prerequisites/)
 - Node.js 20+ (si el frontend usa un bundler)
-- [Typst](https://github.com/typst/typst) (CLI o crate embebido — decisión pendiente en `ARCHITECTURE.md`)
+- [Typst](https://github.com/typst/typst) CLI oficial, vendorizado como sidecar (ver `npm run vendor:typst` más abajo) — no hace falta instalarlo aparte
 
 ---
 
@@ -106,7 +106,7 @@ npm run verify:typst
 # compilador real, sustituye datos de ejemplo y comprueba que compila a PDF
 npm run verify:templates
 
-# Tests del backend Rust
+# Tests: lógica del frontend (Vitest, 33) + backend Rust (77)
 npm test
 ```
 
@@ -209,7 +209,7 @@ El workflow vendoriza el compilador Typst antes de empaquetar y **falla de forma
 
 ## 📋 Changelog
 
-Aún no hay versión publicada. El historial de cambios se documentará en `CHANGELOG.md` a partir del primer `/ship`.
+`v0.1.0` documentada en [`dbv-specs-ops/CHANGELOG.md`](./dbv-specs-ops/CHANGELOG.md) tras el primer `/ship`. Sigue sin haber una Release publicada en GitHub.
 
 ---
 

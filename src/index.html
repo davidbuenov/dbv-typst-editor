@@ -230,6 +230,33 @@
         data-i18n-placeholder="citation.filterPlaceholder"
       />
       <div class="citation-picker__list" id="citation-list"></div>
+      <button id="citation-new-entry" class="citation-picker__new" type="button" data-i18n="citation.newEntry"></button>
+    </div>
+
+    <!-- Nueva entrada bibliográfica (Beta, ARCHITECTURE.md §7.11). -->
+    <div id="bib-entry-panel" class="floating-panel floating-panel--bib-entry hidden" role="dialog" aria-modal="false">
+      <h2 class="floating-panel__title" data-i18n="bibEntry.title"></h2>
+      <div class="form-row">
+        <span class="form-row__label" data-i18n="bibEntry.type"></span>
+        <select id="bib-entry-type" class="form-row__input">
+          <option value="article" data-i18n="bibEntry.type.article"></option>
+          <option value="book" data-i18n="bibEntry.type.book"></option>
+          <option value="inproceedings" data-i18n="bibEntry.type.inproceedings"></option>
+          <option value="phdthesis" data-i18n="bibEntry.type.phdthesis"></option>
+          <option value="mastersthesis" data-i18n="bibEntry.type.mastersthesis"></option>
+          <option value="misc" data-i18n="bibEntry.type.misc"></option>
+        </select>
+      </div>
+      <div class="form-row">
+        <span class="form-row__label" data-i18n="bibEntry.key"></span>
+        <input id="bib-entry-key" class="form-row__input" type="text" autocomplete="off" spellcheck="false" />
+      </div>
+      <div id="bib-entry-fields"></div>
+      <p class="form__error hidden" id="bib-entry-error"></p>
+      <div class="modal__actions">
+        <button id="bib-entry-cancel" class="button" type="button" data-i18n="action.cancel"></button>
+        <button id="bib-entry-save" class="button button--primary" type="button" data-i18n="bibEntry.save"></button>
+      </div>
     </div>
 
     <!-- Panel de navegación estructural (Outline, Beta, ARCHITECTURE.md §7.8). -->

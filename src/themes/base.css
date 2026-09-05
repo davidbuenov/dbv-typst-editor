@@ -266,6 +266,38 @@ body {
   font-size: 12px;
 }
 
+.citation-picker__new {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  padding: 6px 8px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  background: none;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.citation-picker__new:hover {
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+
+/* Nueva entrada bibliográfica (Beta, §7.11): centrado como el terminal, no
+   anclado bajo un botón — es un formulario con varios campos, no una lista
+   corta, así que se comporta como un pequeño modal en vez de un desplegable. */
+.floating-panel--bib-entry {
+  top: 10vh;
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+  width: min(360px, calc(100vw - 48px));
+  max-height: 80vh;
+  overflow: auto;
+}
+
 /* Galería de símbolos (Beta, §7.7.4): misma posición dinámica que el
    desplegable de citas, rejilla en vez de lista. */
 .floating-panel--symbols {

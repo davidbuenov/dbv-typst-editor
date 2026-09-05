@@ -19,10 +19,14 @@ import { getBibliographyKeys } from '../services/backend.js';
  * @param {HTMLElement} deps.panelEl
  * @param {HTMLElement} deps.listEl
  * @param {HTMLInputElement} deps.filterEl
+ * @param {HTMLButtonElement} [deps.newEntryButtonEl] "No encuentro la fuente
+ *   que busco" (Beta, §7.11): abre el asistente para crear la entrada en
+ *   `refs.bib` sin salir del flujo de citar.
+ * @param {() => void} [deps.onCreateNew]
  * @param {() => string | null} deps.getRoot Raíz del proyecto activo, o `null`.
  * @param {() => import('@codemirror/view').EditorView | null} deps.getView
  */
-export function createCitationPicker({ panelEl, listEl, filterEl, getRoot, getView }) {
+export function createCitationPicker({ panelEl, listEl, filterEl, newEntryButtonEl, onCreateNew, getRoot, getView }) {
   /** @type {string[]} Claves de la última carga; se re-filtran sin recargar. */
   let keys = [];
 
@@ -82,6 +86,11 @@ export function createCitationPicker({ panelEl, listEl, filterEl, getRoot, getVi
   });
 
   filterEl.addEventListener('input', renderList);
+
+  newEntryButtonEl?.addEventListener('click', () => {
+    panel.close();
+    onCreateNew?.();
+  });
 
   return {
     /** Abre el desplegable justo debajo del botón que lo disparó. */

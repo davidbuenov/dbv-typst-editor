@@ -12,6 +12,7 @@
 // Regla de RF-02b / R-MVP-3 que se hace visible aquí: abrir un proyecto NUNCA
 // escribe nada en su carpeta. `openProjectAt` solo lee.
 
+import { createBibEntryPanel } from '../bibliography/bibEntryPanel.js';
 import { createCitationPicker } from '../editor/citationPicker.js';
 import { createEditor } from '../editor/editor.js';
 import { createSymbolPicker } from '../editor/symbolPicker.js';
@@ -20,6 +21,7 @@ import { createToolbar } from '../editor/toolbar.js';
 import { figureActionForPath } from '../editor/toolbarActions.js';
 import { t } from '../i18n/i18n.js';
 import { getTheme } from '../themes/theme.js';
+import { isTypstPath, joinPath } from './paths.js';
 import {
   PROJECT_CHANGE_EVENT,
   addRecentProject,
@@ -47,24 +49,11 @@ import {
  */
 const SELF_WRITE_GRACE_MS = 1500;
 
-/** Une carpeta y nombre de fichero respetando el separador ya presente. */
-export function joinPath(dir, name) {
-  if (!dir) return name;
-  const separator = dir.includes('\\') && !dir.includes('/') ? '\\' : '/';
-  const trimmed = dir.endsWith('/') || dir.endsWith('\\') ? dir.slice(0, -1) : dir;
-  return `${trimmed}${separator}${name}`;
-}
-
-/** True si la ruta es un documento Typst compilable. */
-export function isTypstPath(path) {
-  return /\.typ$/i.test(path ?? '');
-}
-
-/** Nombre de fichero de una ruta, con cualquiera de los dos separadores. */
-export function baseName(path) {
-  const index = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
-  return index >= 0 ? path.slice(index + 1) : path;
-}
+// `joinPath`/`isTypstPath`/`baseName` viven en `paths.js` (Beta, §7.11): un
+// módulo hoja del que `bibliography/bibEntryPanel.js` puede importar sin
+// crear un ciclo (`workspace.js` → `bibEntryPanel.js` → `workspace.js`). Se
+// re-exportan aquí para no romper a quien ya las importaba de este fichero.
+export { baseName, isTypstPath, joinPath } from './paths.js';
 
 /**
  * @param {object} deps
@@ -128,8 +117,23 @@ export function createWorkspace({ tree, elements, notify, dialog }) {
     panelEl: elements.citationPanel,
     listEl: elements.citationList,
     filterEl: elements.citationFilter,
+    newEntryButtonEl: elements.citationNewEntry,
+    onCreateNew: () => bibEntryPanel.open(),
     getRoot: () => state.project?.root ?? null,
     getView: editor.getView,
+  });
+
+  const bibEntryPanel = createBibEntryPanel({
+    panelEl: elements.bibEntryPanel,
+    typeEl: elements.bibEntryType,
+    keyEl: elements.bibEntryKey,
+    fieldsEl: elements.bibEntryFields,
+    errorEl: elements.bibEntryError,
+    saveButtonEl: elements.bibEntrySave,
+    cancelButtonEl: elements.bibEntryCancel,
+    getRoot: () => state.project?.root ?? null,
+    getView: editor.getView,
+    notify,
   });
 
   symbolPicker = createSymbolPicker({

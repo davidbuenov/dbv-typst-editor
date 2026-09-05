@@ -34,5 +34,11 @@ zip = "2"
 # (ARCHITECTURE.md §2, "solo desktop"). Gated con #[cfg(desktop)] en lib.rs.
 tauri-plugin-single-instance = "2"
 
+# Beta: menú nativo de macOS (macos_menu.rs) — dependencia exclusiva de esa
+# plataforma (`[target...]`, no una feature): en Windows/Linux ni siquiera se
+# resuelve, coherente con que el propio módulo está `#[cfg(target_os = "macos")]`.
+[target.'cfg(target_os = "macos")'.dependencies]
+sys-locale = "0.3"
+
 [dev-dependencies]
 tempfile = "3"

@@ -328,13 +328,14 @@ async function bootstrap() {
     const picked = await pickSaveTarget(workspace.suggestedArchiveName(), 'DBV Typst Archive', ['dbvt']);
     if (picked.ok && picked.value) await workspace.exportArchive(picked.value);
   });
-  el('btn-close-project').addEventListener('click', async () => {
+  const closeProject = async () => {
     const closed = await workspace.closeProject();
     if (!closed) return;
     await preview.clear();
     outline.clear();
     await launcher.refreshRecent();
-  });
+  };
+  el('btn-close-project').addEventListener('click', closeProject);
 
   // Guardado: botones, Ctrl/Cmd+S desde el editor y refresco de la vista previa.
   workspace.setListener('saveRequested', () => workspace.save());
@@ -408,6 +409,24 @@ async function bootstrap() {
   on('open-document', (path) => {
     if (path) openPath(path);
   });
+
+  // Menú nativo de macOS (Beta, macos_menu.rs): cada ítem propio del menú
+  // reemite un evento; la lógica de cada acción sigue siendo la misma del
+  // botón equivalente, así que aquí solo se reenvía el clic — nunca se
+  // reimplementa (`NATIVE_DESKTOP_APPS.md` §6.10). No tiene efecto alguno en
+  // Windows/Linux: el backend nunca emite estos eventos ahí, al no montarse
+  // el menú.
+  on('menu-new-project', closeProject);
+  on('menu-close-project', closeProject);
+  on('menu-open-folder', openFolder);
+  on('menu-open-file', openFile);
+  on('menu-save', () => el('btn-save').click());
+  on('menu-save-as', () => el('btn-save-as').click());
+  on('menu-export-pdf', () => el('btn-export-pdf').click());
+  on('menu-reveal', () => el('btn-reveal').click());
+  on('menu-toggle-theme', () => el('btn-theme').click());
+  on('menu-outline', () => el('btn-outline').click());
+  on('menu-terminal', () => el('btn-terminal').click());
 }
 
 bootstrap();

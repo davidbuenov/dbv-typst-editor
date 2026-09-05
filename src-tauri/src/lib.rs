@@ -14,6 +14,8 @@ pub mod assets;
 pub mod bibliography;
 pub mod commands;
 pub mod error;
+#[cfg(target_os = "macos")]
+pub mod macos_menu;
 pub mod project;
 pub mod templates;
 pub mod typst_engine;
@@ -50,6 +52,15 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .manage(watcher::WatcherState::default())
         .manage(typst_engine::compile::EngineState::default())
+        .setup(|_app| {
+            // Menú nativo de macOS (Beta): Tauri v2 no trae uno por defecto en
+            // esta plataforma, y sin él no hay Cmd+Q, Cmd+H ni el Edit del
+            // sistema (NATIVE_DESKTOP_APPS.md §6.10). No es un plugin, por
+            // eso se registra aquí y no arriba con `.plugin(...)`.
+            #[cfg(target_os = "macos")]
+            macos_menu::setup(_app)?;
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             archive::export_project_archive,
             archive::import_project_archive,

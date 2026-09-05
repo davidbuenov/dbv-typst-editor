@@ -100,6 +100,7 @@ async function bootstrap() {
     notify: toast.show,
     elements: {
       editorHost: el('editor-host'),
+      editorToolbar: el('editor-toolbar'),
       documentName: el('document-name'),
       documentDirty: el('document-dirty'),
       documentPath: el('document-path'),

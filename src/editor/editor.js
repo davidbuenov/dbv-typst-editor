@@ -47,6 +47,7 @@ import {
   typstLezerListKeymap,
   typst_lezer,
 } from 'codemirror-lang-typst/lezer';
+import { buildToolbarKeymap } from './toolbarActions.js';
 
 /**
  * Tema del editor construido sobre los tokens CSS de la aplicación
@@ -143,6 +144,7 @@ export function buildExtensions({
   updateListener,
   isDark,
 }) {
+  const toolbarKeymap = buildToolbarKeymap();
   return [
     lineNumbers(),
     highlightActiveLineGutter(),
@@ -166,9 +168,11 @@ export function buildExtensions({
     // Intro, y por eso debe ir ANTES del keymap general: si `defaultKeymap`
     // atendiera Intro primero, no llegaría hasta aquí.
     typstLezerListKeymap,
-    // El orden importa: el atajo de guardado va antes que el keymap general
-    // para que gane a cualquier binding por defecto que capture Mod-s.
+    // El orden importa: el atajo de guardado y los de la barra de herramientas
+    // (RF-13) van antes que el keymap general para que ganen a cualquier
+    // binding por defecto que pudiera capturar la misma combinación.
     saveKeymap,
+    toolbarKeymap,
     keymap.of([
       ...closeBracketsKeymap,
       ...searchKeymap,
@@ -188,9 +192,12 @@ export function buildExtensions({
  * @param {object} [options]
  * @param {(content: string) => void} [options.onChange] Cambio hecho por el usuario.
  * @param {() => void} [options.onSave] Atajo de guardado (Ctrl/Cmd+S).
+ * @param {(view: EditorView) => void} [options.onSelectionChange] Cursor o
+ *   selección movidos — lo usa la barra de herramientas (RF-13) para refrescar
+ *   la sensibilidad al contexto (dentro/fuera de una ecuación, §7.7.3.3).
  * @param {'dark'|'light'} [options.theme] Tema inicial.
  */
-export function createEditor(hostEl, { onChange, onSave, theme = 'dark' } = {}) {
+export function createEditor(hostEl, { onChange, onSave, onSelectionChange, theme = 'dark' } = {}) {
   if (!(hostEl instanceof HTMLElement)) {
     throw new TypeError('createEditor: hostEl debe ser un HTMLElement');
   }
@@ -230,8 +237,9 @@ export function createEditor(hostEl, { onChange, onSave, theme = 'dark' } = {}) 
         saveKeymap,
         isDark: theme === 'dark',
         updateListener: EditorView.updateListener.of((update) => {
-          if (!update.docChanged || loading) return;
-          onChange?.(update.state.doc.toString());
+          if (loading) return;
+          if (update.docChanged) onChange?.(update.state.doc.toString());
+          if (update.docChanged || update.selectionSet) onSelectionChange?.(update.view);
         }),
       }),
     }),
@@ -255,6 +263,8 @@ export function createEditor(hostEl, { onChange, onSave, theme = 'dark' } = {}) 
     },
     getContent: () => view.state.doc.toString(),
     getPath: () => currentPath,
+    /** Acceso a la `EditorView` real, para la barra de herramientas (RF-13). */
+    getView: () => view,
     setReadOnly(readOnly) {
       view.dispatch({
         effects: readOnlyCompartment.reconfigure(EditorState.readOnly.of(readOnly)),

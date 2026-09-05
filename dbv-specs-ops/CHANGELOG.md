@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Sin publicar] / [Unreleased]
 
-Sin cambios todavía sobre `v0.1.0`.
+### Added
+- **RF-13 — Barra de herramientas de inserción del editor (Slice 11, v0.2):** 21 botones (formato, estructura, contenido, elementos propios de Typst) que emiten marcado en la posición del cursor, con envolver-y-alternar, sensibilidad al contexto dentro de una ecuación y 7 atajos de teclado. Ver ADR-EDITOR-002 en `memory.md`. 24 tests nuevos sobre la lógica de generación de marcado, sin DOM.
 
 ---
 

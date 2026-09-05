@@ -321,7 +321,7 @@
 /* ─── Documento y editor ──────────────────────────────────────────────────── */
 .document {
   display: grid;
-  grid-template-rows: auto 1fr;
+  grid-template-rows: auto auto 1fr;
   min-width: 0;
   min-height: 0;
 }
@@ -354,6 +354,72 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* ─── Barra de herramientas de inserción del editor (RF-13) ─────────────────── */
+.toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 4px 10px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+}
+
+.toolbar__group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.toolbar__divider {
+  width: 1px;
+  align-self: stretch;
+  margin: 4px 6px;
+  background: var(--border);
+}
+
+.toolbar__button {
+  min-width: 26px;
+  height: 24px;
+  padding: 0 6px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition), opacity var(--transition);
+}
+
+.toolbar__button:hover:not(:disabled) {
+  background: var(--bg-tertiary);
+  border-color: var(--border);
+  color: var(--text-primary);
+}
+
+.toolbar__button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.toolbar__button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.toolbar__button--bold { font-weight: 700; }
+.toolbar__button--italic { font-style: italic; }
+.toolbar__button--strike { text-decoration: line-through; }
+
+/* Sensibilidad al contexto (§7.7.3.3): dentro de una ecuación, el grupo Typst
+   pasa al frente y el resto se atenúa (ya deshabilitado por `toolbar.js`), así
+   el usuario ve de un vistazo que ha cambiado de modo, no solo al intentar
+   pulsar un botón inactivo. */
+.toolbar--math .toolbar__group[data-group='typst'] {
+  order: -1;
 }
 
 .editor {

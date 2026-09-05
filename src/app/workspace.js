@@ -13,6 +13,7 @@
 // escribe nada en su carpeta. `openProjectAt` solo lee.
 
 import { createEditor } from '../editor/editor.js';
+import { createToolbar } from '../editor/toolbar.js';
 import { t } from '../i18n/i18n.js';
 import { getTheme } from '../themes/theme.js';
 import {
@@ -65,6 +66,10 @@ export function baseName(path) {
  * @param {ReturnType<import('../ui/choiceDialog.js').createChoiceDialog>} deps.dialog
  */
 export function createWorkspace({ tree, elements, notify, dialog }) {
+  // Declarado antes del editor a propósito: `onSelectionChange` se dispara en
+  // tiempo de ejecución, no al construir el objeto, así que el cierre puede
+  // referenciar `toolbar` aunque todavía no se le haya asignado nada.
+  let toolbar;
   const editor = createEditor(elements.editorHost, {
     theme: getTheme(),
     onChange: (content) => {
@@ -78,7 +83,11 @@ export function createWorkspace({ tree, elements, notify, dialog }) {
       if (isTypstPath(state.document?.path)) listeners.documentChanged?.(content);
     },
     onSave: () => listeners.saveRequested?.(),
+    onSelectionChange: () => toolbar?.refresh(),
   });
+  // RF-13: la barra de herramientas de inserción vive junto al editor que
+  // controla, igual que en DBV Markdown Reader (ARCHITECTURE.md §3 fila 19).
+  toolbar = createToolbar({ containerEl: elements.editorToolbar, getView: editor.getView });
 
   const state = {
     /** @type {null | {root: string, name: string, entrypoint: string|null, isSingleFile: boolean, hasManifest: boolean}} */

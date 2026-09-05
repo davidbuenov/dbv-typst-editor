@@ -37,8 +37,14 @@
   - [x] **Slice 9** — Exportación PDF (RF-10). ✅ `d26b257`
   - [x] **Slice 10** — Empaquetado, asociación `.typ` y CI (RF-12). ✅ `ccce34a`
 
-- [ ] **Alcance v0.2 registrado (no bloquea `/test`)**
-  - [ ] **RF-13 — Barra de herramientas de inserción del editor** (Slice 11). Subida de Beta a v0.2 el 2026-09-05 a petición del usuario: sin ella el producto contradice su principio nº2 ("el usuario no debe ver código si no quiere") y es una regresión frente a DBV Markdown Reader. ADR-EDITOR-002 · `SPECIFICATIONS.md` v1.2 RF-13 · `ARCHITECTURE.md` §7.7 · `implementation_plan.md` §6. Diseño cerrado, sin infraestructura nueva.
+- [x] **Slice 11 — RF-13, Barra de herramientas de inserción del editor — COMPLETADO (2026-09-05).** Subida de Beta a v0.2 a petición del usuario: sin ella el producto contradice su principio nº2 ("el usuario no debe ver código si no quiere") y es una regresión frente a DBV Markdown Reader. ADR-EDITOR-002 · `SPECIFICATIONS.md` v1.2 RF-13 · `ARCHITECTURE.md` §7.7.
+  - `src/editor/toolbarActions.js`: tabla de 21 acciones como dato (no `switch`), cada una con `buildTransaction(state)` puro y testable sin DOM. Envolver + alternancia (marcadores simétricos y asimétricos), listas/encabezados con familias mutuamente excluyentes, plantillas con hueco para enlace/figura/tabla/ecuación/etc., y `isInsideMath()` vía el árbol Lezer real para la sensibilidad al contexto.
+  - `src/editor/toolbar.js`: capa DOM fina — pinta los botones, aplica la transacción con `view.dispatch`, refresca tooltips en cambio de idioma y deshabilita/reordena grupos dentro de una ecuación.
+  - `editor.js`: `buildToolbarKeymap()` añade los 7 atajos (Mod-b/i/e/k, Mod-Shift-1/2/3) al keymap de CodeMirror; `getView()` y `onSelectionChange` nuevos en el contrato del editor.
+  - **24 tests nuevos** (`toolbarActions.test.js`) — 57/57 Vitest + 77/77 Rust en verde tras el cambio.
+  - **Decisión de alcance registrada:** no todas las ~21 acciones tienen atajo de teclado — el modelo de interacción principal es el clic (así lo enmarca la propia arquitectura, §7.7.4); asignar 21 combinaciones sin colisión no aportaba valor proporcional al riesgo.
+  - **Deuda pendiente heredada de ADR-EDITOR-002, sin resolver en este slice:** los glifos de los botones y la comparación con la barra del editor web oficial de Typst siguen sin verificarse contra la aplicación real — se implementó el objetivo de producto documentado, no una réplica comprobada.
+  - **No verificado en ventana real** (misma limitación diferida ya registrada en la fase `/test`): la sesión no pudo abrir la aplicación Tauri para una comprobación visual; la verificación se apoya en `verify:frontend` (56 elementos, sigue en verde) y en los 24 tests de lógica.
   - [ ] Project Archive `.dbvt` + 4 plantillas restantes (TFM, Tesis, Informe técnico, Presentación) — ya estaban en v0.2.
 
 - [x] **Fase 4: Pruebas (`/test`) — cerrada el 2026-09-05**, con alcance explícitamente acotado (ver decisión de alcance debajo):

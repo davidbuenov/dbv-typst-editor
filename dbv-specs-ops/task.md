@@ -36,7 +36,7 @@
   - [x] **Slice 9** — Exportación PDF (RF-10). ✅ `d26b257`
   - [x] **Slice 10** — Empaquetado, asociación `.typ` y CI (RF-12). ✅ `ccce34a`
 
-- [ ] **Fase 4: Pruebas (`/test`)** — parcialmente cubierta durante `/build`, no ejecutada como fase.
+- [ ] **Fase 4: Pruebas (`/test`)** — parcialmente cubierta durante `/build`, no ejecutada como fase. **⬅️ SIGUIENTE**
 - [ ] **Fase 5: Simplificar (`/code-simplify`)** — no iniciada.
 - [ ] **Fase 6: Entrega (`/ship`)** — no iniciada.
 
@@ -51,10 +51,14 @@
 >
 > **Última sesión:** 2026-09-05 · **Rama:** `master` · **Árbol de trabajo limpio.**
 >
-> **Aviso de la sesión:** el MVP arrancó con un fallo que ninguna verificación detectaba (un import mal
-> usado del paquete de lenguaje Typst). Está corregido y ahora existe `npm run verify:frontend` para esa
-> clase de error, pero es la señal de que **la fase `/test` no es opcional**: el frontend es la capa con
-> menos red de seguridad del proyecto.
+> **✅ MVP VALIDADO A MANO POR EL USUARIO (2026-09-05).** Probó el bucle completo en la aplicación real
+> y funciona. Es la primera confirmación de producto, no solo de tests.
+>
+> **Aviso de la sesión:** los tres fallos que aparecieron al usarla de verdad (arranque muerto por un
+> import mal usado, `window.confirm` sin permiso, y la vista previa intentando compilar `refs.bib`)
+> **no los detectó ninguna verificación automática**. Los tres están corregidos y `npm run verify:frontend`
+> cubre ya sus categorías, pero es la señal de que **la fase `/test` no es opcional**: el frontend sigue
+> siendo la capa con menos red de seguridad del proyecto.
 
 ### ✅ Qué funciona hoy (MVP v0.1 completo)
 
@@ -100,6 +104,13 @@ Lo que la cobertura actual **no** cubre y debería cubrir la fase `/test`:
 3. **Escenarios de conflicto (RF-07) en integración:** editar el mismo fichero desde otro programa y
    comprobar las tres ramas (eco propio ignorado, recarga silenciosa, modal de conflicto).
 4. **Prueba del instalador generado**, en las dos variantes de Windows y en Linux.
+
+### 🚧 Bloqueante de infraestructura (no de código)
+
+**El repositorio NO tiene remoto configurado** (`git remote -v` está vacío). Consecuencia concreta: los dos
+workflows escritos en el Slice 10 —`ci.yml` y `release-linux.yml`— **no se han ejecutado nunca**, así que
+están verificados solo por lectura. Hasta que exista un `origin` en GitHub no hay ni comprobación continua
+ni forma de publicar la Release de Linux. Es probablemente lo primero que conviene resolver.
 
 ### ⚠️ Deuda técnica registrada durante `/build`
 

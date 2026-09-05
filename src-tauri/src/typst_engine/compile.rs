@@ -465,6 +465,52 @@ pub async fn typst_export_pdf(
     Ok(output)
 }
 
+/// Exporta UNA página del documento a PNG (Beta, §7.12 — alcance de este
+/// slice: solo "página actual", no rango ni documento completo).
+///
+/// `page` es 1-indexado, como lo espera `--pages` del CLI. Verificado contra
+/// el binario real: con una sola página seleccionada, `--pages N` acepta un
+/// nombre de fichero normal como salida — el patrón `{p}`/`{0p}` solo hace
+/// falta cuando la exportación puede producir más de un PNG a la vez, que no
+/// es este caso.
+#[tauri::command]
+pub async fn typst_export_png(
+    app: AppHandle,
+    state: tauri::State<'_, EngineState>,
+    document: String,
+    root: String,
+    output: String,
+    page: usize,
+    content: Option<String>,
+) -> Result<String, TypstError> {
+    let generation = state.next_generation();
+    let document_path = PathBuf::from(&document);
+    let (input, mirror) = prepare_input(&document_path, content.as_deref())?;
+
+    let args = vec![
+        "compile".to_string(),
+        "--root".to_string(),
+        root,
+        "--format".to_string(),
+        "png".to_string(),
+        "--pages".to_string(),
+        page.to_string(),
+        input.to_string_lossy().to_string(),
+        output.clone(),
+    ];
+
+    let outcome = run_cancelable(&app, &state, generation, args).await;
+    if let Some(mirror) = mirror {
+        let _ = fs::remove_file(mirror);
+    }
+    let (code, _stdout, stderr) = outcome?;
+
+    if code != Some(0) {
+        return Err(TypstError::CompilationFailed { code, stderr });
+    }
+    Ok(output)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

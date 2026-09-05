@@ -20,6 +20,7 @@ import {
   PROJECT_CHANGE_EVENT,
   addRecentProject,
   exportPdf,
+  exportPng as backendExportPng,
   exportProjectArchive,
   fileModifiedMs,
   on,
@@ -291,6 +292,33 @@ export function createWorkspace({ tree, elements, notify, dialog }) {
     return true;
   }
 
+  /**
+   * Exporta UNA página del documento a PNG (Beta, §7.12 — alcance de este
+   * slice: página actual, no rango ni documento completo). `page` lo calcula
+   * quien llama (la vista previa sabe qué página se está leyendo, el workspace
+   * no); este método solo aporta el documento/raíz/contenido en vivo, igual
+   * que `exportToPdf`.
+   */
+  async function exportPng(output, page) {
+    if (!state.document || !state.project) return false;
+
+    notify(t('export.pngWorking'));
+    const result = await backendExportPng({
+      document: state.document.path,
+      root: state.project.root,
+      output,
+      page,
+      content: state.dirty ? editor.getContent() : null,
+    });
+
+    if (!result.ok) {
+      notify(`${t('export.pngFailed')} — ${result.error.message}`, 'error');
+      return false;
+    }
+    notify(`${t('export.done')} ${result.value}`);
+    return true;
+  }
+
   function revealProject() {
     if (!state.project) return;
     revealInFileManager(state.project.root);
@@ -457,6 +485,11 @@ export function createWorkspace({ tree, elements, notify, dialog }) {
     saveAs,
     suggestedPdfName,
     exportPdf: exportToPdf,
+    suggestedPngName(page) {
+      if (!state.document) return `documento-${page}.png`;
+      return `${state.document.fileName.replace(/\.typ$/i, '')}-p${page}.png`;
+    },
+    exportPng,
     suggestedArchiveName,
     exportArchive,
     confirmDiscardChanges,

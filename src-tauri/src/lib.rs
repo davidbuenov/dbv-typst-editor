@@ -49,6 +49,7 @@ pub fn run() {
             typst_engine::compile::typst_cancel_preview,
             typst_engine::compile::typst_compile_preview,
             typst_engine::compile::typst_export_pdf,
+            typst_engine::compile::typst_export_png,
             typst_engine::compile::typst_preview_page,
             typst_engine::outline::typst_outline,
             typst_engine::typst_version,

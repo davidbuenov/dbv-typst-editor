@@ -245,6 +245,14 @@ async function bootstrap() {
     if (picked.ok && picked.value) await workspace.exportPdf(picked.value);
   });
 
+  // Exportación PNG (Beta, §7.12) — alcance de este slice: solo la página que
+  // se está leyendo ahora en la vista previa, no rango ni documento completo.
+  el('btn-export-png').addEventListener('click', async () => {
+    const page = preview.getCurrentPage();
+    const picked = await pickSaveTarget(workspace.suggestedPngName(page), 'PNG', ['png']);
+    if (picked.ok && picked.value) await workspace.exportPng(picked.value, page);
+  });
+
   el('btn-zoom-in').addEventListener('click', preview.zoomIn);
   el('btn-zoom-out').addEventListener('click', preview.zoomOut);
   el('btn-zoom-reset').addEventListener('click', preview.zoomReset);

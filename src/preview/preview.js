@@ -279,6 +279,8 @@ export function createPreview({ pagesEl, bandEl, statusEl, zoomLabelEl }) {
       if (!request) return;
       schedule();
     },
+    /** Página 1-indexada que se está leyendo ahora mismo (exportación PNG, Beta). */
+    getCurrentPage: () => firstVisiblePage() + 1,
     async clear() {
       if (debounceTimer) clearTimeout(debounceTimer);
       observer.disconnect();

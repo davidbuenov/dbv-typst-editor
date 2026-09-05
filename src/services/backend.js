@@ -132,6 +132,8 @@ export const getOutline = ({ document, root, content }) =>
   call('typst_outline', { document, root, content: content ?? null });
 export const exportPdf = ({ document, root, output, content }) =>
   call('typst_export_pdf', { document, root, output, content: content ?? null });
+export const exportPng = ({ document, root, output, page, content }) =>
+  call('typst_export_png', { document, root, output, page, content: content ?? null });
 
 // ─── Observador de cambios ───────────────────────────────────────────────────
 

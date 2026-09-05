@@ -30,6 +30,7 @@ const DICTIONARIES = {
     'action.save': 'Guardar',
     'action.saveAs': 'Guardar como…',
     'action.exportPdf': 'Exportar PDF',
+    'action.exportPng': 'Exportar página como PNG',
     'action.newProject': 'Nuevo proyecto',
     'action.cancel': 'Cancelar',
     'scaffold.appVersion': 'Versión',
@@ -85,6 +86,8 @@ const DICTIONARIES = {
     'archive.exportFailed': 'No se ha podido exportar el proyecto',
     'archive.importWorking': 'Importando el proyecto…',
     'archive.importFailed': 'No se ha podido importar el proyecto',
+    'export.pngWorking': 'Generando la imagen…',
+    'export.pngFailed': 'No se ha podido exportar la página',
     'doc.saveError': 'No se ha podido guardar',
     'conflict.title': 'El documento ha cambiado fuera del editor',
     'conflict.text':
@@ -149,6 +152,7 @@ const DICTIONARIES = {
     'action.save': 'Save',
     'action.saveAs': 'Save as…',
     'action.exportPdf': 'Export PDF',
+    'action.exportPng': 'Export page as PNG',
     'action.newProject': 'New project',
     'action.cancel': 'Cancel',
     'scaffold.appVersion': 'Version',
@@ -204,6 +208,8 @@ const DICTIONARIES = {
     'archive.exportFailed': 'The project could not be exported',
     'archive.importWorking': 'Importing the project…',
     'archive.importFailed': 'The project could not be imported',
+    'export.pngWorking': 'Generating the image…',
+    'export.pngFailed': 'The page could not be exported',
     'doc.saveError': 'The document could not be saved',
     'conflict.title': 'The document changed outside the editor',
     'conflict.text':

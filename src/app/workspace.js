@@ -46,6 +46,11 @@ export function joinPath(dir, name) {
   return `${trimmed}${separator}${name}`;
 }
 
+/** True si la ruta es un documento Typst compilable. */
+export function isTypstPath(path) {
+  return /\.typ$/i.test(path ?? '');
+}
+
 /** Nombre de fichero de una ruta, con cualquiera de los dos separadores. */
 export function baseName(path) {
   const index = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
@@ -65,7 +70,12 @@ export function createWorkspace({ tree, elements, notify, dialog }) {
     onChange: (content) => {
       state.dirty = true;
       renderDocumentBar();
-      listeners.documentChanged?.(content);
+      // La vista previa solo se alimenta en vivo si lo que se está editando es
+      // el documento que ella compila. Al editar `refs.bib` o un `.toml`, ese
+      // contenido no es un documento Typst: mandarlo compilaría la bibliografía
+      // como si fuera el documento. Esos ficheros llegan a la vista previa por
+      // la vía normal — al guardarlos, el observador dispara la recompilación.
+      if (isTypstPath(state.document?.path)) listeners.documentChanged?.(content);
     },
     onSave: () => listeners.saveRequested?.(),
   });
@@ -90,6 +100,8 @@ export function createWorkspace({ tree, elements, notify, dialog }) {
     projectOpened: null,
     /** @type {null | ((doc: object) => void)} */
     documentOpened: null,
+    /** @type {null | (() => void)} */
+    documentDetached: null,
     /** @type {null | (() => void)} */
     saveRequested: null,
     /** @type {null | (() => void)} */
@@ -123,17 +135,31 @@ export function createWorkspace({ tree, elements, notify, dialog }) {
   /**
    * Pide confirmación antes de perder cambios sin guardar. Portado del
    * `confirmDiscardUnsavedChanges` de DBV Markdown Reader (ARCHITECTURE.md §3
-   * fila 17): es el único punto de la aplicación que interrumpe al usuario con
-   * un diálogo modal, y lo hace porque la alternativa es perder trabajo.
+   * fila 17): junto al conflicto externo, es el único punto de la aplicación
+   * que interrumpe al usuario, y lo hace porque la alternativa es perder trabajo.
+   *
+   * Usa el modal propio y NO `window.confirm`: en un WebView de Tauri esa
+   * llamada la intercepta el plugin de diálogos y exige el permiso
+   * `dialog:allow-confirm`, así que fallaba con "dialog.confirm not allowed".
+   * El modal propio además está traducido y sigue el tema de la aplicación.
    */
-  function confirmDiscardChanges() {
+  async function confirmDiscardChanges() {
     if (!state.dirty) return true;
-    return window.confirm(t('doc.discardConfirm'));
+    const choice = await dialog.ask({
+      titleKey: 'doc.discardTitle',
+      textKey: 'doc.discardConfirm',
+      text: state.document?.fileName ?? '',
+      choices: [
+        { key: 'cancel', labelKey: 'action.cancel', tone: 'primary' },
+        { key: 'discard', labelKey: 'doc.discardAction', tone: 'danger' },
+      ],
+    });
+    return choice === 'discard';
   }
 
   /** Abre un documento del proyecto en el editor. */
   async function openDocument(path, { force = false } = {}) {
-    if (!force && path !== state.document?.path && !confirmDiscardChanges()) return false;
+    if (!force && path !== state.document?.path && !(await confirmDiscardChanges())) return false;
 
     const result = await readFile(path);
     if (!result.ok) {
@@ -151,7 +177,16 @@ export function createWorkspace({ tree, elements, notify, dialog }) {
     state.dirty = false;
     tree.setActivePath(payload.path);
     renderDocumentBar();
-    listeners.documentOpened?.({ ...state.document, content: payload.content });
+
+    // Abrir un fichero acompañante (`.bib`, `.toml`) NO cambia lo que compila la
+    // vista previa: se sigue viendo el documento, que es lo que el usuario está
+    // escribiendo. Solo se le avisa de que el editor ya no está encima de él,
+    // para que deje de usar el contenido en vivo y compile lo que hay en disco.
+    if (isTypstPath(payload.path)) {
+      listeners.documentOpened?.({ ...state.document, content: payload.content });
+    } else {
+      listeners.documentDetached?.();
+    }
 
     // El watcher debe saber cuál es el documento activo para poder distinguir
     // "recompila" de "aviso de conflicto" (Slice 6).
@@ -166,7 +201,7 @@ export function createWorkspace({ tree, elements, notify, dialog }) {
    * manifiesto, ni toca la estructura de la carpeta (R-MVP-3).
    */
   async function openProjectAt(path) {
-    if (!confirmDiscardChanges()) return false;
+    if (!(await confirmDiscardChanges())) return false;
 
     const result = await openProject(path);
     if (!result.ok) {
@@ -201,7 +236,7 @@ export function createWorkspace({ tree, elements, notify, dialog }) {
   }
 
   async function closeProject() {
-    if (!confirmDiscardChanges()) return false;
+    if (!(await confirmDiscardChanges())) return false;
     await unwatchProject();
     state.project = null;
     state.document = null;

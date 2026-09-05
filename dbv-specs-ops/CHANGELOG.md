@@ -10,12 +10,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Sin publicar] / [Unreleased]
 
 ### Fixed
+- Descartar cambios sin guardar fallaba con "dialog.confirm not allowed": la confirmación usaba `window.confirm`, que en un WebView de Tauri exige un permiso aparte. Ahora usa el modal propio de la aplicación, traducido y con el tema puesto.
+- Abrir un fichero acompañante del proyecto (`refs.bib`, un `.toml`) hacía que la vista previa intentara compilarlo como si fuera el documento, y mostraba un error de compilación. La vista previa se mantiene ahora en el documento Typst y pasa a compilar lo que hay en disco.
 - La aplicación no arrancaba: el editor usaba uno de los atajos del paquete de lenguaje Typst como si fuera una lista de atajos cuando el paquete lo exporta ya como extensión, lo que dejaba la ventana muerta con el error "typstLezerListKeymap is not iterable".
 - El historial de deshacer se vacía al abrir otro documento: antes, un Ctrl+Z justo después de cambiar de fichero podía deshacer hasta el texto del documento anterior y escribirlo encima del nuevo.
 - La vista previa vuelve a compilar por la página que se está leyendo: el contenedor de páginas no era el origen de coordenadas de sus hijos, así que al recompilar traía siempre las dos primeras.
 - Un documento `.typ` suelto se guarda en Proyectos recientes con el separador de ruta de la plataforma, en vez de forzar siempre `/`.
 
 ### Added
+- `npm run verify:frontend` comprueba además que no se usan los diálogos nativos del WebView (`confirm`, `alert`, `prompt`), que fallan en tiempo de ejecución por falta de permisos.
+
 - **Ficheros de prueba en `testfiles/`:** un documento `.typ` suelto y un proyecto multi-fichero (capítulos, imagen y bibliografía) para tener algo que abrir nada más instalar la aplicación. El proyecto no trae manifiesto DBV a propósito, para que sirva de comprobación del caso "proyecto ajeno". Cada fichero lleva dentro la lista de lo que conviene probar con él, y la CI verifica que siguen compilando.
 
 - **`npm run verify:frontend`:** comprobación del frontend sin navegador, añadida a raíz del fallo de arranque anterior. Resuelve la lista completa de extensiones del editor y el árbol sintáctico de Typst con `EditorState`, que no necesita DOM, y verifica que todos los elementos que el arranque busca por id existen realmente en `index.html`. Se ejecuta también en CI.

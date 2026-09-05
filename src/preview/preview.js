@@ -231,6 +231,16 @@ export function createPreview({ pagesEl, bandEl, statusEl, zoomLabelEl }) {
       request.dirty = true;
       schedule();
     },
+    /**
+     * El editor se ha ido a otro fichero (uno acompañante, como `refs.bib`).
+     * La vista previa sigue mostrando el mismo documento, pero deja de usar el
+     * contenido en vivo: a partir de aquí compila lo que hay en disco.
+     */
+    detachLiveContent() {
+      if (!request) return;
+      request.dirty = false;
+      request.content = null;
+    },
     /** El documento se ha guardado: disco y editor vuelven a coincidir. */
     onSaved() {
       if (!request) return;

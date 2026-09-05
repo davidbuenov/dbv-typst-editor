@@ -130,6 +130,7 @@ async function bootstrap() {
       content: doc.content,
     })
   );
+  workspace.setListener('documentDetached', () => preview.detachLiveContent());
   workspace.setListener('documentChanged', (content) => preview.onContentChanged(content));
   workspace.setListener('externalChange', (change) => {
     if (!change.isActiveDocument) preview.onExternalChange();

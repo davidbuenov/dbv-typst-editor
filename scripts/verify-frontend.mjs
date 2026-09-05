@@ -95,6 +95,32 @@ check('todos los elementos que busca el arranque existen en index.html', () => {
   return `${requested.size} elementos comprobados`;
 });
 
+check('no se usan los diálogos nativos del WebView', () => {
+  // `window.confirm`, `alert` y `prompt` NO son gratis en un WebView de Tauri:
+  // el plugin de diálogos los intercepta y exige permisos explícitos
+  // (`dialog:allow-confirm`...), así que fallan en tiempo de ejecución con
+  // "dialog.confirm not allowed" — que es como se descubrió esto. La aplicación
+  // usa su propio modal (`ui/choiceDialog.js`), traducido y con el tema puesto.
+  const sources = ['main.js', 'app/workspace.js', 'preview/preview.js', 'project-wizard/wizard.js']
+    .map((file) => [file, readFileSync(join(ROOT, 'src', file), 'utf8')]);
+
+  const offenders = [];
+  for (const [file, source] of sources) {
+    for (const [index, line] of source.split('\n').entries()) {
+      // Se ignoran los comentarios: este mismo fichero y el de workspace
+      // explican por escrito por qué no se usan.
+      const code = line.replace(/\/\/.*$/, '');
+      if (/\b(?:window\.)?(?:confirm|alert|prompt)\s*\(/.test(code)) {
+        offenders.push(`${file}:${index + 1}`);
+      }
+    }
+  }
+  if (offenders.length > 0) {
+    throw new Error(`diálogos nativos en ${offenders.join(', ')}`);
+  }
+  return `${sources.length} ficheros revisados`;
+});
+
 check('la lista de extensiones se resuelve sin errores', () => {
   const state = createState('= Hola');
   return `${state.doc.toString()}`;

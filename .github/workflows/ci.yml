@@ -6,6 +6,8 @@ name: CI
 #
 #   · tests del backend Rust,
 #   · build del frontend,
+#   · verificación del frontend sin navegador: la lista de extensiones del
+#     editor y los elementos que busca el arranque,
 #   · verificación del sidecar contra el binario real (8 comprobaciones),
 #   · verificación del catálogo de plantillas: cada plantilla se instancia con
 #     `typst init`, se le sustituyen datos de ejemplo y se compila a PDF.
@@ -55,6 +57,9 @@ jobs:
 
       - name: Build del frontend
         run: npm run build:vite
+
+      - name: Verificar el frontend (extensiones del editor y elementos del DOM)
+        run: npm run verify:frontend
 
       - name: Verificar el sidecar contra el binario real
         run: npm run verify:typst

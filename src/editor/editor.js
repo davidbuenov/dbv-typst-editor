@@ -115,6 +115,75 @@ function buildTheme(isDark) {
 }
 
 /**
+ * Lista completa de extensiones del editor.
+ *
+ * Se exporta a propósito, separada de `createEditor`: `EditorState.create()`
+ * resuelve y valida esta lista **sin necesidad de DOM**, así que
+ * `npm run verify:editor` puede comprobarla en Node y detectar una extensión
+ * mal formada antes de que aparezca como una ventana en blanco.
+ *
+ * Es exactamente el fallo que se coló en el Slice 4: `typstLezerListKeymap` se
+ * usó como si fuera un array de atajos (`...typstLezerListKeymap`) cuando el
+ * paquete lo exporta ya como extensión, y el `TypeError` solo salió al abrir la
+ * aplicación — el build de Vite y los tests de Rust pasaban en verde.
+ *
+ * @param {object} deps
+ * @param {import('@codemirror/state').Compartment} deps.themeCompartment
+ * @param {import('@codemirror/state').Compartment} deps.readOnlyCompartment
+ * @param {import('@codemirror/state').Compartment} deps.historyCompartment
+ * @param {import('@codemirror/state').Extension} deps.saveKeymap
+ * @param {import('@codemirror/state').Extension} deps.updateListener
+ * @param {boolean} deps.isDark
+ */
+export function buildExtensions({
+  themeCompartment,
+  readOnlyCompartment,
+  historyCompartment,
+  saveKeymap,
+  updateListener,
+  isDark,
+}) {
+  return [
+    lineNumbers(),
+    highlightActiveLineGutter(),
+    highlightActiveLine(),
+    historyCompartment.of(history()),
+    foldGutter(),
+    drawSelection(),
+    rectangularSelection(),
+    indentOnInput(),
+    bracketMatching(),
+    closeBrackets(),
+    highlightSelectionMatches(),
+    search({ top: true }),
+    autocompletion(),
+    EditorView.lineWrapping,
+    typst_lezer(),
+    syntaxHighlighting(TypstHighlightSytle),
+    // `typstLezerListKeymap` NO es un array de atajos: el paquete lo exporta ya
+    // como extensión con su propia precedencia, así que va suelto en la lista y
+    // no dentro de un `keymap.of([...])`. Continúa las listas de Typst al pulsar
+    // Intro, y por eso debe ir ANTES del keymap general: si `defaultKeymap`
+    // atendiera Intro primero, no llegaría hasta aquí.
+    typstLezerListKeymap,
+    // El orden importa: el atajo de guardado va antes que el keymap general
+    // para que gane a cualquier binding por defecto que capture Mod-s.
+    saveKeymap,
+    keymap.of([
+      ...closeBracketsKeymap,
+      ...searchKeymap,
+      ...historyKeymap,
+      ...foldKeymap,
+      ...defaultKeymap,
+      indentWithTab,
+    ]),
+    themeCompartment.of(buildTheme(isDark)),
+    readOnlyCompartment.of(EditorState.readOnly.of(false)),
+    updateListener,
+  ];
+}
+
+/**
  * @param {HTMLElement} hostEl Contenedor donde se monta el editor.
  * @param {object} [options]
  * @param {(content: string) => void} [options.onChange] Cambio hecho por el usuario.
@@ -154,42 +223,17 @@ export function createEditor(hostEl, { onChange, onSave, theme = 'dark' } = {}) 
     parent: hostEl,
     state: EditorState.create({
       doc: '',
-      extensions: [
-        lineNumbers(),
-        highlightActiveLineGutter(),
-        highlightActiveLine(),
-        historyCompartment.of(history()),
-        foldGutter(),
-        drawSelection(),
-        rectangularSelection(),
-        indentOnInput(),
-        bracketMatching(),
-        closeBrackets(),
-        highlightSelectionMatches(),
-        search({ top: true }),
-        autocompletion(),
-        EditorView.lineWrapping,
-        typst_lezer(),
-        syntaxHighlighting(TypstHighlightSytle),
-        // El orden importa: el atajo de guardado va primero para que gane a
-        // cualquier binding por defecto que pudiera capturar Mod-s.
+      extensions: buildExtensions({
+        themeCompartment,
+        readOnlyCompartment,
+        historyCompartment,
         saveKeymap,
-        keymap.of([
-          ...closeBracketsKeymap,
-          ...searchKeymap,
-          ...historyKeymap,
-          ...foldKeymap,
-          ...typstLezerListKeymap,
-          ...defaultKeymap,
-          indentWithTab,
-        ]),
-        themeCompartment.of(buildTheme(theme === 'dark')),
-        readOnlyCompartment.of(EditorState.readOnly.of(false)),
-        EditorView.updateListener.of((update) => {
+        isDark: theme === 'dark',
+        updateListener: EditorView.updateListener.of((update) => {
           if (!update.docChanged || loading) return;
           onChange?.(update.state.doc.toString());
         }),
-      ],
+      }),
     }),
   });
 

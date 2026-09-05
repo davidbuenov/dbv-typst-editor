@@ -15,6 +15,7 @@
     "vendor:typst": "node scripts/vendor-typst.mjs",
     "verify:typst": "node scripts/verify-typst-sidecar.mjs",
     "verify:templates": "node scripts/verify-templates.mjs",
+    "verify:frontend": "node scripts/verify-frontend.mjs",
     "test": "cargo test --manifest-path src-tauri/Cargo.toml --lib",
     "icons": "node scripts/generate-base-icon.mjs && tauri icon src-tauri/icons/base.png"
   },

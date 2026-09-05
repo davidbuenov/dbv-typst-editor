@@ -10,11 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Sin publicar] / [Unreleased]
 
 ### Fixed
+- La aplicación no arrancaba: el editor usaba uno de los atajos del paquete de lenguaje Typst como si fuera una lista de atajos cuando el paquete lo exporta ya como extensión, lo que dejaba la ventana muerta con el error "typstLezerListKeymap is not iterable".
 - El historial de deshacer se vacía al abrir otro documento: antes, un Ctrl+Z justo después de cambiar de fichero podía deshacer hasta el texto del documento anterior y escribirlo encima del nuevo.
 - La vista previa vuelve a compilar por la página que se está leyendo: el contenedor de páginas no era el origen de coordenadas de sus hijos, así que al recompilar traía siempre las dos primeras.
 - Un documento `.typ` suelto se guarda en Proyectos recientes con el separador de ruta de la plataforma, en vez de forzar siempre `/`.
 
 ### Added
+- **`npm run verify:frontend`:** comprobación del frontend sin navegador, añadida a raíz del fallo de arranque anterior. Resuelve la lista completa de extensiones del editor y el árbol sintáctico de Typst con `EditorState`, que no necesita DOM, y verifica que todos los elementos que el arranque busca por id existen realmente en `index.html`. Se ejecuta también en CI.
+
 - **Slice 10 — Empaquetado y CI (RF-12):** asociación de fichero `.typ` (doble clic en el explorador del sistema abre el documento directamente), plantillas empaquetadas como recurso de la aplicación, workflow de Release para Linux (AppImage + `.deb`) con vendorizado del compilador Typst y fallo explícito si falta, y workflow de CI que ejecuta en cada push los tests, el build del frontend y las dos verificaciones contra el compilador real. README actualizado con el proceso de empaquetado y publicación por plataforma.
 - **Slice 9 — Exportación PDF (RF-10):** genera el PDF final del documento donde el usuario elija, con el nombre sugerido a partir del documento abierto. Exporta lo que se ve en pantalla, incluidos los cambios sin guardar, y el PDF sale directamente del compilador sin pasar por ningún fichero intermedio.
 - **Slice 8 — Catálogo de plantillas curadas de v0.1 (RF-04):** Proyecto en blanco, Trabajo de Fin de Grado (portada institucional, índice, capítulos en ficheros separados y bibliografía), Artículo académico (dos columnas, resumen y palabras clave) y Currículum vitae de una página. Cada plantilla es un proyecto Typst autocontenido, que compila con `typst` a secas y sin conexión, usando solo las fuentes que viajan dentro del compilador para que se componga igual en cualquier máquina. Las 20 comprobaciones de `npm run verify:templates` están en verde, incluida la de que ninguna plantilla deja avisos del compilador.

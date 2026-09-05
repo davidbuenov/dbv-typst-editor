@@ -47,6 +47,15 @@
       </div>
       <div class="app-header__actions">
         <div class="app-header__group hidden" id="project-actions">
+          <!-- Modos de escritura (Beta, §7.9): siempre alcanzable, incluso en
+               Lectura, que oculta el resto de `.workspace` — por eso vive en
+               la cabecera persistente y no dentro de `.document__bar`. -->
+          <div class="mode-switcher" id="mode-switcher" role="group" aria-label="Modo de escritura">
+            <button class="mode-switcher__button" type="button" data-mode="edicion" data-i18n-title="mode.edicion">E</button>
+            <button class="mode-switcher__button" type="button" data-mode="escritura" data-i18n-title="mode.escritura">W</button>
+            <button class="mode-switcher__button" type="button" data-mode="dividido" data-i18n-title="mode.dividido">D</button>
+            <button class="mode-switcher__button" type="button" data-mode="lectura" data-i18n-title="mode.lectura">L</button>
+          </div>
           <button id="btn-reveal" class="button button--ghost" type="button" data-i18n="action.reveal"></button>
           <button id="btn-export-archive" class="button button--ghost" type="button" data-i18n="action.exportArchive"></button>
           <button id="btn-close-project" class="button button--ghost" type="button" data-i18n="action.closeProject"></button>

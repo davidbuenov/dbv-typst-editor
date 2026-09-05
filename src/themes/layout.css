@@ -37,6 +37,40 @@
   gap: 6px;
 }
 
+.mode-switcher {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.mode-switcher__button {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-right: 1px solid var(--border);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.mode-switcher__button:last-child {
+  border-right: none;
+}
+
+.mode-switcher__button:hover {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.mode-switcher__button[aria-pressed='true'] {
+  background: var(--accent);
+  color: #fff;
+}
+
 .button--ghost {
   background: transparent;
 }
@@ -196,6 +230,44 @@
     var(--sidebar-width, 260px) 5px minmax(0, 1fr) 5px
     var(--preview-width, 46%);
   min-height: 0;
+}
+
+/* ─── Modos de escritura (Beta, §7.9) ────────────────────────────────────────
+   Cuatro preajustes de qué columnas de la rejilla existen — sin
+   infraestructura nueva, solo `grid-template-columns` distinto por modo y
+   ocultar lo que ese modo no muestra. "edicion" es el layout de siempre (sin
+   atributo, o con él): no necesita reglas propias. */
+
+.workspace[data-mode='escritura'] {
+  grid-template-columns: 1fr;
+}
+.workspace[data-mode='escritura'] .sidebar,
+.workspace[data-mode='escritura'] #splitter-sidebar,
+.workspace[data-mode='escritura'] .toolbar,
+.workspace[data-mode='escritura'] .preview,
+.workspace[data-mode='escritura'] #splitter-preview {
+  display: none;
+}
+
+.workspace[data-mode='dividido'] {
+  grid-template-columns: minmax(0, 1fr) 5px var(--preview-width, 46%);
+}
+.workspace[data-mode='dividido'] .sidebar,
+.workspace[data-mode='dividido'] #splitter-sidebar {
+  display: none;
+}
+
+.workspace[data-mode='lectura'] {
+  grid-template-columns: 1fr;
+}
+.workspace[data-mode='lectura'] .sidebar,
+.workspace[data-mode='lectura'] #splitter-sidebar,
+.workspace[data-mode='lectura'] .document,
+.workspace[data-mode='lectura'] #splitter-preview {
+  display: none;
+}
+.workspace[data-mode='lectura'] .preview {
+  border-left: none;
 }
 
 .sidebar {

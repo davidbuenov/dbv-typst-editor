@@ -11,6 +11,7 @@
 // backend evita el monolito `lib.rs`.
 
 import { createWorkspace } from './app/workspace.js';
+import { WRITING_MODES, getWritingMode, setWritingMode } from './app/writingMode.js';
 import { applyTranslations, getLanguage, t, toggleLanguage } from './i18n/i18n.js';
 import { createLauncher } from './launcher/launcher.js';
 import { createOutline } from './outline/outline.js';
@@ -61,6 +62,26 @@ function wireThemeToggle(onThemeChanged) {
     icon.textContent = theme === 'dark' ? '◐' : '◑';
     onThemeChanged(theme);
   });
+}
+
+/** Modos de escritura (Beta, §7.9): preajustes de qué paneles se ven. */
+function wireModeSwitcher(workspaceEl) {
+  const buttons = new Map(
+    WRITING_MODES.map((mode) => [mode, document.querySelector(`.mode-switcher__button[data-mode="${mode}"]`)])
+  );
+
+  function applyMode(mode) {
+    setWritingMode(mode, workspaceEl);
+    for (const [candidate, button] of buttons) {
+      button?.setAttribute('aria-pressed', String(candidate === mode));
+    }
+  }
+
+  for (const [mode, button] of buttons) {
+    button?.addEventListener('click', () => applyMode(mode));
+  }
+
+  applyMode(getWritingMode());
 }
 
 function wireLanguageToggle() {
@@ -121,6 +142,7 @@ async function bootstrap() {
 
   // El editor (CodeMirror) necesita reconfigurar su tema, no solo heredar CSS.
   wireThemeToggle((theme) => workspace.setTheme(theme));
+  wireModeSwitcher(el('workspace-view'));
 
   const preview = createPreview({
     pagesEl: el('preview-pages'),

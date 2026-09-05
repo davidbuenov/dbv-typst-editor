@@ -9,8 +9,12 @@
 
 ## 🎯 Contexto Activo
 
-- **Estado actual del desarrollo:** `/spec` y `/plan` CERRADAS y congeladas (`docs/SPECIFICATIONS.md` v1.1, `docs/ARCHITECTURE.md` v1.0, `docs/TYPST_ECOSYSTEM_RESEARCH.md` verificado contra binario real). **`/build` en curso: slices 1 y 2 completados, verificados y commiteados** (`7a77fe2`, `8023821`). La app arranca, tiene shell con temas e i18n, y lleva el compilador Typst v0.15.1 embebido como sidecar y respondiendo. 5 tests Rust en verde, 8/8 verificaciones del sidecar, instalador de 18 MB.
-- **Foco inmediato (próxima sesión):** **Slice 3 — Modelo de Proyecto, explorador de ficheros y operaciones de proyecto (RF-02, RF-02b, RF-02c).** No hay que replanificar nada: specs y arquitectura están congeladas y aprobadas. El punto de retorno operativo con los pasos exactos está en `task.md` → sección "CÓMO RETOMAR ESTE PROYECTO". Único punto pendiente de decisión del usuario, que **no bloquea** el Slice 3: modo de instalación de WebView2 en Windows (`docs/ARCHITECTURE.md` §7.15).
+- **Ubicación:** `d:/Programacion/github-davidbuenov/dbv-typst-editor` (renombrado el 2026-09-05 desde `dbv-academic-writer`; si esa ruta no existe, probar el nombre antiguo).
+- **Estado actual del desarrollo:** `/spec` y `/plan` CERRADAS y congeladas (`docs/SPECIFICATIONS.md` v1.1, `docs/ARCHITECTURE.md` v1.0, `docs/TYPST_ECOSYSTEM_RESEARCH.md` verificado contra binario real). **`/build` COMPLETADA (2026-09-05): los 10 slices del MVP v0.1 construidos, verificados y commiteados, un commit por slice.** El bucle de valor completo funciona de punta a punta y **el usuario lo validó a mano**: crear proyecto desde plantilla → escribir con resaltado Typst → ver el PDF actualizarse solo → guardar → exportar PDF.
+- **Verificación viva:** 77 tests Rust · 8 comprobaciones del frontend sin navegador · 8 del sidecar contra el binario real · 20 del catálogo de plantillas. Todo en `npm test` + `npm run verify:frontend|typst|templates`.
+- **Foco inmediato (próxima sesión):** **fase `/test`.** No hay que replanificar nada. El punto de retorno operativo, con la lista exacta de lo que `/test` debe cubrir, está en `task.md` → "CÓMO RETOMAR ESTE PROYECTO".
+- **Bloqueante de infraestructura, no de código:** el repositorio **no tiene remoto configurado**, así que `ci.yml` y `release-linux.yml` (Slice 10) no se han ejecutado nunca y están verificados solo por lectura. Es lo primero que conviene resolver: coste casi nulo y hace que todo lo demás se compruebe solo.
+- **Alcance cerrado de v0.1:** RF-01..RF-10 y RF-12 hechos. RF-11 (Project Archive `.dbvt`) y las 4 plantillas restantes siguen diferidos a v0.2 por decisión del usuario.
 
 ## 🏗️ Log de Decisiones Técnicas (ADR Ligero)
 
@@ -101,10 +105,10 @@
 ## 🗺️ Mapa del Producto (Áreas de Foco)
 
 - **Producto:** "El entorno de escritorio más accesible para el ecosistema Typst" (posicionamiento oficial) — no editor de código con soporte Typst. Herramienta orientada a documento/proyecto ("Obsidian for Typst"): lanzador por tareas, asistente de creación de proyecto, plantillas como funcionalidad de primer nivel.
-- **Núcleo de edición:** Editor CodeMirror 6 (reconfirmado) + modo de lenguaje Typst + outline vía `typst query` (Beta) + autocompletado semántico vía `tinymist`/LSP (Beta, integración separada del sidecar `typst`).
+- **Núcleo de edición:** Editor CodeMirror 6 con el parser Lezer de `codemirror-lang-typst` (sin WASM), ya en producción + outline vía `typst eval` (Beta; `query` está deprecado) + autocompletado semántico vía `tinymist`/LSP (Beta, integración separada del sidecar `typst`).
 - **Motor de compilación:** Módulo `typst_engine` en Rust — gestor de proceso sidecar del binario oficial `typst` (CLI vendorizado, no crates embebidas), preview SVG + export PDF por stdout.
 - **Universe Browser:** punto de entrada de primer nivel (no add-on) sobre una sola fuente de datos pública (`index.json` de `packages.typst.org`) — dos ramas de igual peso, Plantillas (Template Explorer) y Paquetes (Package Explorer), Beta — nunca depender de la API privada `api.typst.app`. El Lanzador (MVP) ya adelanta esta experiencia con el catálogo curado.
 - **Modelo de datos:** Proyecto (no fichero suelto) con manifiesto propio DBV; Project Archive `.dbvt` (zip) para compartir/respaldar.
 - **Infraestructura heredada:** Watcher de ficheros, single-instance/file-association, recent-projects, auto-actualizador, theming, paneles flotantes, CI de release, patrón de toolbar de inserción y de TOC — todo portado de DBV Markdown Reader con adaptaciones menores.
-- **Plantillas:** 7 curadas en MVP (`typst.toml`/`[template]` oficial + `dbv-template.toml` sidecar propio), creadas vía `typst init`; Template Explorer comunitario en Beta; ecosistema completo (IEEE/ACM/Springer/LNCS/docencia) en v1.0.
+- **Plantillas:** 4 curadas en v0.1 —Proyecto en blanco, TFG, Artículo académico, CV— (`typst.toml`/`[template]` oficial + `dbv-template.toml` sidecar propio), creadas vía `typst init` y **autocontenidas**: el proyecto generado compila con `typst` a secas, sin DBV. Las otras 4 (TFM, Tesis, Informe técnico, Presentación) → v0.2; Template Explorer comunitario en Beta; ecosistema completo (IEEE/ACM/Springer/LNCS/docencia) en v1.0.
 - **Power users:** Terminal avanzado (Beta) — subcomandos oficiales de Typst expuestos directamente, reutilizando la infraestructura de sidecar del MVP.

@@ -3,6 +3,7 @@
 ## Contexto del Proyecto (Context Snapshot)
 
 * **Objetivo**: Construir "el entorno de escritorio más accesible para el ecosistema Typst" (posicionamiento oficial) — no un editor de código con soporte Typst — orientado a documento/proyecto ("para Typst lo que Obsidian es para Markdown"), ligero, offline-first y multiplataforma, reutilizando al máximo la arquitectura de [DBV Markdown Reader](https://github.com/davidbuenov/dbv-md-reader).
+* **Ubicación**: `d:/Programacion/github-davidbuenov/dbv-typst-editor` (renombrado el 2026-09-05 desde `dbv-academic-writer` para cerrar la ambigüedad con el nombre oficial del producto; si esa ruta no existe, probar el nombre antiguo).
 * **Estado actual**: Fases `/spec` y `/plan` **cerradas y congeladas**. **`/build` COMPLETADA: los 10 slices del MVP v0.1 están construidos, verificados y commiteados.** El bucle de valor completo funciona de punta a punta: crear un proyecto desde una plantilla → escribirlo con resaltado Typst → ver el PDF actualizarse solo → guardarlo → exportarlo a PDF.
 * **Última decisión técnica**: Ver `memory.md`. Del `/build`: modo de lenguaje Typst por parser Lezer sin WASM (R-02 cerrado), carga perezosa de páginas en la vista previa tras medir 82 MB de SVG en una tesis de 209 páginas (R-03 cerrado), plantillas curadas autocontenidas y con fuentes embebidas, e instalador de WebView2 con variante offline bajo demanda.
 * **Próximo paso**: **Fase `/test`** — la cobertura automática actual (75 tests Rust + 28 comprobaciones contra el compilador real) no incluye pruebas de la capa de frontend ni de integración de la ventana. Ver "Pendiente" al final.
@@ -83,7 +84,7 @@
 
 ```bash
 npm test                 # 77 tests del backend Rust
-npm run verify:frontend  # 7 comprobaciones: extensiones del editor, parser Typst y elementos del DOM
+npm run verify:frontend  # 8 comprobaciones: extensiones del editor, parser Typst, elementos del DOM y ausencia de diálogos nativos
 npm run verify:typst     # 8 comprobaciones del sidecar contra el binario real
 npm run verify:templates # 20 comprobaciones: cada plantilla se instancia y compila sin avisos
 npm run build:vite       # build del frontend
@@ -124,6 +125,34 @@ ni forma de publicar la Release de Linux. Es probablemente lo primero que convie
 - **El espejo de vista previa (`.dbv-preview.typ`)** es un fichero oculto y transitorio en la carpeta del
   usuario mientras hay cambios sin guardar. Filtrado del explorador y del watcher; si la aplicación muriese
   a mitad de una compilación podría quedar uno huérfano (se sobrescribe en el siguiente arranque).
+
+### 🧭 Pasos siguientes acordados (orden recomendado)
+
+1. **Crear el repositorio remoto y empujar.** Coste casi nulo y desbloquea lo que hoy es código muerto:
+   `ci.yml` y `release-linux.yml` no se han ejecutado nunca. Sugerido: `gh repo create davidbuenov/dbv-typst-editor --private --source=. --remote=origin` y `git push -u origin master`.
+2. **Fase `/test`** (ver la lista de arriba). Es lo que toca en el ciclo, y esta sesión demostró por qué.
+3. **Fase `/code-simplify`** — los tres pases de `docs/REVIEW.md` (bugs, seguridad, cumplimiento).
+4. **Fase `/ship` v0.1.0** — versionado, `CHANGELOG` a sección fechada, tag, `walkthrough.md`, README e
+   instalador de Windows subido al borrador de Release. Su gate exige no cerrar con hallazgos críticos
+   pendientes, y por eso va después de `/test` y `/code-simplify`.
+
+*Candidatos que pueden colarse antes si el usuario lo prefiere:* **instancia única** (con la asociación
+`.typ` ya activa, abrir dos documentos lanza dos instancias — es el defecto de producto más visible que
+queda) y **`docs/DESIGN.md`**.
+
+### 📜 Commits de la sesión del 2026-09-05
+
+| Commit | Qué |
+| --- | --- |
+| `bc74407` | Decisión de WebView2 cerrada (ligero por defecto + variante offline) |
+| `5c695d8` · `50e72a1` · `78fb3bc` | Slices 3, 4 y 5 |
+| `dadb582` · `08bdf0e` · `d9800b6` | Slices 6, 7 y 8 |
+| `d26b257` · `ccce34a` | Slices 9 y 10 |
+| `9a660e7` | 3 defectos de la revisión propia (historial de deshacer, página visible, separador de ruta) |
+| `2ca1328` | **Fallo de arranque** + `verify:frontend` |
+| `1590fb9` | Ficheros de prueba en `testfiles/` |
+| `36e5e7c` | `dialog.confirm` sin permiso + vista previa compilando el `.bib` |
+| `2039359` · `8785298` · `a383df6` | Documentación: punto de retorno, validación manual, renombrado |
 
 ### 🛠️ Comandos útiles
 

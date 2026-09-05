@@ -50,6 +50,11 @@
 > está terminado y commiteado, slice a slice. No hay que replanificar ni volver a analizar nada.
 >
 > **Última sesión:** 2026-09-05 · **Rama:** `master` · **Árbol de trabajo limpio.**
+>
+> **Aviso de la sesión:** el MVP arrancó con un fallo que ninguna verificación detectaba (un import mal
+> usado del paquete de lenguaje Typst). Está corregido y ahora existe `npm run verify:frontend` para esa
+> clase de error, pero es la señal de que **la fase `/test` no es opcional**: el frontend es la capa con
+> menos red de seguridad del proyecto.
 
 ### ✅ Qué funciona hoy (MVP v0.1 completo)
 
@@ -73,21 +78,23 @@
 ### 📊 Verificación disponible (ejecutable, no manual)
 
 ```bash
-npm test                 # 75 tests del backend Rust
+npm test                 # 77 tests del backend Rust
+npm run verify:frontend  # 7 comprobaciones: extensiones del editor, parser Typst y elementos del DOM
 npm run verify:typst     # 8 comprobaciones del sidecar contra el binario real
 npm run verify:templates # 20 comprobaciones: cada plantilla se instancia y compila sin avisos
 npm run build:vite       # build del frontend
 ```
 
-Los tres primeros se ejecutan también en CI (`.github/workflows/ci.yml`) en cada push.
+Los cuatro primeros se ejecutan también en CI (`.github/workflows/ci.yml`) en cada push.
 
 ### ▶️ PENDIENTE — Fase `/test`
 
 Lo que la cobertura actual **no** cubre y debería cubrir la fase `/test`:
 
-1. **Frontend sin pruebas automáticas.** No hay runner de tests de JavaScript en el proyecto. Candidatos
-   naturales, todos funciones puras ya aisladas a propósito: `validateFields` (wizard), `localizeTemplate`
-   (launcher), `joinPath`/`baseName` (workspace) y `normalizeError` (services/backend).
+1. **Frontend con cobertura parcial.** `npm run verify:frontend` cubre ya lo que tumbaba el arranque
+   (extensiones del editor y elementos del DOM), pero no hay runner de tests de JavaScript para la lógica.
+   Candidatos naturales, todos funciones puras ya aisladas a propósito: `validateFields` (wizard),
+   `localizeTemplate` (launcher), `joinPath`/`baseName` (workspace) y `normalizeError` (services/backend).
 2. **Prueba de integración de la ventana real:** arrancar la app, abrir un proyecto de prueba, teclear y
    comprobar que la vista previa cambia. Hoy es prueba manual.
 3. **Escenarios de conflicto (RF-07) en integración:** editar el mismo fichero desde otro programa y

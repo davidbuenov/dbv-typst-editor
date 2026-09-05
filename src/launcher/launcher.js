@@ -14,6 +14,7 @@
 
 import { getLanguage, t } from '../i18n/i18n.js';
 import { getRecentProjects, listTemplates } from '../services/backend.js';
+import { baseName } from '../app/workspace.js';
 
 /** Nombre y descripción de una plantilla en el idioma activo. */
 export function localizeTemplate(template, language) {
@@ -22,12 +23,6 @@ export function localizeTemplate(template, language) {
     name: localized?.name || template.name,
     description: localized?.description || template.description,
   };
-}
-
-/** Nombre de fichero de una ruta, con cualquiera de los dos separadores. */
-function baseName(path) {
-  const index = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
-  return index >= 0 ? path.slice(index + 1) : path;
 }
 
 /**

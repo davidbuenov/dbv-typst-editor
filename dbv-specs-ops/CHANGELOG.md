@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Sin publicar] / [Unreleased]
 
+### Added (fase `/test`, 2026-09-05)
+- **Vitest + jsdom, 33 tests de lógica del frontend** (cobertura de comportamiento era cero antes de esta fase): utilidades de ruta de `workspace.js`, validación del asistente de creación, localización de plantillas del lanzador y el contrato `Result` de la capa de acceso al backend. `npm test` ejecuta ahora Vitest antes que los tests de Rust.
+
+### Changed (fase `/code-simplify`, 2026-09-05)
+- `baseName()` estaba duplicada, con implementación idéntica, en `app/workspace.js` y `launcher/launcher.js`. `launcher.js` pasa a importar la de `workspace.js`. [Importante — reuse] Hallazgo de la revisión de tres pases de `REVIEW.md`; sin hallazgos Críticos en esta ronda (revisados: construcción de argumentos del sidecar `typst` y de `reveal_in_file_manager` — ambos usan `Command::args()` con arrays, sin intérprete de shell de por medio; manejo de rutas de proyecto; ausencia de secretos en el repositorio).
+
 ### Fixed
 - Descartar cambios sin guardar fallaba con "dialog.confirm not allowed": la confirmación usaba `window.confirm`, que en un WebView de Tauri exige un permiso aparte. Ahora usa el modal propio de la aplicación, traducido y con el tema puesto.
 - Abrir un fichero acompañante del proyecto (`refs.bib`, un `.toml`) hacía que la vista previa intentara compilarlo como si fuera el documento, y mostraba un error de compilación. La vista previa se mantiene ahora en el documento Typst y pasa a compilar lo que hay en disco.

@@ -41,8 +41,16 @@
   - [ ] **RF-13 — Barra de herramientas de inserción del editor** (Slice 11). Subida de Beta a v0.2 el 2026-09-05 a petición del usuario: sin ella el producto contradice su principio nº2 ("el usuario no debe ver código si no quiere") y es una regresión frente a DBV Markdown Reader. ADR-EDITOR-002 · `SPECIFICATIONS.md` v1.2 RF-13 · `ARCHITECTURE.md` §7.7 · `implementation_plan.md` §6. Diseño cerrado, sin infraestructura nueva.
   - [ ] Project Archive `.dbvt` + 4 plantillas restantes (TFM, Tesis, Informe técnico, Presentación) — ya estaban en v0.2.
 
-- [ ] **Fase 4: Pruebas (`/test`)** — parcialmente cubierta durante `/build`, no ejecutada como fase. **⬅️ SIGUIENTE**
-- [ ] **Fase 5: Simplificar (`/code-simplify`)** — no iniciada.
+- [x] **Fase 4: Pruebas (`/test`) — cerrada el 2026-09-05**, con alcance explícitamente acotado (ver decisión de alcance debajo):
+  - [x] **Cobertura de lógica del frontend** (era cero antes de esta fase): Vitest + jsdom, 33 tests sobre las funciones puras ya aisladas — `isTypstPath`/`joinPath`/`baseName`, `validateFields`, `localizeTemplate`, el contrato `Result` de `call()`. `commit 94aaad5`.
+  - [x] **Verificación completa en verde tras el cambio**: 33/33 Vitest · 77/77 Rust · `build:vite` · `verify:frontend` 8/8.
+  - [x] **Lección de la fase registrada en `memory.md`**: interacción `mockReset()` manual + `restoreMocks: true` que hacía parecer un fallo del código de producción.
+  - [ ] ⏸ **Diferido conscientemente, no bloquea `/ship` v0.1.0** (ver razón en cada punto):
+    - Prueba de integración de ventana real (arrancar la app, escribir, comprobar que la vista previa cambia). Razón: exige `tauri-driver` + WebDriver de Edge/WebKitGTK, infraestructura no montada aún y con alto riesgo de fragilidad cross-plataforma; ya está **validada a mano por el usuario** (ver Context Snapshot). Candidato a Beta, cuando el terminal avanzado y el Universe Browser obliguen de todos modos a automatizar la ventana.
+    - Los tres escenarios de conflicto de RF-07 en integración. Misma razón — cubiertos hoy por prueba manual + la lógica ya testeada de `workspace.js`.
+    - Prueba del instalador generado en las dos variantes de Windows y en Linux. Razón: exige máquinas limpias sin WebView2/deps preinstaladas; el instalador de Linux ni siquiera se ha generado nunca (`release-linux.yml` solo dispara con tags `v*.*.*`).
+
+- [x] **Fase 5: Simplificar (`/code-simplify`) — cerrada el 2026-09-05.** Revisión de tres pases de `docs/REVIEW.md` sobre el estado del repo (construcción de argumentos del sidecar `typst`, `reveal_in_file_manager`, manejo de rutas, secretos): **0 hallazgos Críticos.** 1 hallazgo Importante — `baseName()` duplicada en `app/workspace.js` y `launcher/launcher.js` — corregido (launcher importa la de workspace). Registrado en `CHANGELOG.md`.
 - [ ] **Fase 6: Entrega (`/ship`)** — no iniciada.
 
 ---

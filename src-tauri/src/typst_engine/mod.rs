@@ -15,6 +15,7 @@
 // ejecución pasa por comandos nuestros, validados.
 
 pub mod compile;
+pub mod outline;
 
 use serde::Serialize;
 use tauri::AppHandle;

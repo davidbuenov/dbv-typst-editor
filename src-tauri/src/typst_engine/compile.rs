@@ -293,7 +293,11 @@ async fn run_cancelable(
 /// Si `content` viene (documento con cambios sin guardar), se escribe un espejo
 /// oculto junto al documento real; si no, se compila el fichero tal cual está
 /// en disco. Devuelve `(ruta a compilar, ruta del espejo a borrar después)`.
-fn prepare_input(
+///
+/// `pub(crate)`: también la usa `typst_engine::outline` (Beta) para que el
+/// panel de navegación estructural vea los cambios sin guardar igual que la
+/// vista previa — mismo criterio, no duplicarlo.
+pub(crate) fn prepare_input(
     document: &Path,
     content: Option<&str>,
 ) -> Result<(PathBuf, Option<PathBuf>), TypstError> {

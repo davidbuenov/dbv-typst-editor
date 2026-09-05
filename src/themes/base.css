@@ -182,6 +182,41 @@ body {
   color: var(--text-secondary);
 }
 
+/* El outline se abre junto al árbol de proyecto que reemplaza mientras está
+   abierto, no en la esquina superior derecha donde vive "Acerca de". */
+.floating-panel--outline {
+  top: 96px;
+  left: 16px;
+  right: auto;
+  max-height: 60vh;
+  overflow: auto;
+}
+
+.outline__item {
+  display: block;
+  width: 100%;
+  padding: 4px 6px;
+  padding-left: calc(6px + var(--outline-indent, 0) * 14px);
+  border: none;
+  border-radius: var(--radius);
+  background: none;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.outline__item:hover {
+  background: var(--bg-tertiary);
+}
+
+.outline__empty {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
 .hidden {
   display: none !important;
 }

@@ -13,6 +13,7 @@
 import { createWorkspace } from './app/workspace.js';
 import { applyTranslations, getLanguage, t, toggleLanguage } from './i18n/i18n.js';
 import { createLauncher } from './launcher/launcher.js';
+import { createOutline } from './outline/outline.js';
 import { closeAllPanels, registerPanel } from './panels/registerPanel.js';
 import { createPreview } from './preview/preview.js';
 import { createProjectTree } from './project-explorer/projectTree.js';
@@ -124,19 +125,37 @@ async function bootstrap() {
     zoomLabelEl: el('preview-zoom-label'),
   });
 
+  // Outline (Beta, ARCHITECTURE.md §7.8): mismo documento en vivo que la vista
+  // previa, así que comparte exactamente sus mismos ganchos del workspace —
+  // de ahí que cada `setListener` de abajo llame a los dos, no a uno solo.
+  const outline = createOutline({
+    listEl: el('outline-list'),
+    onNavigate: (entry) => preview.scrollToPage(entry.page, entry.yPt),
+  });
+
   // El bucle de vista previa se engancha al workspace en vez de vivir dentro de
   // él: el workspace sabe qué documento está abierto, no cómo se compila.
-  workspace.setListener('documentOpened', (doc) =>
-    preview.setDocument({
-      document: doc.path,
-      root: workspace.state.project.root,
-      content: doc.content,
-    })
-  );
-  workspace.setListener('documentDetached', () => preview.detachLiveContent());
-  workspace.setListener('documentChanged', (content) => preview.onContentChanged(content));
+  workspace.setListener('documentOpened', (doc) => {
+    const payload = { document: doc.path, root: workspace.state.project.root, content: doc.content };
+    preview.setDocument(payload);
+    outline.setDocument(payload);
+  });
+  workspace.setListener('documentDetached', () => {
+    preview.detachLiveContent();
+    outline.detachLiveContent();
+  });
+  workspace.setListener('documentChanged', (content) => {
+    preview.onContentChanged(content);
+    outline.onContentChanged(content);
+  });
   workspace.setListener('externalChange', (change) => {
     if (!change.isActiveDocument) preview.onExternalChange();
+  });
+
+  registerPanel(el('outline-panel'), {
+    trigger: el('btn-outline'),
+    toggle: true,
+    closeOnOutsideClick: true,
   });
 
   const openPath = async (path) => {
@@ -207,12 +226,16 @@ async function bootstrap() {
     const closed = await workspace.closeProject();
     if (!closed) return;
     await preview.clear();
+    outline.clear();
     await launcher.refreshRecent();
   });
 
   // Guardado: botones, Ctrl/Cmd+S desde el editor y refresco de la vista previa.
   workspace.setListener('saveRequested', () => workspace.save());
-  workspace.setListener('saved', () => preview.onSaved());
+  workspace.setListener('saved', () => {
+    preview.onSaved();
+    outline.onSaved();
+  });
   el('btn-save').addEventListener('click', () => workspace.save());
   el('btn-save-as').addEventListener('click', () => workspace.saveAs());
 

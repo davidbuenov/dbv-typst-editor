@@ -61,6 +61,10 @@ export function createPreview({ pagesEl, bandEl, statusEl, zoomLabelEl }) {
   let request = null;
   let zoom = readStoredZoom();
   let pageCount = 0;
+  /** Alto real (pt) de cada página de la compilación vigente, por índice — lo
+   * que permite convertir la coordenada `y` del outline (Beta, §7.8) a un
+   * desplazamiento de scroll sin esperar a que la página haya cargado su SVG. */
+  let pageHeightsPt = [];
 
   // Typst incrusta un `<a>` real (espacio de nombres SVG) alrededor de cada
   // cita y referencia cruzada, incluso sin `href` — solo se rellena al
@@ -211,6 +215,7 @@ export function createPreview({ pagesEl, bandEl, statusEl, zoomLabelEl }) {
     if (outcome.stale || outcome.generation < renderedGeneration) return;
 
     renderedGeneration = outcome.generation;
+    pageHeightsPt = outcome.geometry.map((page) => page.heightPt);
     renderSkeleton(outcome.generation, outcome.geometry, outcome.pages);
     applyZoom();
     // Recompilar no debe mover al lector de donde estaba leyendo.
@@ -284,6 +289,20 @@ export function createPreview({ pagesEl, bandEl, statusEl, zoomLabelEl }) {
       pagesEl.replaceChildren();
       hideBand();
       setStatus('preview.idle');
+    },
+    /**
+     * Navegación del panel de navegación estructural (Beta, §7.8): `page` es
+     * 1-indexado (como lo devuelve Typst), `yPt` la coordenada vertical dentro
+     * de esa página. `offsetHeight` de la página ya es correcto aunque su SVG
+     * todavía no haya cargado — lo fija el `aspect-ratio` reservado en CSS.
+     */
+    scrollToPage(page, yPt) {
+      const pageEl = pagesEl.children[page - 1];
+      if (!pageEl) return;
+      const heightPt = pageHeightsPt[page - 1] || pageEl.offsetHeight;
+      const ratio = pageEl.offsetHeight / heightPt;
+      const margin = 24;
+      pagesEl.scrollTo({ top: Math.max(0, pageEl.offsetTop + yPt * ratio - margin), behavior: 'smooth' });
     },
     zoomIn: () => setZoomIndex(1),
     zoomOut: () => setZoomIndex(-1),

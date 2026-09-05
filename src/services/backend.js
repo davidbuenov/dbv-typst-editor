@@ -128,6 +128,8 @@ export const compilePreview = ({ document, root, content, firstPage, windowSize 
 export const previewPage = (generation, index) =>
   call('typst_preview_page', { generation, index });
 export const cancelPreview = () => call('typst_cancel_preview');
+export const getOutline = ({ document, root, content }) =>
+  call('typst_outline', { document, root, content: content ?? null });
 export const exportPdf = ({ document, root, output, content }) =>
   call('typst_export_pdf', { document, root, output, content: content ?? null });
 

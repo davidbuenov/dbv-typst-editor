@@ -90,6 +90,7 @@
         <aside class="sidebar" id="sidebar">
           <div class="sidebar__header">
             <span class="sidebar__title" data-i18n="tree.title"></span>
+            <button id="btn-outline" class="icon-button icon-button--small" type="button" data-i18n-title="action.outline">☰</button>
           </div>
           <input
             id="tree-filter"
@@ -161,6 +162,12 @@
         <p class="modal__text" id="choice-text"></p>
         <div class="modal__actions" id="choice-actions"></div>
       </div>
+    </div>
+
+    <!-- Panel de navegación estructural (Outline, Beta, ARCHITECTURE.md §7.8). -->
+    <div id="outline-panel" class="floating-panel floating-panel--outline hidden" role="dialog" aria-modal="false">
+      <h2 class="floating-panel__title" data-i18n="outline.title"></h2>
+      <div class="outline__list" id="outline-list"></div>
     </div>
 
     <div id="about-panel" class="floating-panel hidden" role="dialog" aria-modal="false">

@@ -62,6 +62,28 @@ export function createPreview({ pagesEl, bandEl, statusEl, zoomLabelEl }) {
   let zoom = readStoredZoom();
   let pageCount = 0;
 
+  // Typst incrusta un `<a>` real (espacio de nombres SVG) alrededor de cada
+  // cita y referencia cruzada, incluso sin `href` — solo se rellena al
+  // exportar a PDF (verificado compilando un `#cite()` de prueba). El problema
+  // es que `SVGAElement.prototype.href` devuelve SIEMPRE un `SVGAnimatedString`,
+  // nunca una cadena, tenga o no atributo `href`. El runtime de la ventana
+  // intercepta clics en cualquier `<a>` asumiendo HTML y llama
+  // `.href.startsWith(...)`, así que pulsar sobre una cita revienta la app
+  // entera con "r.href.startsWith is not a function". Se corta aquí, en fase
+  // de captura, antes de que el clic llegue a ese código: estos `<a>` no son
+  // navegables en la vista previa (solo importan al exportar), así que
+  // ignorarlos por completo es lo correcto, no un parche.
+  pagesEl.addEventListener(
+    'click',
+    (event) => {
+      if (event.target.closest('a')) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
+    },
+    { capture: true }
+  );
+
   // Trae el marcado de una página en cuanto su hueco se acerca al viewport.
   const observer = new IntersectionObserver(
     (entries) => {

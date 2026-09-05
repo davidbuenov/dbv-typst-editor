@@ -510,7 +510,6 @@
   padding: 16px;
   display: flex;
   flex-direction: column;
-  align-items: center;
   gap: 16px;
 }
 
@@ -525,6 +524,14 @@
   width: calc(100% * var(--preview-zoom, 1));
   max-width: calc(920px * var(--preview-zoom, 1));
   aspect-ratio: 1 / var(--page-ratio, 1.414);
+  /* Centrado por márgenes automáticos, NO por `align-items: center` en el
+     padre: con zoom > 100% la página es más ancha que `.preview__pages`, y el
+     centrado de flexbox recorta el desbordamiento de forma asimétrica en
+     Chromium (se puede hacer scroll hacia la derecha pero no lo bastante a la
+     izquierda, dejando un hueco vacío al otro lado — justo lo que se veía al
+     hacer zoom). Los márgenes automáticos reparten el desbordamiento por
+     igual a ambos lados y se pueden recorrer enteros con scroll. */
+  margin-inline: auto;
   background: #fff;
   box-shadow: 0 2px 10px var(--shadow);
   border-radius: 2px;

@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Added
 - **RF-13 — Barra de herramientas de inserción del editor (Slice 11, v0.2):** 21 botones (formato, estructura, contenido, elementos propios de Typst) que emiten marcado en la posición del cursor, con envolver-y-alternar, sensibilidad al contexto dentro de una ecuación y 7 atajos de teclado. Ver ADR-EDITOR-002 en `memory.md`. 24 tests nuevos sobre la lógica de generación de marcado, sin DOM.
 
+### Fixed
+- Pulsar sobre una cita o referencia cruzada en la vista previa reventaba la app entera con `TypeError: r.href.startsWith is not a function`. Typst incrusta un `<a>` de SVG sin `href` alrededor de esos elementos (el hueco se rellena solo al exportar a PDF), pero `SVGAElement.href` siempre devuelve un `SVGAnimatedString`, nunca una cadena; el runtime de la ventana intercepta el clic asumiendo HTML. Se corta en fase de captura sobre el contenedor de páginas, antes de que llegue a ese código.
+- El zoom de la vista previa por encima del 100% recortaba el documento de forma asimétrica al hacer scroll (visible el hueco de la derecha, invisible parte del contenido de la izquierda). `align-items: center` en el contenedor flex no reparte el desbordamiento por igual en Chromium/WebView2; sustituido por `margin-inline: auto` en la propia página.
+
 ---
 
 ## [0.1.0] - 2026-09-05

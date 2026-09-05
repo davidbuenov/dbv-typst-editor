@@ -24,3 +24,12 @@ desktop.ini
 .idea/
 .claude/*
 !.claude/commands/
+
+# Manifiesto de actualización generado por scripts/updater-manifest.mjs a partir
+# del build firmado local: es un artefacto de release (se sube a la Release de
+# GitHub), no fuente. Y cambia en cada versión.
+latest.json
+
+# Clave privada de firma del actualizador, por si alguna vez se deja caer aquí
+# por error: NUNCA se versiona (ADR-ACTUALIZADOR-001).
+*.key

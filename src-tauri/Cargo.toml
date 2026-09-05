@@ -33,6 +33,10 @@ zip = "2"
 # Beta: instancia única — mismo patrón que DBV Markdown Reader
 # (ARCHITECTURE.md §2, "solo desktop"). Gated con #[cfg(desktop)] en lib.rs.
 tauri-plugin-single-instance = "2"
+# Beta: auto-actualización (ADR-ACTUALIZADOR-001). Ambos son de escritorio:
+# `updater` no existe en móvil y `process` sirve para reiniciar tras instalar.
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
 
 # Beta: menú nativo de macOS (macos_menu.rs) — dependencia exclusiva de esa
 # plataforma (`[target...]`, no una feature): en Windows/Linux ni siquiera se

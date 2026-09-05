@@ -9,6 +9,7 @@
     "dev:vite": "vite",
     "build": "tauri build",
     "build:win:offline": "tauri build --config src-tauri/tauri.windows.offline.conf.json",
+    "updater:manifest": "node scripts/updater-manifest.mjs",
     "build:vite": "vite build",
     "preview:vite": "vite preview",
     "tauri": "tauri",
@@ -16,6 +17,7 @@
     "verify:typst": "node scripts/verify-typst-sidecar.mjs",
     "verify:templates": "node scripts/verify-templates.mjs",
     "verify:frontend": "node scripts/verify-frontend.mjs",
+    "verify:layout": "node scripts/verify-layout.mjs",
     "test:frontend": "vitest run",
     "test": "npm run test:frontend && cargo test --manifest-path src-tauri/Cargo.toml --lib",
     "icons": "node scripts/generate-base-icon.mjs && tauri icon src-tauri/icons/base.png"
@@ -30,6 +32,8 @@
     "@lezer/highlight": "^1.2.3",
     "@tauri-apps/api": "^2.9.0",
     "@tauri-apps/plugin-dialog": "^2.4.0",
+    "@tauri-apps/plugin-process": "^2.3.1",
+    "@tauri-apps/plugin-updater": "^2.11.0",
     "codemirror": "^6.0.2",
     "codemirror-lang-typst": "^0.6.0"
   },

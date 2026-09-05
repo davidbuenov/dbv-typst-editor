@@ -10,7 +10,14 @@
 // sidecar de Tauri (ARCHITECTURE.md §7.2). El binario nunca se commitea: este
 // script se ejecuta en local y en CI antes de `tauri build`.
 //
-// Uso: node scripts/vendor-typst.mjs [--force]
+// Uso: node scripts/vendor-typst.mjs [--force] [--target <triple>]
+//
+// `--target` existe para el build universal de macOS: el runner de CI es Apple
+// Silicon, pero `--target universal-apple-darwin` exige un sidecar universal, y
+// Typst publica un binario por arquitectura. El workflow vendoriza los dos
+// explícitamente y los funde con `lipo` (ver `.github/workflows/release-macos.yml`).
+// Sin este flag solo se podría vendorizar el del host, y el build de macOS
+// fallaría al no encontrar `typst-universal-apple-darwin`.
 
 import { execFileSync } from 'node:child_process';
 import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
@@ -97,9 +104,22 @@ async function download(url, destPath) {
   return buffer.length;
 }
 
+/** Triple pedido por `--target <triple>`, o el del host si no se pide ninguno. */
+function requestedTriple() {
+  const index = process.argv.indexOf('--target');
+  if (index !== -1) {
+    const value = process.argv[index + 1];
+    if (!value || value.startsWith('--')) {
+      throw new Error('--target necesita un target triple, p. ej. --target aarch64-apple-darwin');
+    }
+    return value;
+  }
+  return hostTargetTriple();
+}
+
 async function main() {
   const force = process.argv.includes('--force');
-  const triple = hostTargetTriple();
+  const triple = requestedTriple();
   const target = TARGETS[triple];
 
   if (!target) {

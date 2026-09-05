@@ -19,7 +19,7 @@
 //     con unidad ("70.87pt"), no como número.
 
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
@@ -91,7 +91,11 @@ pub async fn typst_outline(
     let (input, mirror) = prepare_input(&document_path, content.as_deref())?;
 
     let input_str = input.to_string_lossy().to_string();
-    let args: Vec<&str> = vec![
+    // Las fuentes propias del proyecto también hacen falta aquí: `eval`
+    // compone el documento para resolver `h.location()`, así que sin ellas
+    // emitiría los mismos avisos de fuente que la compilación.
+    let font_args = super::font_path_args(Path::new(&root));
+    let mut args: Vec<&str> = vec![
         "eval",
         OUTLINE_QUERY,
         "--root",
@@ -101,6 +105,7 @@ pub async fn typst_outline(
         "--format",
         "json",
     ];
+    args.extend(font_args.iter().map(String::as_str));
     let output = run(&app, &args).await;
 
     if let Some(mirror) = mirror {

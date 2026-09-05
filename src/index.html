@@ -50,11 +50,10 @@
           <!-- Modos de escritura (Beta, §7.9): siempre alcanzable, incluso en
                Lectura, que oculta el resto de `.workspace` — por eso vive en
                la cabecera persistente y no dentro de `.document__bar`. -->
-          <div class="mode-switcher" id="mode-switcher" role="group" aria-label="Modo de escritura">
-            <button class="mode-switcher__button" type="button" data-mode="edicion" data-i18n-title="mode.edicion">E</button>
-            <button class="mode-switcher__button" type="button" data-mode="escritura" data-i18n-title="mode.escritura">W</button>
-            <button class="mode-switcher__button" type="button" data-mode="dividido" data-i18n-title="mode.dividido">D</button>
-            <button class="mode-switcher__button" type="button" data-mode="lectura" data-i18n-title="mode.lectura">L</button>
+          <div class="mode-switcher" id="mode-switcher" role="group" aria-label="Paneles del espacio de trabajo">
+            <button class="mode-switcher__button" type="button" data-panel="sidebar" data-i18n-title="panel.sidebar">P</button>
+            <button class="mode-switcher__button" type="button" data-panel="editor" data-i18n-title="panel.editor">E</button>
+            <button class="mode-switcher__button" type="button" data-panel="preview" data-i18n-title="panel.preview">V</button>
           </div>
           <button id="btn-reveal" class="button button--ghost" type="button" data-i18n="action.reveal"></button>
           <button id="btn-export-archive" class="button button--ghost" type="button" data-i18n="action.exportArchive"></button>
@@ -69,6 +68,8 @@
           <span id="btn-theme-icon" aria-hidden="true">◐</span>
         </button>
         <button id="btn-terminal" class="icon-button" type="button" data-i18n-title="action.terminal">&gt;_</button>
+        <button id="btn-universe" class="icon-button" type="button" data-i18n-title="action.universe">✦</button>
+        <button id="btn-help" class="icon-button" type="button" data-i18n-title="action.help">?</button>
         <button id="btn-about" class="icon-button" type="button" data-i18n-title="action.about">ⓘ</button>
       </div>
     </header>
@@ -98,17 +99,22 @@
       <!-- Espacio de trabajo: explorador + editor (+ vista previa desde el Slice 5). -->
       <section class="workspace hidden" id="workspace-view">
         <aside class="sidebar" id="sidebar">
-          <div class="sidebar__header">
-            <span class="sidebar__title" data-i18n="tree.title"></span>
-            <button id="btn-outline" class="icon-button icon-button--small" type="button" data-i18n-title="action.outline">☰</button>
+          <div class="sidebar-tabs" id="sidebar-tabs" role="tablist">
+            <button class="sidebar-tab" id="tab-files" type="button" role="tab" data-i18n="sidebar.tabFiles"></button>
+            <button class="sidebar-tab" id="tab-outline" type="button" role="tab" data-i18n="sidebar.tabOutline"></button>
           </div>
-          <input
-            id="tree-filter"
-            class="sidebar__filter"
-            type="search"
-            data-i18n-placeholder="tree.filter"
-          />
-          <div class="tree" id="project-tree"></div>
+          <div class="sidebar-panel" id="files-panel">
+            <input
+              id="tree-filter"
+              class="sidebar__filter"
+              type="search"
+              data-i18n-placeholder="tree.filter"
+            />
+            <div class="tree" id="project-tree"></div>
+          </div>
+          <div class="sidebar-panel hidden" id="outline-panel">
+            <div class="outline__list" id="outline-list"></div>
+          </div>
         </aside>
 
         <div class="splitter" id="splitter-sidebar" role="separator" aria-orientation="vertical"></div>
@@ -134,12 +140,14 @@
             <span class="preview__title" data-i18n="preview.title"></span>
             <span class="preview__status" id="preview-status"></span>
             <div class="preview__zoom">
+              <button id="btn-zoom-fit" class="icon-button icon-button--small" type="button" data-i18n-title="preview.zoomFit">↔</button>
               <button id="btn-zoom-out" class="icon-button icon-button--small" type="button" data-i18n-title="preview.zoomOut">−</button>
               <button id="btn-zoom-reset" class="preview__zoom-label" type="button" data-i18n-title="preview.zoomReset"><span id="preview-zoom-label">100%</span></button>
               <button id="btn-zoom-in" class="icon-button icon-button--small" type="button" data-i18n-title="preview.zoomIn">+</button>
             </div>
           </div>
           <div class="preview__pages" id="preview-pages"></div>
+          <div class="splitter splitter--row hidden" id="splitter-band" role="separator" aria-orientation="horizontal"></div>
           <pre class="preview__band hidden" id="preview-band"></pre>
         </aside>
       </section>
@@ -177,10 +185,15 @@
 
     <!-- Terminal avanzado (Beta, ARCHITECTURE.md §7.14): oculto por defecto. -->
     <div id="terminal-panel" class="floating-panel floating-panel--terminal hidden" role="dialog" aria-modal="false">
-      <div class="terminal__header">
+      <div class="terminal__header" id="terminal-header">
         <h2 class="floating-panel__title" data-i18n="terminal.title"></h2>
         <span class="terminal__hint" data-i18n="terminal.hint"></span>
+        <div class="terminal__header-actions">
+          <button id="terminal-clear" class="icon-button icon-button--small" type="button" data-i18n-title="terminal.clear">⌫</button>
+          <button id="terminal-close" class="icon-button icon-button--small" type="button" data-i18n-title="action.close">✕</button>
+        </div>
       </div>
+      <p class="terminal__intro" data-i18n="terminal.intro"></p>
       <div class="terminal__output" id="terminal-output"></div>
       <input
         id="terminal-input"
@@ -259,10 +272,38 @@
       </div>
     </div>
 
-    <!-- Panel de navegación estructural (Outline, Beta, ARCHITECTURE.md §7.8). -->
-    <div id="outline-panel" class="floating-panel floating-panel--outline hidden" role="dialog" aria-modal="false">
-      <h2 class="floating-panel__title" data-i18n="outline.title"></h2>
-      <div class="outline__list" id="outline-list"></div>
+    <!-- Typst Universe (Beta, ARCHITECTURE.md §7.6): lista curada + identificador libre. -->
+    <div id="universe-panel" class="floating-panel floating-panel--universe hidden" role="dialog" aria-modal="false">
+      <div class="help__header">
+        <h2 class="floating-panel__title" data-i18n="universe.title"></h2>
+        <button id="btn-universe-close" class="icon-button icon-button--small" type="button" data-i18n-title="action.close">✕</button>
+      </div>
+      <div class="sidebar-tabs" role="tablist">
+        <button class="sidebar-tab active" id="tab-universe-templates" type="button" role="tab" data-i18n="universe.tabTemplates"></button>
+        <button class="sidebar-tab" id="tab-universe-packages" type="button" role="tab" data-i18n="universe.tabPackages"></button>
+      </div>
+      <p class="universe__notice" data-i18n="universe.notice"></p>
+      <div class="universe__body">
+        <div class="universe__grid" id="universe-templates"></div>
+        <div class="universe__grid hidden" id="universe-packages"></div>
+      </div>
+      <div class="universe__spec">
+        <input id="universe-spec" class="form-row__input" type="text" autocomplete="off" spellcheck="false" />
+        <button id="universe-spec-apply" class="button button--primary button--compact" type="button" data-i18n="universe.apply"></button>
+      </div>
+      <p class="form__error hidden" id="universe-error"></p>
+    </div>
+
+    <!-- Ayuda (ES/EN, contenido en `help/helpContent.js`). -->
+    <div id="help-panel" class="floating-panel floating-panel--help hidden" role="dialog" aria-modal="false">
+      <div class="help__header">
+        <h2 class="floating-panel__title" data-i18n="help.title"></h2>
+        <button id="btn-help-close" class="icon-button icon-button--small" type="button" data-i18n-title="action.close">✕</button>
+      </div>
+      <div class="help__body">
+        <nav class="help__nav" id="help-nav"></nav>
+        <div class="help__content" id="help-content"></div>
+      </div>
     </div>
 
     <div id="about-panel" class="floating-panel hidden" role="dialog" aria-modal="false">
@@ -276,6 +317,10 @@
         <dt data-i18n="scaffold.typst"></dt>
         <dd id="fact-typst">—</dd>
       </dl>
+      <div class="about-update">
+        <button id="btn-check-update" class="button button--compact" type="button" data-i18n="update.check"></button>
+        <p class="about-update-status" id="about-update-status"></p>
+      </div>
       <button id="btn-about-close" class="button" type="button" data-i18n="action.close"></button>
     </div>
 

@@ -36,6 +36,13 @@ const PRELOAD_MARGIN = '600px';
 
 const ZOOM_STORAGE_KEY = 'dbv-typst-preview-zoom';
 const ZOOM_STEPS = [0.5, 0.65, 0.8, 1, 1.25, 1.5, 2];
+const FIT_WIDTH_STORAGE_KEY = 'dbv-typst-preview-fit-width';
+/** Debe coincidir con `max-width: calc(920px * var(--preview-zoom))` de
+ * `.preview-page` en `themes/layout.css` — es el ancho de referencia sobre el
+ * que se calcula el zoom que hace que la página use todo el ancho disponible. */
+const PAGE_REFERENCE_WIDTH_PX = 920;
+/** `.preview__pages` tiene `padding: 16px` a cada lado (`layout.css`). */
+const PAGES_PADDING_PX = 32;
 
 function readStoredZoom() {
   try {
@@ -46,20 +53,36 @@ function readStoredZoom() {
   }
 }
 
+function readStoredFitWidth() {
+  try {
+    return localStorage.getItem(FIT_WIDTH_STORAGE_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
 /**
  * @param {object} deps
  * @param {HTMLElement} deps.pagesEl Contenedor de las páginas.
  * @param {HTMLElement} deps.bandEl Banda de error/aviso del compilador.
+ * @param {HTMLElement} [deps.bandSplitterEl] Separador redimensionable de la banda
+ *   (Beta): se muestra/oculta junto con `bandEl`, nunca por su cuenta.
  * @param {HTMLElement} deps.statusEl Indicador de estado.
  * @param {HTMLElement} deps.zoomLabelEl Porcentaje de zoom.
  */
-export function createPreview({ pagesEl, bandEl, statusEl, zoomLabelEl }) {
+export function createPreview({ pagesEl, bandEl, bandSplitterEl, statusEl, zoomLabelEl }) {
   let debounceTimer = null;
   /** Último token de generación efectivamente pintado. */
   let renderedGeneration = 0;
   /** Última petición conocida: documento, raíz y contenido en vivo. */
   let request = null;
   let zoom = readStoredZoom();
+  /** "Ajustar al ancho" (petición explícita tras probar la Beta): en vez de un
+   * porcentaje fijo, el zoom se recalcula para que la página ocupe todo el
+   * ancho disponible del panel — que ahora puede cambiar en caliente al
+   * mostrar/ocultar paneles (`app/workspacePanels.js`) o redimensionar la
+   * ventana, de ahí el `ResizeObserver` más abajo. */
+  let fitWidth = readStoredFitWidth();
   let pageCount = 0;
   /** Alto real (pt) de cada página de la compilación vigente, por índice — lo
    * que permite convertir la coordenada `y` del outline (Beta, §7.8) a un
@@ -98,15 +121,32 @@ export function createPreview({ pagesEl, bandEl, statusEl, zoomLabelEl }) {
     { root: pagesEl, rootMargin: PRELOAD_MARGIN }
   );
 
+  /** Zoom que hace que la página use todo el ancho disponible ahora mismo. */
+  function fitZoom() {
+    const available = pagesEl.clientWidth - PAGES_PADDING_PX;
+    return available > 0 ? available / PAGE_REFERENCE_WIDTH_PX : 1;
+  }
+
   function applyZoom() {
-    pagesEl.style.setProperty('--preview-zoom', String(zoom));
-    zoomLabelEl.textContent = `${Math.round(zoom * 100)}%`;
+    const effectiveZoom = fitWidth ? fitZoom() : zoom;
+    pagesEl.style.setProperty('--preview-zoom', String(effectiveZoom));
+    zoomLabelEl.textContent = `${Math.round(effectiveZoom * 100)}%`;
     try {
       localStorage.setItem(ZOOM_STORAGE_KEY, String(zoom));
+      localStorage.setItem(FIT_WIDTH_STORAGE_KEY, fitWidth ? '1' : '0');
     } catch {
       // Un WebView que bloquee el almacenamiento no debe impedir hacer zoom.
     }
   }
+
+  // El ancho disponible cambia con la ventana y, desde el rediseño de paneles
+  // (Beta), también al mostrar/ocultar el editor o el explorador — sin este
+  // observador, "Ajustar al ancho" se quedaría con el cálculo del momento en
+  // que se activó, no el actual.
+  const resizeObserver = new ResizeObserver(() => {
+    if (fitWidth) applyZoom();
+  });
+  resizeObserver.observe(pagesEl);
 
   function setStatus(key, extra = '') {
     statusEl.textContent = extra ? `${t(key)} ${extra}` : t(key);
@@ -115,11 +155,13 @@ export function createPreview({ pagesEl, bandEl, statusEl, zoomLabelEl }) {
   function showBand(message) {
     bandEl.textContent = message;
     bandEl.classList.remove('hidden');
+    bandSplitterEl?.classList.remove('hidden');
   }
 
   function hideBand() {
     bandEl.textContent = '';
     bandEl.classList.add('hidden');
+    bandSplitterEl?.classList.add('hidden');
   }
 
   /** Pinta el marcado dentro del hueco ya reservado de una página. */
@@ -233,6 +275,10 @@ export function createPreview({ pagesEl, bandEl, statusEl, zoomLabelEl }) {
   }
 
   function setZoomIndex(delta) {
+    // Un zoom explícito sustituye a "Ajustar al ancho", igual que en
+    // cualquier visor de PDF: pedir un porcentaje concreto es una decisión
+    // más específica que "lo que quepa".
+    fitWidth = false;
     const current = ZOOM_STEPS.indexOf(zoom);
     const next = Math.min(ZOOM_STEPS.length - 1, Math.max(0, current + delta));
     zoom = ZOOM_STEPS[next];
@@ -309,9 +355,17 @@ export function createPreview({ pagesEl, bandEl, statusEl, zoomLabelEl }) {
     zoomIn: () => setZoomIndex(1),
     zoomOut: () => setZoomIndex(-1),
     zoomReset: () => {
+      fitWidth = false;
       zoom = 1;
       applyZoom();
     },
+    /** Alterna "Ajustar al ancho" (Beta): la página ocupa todo el panel. */
+    toggleFitWidth() {
+      fitWidth = !fitWidth;
+      applyZoom();
+      return fitWidth;
+    },
+    isFitWidth: () => fitWidth,
     /** Repinta los textos dependientes del idioma. */
     refreshStatus() {
       if (pageCount > 0) setStatus('preview.pages', String(pageCount));

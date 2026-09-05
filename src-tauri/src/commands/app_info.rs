@@ -42,6 +42,31 @@ pub fn app_info() -> AppInfo {
     }
 }
 
+/// Función pura para poder testearla sin un ejecutable real. Detecta si el
+/// binario en ejecución vive bajo `...\WindowsApps\...` — la ruta en la que
+/// Windows instala siempre un paquete MSIX (Microsoft Store), sea cual sea su
+/// nombre — mismo mecanismo que `dbv-md-reader` (`src-tauri/src/lib.rs`).
+pub fn is_packaged_path(exe_path: &std::path::Path) -> bool {
+    exe_path.components().any(|component| {
+        component
+            .as_os_str()
+            .to_str()
+            .is_some_and(|name| name.eq_ignore_ascii_case("WindowsApps"))
+    })
+}
+
+/// Beta, panel "Acerca de": distingue una instalación de Microsoft Store (que
+/// se actualiza sola) de una instalación manual. **No** activa ningún
+/// auto-actualizador — `memory.md` fija esa regla explícitamente: la clave de
+/// firma la genera el usuario en su propio terminal, nunca la IA
+/// (`UPGRADE_PROMPT.md` §4) — esto solo decide qué texto mostrar.
+#[tauri::command]
+pub fn is_packaged_app() -> bool {
+    std::env::current_exe()
+        .map(|path| is_packaged_path(&path))
+        .unwrap_or(false)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -60,5 +85,19 @@ mod tests {
         let info = app_info();
         assert_eq!(info.version, env!("CARGO_PKG_VERSION"));
         assert!(!info.platform.is_empty());
+    }
+
+    #[test]
+    fn is_packaged_path_detecta_una_instalacion_de_microsoft_store() {
+        assert!(is_packaged_path(std::path::Path::new(
+            r"C:\Program Files\WindowsApps\DBVTypstEditor_1.0.0.0_x64__abc123\dbv-typst-editor.exe"
+        )));
+    }
+
+    #[test]
+    fn is_packaged_path_no_confunde_una_instalacion_manual() {
+        assert!(!is_packaged_path(std::path::Path::new(
+            r"C:\Program Files\DBV Typst Editor\dbv-typst-editor.exe"
+        )));
     }
 }

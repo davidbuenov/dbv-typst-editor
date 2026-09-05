@@ -1,0 +1,124 @@
+name: Release macOS
+
+# Construye el .dmg y el .app (SIN firmar ni notarizar) y los adjunta al mismo
+# borrador de GitHub Release que crean los demás workflows, en cada tag vX.Y.Z.
+# Ver NATIVE_APPS_RELEASE_CI.md §8 sobre por qué distribuir sin firma es una
+# decisión legítima, y su checklist de Gatekeeper para el usuario final
+# (clic derecho → Abrir, o `xattr -cr` sobre el .app).
+#
+# Build universal (--target universal-apple-darwin): macos-latest es Apple
+# Silicon, así que sin esto el binario no arrancaría en un Mac Intel — Rosetta
+# traduce x86_64→Apple Silicon, no al revés (NATIVE_APPS_RELEASE_CI.md §5).
+#
+# DOS PASOS PROPIOS DE ESTE PROYECTO, que no están en la plantilla de la casa
+# porque el starter no lleva sidecar:
+#
+#   1. El compilador Typst se vendoriza ANTES de `tauri build`; no se versiona
+#      en el repositorio y sin él el .app saldría sin compilador dentro.
+#   2. Un build universal exige un sidecar universal, y Typst publica un binario
+#      POR ARQUITECTURA. Hay que vendorizar los dos y fundirlos con `lipo` en
+#      `typst-universal-apple-darwin`, que es el nombre que Tauri buscará. Sin
+#      este paso el build falla al no encontrar el sidecar de ese triple.
+#
+# SIN auto-actualización, igual que Linux (NATIVE_APPS_RELEASE_CI.md §7): la
+# clave de firma vive solo en la máquina del mantenedor. De ahí
+# `createUpdaterArtifacts: false` en tauri.macos.conf.json e
+# `includeUpdaterJson: false` aquí.
+#
+# AVISO IMPORTANTE sobre el menú nativo de macOS (src-tauri/src/macos_menu.rs):
+# este workflow es la PRIMERA vez que ese módulo pasa por un compilador. Se
+# escribió sin toolchain de macOS disponible, verificando la API contra el
+# código fuente vendorizado de tauri/muda. Si algo va a fallar aquí, es eso.
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      draft:
+        description: >
+          "true" (normal): crea o reutiliza un borrador para esa versión. "false": la Release
+          de esa versión ya está PUBLICADA y solo quieres añadirle los artefactos de macOS.
+        required: false
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    # Igual que en Linux: el GITHUB_TOKEN por defecto es de solo lectura y sin
+    # esto tauri-action falla con "Resource not accessible by integration".
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Leer versión de tauri.conf.json
+        id: version
+        run: echo "tag=v$(node -p "require('./src-tauri/tauri.conf.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Determinar si la Release debe tratarse como borrador
+        id: draft
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "value=${{ github.event.inputs.draft }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Instalar Rust (targets Intel + Apple Silicon)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: "aarch64-apple-darwin,x86_64-apple-darwin"
+
+      - name: Instalar Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      - name: Instalar dependencias de Node
+        run: npm ci
+
+      - name: Vendorizar el compilador Typst (las dos arquitecturas)
+        run: |
+          npm run vendor:typst -- --target aarch64-apple-darwin
+          npm run vendor:typst -- --target x86_64-apple-darwin
+
+      - name: Fundir el sidecar en un binario universal
+        run: |
+          lipo -create \
+            -output src-tauri/binaries/typst-universal-apple-darwin \
+            src-tauri/binaries/typst-aarch64-apple-darwin \
+            src-tauri/binaries/typst-x86_64-apple-darwin
+          chmod +x src-tauri/binaries/typst-universal-apple-darwin
+
+      - name: Verificar que el sidecar universal es correcto
+        run: |
+          if ! lipo -info src-tauri/binaries/typst-universal-apple-darwin | grep -q "x86_64 arm64"; then
+            echo "::error::El sidecar no contiene las dos arquitecturas; un Mac Intel no podría usarlo."
+            lipo -info src-tauri/binaries/typst-universal-apple-darwin
+            exit 1
+          fi
+          ./src-tauri/binaries/typst-universal-apple-darwin --version
+
+      - name: Verificar el catálogo de plantillas contra el compilador real
+        run: npm run verify:templates
+
+      - name: Tests del backend
+        run: npm test
+
+      - name: Build y Release (macOS universal)
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          args: --target universal-apple-darwin
+          tagName: ${{ steps.version.outputs.tag }}
+          releaseName: ${{ steps.version.outputs.tag }}
+          releaseDraft: ${{ steps.draft.outputs.value }}
+          prerelease: false
+          includeUpdaterJson: false

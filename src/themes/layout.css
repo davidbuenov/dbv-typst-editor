@@ -87,7 +87,12 @@
 }
 
 /* ─── Estado sin proyecto (proto-lanzador) ────────────────────────────────── */
+/* Única definición de `.app-body` (ver la nota en `base.css`): ocupa todo el
+   alto que le deja la cabecera y todo el ancho de la ventana, sin alinear ni
+   encoger a sus hijos — el lanzador y el espacio de trabajo se reparten ellos
+   mismos el espacio. */
 .app-body {
+  flex: 1 1 auto;
   display: block;
   padding: 0;
   overflow: hidden;
@@ -100,7 +105,10 @@
 }
 
 .launcher__inner {
-  width: min(900px, 100%);
+  /* Antes fijo en 900px: en una pantalla ancha dejaba la mitad de la ventana
+     vacía (petición explícita tras probar la Beta). `minmax` con `1fr` deja
+     que crezca con la ventana sin volverse ilegible en monitores ultra-anchos. */
+  width: min(1400px, 100%);
   margin: 0 auto;
 }
 
@@ -232,41 +240,59 @@
   min-height: 0;
 }
 
-/* ─── Modos de escritura (Beta, §7.9) ────────────────────────────────────────
-   Cuatro preajustes de qué columnas de la rejilla existen — sin
-   infraestructura nueva, solo `grid-template-columns` distinto por modo y
-   ocultar lo que ese modo no muestra. "edicion" es el layout de siempre (sin
-   atributo, o con él): no necesita reglas propias. */
+/* ─── Paneles del espacio de trabajo (Beta, §7.9, rediseñado) ────────────────
+   Tres interruptores independientes (proyecto/esquema, editor, vista previa,
+   `app/workspacePanels.js`) en vez de cuatro modos fijos: cada combinación de
+   `data-panel-*` visible/oculto tiene su propio `grid-template-columns`, y el
+   panel que quede solo ocupa siempre todo el ancho — sustituye a los antiguos
+   modos Escritura/Dividido/Lectura, que solo cubrían tres de las siete
+   combinaciones posibles y con menos libertad (p. ej. Escritura ocultaba
+   también la barra de herramientas, no solo el resto de paneles). */
 
-.workspace[data-mode='escritura'] {
-  grid-template-columns: 1fr;
+.workspace[data-panel-sidebar='hide'] .sidebar {
+  display: none;
 }
-.workspace[data-mode='escritura'] .sidebar,
-.workspace[data-mode='escritura'] #splitter-sidebar,
-.workspace[data-mode='escritura'] .toolbar,
-.workspace[data-mode='escritura'] .preview,
-.workspace[data-mode='escritura'] #splitter-preview {
+.workspace[data-panel-editor='hide'] .document {
+  display: none;
+}
+.workspace[data-panel-preview='hide'] .preview {
+  display: none;
+}
+/* Un separador solo existe si están visibles LOS DOS paneles que separa. Si
+   sobrevive a uno de ellos no desaparece sin más: al no quedarle columna en la
+   plantilla, la rejilla le crea una implícita y desborda el ancho (medido:
+   +260px con "editor sin vista previa") o lo apila como una fila entera. */
+.workspace[data-panel-sidebar='hide'] #splitter-sidebar,
+.workspace[data-panel-editor='hide'] #splitter-sidebar,
+.workspace[data-panel-editor='hide'] #splitter-preview,
+.workspace[data-panel-preview='hide'] #splitter-preview {
   display: none;
 }
 
-.workspace[data-mode='dividido'] {
+/* sidebar + editor (sin vista previa) */
+.workspace[data-panel-preview='hide']:not([data-panel-sidebar='hide']):not([data-panel-editor='hide']) {
+  grid-template-columns: var(--sidebar-width, 260px) 5px minmax(0, 1fr);
+}
+
+/* editor + vista previa (sin sidebar) */
+.workspace[data-panel-sidebar='hide']:not([data-panel-editor='hide']):not([data-panel-preview='hide']) {
   grid-template-columns: minmax(0, 1fr) 5px var(--preview-width, 46%);
 }
-.workspace[data-mode='dividido'] .sidebar,
-.workspace[data-mode='dividido'] #splitter-sidebar {
-  display: none;
+
+/* sidebar + vista previa (sin editor) — sin columna flexible dedicada, la
+   vista previa se queda con el resto del ancho. */
+.workspace[data-panel-editor='hide']:not([data-panel-sidebar='hide']):not([data-panel-preview='hide']) {
+  grid-template-columns: var(--sidebar-width, 260px) minmax(0, 1fr);
 }
 
-.workspace[data-mode='lectura'] {
+/* Un único panel visible: ocupa todo el ancho, no solo el centro (petición
+   explícita tras probar la antigua Lectura, que dejaba huecos laterales). */
+.workspace[data-panel-editor='hide'][data-panel-preview='hide']:not([data-panel-sidebar='hide']),
+.workspace[data-panel-sidebar='hide'][data-panel-preview='hide']:not([data-panel-editor='hide']),
+.workspace[data-panel-sidebar='hide'][data-panel-editor='hide']:not([data-panel-preview='hide']) {
   grid-template-columns: 1fr;
 }
-.workspace[data-mode='lectura'] .sidebar,
-.workspace[data-mode='lectura'] #splitter-sidebar,
-.workspace[data-mode='lectura'] .document,
-.workspace[data-mode='lectura'] #splitter-preview {
-  display: none;
-}
-.workspace[data-mode='lectura'] .preview {
+.workspace[data-panel-sidebar='hide'][data-panel-editor='hide'] .preview {
   border-left: none;
 }
 
@@ -279,18 +305,53 @@
   border-right: 1px solid var(--border);
 }
 
-.sidebar__header {
+/* Pestañas Archivos/Esquema (Beta, §7.8, rediseñado): mismo panel lateral que
+   antes solo mostraba el árbol, ahora con el outline como segunda pestaña en
+   vez de un panel flotante aparte — patrón portado de dbv-md-reader
+   (`#sidebar-tabs`/`.sidebar-tab`, `src/index.html` + `src/styles.css`). */
+.sidebar-tabs {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 12px 6px;
+  gap: 2px;
+  margin: 10px 10px 8px;
+  padding: 2px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
 }
 
-.sidebar__title {
+.sidebar-tab {
+  flex: 1;
+  padding: 5px 0;
+  border: none;
+  border-radius: calc(var(--radius) - 2px);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: inherit;
   font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-muted);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+}
+
+.sidebar-tab:hover {
+  color: var(--text-primary);
+}
+
+.sidebar-tab.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.sidebar-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.sidebar-panel#outline-panel {
+  overflow: auto;
+  padding: 0 10px 10px;
 }
 
 .sidebar__filter {
@@ -513,11 +574,19 @@
 /* ─── Vista previa ────────────────────────────────────────────────────────── */
 .preview {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
   min-width: 0;
   min-height: 0;
   background: var(--bg-secondary);
   border-left: 1px solid var(--border);
+}
+
+/* Separador de la consola de errores (Beta): fila `auto`, no una altura fija —
+   así se colapsa a 0 sola en cuanto `#splitter-band` recibe `.hidden`
+   (`display: none`), igual que ya hacía `#preview-band` antes de este slice. */
+.splitter--row {
+  height: 5px;
+  cursor: row-resize;
 }
 
 .preview__bar {
@@ -626,7 +695,10 @@
    (d) del Adversarial Architect Review del plan). */
 .preview__band {
   margin: 0;
-  max-height: 30%;
+  /* Antes `max-height: 30%` — fijo y sin forma de agrandarlo. Ahora una
+     variable CSS que `#splitter-band` (`ui/splitter.js`, eje `y`) controla
+     arrastrando, igual que el resto de paneles redimensionables. */
+  height: var(--preview-band-height, 160px);
   overflow: auto;
   padding: 8px 12px;
   border-top: 1px solid var(--code-tag);

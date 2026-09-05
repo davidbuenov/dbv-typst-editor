@@ -1,0 +1,93 @@
+<!doctype html>
+<!--
+  DBV Typst Editor — Banco de pruebas de layout (lo usa scripts/verify-layout.mjs)
+  Copyright (c) 2026 David Bueno Vallejo
+  Licensed under the MIT License. See LICENSE for details.
+  Built with dbv-specs-ops · https://github.com/davidbuenov/dbv-specs-ops
+
+  Reproduce el esqueleto real del shell (cabecera + cuerpo + lanzador +
+  espacio de trabajo) con las hojas de estilo REALES, y comprueba en un motor
+  de verdad lo único que ni los tests de Vitest ni `verify:frontend` pueden
+  comprobar: que las cajas ocupan el ancho que deben. Sin datos, sin Tauri y
+  sin `main.js` — sólo geometría.
+-->
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="../src/themes/tokens.css" />
+    <link rel="stylesheet" href="../src/themes/base.css" />
+    <link rel="stylesheet" href="../src/themes/layout.css" />
+  </head>
+  <body>
+    <header class="app-header"><span>cabecera</span></header>
+    <main class="app-body">
+      <section class="launcher" id="empty-view">
+        <div class="launcher__inner">
+          <h1 class="launcher__heading">Titulo</h1>
+          <div class="template-grid">
+            <button class="template-card"><span class="template-card__name">Uno</span></button>
+            <button class="template-card"><span class="template-card__name">Dos</span></button>
+          </div>
+        </div>
+      </section>
+      <section class="workspace hidden" id="workspace-view">
+        <aside class="sidebar" id="sidebar">sidebar</aside>
+        <div class="splitter" id="splitter-sidebar"></div>
+        <div class="document">documento</div>
+        <div class="splitter" id="splitter-preview"></div>
+        <aside class="preview">
+          <div class="preview__bar">barra</div>
+          <div class="preview__pages" id="preview-pages"></div>
+          <div class="splitter splitter--row hidden" id="splitter-band"></div>
+          <pre class="preview__band hidden" id="preview-band"></pre>
+        </aside>
+      </section>
+    </main>
+    <pre id="probe"></pre>
+    <script>
+      const checks = [];
+      const add = (name, ok, detail) => checks.push({ name, ok, detail });
+      const w = (sel) => Math.round(document.querySelector(sel).getBoundingClientRect().width);
+
+      const viewport = document.documentElement.clientWidth;
+
+      // 1. El cuerpo y el lanzador ocupan TODA la ventana. Se comprueba porque
+      //    ya falló una vez: un `place-items: center` huérfano en `.app-body`
+      //    (heredado del andamiaje del Slice 1) dejó de ser inerte cuando
+      //    Chromium implementó `justify-items` para cajas de bloque, y encogía
+      //    al contenido todo hijo del cuerpo.
+      add('.app-body ocupa todo el ancho de la ventana', w('.app-body') === viewport, `${w('.app-body')}/${viewport}`);
+      add('el lanzador ocupa todo el ancho de la ventana', w('#empty-view') === viewport, `${w('#empty-view')}/${viewport}`);
+
+      // 2. Cada combinación de paneles reparte el ancho completo, sin huecos
+      //    muertos ni desbordamiento (§7.9, `app/workspacePanels.js`).
+      document.getElementById('empty-view').classList.add('hidden');
+      const ws = document.getElementById('workspace-view');
+      ws.classList.remove('hidden');
+      const PARTS = ['.sidebar', '#splitter-sidebar', '.document', '#splitter-preview', '.preview'];
+
+      for (const sidebar of [true, false]) {
+        for (const editor of [true, false]) {
+          for (const preview of [true, false]) {
+            if (!sidebar && !editor && !preview) continue; // siempre queda uno visible
+            ws.dataset.panelSidebar = sidebar ? 'show' : 'hide';
+            ws.dataset.panelEditor = editor ? 'show' : 'hide';
+            ws.dataset.panelPreview = preview ? 'show' : 'hide';
+
+            const label = `${sidebar ? 'P' : '-'}${editor ? 'E' : '-'}${preview ? 'V' : '-'}`;
+            const total = PARTS.map(w).reduce((a, b) => a + b, 0);
+            const width = w('#workspace-view');
+            const overflows = ws.scrollWidth > ws.clientWidth;
+            add(
+              `paneles ${label}: reparten el ancho exacto, sin desbordar`,
+              total === width && width === viewport && !overflows,
+              `suma=${total} panel=${width} ventana=${viewport}${overflows ? ' DESBORDA' : ''}`
+            );
+          }
+        }
+      }
+
+      document.getElementById('probe').textContent = `DBV_LAYOUT_JSON${JSON.stringify(checks)}DBV_LAYOUT_END`;
+    </script>
+  </body>
+</html>

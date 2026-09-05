@@ -15,9 +15,17 @@ name: Release Linux
 # compilador dentro — y por eso el paso verifica su presencia y falla de forma
 # explícita en vez de dejar pasar un artefacto inservible.
 #
-# Sin auto-actualización en el MVP: no se pasan las variables TAURI_SIGNING_*,
-# y `createUpdaterArtifacts: false` en tauri.linux.conf.json es imprescindible
-# para que `tauri build` no termine en error al no encontrar la clave privada.
+# SIN auto-actualización en Linux, a propósito (NATIVE_APPS_RELEASE_CI.md §7):
+# la clave de firma del actualizador vive SOLO en la máquina del mantenedor, que
+# es donde se compila y firma Windows. Mezclar en un mismo `latest.json` una
+# firma generada en CI con otra generada en local es la coordinación
+# cross-máquina que ese documento descarta explícitamente. Por eso aquí no se
+# pasan variables TAURI_SIGNING_*, `createUpdaterArtifacts: false` en
+# tauri.linux.conf.json evita que `tauri build` falle al no encontrar la clave,
+# e `includeUpdaterJson: false` evita publicar un manifiesto a medias.
+#
+# Deuda técnica consciente y registrada: Linux y macOS se instalan y actualizan
+# a mano hasta que se resuelva la firma cross-máquina.
 
 on:
   push:

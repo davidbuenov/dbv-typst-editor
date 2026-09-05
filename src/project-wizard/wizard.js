@@ -15,7 +15,7 @@
 // limpia a "scaffolding puro", nunca un error.
 
 import { getLanguage, t } from '../i18n/i18n.js';
-import { createProject, pickProjectFolder } from '../services/backend.js';
+import { createProject, createProjectFromUniverse, pickProjectFolder } from '../services/backend.js';
 import { localizeTemplate } from '../launcher/launcher.js';
 
 /** Campo de nombre de proyecto, común a todas las plantillas. */
@@ -163,13 +163,18 @@ export function createWizard(deps) {
 
     busy = true;
     createButton.disabled = true;
-    const result = await createProject({
-      templateName: template.name,
-      templateVersion: template.version,
-      parentDir,
-      projectName,
-      fields,
-    });
+    // Una plantilla de Universe se instancia con otro comando: mismo
+    // `typst init`, pero con el namespace público y sin `--package-path`. No
+    // trae `dbv-template.toml`, así que aquí no hay marcadores que sustituir.
+    const result = template.universeSpec
+      ? await createProjectFromUniverse({ spec: template.universeSpec, parentDir, projectName })
+      : await createProject({
+          templateName: template.name,
+          templateVersion: template.version,
+          parentDir,
+          projectName,
+          fields,
+        });
     busy = false;
     createButton.disabled = false;
 

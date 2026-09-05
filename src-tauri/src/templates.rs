@@ -285,7 +285,7 @@ fn substitute_in_tree(dir: &Path, values: &BTreeMap<String, String>) -> Result<(
 /// Carpetas de la estructura de proyecto (SPECIFICATIONS.md §4) que se crean
 /// vacías si la plantilla no las trae, para que el usuario tenga desde el
 /// primer momento dónde poner sus imágenes y recursos.
-const PROJECT_DIRS: [&str; 2] = ["images", "assets"];
+pub(crate) const PROJECT_DIRS: [&str; 2] = ["images", "assets"];
 
 /// Catálogo de plantillas disponibles.
 #[tauri::command]

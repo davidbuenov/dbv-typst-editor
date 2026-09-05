@@ -61,6 +61,11 @@ export function on(eventName, handler) {
 
 export const getAppInfo = () => call('app_info');
 export const getTypstVersion = () => call('typst_version');
+/** Beta, panel "Acerca de": ¿viene de Microsoft Store? Ver `commands/app_info.rs`. */
+export const isPackagedApp = () => call('is_packaged_app');
+/** Beta, §7.6.3: crea un proyecto desde una plantilla de Typst Universe. */
+export const createProjectFromUniverse = ({ spec, parentDir, projectName }) =>
+  call('create_project_from_universe', { spec, parentDir, projectName });
 /** Documento con el que el SO ha arrancado la app (asociación de fichero `.typ`). */
 export const getStartupDocument = () => call('startup_document');
 

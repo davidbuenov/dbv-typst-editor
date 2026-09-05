@@ -57,9 +57,15 @@ export function createToolbar({ containerEl, getView, specialHandlers = {} }) {
         button.className = `toolbar__button toolbar__button--${action.id}`;
         button.textContent = action.glyph;
         button.dataset.action = action.id;
-        button.addEventListener('click', () => {
+        button.addEventListener('click', (event) => {
           const special = specialHandlers[action.id];
           if (special) {
+            // Estos botones abren un panel con `closeOnOutsideClick: true`
+            // (`registerPanel.js`) sin registrarse a sí mismos como `trigger`
+            // — sin cortar la propagación, el mismo clic que abre el panel
+            // llega al listener de "clic fuera" de `document` y lo cierra en
+            // el acto (mismo patrón que ya usan los paneles con `toggle`).
+            event.stopPropagation();
             special(button);
             return;
           }

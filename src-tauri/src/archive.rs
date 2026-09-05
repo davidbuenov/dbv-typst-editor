@@ -304,6 +304,39 @@ mod tests {
     }
 
     #[test]
+    fn export_incluye_las_fuentes_propias_del_proyecto() {
+        // Media función de `fonts/` (typst_engine::font_path_args) depende de
+        // esto: si el `.dbvt` no se las llevara, el proyecto seguiría sin
+        // componerse igual en la máquina de destino, que es justo lo que la
+        // carpeta existe para resolver.
+        let source = tempfile::tempdir().unwrap();
+        write_temp(source.path(), "main.typ", "= Título");
+        write_temp(source.path(), "fonts/MiFuente.ttf", "binario de prueba");
+
+        let output_dir = tempfile::tempdir().unwrap();
+        let output = output_dir.path().join("salida.dbvt");
+        let file = File::create(&output).unwrap();
+        let mut writer = ZipWriter::new(file);
+        add_dir_to_zip(
+            &mut writer,
+            source.path(),
+            source.path(),
+            SimpleFileOptions::default(),
+        )
+        .unwrap();
+        writer.finish().unwrap();
+
+        let mut archive = ZipArchive::new(File::open(&output).unwrap()).unwrap();
+        let names: Vec<String> = (0..archive.len())
+            .map(|i| archive.by_index(i).unwrap().name().to_string())
+            .collect();
+        assert!(
+            names.iter().any(|name| name == "fonts/MiFuente.ttf"),
+            "las fuentes del proyecto deben viajar en el .dbvt, entradas: {names:?}"
+        );
+    }
+
+    #[test]
     fn import_rechaza_una_entrada_con_recorrido_de_directorio() {
         let archive_path = build_archive_with_entries(&[
             (MANIFEST_ENTRY_NAME, "{}"),

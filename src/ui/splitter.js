@@ -21,9 +21,11 @@
  * @param {number} options.min Ancho mínimo en píxeles.
  * @param {number} options.max Ancho máximo en píxeles.
  * @param {'start'|'end'} [options.measureFrom] Desde qué borde se mide el ancho.
+ * @param {'x'|'y'} [options.axis] Eje de arrastre: columna (por defecto) o fila
+ *   — la consola de errores de la vista previa (Beta) se redimensiona en `y`.
  */
 export function createSplitter(handleEl, options) {
-  const { hostEl, cssVariable, storageKey, min, max, measureFrom = 'start' } = options;
+  const { hostEl, cssVariable, storageKey, min, max, measureFrom = 'start', axis = 'x' } = options;
   if (!(handleEl instanceof HTMLElement) || !(hostEl instanceof HTMLElement)) {
     throw new TypeError('createSplitter: se esperan elementos del DOM');
   }
@@ -54,15 +56,21 @@ export function createSplitter(handleEl, options) {
 
   let dragging = false;
 
-  const widthFromPointer = (clientX) => {
+  const widthFromPointer = (event) => {
     const bounds = hostEl.getBoundingClientRect();
-    const raw = measureFrom === 'start' ? clientX - bounds.left : bounds.right - clientX;
+    if (axis === 'y') {
+      const point = event.clientY;
+      const raw = measureFrom === 'start' ? point - bounds.top : bounds.bottom - point;
+      return clamp(raw);
+    }
+    const point = event.clientX;
+    const raw = measureFrom === 'start' ? point - bounds.left : bounds.right - point;
     return clamp(raw);
   };
 
   const onPointerMove = (event) => {
     if (!dragging) return;
-    apply(widthFromPointer(event.clientX));
+    apply(widthFromPointer(event));
   };
 
   const stop = (event) => {
@@ -70,7 +78,7 @@ export function createSplitter(handleEl, options) {
     dragging = false;
     handleEl.classList.remove('is-dragging');
     handleEl.releasePointerCapture?.(event.pointerId);
-    persist(widthFromPointer(event.clientX));
+    persist(widthFromPointer(event));
   };
 
   handleEl.addEventListener('pointerdown', (event) => {

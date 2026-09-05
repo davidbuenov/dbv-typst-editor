@@ -19,6 +19,7 @@ pub mod macos_menu;
 pub mod project;
 pub mod templates;
 pub mod typst_engine;
+pub mod universe;
 pub mod watcher;
 
 #[cfg(desktop)]
@@ -47,6 +48,14 @@ pub fn run() {
         }
     }));
 
+    // Auto-actualización (Beta, ADR-ACTUALIZADOR-001). Solo escritorio: el
+    // plugin no existe en móvil. `process` es lo que permite reiniciar la
+    // aplicación después de instalar la versión nueva.
+    #[cfg(desktop)]
+    let builder = builder
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init());
+
     builder
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
@@ -69,6 +78,7 @@ pub fn run() {
             assets::pick_image_dialog,
             bibliography::bibliography_keys,
             commands::app_info::app_info,
+            commands::app_info::is_packaged_app,
             commands::file_io::file_modified_ms,
             commands::file_io::list_directory,
             commands::file_io::open_file_dialog,
@@ -84,6 +94,7 @@ pub fn run() {
             project::open_project,
             templates::create_project,
             templates::list_templates,
+            universe::create_project_from_universe,
             project::read_project_manifest,
             typst_engine::compile::typst_cancel_preview,
             typst_engine::compile::typst_compile_preview,

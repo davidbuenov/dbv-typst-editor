@@ -11,11 +11,16 @@
 // backend evita el monolito `lib.rs`.
 
 import { createWorkspace } from './app/workspace.js';
-import { WRITING_MODES, getWritingMode, setWritingMode } from './app/writingMode.js';
+import { createUpdater } from './app/updater.js';
+import { PANELS, getPanelState, initPanels, togglePanel } from './app/workspacePanels.js';
 import { figureActionForPath } from './editor/toolbarActions.js';
 import { applyTranslations, getLanguage, t, toggleLanguage } from './i18n/i18n.js';
+import { createHelp } from './help/help.js';
+import { createUniversePanel } from './universe/universePanel.js';
+import { importPackageAction, specName } from './universe/universeSpec.js';
 import { createLauncher } from './launcher/launcher.js';
 import { createOutline } from './outline/outline.js';
+import { makeDraggable } from './panels/draggablePanel.js';
 import { closeAllPanels, registerPanel } from './panels/registerPanel.js';
 import { createPreview } from './preview/preview.js';
 import { createTerminal } from './terminal/terminal.js';
@@ -24,6 +29,7 @@ import { createWizard } from './project-wizard/wizard.js';
 import {
   copyAssetIntoProject,
   getAppInfo,
+  isPackagedApp,
   getStartupDocument,
   getTypstVersion,
   importProjectArchive,
@@ -43,7 +49,7 @@ const el = (id) => document.getElementById(id);
 
 /** Rellena la ficha "Acerca de" con la versión de la app y del compilador. */
 async function renderAbout() {
-  const [appInfo, typstVersion] = await Promise.all([getAppInfo(), getTypstVersion()]);
+  const [appInfo, typstVersion, packaged] = await Promise.all([getAppInfo(), getTypstVersion(), isPackagedApp()]);
 
   if (appInfo.ok) {
     el('fact-app-version').textContent = appInfo.value.version;
@@ -57,6 +63,17 @@ async function renderAbout() {
     typstEl.textContent = `${t('typst.fail')} — ${typstVersion.error.message}`;
     typstEl.style.color = 'var(--code-tag)';
   }
+
+  // Auto-actualización (Beta, ADR-ACTUALIZADOR-001): en una instalación de
+  // Microsoft Store el botón no se muestra —la Store ya actualiza— y en el
+  // resto se comprueba solo cuando el usuario lo pide. Si la detección de
+  // origen fallara, se asume instalación manual: ofrecer el botón de más es
+  // preferible a ocultárselo a quien sí lo necesita.
+  createUpdater({
+    buttonEl: el('btn-check-update'),
+    statusEl: el('about-update-status'),
+    isPackaged: packaged.ok && packaged.value,
+  });
 }
 
 function wireThemeToggle(onThemeChanged) {
@@ -68,24 +85,63 @@ function wireThemeToggle(onThemeChanged) {
   });
 }
 
-/** Modos de escritura (Beta, §7.9): preajustes de qué paneles se ven. */
-function wireModeSwitcher(workspaceEl) {
+/** Paneles del espacio de trabajo (Beta, §7.9): tres interruptores independientes. */
+function wirePanelSwitcher(workspaceEl) {
   const buttons = new Map(
-    WRITING_MODES.map((mode) => [mode, document.querySelector(`.mode-switcher__button[data-mode="${mode}"]`)])
+    PANELS.map((panel) => [panel, document.querySelector(`.mode-switcher__button[data-panel="${panel}"]`)])
   );
 
-  function applyMode(mode) {
-    setWritingMode(mode, workspaceEl);
-    for (const [candidate, button] of buttons) {
-      button?.setAttribute('aria-pressed', String(candidate === mode));
+  function refreshPressed() {
+    const state = getPanelState();
+    for (const [panel, button] of buttons) {
+      button?.setAttribute('aria-pressed', String(state[panel]));
     }
   }
 
-  for (const [mode, button] of buttons) {
-    button?.addEventListener('click', () => applyMode(mode));
+  for (const [panel, button] of buttons) {
+    button?.addEventListener('click', () => {
+      togglePanel(panel, workspaceEl);
+      refreshPressed();
+    });
   }
 
-  applyMode(getWritingMode());
+  initPanels(workspaceEl);
+  refreshPressed();
+}
+
+/**
+ * Pestañas Archivos/Esquema del panel lateral (Beta, §7.8, rediseñado): antes
+ * el esquema era un panel flotante aparte, disparado por un botón junto al
+ * árbol; ahora es la segunda pestaña del mismo panel, como en dbv-md-reader
+ * (`filetree.js` → `setActiveTab`) — un único interruptor "P" en la cabecera
+ * (`wirePanelSwitcher`) sigue controlando el panel entero, con las dos
+ * pestañas dentro.
+ */
+function wireSidebarTabs(workspaceEl) {
+  const tabs = { files: el('tab-files'), outline: el('tab-outline') };
+  const panels = { files: el('files-panel'), outline: el('outline-panel') };
+
+  function setActiveTab(name) {
+    for (const key of Object.keys(tabs)) {
+      tabs[key].classList.toggle('active', key === name);
+      panels[key].classList.toggle('hidden', key !== name);
+    }
+  }
+
+  tabs.files.addEventListener('click', () => setActiveTab('files'));
+  tabs.outline.addEventListener('click', () => setActiveTab('outline'));
+  setActiveTab('files');
+
+  return {
+    /** Usado por el menú nativo de macOS (`menu-outline`): pestaña + panel visible. */
+    showOutline() {
+      if (!getPanelState().sidebar) {
+        togglePanel('sidebar', workspaceEl);
+        document.querySelector('.mode-switcher__button[data-panel="sidebar"]')?.setAttribute('aria-pressed', 'true');
+      }
+      setActiveTab('outline');
+    },
+  };
 }
 
 /**
@@ -137,6 +193,16 @@ function wireLanguageToggle() {
   });
 }
 
+/** Ayuda bilingüe (contenido en `help/helpContent.js`). */
+function wireHelpPanel() {
+  createHelp({ contentEl: el('help-content'), navEl: el('help-nav') });
+  const { close } = registerPanel(el('help-panel'), {
+    trigger: el('btn-help'),
+    toggle: true,
+  });
+  el('btn-help-close').addEventListener('click', close);
+}
+
 function wireAboutPanel() {
   const { close } = registerPanel(el('about-panel'), {
     trigger: el('btn-about'),
@@ -151,6 +217,7 @@ async function bootstrap() {
   applyTranslations();
   wireLanguageToggle();
   wireAboutPanel();
+  wireHelpPanel();
 
   const toast = createToast(el('toast'));
   const dialog = createChoiceDialog({
@@ -203,14 +270,24 @@ async function bootstrap() {
 
   // El editor (CodeMirror) necesita reconfigurar su tema, no solo heredar CSS.
   wireThemeToggle((theme) => workspace.setTheme(theme));
-  wireModeSwitcher(el('workspace-view'));
+  wirePanelSwitcher(el('workspace-view'));
   wireImageDrop(workspace, el('editor-host'), toast.show);
 
   const preview = createPreview({
     pagesEl: el('preview-pages'),
     bandEl: el('preview-band'),
+    bandSplitterEl: el('splitter-band'),
     statusEl: el('preview-status'),
     zoomLabelEl: el('preview-zoom-label'),
+  });
+  createSplitter(el('splitter-band'), {
+    hostEl: el('workspace-view').querySelector('.preview'),
+    cssVariable: '--preview-band-height',
+    storageKey: 'dbv-typst-preview-band-height',
+    axis: 'y',
+    measureFrom: 'end',
+    min: 60,
+    max: 500,
   });
 
   // Outline (Beta, ARCHITECTURE.md §7.8): mismo documento en vivo que la vista
@@ -240,11 +317,7 @@ async function bootstrap() {
     if (!change.isActiveDocument) preview.onExternalChange();
   });
 
-  registerPanel(el('outline-panel'), {
-    trigger: el('btn-outline'),
-    toggle: true,
-    closeOnOutsideClick: true,
-  });
+  const sidebarTabs = wireSidebarTabs(el('workspace-view'));
 
   // Terminal avanzado (Beta, §7.14): oculto por defecto, vía de escape para
   // subcomandos directos del CLI de Typst — no sustituye a ningún flujo guiado.
@@ -252,7 +325,7 @@ async function bootstrap() {
     outputEl: el('terminal-output'),
     inputEl: el('terminal-input'),
   });
-  registerPanel(el('terminal-panel'), {
+  const terminalPanel = registerPanel(el('terminal-panel'), {
     trigger: el('btn-terminal'),
     toggle: true,
     onOpen: () => {
@@ -261,6 +334,48 @@ async function bootstrap() {
         : t('terminal.hint');
       el('terminal-panel').querySelector('.terminal__hint').textContent = hint;
       terminal.focusInput();
+    },
+  });
+  el('terminal-close').addEventListener('click', terminalPanel.close);
+  el('terminal-clear').addEventListener('click', terminal.clear);
+  makeDraggable(el('terminal-panel'), el('terminal-header'));
+
+  // Typst Universe (Beta, §7.6): plantillas que crean proyecto y paquetes que
+  // se importan en el documento abierto. La plantilla reutiliza el asistente
+  // normal (solo pedirá nombre y ubicación: las de Universe no traen
+  // formulario); el paquete es una transacción del editor.
+  const universePanel = registerPanel(el('universe-panel'), {
+    trigger: el('btn-universe'),
+    toggle: true,
+  });
+  el('btn-universe-close').addEventListener('click', universePanel.close);
+  createUniversePanel({
+    templatesEl: el('universe-templates'),
+    packagesEl: el('universe-packages'),
+    specInputEl: el('universe-spec'),
+    specButtonEl: el('universe-spec-apply'),
+    errorEl: el('universe-error'),
+    tabTemplatesEl: el('tab-universe-templates'),
+    tabPackagesEl: el('tab-universe-packages'),
+    onUseTemplate: (spec) => {
+      universePanel.close();
+      wizard.open({ name: specName(spec), version: '', description: spec, universeSpec: spec });
+    },
+    onUsePackage: (spec) => {
+      const view = workspace.editor.getView();
+      if (!workspace.state.document || !view) {
+        toast.show(t('universe.needDocument'), 'error');
+        return;
+      }
+      const transaction = importPackageAction(spec)(view.state);
+      if (!transaction) {
+        toast.show(t('universe.alreadyImported'));
+        return;
+      }
+      view.dispatch(transaction);
+      view.focus();
+      universePanel.close();
+      toast.show(`${t('universe.imported')} ${spec}`);
     },
   });
 
@@ -363,6 +478,14 @@ async function bootstrap() {
   el('btn-zoom-in').addEventListener('click', preview.zoomIn);
   el('btn-zoom-out').addEventListener('click', preview.zoomOut);
   el('btn-zoom-reset').addEventListener('click', preview.zoomReset);
+  const btnZoomFit = el('btn-zoom-fit');
+  btnZoomFit.setAttribute('aria-pressed', String(preview.isFitWidth()));
+  btnZoomFit.classList.toggle('active', preview.isFitWidth());
+  btnZoomFit.addEventListener('click', () => {
+    const active = preview.toggleFitWidth();
+    btnZoomFit.classList.toggle('active', active);
+    btnZoomFit.setAttribute('aria-pressed', String(active));
+  });
 
   el('tree-filter').addEventListener('input', (event) => tree.filter(event.target.value));
 
@@ -425,7 +548,7 @@ async function bootstrap() {
   on('menu-export-pdf', () => el('btn-export-pdf').click());
   on('menu-reveal', () => el('btn-reveal').click());
   on('menu-toggle-theme', () => el('btn-theme').click());
-  on('menu-outline', () => el('btn-outline').click());
+  on('menu-outline', () => sidebarTabs.showOutline());
   on('menu-terminal', () => el('btn-terminal').click());
 }
 

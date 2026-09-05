@@ -27,8 +27,12 @@
   "bundle": {
     "active": true,
     "targets": "all",
-    "externalBin": ["binaries/typst"],
-    "resources": ["../templates"],
+    "externalBin": [
+      "binaries/typst"
+    ],
+    "resources": [
+      "../templates"
+    ],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -41,11 +45,22 @@
     "longDescription": "DBV Typst Editor es el entorno de escritorio más accesible para el ecosistema Typst: crea proyectos desde plantillas académicas, escribe y ve el PDF actualizarse en tiempo real, sin conexión.",
     "fileAssociations": [
       {
-        "ext": ["typ"],
+        "ext": [
+          "typ"
+        ],
         "name": "Documento Typst",
         "description": "Documento Typst de DBV Typst Editor",
         "role": "Editor"
       }
-    ]
+    ],
+    "createUpdaterArtifacts": true
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEYyODQ1RUIyMEY0RkZBQzYKUldURytrOFBzbDZFOHNiV2RqL1JEQndJcEE4MU92ZGFoeGZzUmI3VDNrd3p5KzM0alFzK0krM0IK",
+      "endpoints": [
+        "https://github.com/davidbuenov/dbv-typst-editor/releases/latest/download/latest.json"
+      ]
+    }
   }
 }

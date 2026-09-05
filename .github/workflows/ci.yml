@@ -61,6 +61,11 @@ jobs:
       - name: Verificar el frontend (extensiones del editor y elementos del DOM)
         run: npm run verify:frontend
 
+      # Geometría real en Chromium (el motor de WebView2): que ninguna caja se
+      # encoja ni desborde. Se omite sola si el runner no trae navegador.
+      - name: Verificar el layout en un motor real
+        run: npm run verify:layout
+
       - name: Verificar el sidecar contra el binario real
         run: npm run verify:typst
 

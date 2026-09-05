@@ -285,7 +285,46 @@ async fn run_cancelable(
     }
 
     state.clear_running(generation);
-    Ok((code, stdout, stderr))
+    Ok((code, stdout, strip_download_progress(&stderr)))
+}
+
+/// Quita del stderr del compilador el progreso de descarga de paquetes.
+///
+/// Al abrir un proyecto ajeno que use Typst Universe (RF-02b), la primera
+/// compilación descarga sus paquetes y el CLI escribe el progreso por **stderr**,
+/// mezclado con los diagnósticos reales. Sin filtrarlo, la banda de la vista
+/// previa —que existe para avisos y errores— se llena de barras de progreso y
+/// entierra lo único que el usuario necesita leer. Verificado contra la salida
+/// real de un proyecto con 6 paquetes (`@preview/marginalia`, `codly`,
+/// `itemize`, `elembic`, `colorful-boxes`, `droplet`).
+///
+/// Deliberadamente NO se aplica al terminal avanzado (§7.14, `typst_run_raw`):
+/// ahí el usuario ha pedido la salida cruda del CLI y ocultarle parte de ella
+/// sería justo lo contrario de una vía de escape.
+pub fn strip_download_progress(stderr: &str) -> String {
+    // El progreso se repinta con `\r`, así que un "renglón" del stream puede
+    // llevar varias actualizaciones dentro: hay que normalizarlo antes de
+    // filtrar por líneas o se colarían enteras.
+    let normalized = stderr.replace('\r', "\n");
+    let mut kept: Vec<&str> = Vec::new();
+
+    for line in normalized.lines() {
+        let trimmed = line.trim();
+        let is_announcement = trimmed.starts_with("downloading @");
+        // Las tres condiciones a la vez para no tragarse por accidente una
+        // línea de diagnóstico que cite código fuente parecido.
+        let is_progress = trimmed.contains(" / ") && trimmed.contains("%)") && trimmed.contains("ETA:");
+        if is_announcement || is_progress {
+            continue;
+        }
+        // Las líneas quitadas dejan huecos: no acumular blancos consecutivos.
+        if trimmed.is_empty() && kept.last().is_some_and(|last| last.trim().is_empty()) {
+            continue;
+        }
+        kept.push(line);
+    }
+
+    kept.join("\n").trim().to_string()
 }
 
 /// Prepara el fichero que se va a compilar.
@@ -334,15 +373,18 @@ pub async fn typst_compile_preview(
     let document_path = PathBuf::from(&document);
     let (input, mirror) = prepare_input(&document_path, content.as_deref())?;
 
-    let args = vec![
+    let mut args = vec![
         "compile".to_string(),
         "--root".to_string(),
-        root,
+        root.clone(),
         "--format".to_string(),
         "svg".to_string(),
-        input.to_string_lossy().to_string(),
-        output_pattern.to_string_lossy().to_string(),
     ];
+    // Fuentes propias del proyecto (`fonts/`), si las trae: van antes de los
+    // argumentos posicionales de entrada y salida.
+    args.extend(super::font_path_args(Path::new(&root)));
+    args.push(input.to_string_lossy().to_string());
+    args.push(output_pattern.to_string_lossy().to_string());
 
     let outcome = run_cancelable(&app, &state, generation, args).await;
     if let Some(mirror) = mirror {
@@ -436,15 +478,16 @@ pub async fn typst_export_pdf(
     let document_path = PathBuf::from(&document);
     let (input, mirror) = prepare_input(&document_path, content.as_deref())?;
 
-    let args = vec![
+    let mut args = vec![
         "compile".to_string(),
         "--root".to_string(),
-        root,
+        root.clone(),
         "--format".to_string(),
         "pdf".to_string(),
-        input.to_string_lossy().to_string(),
-        "-".to_string(),
     ];
+    args.extend(super::font_path_args(Path::new(&root)));
+    args.push(input.to_string_lossy().to_string());
+    args.push("-".to_string());
 
     let outcome = run_cancelable(&app, &state, generation, args).await;
     if let Some(mirror) = mirror {
@@ -487,17 +530,18 @@ pub async fn typst_export_png(
     let document_path = PathBuf::from(&document);
     let (input, mirror) = prepare_input(&document_path, content.as_deref())?;
 
-    let args = vec![
+    let mut args = vec![
         "compile".to_string(),
         "--root".to_string(),
-        root,
+        root.clone(),
         "--format".to_string(),
         "png".to_string(),
         "--pages".to_string(),
         page.to_string(),
-        input.to_string_lossy().to_string(),
-        output.clone(),
     ];
+    args.extend(super::font_path_args(Path::new(&root)));
+    args.push(input.to_string_lossy().to_string());
+    args.push(output.clone());
 
     let outcome = run_cancelable(&app, &state, generation, args).await;
     if let Some(mirror) = mirror {
@@ -605,6 +649,59 @@ mod tests {
     #[test]
     fn window_indices_nunca_devuelve_un_rango_vacio_con_paginas() {
         assert_eq!(window_indices(4, 1, 0), vec![1]);
+    }
+
+    /// Salida REAL capturada al abrir un proyecto ajeno con 6 paquetes de
+    /// Typst Universe (2026-09-05): el progreso de descarga y los avisos
+    /// llegan mezclados por stderr.
+    const STDERR_REAL_CON_DESCARGAS: &str = "downloading @preview/marginalia:0.3.1\n\
+\n\
+  0 B /  13.8 KiB (  0 %), 137.8 KiB/s, ETA: 0 s\n\
+ 13.8 KiB /  13.8 KiB (100 %), 137.8 KiB/s, ETA: 0 s\n\
+downloading @preview/codly:1.3.0\n\
+\n\
+  0 B /  28.8 KiB (  0 %), 288.2 KiB/s, ETA: 0 s\n\
+ 28.8 KiB /  28.8 KiB (100 %), 288.2 KiB/s, ETA: 0 s\n\
+warning: unknown font family: flux\n\
+    ┌─ \\\\?\\D:\\bueno\\Descargas\\juan\\z6-IPbook\\template.typ:182:17\n\
+    │\n\
+182 │   set text(font: \"Flux\", size: 14pt)\n\
+    │                  ^^^^^^\n";
+
+    #[test]
+    fn strip_download_progress_deja_solo_los_diagnosticos() {
+        let limpio = strip_download_progress(STDERR_REAL_CON_DESCARGAS);
+
+        // Lo que el usuario SÍ tiene que leer sigue entero, con su contexto.
+        assert!(limpio.starts_with("warning: unknown font family: flux"));
+        assert!(limpio.contains("template.typ:182:17"));
+        assert!(limpio.contains("set text(font: \"Flux\", size: 14pt)"));
+
+        // Y el ruido de descarga desaparece por completo.
+        assert!(!limpio.contains("downloading"));
+        assert!(!limpio.contains("ETA:"));
+        assert!(!limpio.contains("KiB"));
+    }
+
+    #[test]
+    fn strip_download_progress_no_toca_un_error_normal() {
+        let error = "error: unknown variable: foo\n  ┌─ main.typ:3:1\n  │\n3 │ #foo\n  │  ^^^";
+        assert_eq!(strip_download_progress(error), error);
+    }
+
+    #[test]
+    fn strip_download_progress_absorbe_el_repintado_con_retorno_de_carro() {
+        // El CLI repinta la barra con `\r`: sin normalizarlo, todo el progreso
+        // viajaría dentro de una única línea y se colaría en la banda.
+        let crudo = "downloading @preview/codly:1.3.0\n  0 B / 28.8 KiB (  0 %), 288.2 KiB/s, ETA: 0 s\r 28.8 KiB / 28.8 KiB (100 %), 288.2 KiB/s, ETA: 0 s\nwarning: algo\n";
+        assert_eq!(strip_download_progress(crudo), "warning: algo");
+    }
+
+    #[test]
+    fn strip_download_progress_con_solo_descargas_deja_la_banda_vacia() {
+        // Caso importante: si TODO era ruido, la banda no debe abrirse.
+        let solo_ruido = "downloading @preview/droplet:0.3.1\n\n  0 B /   7.6 KiB (  0 %),  76.2 KiB/s, ETA: 0 s\n";
+        assert_eq!(strip_download_progress(solo_ruido), "");
     }
 
     #[test]

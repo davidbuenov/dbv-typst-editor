@@ -136,6 +136,37 @@ pub fn parse_version(raw: &str) -> Option<String> {
     version
 }
 
+/// Carpeta de fuentes propias de un proyecto, relativa a su raíz.
+pub const PROJECT_FONTS_DIR: &str = "fonts";
+
+/// Argumentos `--font-path` para un proyecto que trae sus propias fuentes.
+///
+/// Un proyecto compartido (el de un compañero, un repositorio clonado, un
+/// `.dbvt` importado) sólo se compone igual en otra máquina si las fuentes
+/// viajan con él: instalarlas a mano en el sistema es justo la fricción que
+/// este producto existe para quitar, y además no siempre es posible (aulas,
+/// equipos sin permisos de administrador). Si el proyecto tiene una carpeta
+/// `fonts/`, se le pasa al compilador y sus fuentes quedan disponibles para
+/// ese documento y sólo para él.
+///
+/// Verificado contra el binario real (0.15.1) antes de implementarlo, porque
+/// de la ayuda del CLI dependía todo el diseño: `--font-path` **añade**
+/// directorios —no sustituye a las del sistema, para eso está
+/// `--ignore-system-fonts`—, busca de forma **recursiva**, y lo aceptan tanto
+/// `compile` como `eval` (el subcomando del esquema). Comprobado también que
+/// una fuente puesta ahí se encuentra de verdad.
+///
+/// Función pura (sólo mira el sistema de ficheros) para poder testearla sin
+/// `AppHandle` ni binario, igual que `parse_version`.
+pub fn font_path_args(root: &std::path::Path) -> Vec<String> {
+    let dir = root.join(PROJECT_FONTS_DIR);
+    if dir.is_dir() {
+        vec!["--font-path".to_string(), dir.to_string_lossy().to_string()]
+    } else {
+        Vec::new()
+    }
+}
+
 /// Versión del compilador Typst embebido en la aplicación.
 #[tauri::command]
 pub async fn typst_version(app: AppHandle) -> Result<String, TypstError> {
@@ -169,5 +200,32 @@ mod tests {
         assert_eq!(parse_version(""), None);
         assert_eq!(parse_version("typst"), None);
         assert_eq!(parse_version("error: algo ha ido mal"), None);
+    }
+
+    #[test]
+    fn font_path_args_pasa_la_carpeta_del_proyecto_si_existe() {
+        let dir = tempfile::tempdir().unwrap();
+        let fonts = dir.path().join(PROJECT_FONTS_DIR);
+        std::fs::create_dir(&fonts).unwrap();
+
+        let args = font_path_args(dir.path());
+        assert_eq!(args.len(), 2);
+        assert_eq!(args[0], "--font-path");
+        assert_eq!(std::path::Path::new(&args[1]), fonts);
+    }
+
+    #[test]
+    fn font_path_args_no_pasa_nada_si_el_proyecto_no_trae_fuentes() {
+        let dir = tempfile::tempdir().unwrap();
+        assert!(font_path_args(dir.path()).is_empty());
+    }
+
+    #[test]
+    fn font_path_args_ignora_un_fichero_llamado_fonts() {
+        // Un `fonts` que no sea carpeta no debe generar un `--font-path` que
+        // haría fallar al compilador.
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join(PROJECT_FONTS_DIR), "no soy una carpeta").unwrap();
+        assert!(font_path_args(dir.path()).is_empty());
     }
 }

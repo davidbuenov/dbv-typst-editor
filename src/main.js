@@ -16,6 +16,7 @@ import { createLauncher } from './launcher/launcher.js';
 import { createOutline } from './outline/outline.js';
 import { closeAllPanels, registerPanel } from './panels/registerPanel.js';
 import { createPreview } from './preview/preview.js';
+import { createTerminal } from './terminal/terminal.js';
 import { createProjectTree } from './project-explorer/projectTree.js';
 import { createWizard } from './project-wizard/wizard.js';
 import {
@@ -159,6 +160,24 @@ async function bootstrap() {
     trigger: el('btn-outline'),
     toggle: true,
     closeOnOutsideClick: true,
+  });
+
+  // Terminal avanzado (Beta, §7.14): oculto por defecto, vía de escape para
+  // subcomandos directos del CLI de Typst — no sustituye a ningún flujo guiado.
+  const terminal = createTerminal({
+    outputEl: el('terminal-output'),
+    inputEl: el('terminal-input'),
+  });
+  registerPanel(el('terminal-panel'), {
+    trigger: el('btn-terminal'),
+    toggle: true,
+    onOpen: () => {
+      const hint = workspace.state.project
+        ? workspace.state.project.root
+        : t('terminal.hint');
+      el('terminal-panel').querySelector('.terminal__hint').textContent = hint;
+      terminal.focusInput();
+    },
   });
 
   const openPath = async (path) => {

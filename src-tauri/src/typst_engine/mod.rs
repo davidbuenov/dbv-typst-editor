@@ -78,6 +78,50 @@ pub async fn run(app: &AppHandle, args: &[&str]) -> Result<TypstOutput, TypstErr
     result
 }
 
+/// Salida completa de un comando de terminal avanzado (Beta, §7.14).
+///
+/// A diferencia de `run()`, conserva `stdout` aunque el proceso termine con un
+/// código de salida distinto de cero: un usuario que teclea `typst fonts` a
+/// mano quiere ver lo que salió, no solo un error genérico.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TerminalOutput {
+    pub stdout: String,
+    pub stderr: String,
+    pub code: Option<i32>,
+}
+
+/// Ejecuta un subcomando arbitrario del sidecar `typst` (Beta, terminal
+/// avanzado, §7.14) — vía de escape explícita para quien prefiera trabajar con
+/// comandos, no sustituye a ningún flujo guiado de la app.
+///
+/// `args` ya llega troceado: "sin lógica adicional de parseo" es literal en el
+/// diseño (§7.14) — el frontend separa por espacios, sin intentar entender
+/// comillas ni variables de entorno. Sigue sin haber superficie de inyección
+/// nueva: los argumentos van a `Command::args()` como array, nunca a un
+/// intérprete de shell — es el mismo binario vendorizado que ya ejecutan
+/// compile/export/outline, con argumentos que el propio usuario escribe para
+/// su propio proyecto.
+#[tauri::command]
+pub async fn typst_run_raw(app: AppHandle, args: Vec<String>) -> Result<TerminalOutput, TypstError> {
+    let command = app
+        .shell()
+        .sidecar(SIDECAR)
+        .map_err(|error| TypstError::SidecarUnavailable(error.to_string()))?;
+
+    let output = command
+        .args(args)
+        .output()
+        .await
+        .map_err(|error| TypstError::ExecutionFailed(error.to_string()))?;
+
+    Ok(TerminalOutput {
+        stdout: String::from_utf8_lossy(&output.stdout).to_string(),
+        stderr: String::from_utf8_lossy(&output.stderr).to_string(),
+        code: output.status.code(),
+    })
+}
+
 /// Extrae el número de versión de la salida de `typst --version`.
 ///
 /// Función pura, testeable sin `AppHandle` ni binario real — el patrón de

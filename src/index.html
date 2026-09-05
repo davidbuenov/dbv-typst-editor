@@ -59,6 +59,7 @@
         <button id="btn-theme" class="icon-button" type="button" data-i18n-title="action.toggleTheme">
           <span id="btn-theme-icon" aria-hidden="true">◐</span>
         </button>
+        <button id="btn-terminal" class="icon-button" type="button" data-i18n-title="action.terminal">&gt;_</button>
         <button id="btn-about" class="icon-button" type="button" data-i18n-title="action.about">ⓘ</button>
       </div>
     </header>
@@ -163,6 +164,23 @@
         <p class="modal__text" id="choice-text"></p>
         <div class="modal__actions" id="choice-actions"></div>
       </div>
+    </div>
+
+    <!-- Terminal avanzado (Beta, ARCHITECTURE.md §7.14): oculto por defecto. -->
+    <div id="terminal-panel" class="floating-panel floating-panel--terminal hidden" role="dialog" aria-modal="false">
+      <div class="terminal__header">
+        <h2 class="floating-panel__title" data-i18n="terminal.title"></h2>
+        <span class="terminal__hint" data-i18n="terminal.hint"></span>
+      </div>
+      <div class="terminal__output" id="terminal-output"></div>
+      <input
+        id="terminal-input"
+        class="terminal__input"
+        type="text"
+        autocomplete="off"
+        spellcheck="false"
+        data-i18n-placeholder="terminal.placeholder"
+      />
     </div>
 
     <!-- Desplegable de citas (Beta, ARCHITECTURE.md §7.7.4). -->

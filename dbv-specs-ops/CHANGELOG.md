@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Sin publicar] / [Unreleased]
 
 ### Added
+- **Terminal avanzado (Slice 17, Beta, §7.14).** Panel oculto por defecto para ejecutar subcomandos directos del CLI de Typst contra el proyecto activo. Sin lógica de parseo (separa por espacios, tal cual pide la especificación); sin superficie de inyección nueva (mismo sidecar vendorizado, argumentos como array).
 - **Asistente "Insertar cita" con autocompletado (Slice 16, Beta, §7.7.4).** El botón "Cite" de la barra abre un desplegable filtrable con las claves reales del `.bib` del proyecto (`bibliography.rs`, escaneo ligero, sin parser BibTeX completo). Es la mejora pedida por el usuario al validar el Slice 11. 8 tests nuevos.
 - **Exportación PNG de la página actual (Slice 15, Beta, §7.12).** Botón junto a "Exportar PDF". No cubre rango de páginas ni documento completo.
 - **Panel de navegación estructural / Outline (Slice 14, Beta, §7.8).** Lista de encabezados del documento con clic→navegación a la vista previa. Lleva a producción el spike de `typst eval` del Slice 2. 6 tests nuevos.

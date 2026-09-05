@@ -54,6 +54,7 @@ pub fn run() {
             typst_engine::compile::typst_export_png,
             typst_engine::compile::typst_preview_page,
             typst_engine::outline::typst_outline,
+            typst_engine::typst_run_raw,
             typst_engine::typst_version,
             watcher::unwatch_project,
             watcher::watch_project,

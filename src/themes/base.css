@@ -266,6 +266,74 @@ body {
   font-size: 12px;
 }
 
+/* Terminal avanzado (Beta, §7.14): panel más grande y centrado, oculto por
+   defecto — es una vía de escape para usuarios avanzados, no parte del flujo
+   principal, así que no compite visualmente con el resto de la interfaz. */
+.floating-panel--terminal {
+  top: 10vh;
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+  width: min(680px, calc(100vw - 48px));
+  height: min(420px, 70vh);
+  display: flex;
+  flex-direction: column;
+}
+
+.terminal__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.terminal__hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.terminal__output {
+  flex: 1 1 auto;
+  overflow: auto;
+  margin: 8px 0;
+  padding: 8px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.terminal__line {
+  margin: 0 0 4px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.terminal__line--command {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.terminal__line--error {
+  color: var(--code-tag);
+}
+
+.terminal__input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
 .hidden {
   display: none !important;
 }

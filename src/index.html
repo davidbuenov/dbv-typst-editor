@@ -55,12 +55,27 @@
             <button class="mode-switcher__button" type="button" data-panel="editor" data-i18n-title="panel.editor">E</button>
             <button class="mode-switcher__button" type="button" data-panel="preview" data-i18n-title="panel.preview">V</button>
           </div>
-          <button id="btn-reveal" class="button button--ghost" type="button" data-i18n="action.reveal"></button>
-          <button id="btn-export-archive" class="button button--ghost" type="button" data-i18n="action.exportArchive"></button>
-          <button id="btn-close-project" class="button button--ghost" type="button" data-i18n="action.closeProject"></button>
+          <button id="btn-reveal" class="button button--ghost button--icon-label" type="button" data-i18n-title="action.reveal">
+            <svg class="button__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2.3 6.5c0-.7.5-1.2 1.2-1.2h3.1l1.3 1.6h5.4"/><path d="M2.3 6.5h11.4c.7 0 1.3.6 1.2 1.3l-.8 5.6c-.1.7-.7 1.2-1.3 1.2H3.9c-.7 0-1.2-.5-1.3-1.2L2.3 8.1"/><path d="M12.8 7.6 16.5 4M16.5 4h-3M16.5 4v3"/></svg>
+            <span data-i18n="action.revealShort"></span>
+          </button>
+          <button id="btn-export-archive" class="button button--ghost button--icon-label" type="button" data-i18n-title="action.exportArchive">
+            <svg class="button__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 6.3 4.1 3h11.8l1.1 3.3"/><rect x="3" y="6.3" width="14" height="9.7" rx="1"/><path d="M8 10h4"/></svg>
+            <span data-i18n="action.exportArchiveShort"></span>
+          </button>
+          <button id="btn-close-project" class="button button--ghost button--icon-label" type="button" data-i18n-title="action.closeProject">
+            <svg class="button__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2.3 6.5c0-.7.5-1.2 1.2-1.2h3.4l1.4 1.7h7.1c.7 0 1.3.6 1.2 1.3l-.8 5.4c-.1.7-.7 1.2-1.3 1.2H3.9c-.7 0-1.2-.5-1.3-1.2L2.3 8Z"/><path d="M8.3 9.3l3 3M11.3 9.3l-3 3"/></svg>
+            <span data-i18n="action.closeProjectShort"></span>
+          </button>
         </div>
-        <button id="btn-open-folder" class="button" type="button" data-i18n="action.openFolder"></button>
-        <button id="btn-open-file" class="button button--ghost" type="button" data-i18n="action.openFile"></button>
+        <button id="btn-open-folder" class="button button--icon-label" type="button" data-i18n-title="action.openFolder">
+          <svg class="button__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2.5 6.2c0-.7.6-1.3 1.3-1.3h3.5l1.5 1.8h7.2c.7 0 1.3.6 1.2 1.3l-.9 6.2c-.1.7-.7 1.2-1.3 1.2H4.1c-.7 0-1.2-.5-1.3-1.2L2.5 6.2Z"/></svg>
+          <span data-i18n="action.openFolderShort"></span>
+        </button>
+        <button id="btn-open-file" class="button button--ghost button--icon-label" type="button" data-i18n-title="action.openFile">
+          <svg class="button__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6.3 2.5h5l3.4 3.4V16a1 1 0 0 1-1 1H6.3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1Z"/><path d="M11.3 2.5V6h3.4"/><path d="M7.3 10h5.4M7.3 12.6h5.4"/></svg>
+          <span data-i18n="action.openFileShort"></span>
+        </button>
         <button id="btn-lang" class="icon-button" type="button" data-i18n-title="action.toggleLang">
           <span id="btn-lang-label" aria-hidden="true">ES</span>
         </button>
@@ -124,10 +139,25 @@
           <div class="document__bar">
             <span class="document__name" id="document-name">—</span>
             <span class="document__dirty hidden" id="document-dirty" data-i18n="doc.unsaved"></span>
-            <button id="btn-save" class="button button--compact" type="button" data-i18n="action.save"></button>
-            <button id="btn-save-as" class="button button--compact button--ghost" type="button" data-i18n="action.saveAs"></button>
-            <button id="btn-export-pdf" class="button button--compact button--ghost" type="button" data-i18n="action.exportPdf"></button>
-            <button id="btn-export-png" class="button button--compact button--ghost" type="button" data-i18n="action.exportPng"></button>
+            <button id="btn-save" class="button button--compact button--icon-label" type="button" data-i18n-title="action.save">
+              <svg class="button__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 3h9l3.5 3.5V16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M6.3 3v4h6.4V3"/><path d="M6 12h8v4.7H6z"/></svg>
+              <span data-i18n="action.save"></span>
+            </button>
+            <button id="btn-save-as" class="button button--compact button--ghost button--icon-label" type="button" data-i18n-title="action.saveAs">
+              <span class="button__icon-wrap">
+                <svg class="button__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 3h9l3.5 3.5V16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M6.3 3v4h6.4V3"/><path d="M6 12h8v4.7H6z"/></svg>
+                <svg class="button__icon-badge" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M13 4.5 15.5 7 7 15.5 4 16l.5-3z"/></svg>
+              </span>
+              <span data-i18n="action.saveAsShort"></span>
+            </button>
+            <button id="btn-export-pdf" class="button button--compact button--ghost button--icon-label" type="button" data-i18n-title="action.exportPdf">
+              <svg class="button__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6.3 2.5h5l3.4 3.4V16a1 1 0 0 1-1 1H6.3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1Z"/><path d="M11.3 2.5V6h3.4"/><path d="M10 9.3v5.4M7.6 12l2.4 2.4L12.4 12"/></svg>
+              <span data-i18n="action.exportPdfShort"></span>
+            </button>
+            <button id="btn-export-png" class="button button--compact button--ghost button--icon-label" type="button" data-i18n-title="action.exportPng">
+              <svg class="button__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="2.8" y="4" width="14.4" height="12" rx="1.4"/><circle cx="6.8" cy="7.8" r="1.15"/><path d="M3.6 14.2 7.2 10.4l2.8 2.8 2-2.3 3.9 3.8"/></svg>
+              <span data-i18n="action.exportPngShort"></span>
+            </button>
             <span class="document__path" id="document-path"></span>
           </div>
           <div class="toolbar" id="editor-toolbar"></div>

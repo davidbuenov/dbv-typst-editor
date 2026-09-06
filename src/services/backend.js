@@ -66,6 +66,8 @@ export const isPackagedApp = () => call('is_packaged_app');
 /** Beta, §7.6.3: crea un proyecto desde una plantilla de Typst Universe. */
 export const createProjectFromUniverse = ({ spec, parentDir, projectName }) =>
   call('create_project_from_universe', { spec, parentDir, projectName });
+/** Abre la ficha de un paquete/plantilla en typst.app/universe, sin instalarlo. */
+export const openUniversePackagePage = (spec) => call('open_universe_package_page', { spec });
 /** Documento con el que el SO ha arrancado la app (asociación de fichero `.typ`). */
 export const getStartupDocument = () => call('startup_document');
 
@@ -142,6 +144,9 @@ export const getBibliographyKeys = (root) => call('bibliography_keys', { root })
 export const copyAssetIntoProject = (projectRoot, sourcePath) =>
   call('copy_asset_into_project', { projectRoot, sourcePath });
 export const pickImageFile = () => call('pick_image_dialog');
+/** Arrastrar una fuente al proyecto (Beta, §7.10): copia a `fonts/`. */
+export const copyFontIntoProject = (projectRoot, sourcePath) =>
+  call('copy_font_into_project', { projectRoot, sourcePath });
 
 // ─── Terminal avanzado (Beta, §7.14) ──────────────────────────────────────────
 

@@ -26,6 +26,7 @@ use std::path::{Path, PathBuf};
 use std::{collections::BTreeMap, fs};
 
 use tauri::AppHandle;
+use tauri_plugin_shell::ShellExt;
 
 use crate::error::AppError;
 use crate::project::{self, Project};
@@ -154,6 +155,28 @@ pub async fn create_project_from_universe(
     project::write_manifest(&target, &manifest)?;
 
     project::describe(&target)
+}
+
+/// Abre la ficha de un paquete/plantilla en typst.app/universe con el
+/// navegador del sistema, para quien quiera leer su documentación o revisar
+/// el código antes de fiarse — sin que ese clic dispare también la
+/// instalación, que es lo que hace el resto de la tarjeta.
+///
+/// Reutiliza `parse_universe_spec` para construir la URL en vez de aceptar el
+/// nombre suelto desde el frontend: así un identificador que no pasa la
+/// validación tampoco puede colarse aquí como fragmento de URL.
+// `Shell::open` está marcado deprecado en favor de `tauri-plugin-opener`, pero
+// no arrastrar una dependencia nueva solo para un `open()` cuando ya está
+// `tauri-plugin-shell` en el árbol (Cargo.toml, requisito del sidecar) es la
+// decisión correcta aquí: sigue funcionando en 2.x y no hay plan de retirarlo.
+#[allow(deprecated)]
+#[tauri::command]
+pub fn open_universe_package_page(app: AppHandle, spec: String) -> Result<(), AppError> {
+    let parsed = parse_universe_spec(&spec)?;
+    let url = format!("https://typst.app/universe/package/{}", parsed.name);
+    app.shell()
+        .open(url, None)
+        .map_err(|error| AppError::Io(error.to_string()))
 }
 
 fn describe(error: &typst_engine::TypstError) -> String {

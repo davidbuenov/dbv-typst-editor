@@ -42,6 +42,11 @@ pub async fn pick_image_dialog(app: AppHandle) -> Option<String> {
 
 const ASSETS_DIR: &str = "images";
 
+/// Extensiones de fuente que reconoce Typst al escanear `--font-path`
+/// (ver `typst_engine::font_path_args`). No incluye `.woff`/`.woff2`: Typst
+/// no las carga, y ofrecer arrastrarlas confundiría más que ayudaría.
+const FONT_EXTENSIONS: [&str; 4] = ["ttf", "otf", "ttc", "otc"];
+
 /// Nombre de destino libre dentro de `dir`: si `file_name` ya existe, prueba
 /// `nombre-1.ext`, `nombre-2.ext`... Nunca sobrescribe una imagen que el
 /// usuario ya tuviera con ese nombre.
@@ -93,6 +98,48 @@ pub fn copy_asset_into_project(project_root: String, source_path: String) -> Res
         .and_then(|name| name.to_str())
         .ok_or_else(|| AppError::InvalidPath(source_path.clone()))?;
     let destination = unique_destination(&images_dir, file_name);
+
+    fs::copy(&source, &destination).map_err(|error| AppError::Io(error.to_string()))?;
+
+    let relative = destination.strip_prefix(&root).unwrap_or(&destination);
+    Ok(path_to_string(relative).replace('\\', "/"))
+}
+
+/// Copia `source_path` a `fonts/` dentro de `project_root` (arrastrar y
+/// soltar, Beta): esa es la carpeta que `typst_engine::font_path_args` ya
+/// sabe pasarle al compilador como `--font-path`, así que una fuente soltada
+/// aquí queda disponible en la próxima recompilación sin ningún paso más.
+///
+/// A diferencia de una imagen, una fuente no se inserta en el documento: no
+/// hay forma fiable de derivar el nombre de familia tipográfica que espera
+/// `set text(font: "...")` a partir del nombre del fichero.
+#[tauri::command]
+pub fn copy_font_into_project(project_root: String, source_path: String) -> Result<String, AppError> {
+    let root = PathBuf::from(&project_root);
+    if !root.is_dir() {
+        return Err(AppError::InvalidPath(project_root));
+    }
+    let source = PathBuf::from(&source_path);
+    if !source.is_file() {
+        return Err(AppError::NotFound(source_path));
+    }
+
+    let extension_ok = source
+        .extension()
+        .and_then(|extension| extension.to_str())
+        .is_some_and(|extension| FONT_EXTENSIONS.contains(&extension.to_ascii_lowercase().as_str()));
+    if !extension_ok {
+        return Err(AppError::InvalidPath(source_path));
+    }
+
+    let fonts_dir = root.join(crate::typst_engine::PROJECT_FONTS_DIR);
+    fs::create_dir_all(&fonts_dir).map_err(|error| AppError::Io(error.to_string()))?;
+
+    let file_name = source
+        .file_name()
+        .and_then(|name| name.to_str())
+        .ok_or_else(|| AppError::InvalidPath(source_path.clone()))?;
+    let destination = unique_destination(&fonts_dir, file_name);
 
     fs::copy(&source, &destination).map_err(|error| AppError::Io(error.to_string()))?;
 
@@ -195,5 +242,49 @@ mod tests {
             path_to_string(&project.path().join("no-existe.png")),
         );
         assert!(matches!(result, Err(AppError::NotFound(_))));
+    }
+
+    #[test]
+    fn copy_font_into_project_copia_a_fonts_y_devuelve_ruta_relativa() {
+        let project = tempfile::tempdir().unwrap();
+        let source_dir = tempfile::tempdir().unwrap();
+        let source = source_dir.path().join("MiFuente.ttf");
+        fs::write(&source, "contenido de prueba").unwrap();
+
+        let relative =
+            copy_font_into_project(path_to_string(project.path()), path_to_string(&source)).unwrap();
+
+        assert_eq!(relative, "fonts/MiFuente.ttf");
+        assert_eq!(
+            fs::read_to_string(project.path().join("fonts/MiFuente.ttf")).unwrap(),
+            "contenido de prueba"
+        );
+    }
+
+    #[test]
+    fn copy_font_into_project_rechaza_una_extension_que_no_es_de_fuente() {
+        let project = tempfile::tempdir().unwrap();
+        let source_dir = tempfile::tempdir().unwrap();
+        let source = source_dir.path().join("no-es-una-fuente.png");
+        fs::write(&source, "x").unwrap();
+
+        let result = copy_font_into_project(path_to_string(project.path()), path_to_string(&source));
+        assert!(matches!(result, Err(AppError::InvalidPath(_))));
+    }
+
+    #[test]
+    fn copy_font_into_project_no_sobrescribe_una_fuente_existente_con_el_mismo_nombre() {
+        let project = tempfile::tempdir().unwrap();
+        fs::create_dir_all(project.path().join("fonts")).unwrap();
+        fs::write(project.path().join("fonts/MiFuente.otf"), "original").unwrap();
+
+        let source_dir = tempfile::tempdir().unwrap();
+        let source = source_dir.path().join("MiFuente.otf");
+        fs::write(&source, "nuevo").unwrap();
+
+        let relative =
+            copy_font_into_project(path_to_string(project.path()), path_to_string(&source)).unwrap();
+
+        assert_eq!(relative, "fonts/MiFuente-1.otf");
     }
 }

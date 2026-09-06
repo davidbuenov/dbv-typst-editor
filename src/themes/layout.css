@@ -145,6 +145,12 @@
   gap: 12px;
 }
 
+/* Atajo al mismo panel que abre la estrella de la cabecera (§7.6), pero desde
+   donde de verdad se busca al empezar: el listado inicial de plantillas. */
+#btn-launcher-universe {
+  margin-top: 12px;
+}
+
 .template-card {
   display: flex;
   flex-direction: column;

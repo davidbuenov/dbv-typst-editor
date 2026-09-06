@@ -31,6 +31,7 @@ import { parseUniverseSpec } from './universeSpec.js';
  * @param {HTMLButtonElement} deps.tabPackagesEl
  * @param {(spec: string) => void} deps.onUseTemplate
  * @param {(spec: string) => void} deps.onUsePackage
+ * @param {(spec: string) => void} deps.onViewPackage Abre la ficha en typst.app, sin instalar nada.
  */
 export function createUniversePanel({
   templatesEl,
@@ -42,6 +43,7 @@ export function createUniversePanel({
   tabPackagesEl,
   onUseTemplate,
   onUsePackage,
+  onViewPackage,
 }) {
   /** @type {'templates'|'packages'} */
   let activeTab = 'templates';
@@ -61,9 +63,16 @@ export function createUniversePanel({
     const fragment = document.createDocumentFragment();
 
     for (const entry of entries) {
-      const card = document.createElement('button');
-      card.type = 'button';
+      // La tarjeta ya NO es el propio botón: un botón dentro de otro botón
+      // (el enlace "ver en typst.app" frente al cuerpo que instala) no es
+      // válido en HTML ni accesible, así que la tarjeta es un contenedor y
+      // cada acción es su propio botón, hermano del otro.
+      const card = document.createElement('div');
       card.className = 'universe-card';
+
+      const body = document.createElement('button');
+      body.type = 'button';
+      body.className = 'universe-card__body';
 
       const title = document.createElement('span');
       title.className = 'universe-card__title';
@@ -79,8 +88,24 @@ export function createUniversePanel({
       meta.className = 'universe-card__meta';
       meta.textContent = `${entry.spec} · ${entry.license}`;
 
-      card.append(title, description, meta);
-      card.addEventListener('click', () => onUse(entry.spec));
+      body.append(title, description, meta);
+      body.addEventListener('click', () => onUse(entry.spec));
+
+      const link = document.createElement('button');
+      link.type = 'button';
+      link.className = 'universe-card__link';
+      link.title = t('universe.viewOnline');
+      link.setAttribute('aria-label', t('universe.viewOnline'));
+      link.textContent = '↗';
+      // `stopPropagation` no bastaría por sí solo (el body es hermano, no
+      // ancestro), pero evita que un futuro cambio de estructura reintroduzca
+      // el disparo doble si alguien anida esto de nuevo.
+      link.addEventListener('click', (event) => {
+        event.stopPropagation();
+        onViewPackage(entry.spec);
+      });
+
+      card.append(body, link);
       fragment.append(card);
     }
 

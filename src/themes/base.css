@@ -414,24 +414,62 @@ body {
 }
 
 .universe-card {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  position: relative;
   padding: 12px;
-  text-align: left;
   background: var(--bg-primary);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  color: inherit;
-  font-family: inherit;
-  cursor: pointer;
   transition: border-color var(--transition), transform var(--transition);
 }
 
 .universe-card:hover,
-.universe-card:focus-visible {
+.universe-card:focus-within {
   border-color: var(--accent);
   transform: translateY(-1px);
+}
+
+.universe-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  padding: 0;
+  padding-right: 22px;
+  text-align: left;
+  background: none;
+  border: none;
+  color: inherit;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.universe-card__body:focus-visible {
+  outline: none;
+}
+
+.universe-card__link {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.universe-card__link:hover,
+.universe-card__link:focus-visible {
+  color: var(--accent);
+  background: var(--bg-secondary);
   outline: none;
 }
 

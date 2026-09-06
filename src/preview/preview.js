@@ -44,6 +44,28 @@ const PAGE_REFERENCE_WIDTH_PX = 920;
 /** `.preview__pages` tiene `padding: 16px` a cada lado (`layout.css`). */
 const PAGES_PADDING_PX = 32;
 
+/** Reconoce el aviso de Typst para una familia tipográfica no instalada. */
+const MISSING_FONT_PATTERN = /unknown font family:\s*"?([^"\n]+?)"?\s*$/gim;
+
+/**
+ * Antepone, cuando aplica, un aviso legible sobre fuentes que faltan en el
+ * sistema al texto crudo del compilador — que ya usa este mismo nombre de
+ * familia en su propio warning, pero perdido entre coordenadas de fichero y
+ * columna que solo tienen sentido para quien conoce el código fuente del
+ * paquete, no para quien solo quiere saber qué instalar.
+ */
+function withFontHint(warnings) {
+  const names = new Set();
+  for (const match of warnings.matchAll(MISSING_FONT_PATTERN)) {
+    names.add(match[1].trim());
+  }
+  if (names.size === 0) return warnings;
+
+  const label = names.size === 1 ? t('preview.missingFontsOne') : t('preview.missingFontsMany');
+  const hint = `${label} ${[...names].join(', ')}. ${t('preview.missingFontsHint')}`;
+  return `${hint}\n\n${warnings}`;
+}
+
 function readStoredZoom() {
   try {
     const stored = Number(localStorage.getItem(ZOOM_STORAGE_KEY));
@@ -248,7 +270,7 @@ export function createPreview({ pagesEl, bandEl, bandSplitterEl, statusEl, zoomL
 
     if (!result.ok) {
       // Última vista buena: no se toca `pagesEl`.
-      showBand(result.error.message || t('preview.error'));
+      showBand(withFontHint(result.error.message || t('preview.error')));
       setStatus('preview.failed');
       return;
     }
@@ -263,7 +285,7 @@ export function createPreview({ pagesEl, bandEl, bandSplitterEl, statusEl, zoomL
     // Recompilar no debe mover al lector de donde estaba leyendo.
     pagesEl.scrollTop = scrollTop;
 
-    if (outcome.warnings.trim()) showBand(outcome.warnings.trim());
+    if (outcome.warnings.trim()) showBand(withFontHint(outcome.warnings.trim()));
     else hideBand();
     setStatus('preview.pages', String(pageCount));
   }

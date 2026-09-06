@@ -28,12 +28,14 @@ import { createProjectTree } from './project-explorer/projectTree.js';
 import { createWizard } from './project-wizard/wizard.js';
 import {
   copyAssetIntoProject,
+  copyFontIntoProject,
   getAppInfo,
   isPackagedApp,
   getStartupDocument,
   getTypstVersion,
   importProjectArchive,
   on,
+  openUniversePackagePage,
   pickArchiveFile,
   pickProjectFolder,
   pickSaveTarget,
@@ -185,6 +187,38 @@ function wireImageDrop(workspace, editorHostEl, notify) {
   });
 }
 
+/**
+ * Arrastrar una fuente al proyecto (petición de sesión de uso real): mismo
+ * mecanismo que `wireImageDrop`, pero sin insertar nada en el documento — una
+ * fuente no se "usa" en el punto donde se suelta, solo queda disponible para
+ * `set text(font: "...")` en cualquier parte del proyecto, así que no importa
+ * dónde de la ventana caiga ni cuántos ficheros vengan en el mismo soltado.
+ */
+function wireFontDrop(workspace, notify) {
+  const FONT_EXTENSIONS = /\.(ttf|otf|ttc|otc)$/i;
+
+  async function handleDrop(fontPaths) {
+    const added = [];
+    for (const fontPath of fontPaths) {
+      const result = await copyFontIntoProject(workspace.state.project.root, fontPath);
+      if (result.ok) added.push(result.value);
+    }
+    if (added.length === 0) {
+      notify(t('asset.fontCopyFailed'), 'error');
+      return;
+    }
+    const label = added.length === 1 ? t('asset.fontAdded') : t('asset.fontsAdded');
+    notify(`${label} ${added.join(', ')}`);
+  }
+
+  getCurrentWebview().onDragDropEvent((event) => {
+    if (event.payload.type !== 'drop' || !workspace.state.project) return;
+
+    const fontPaths = event.payload.paths.filter((path) => FONT_EXTENSIONS.test(path));
+    if (fontPaths.length > 0) handleDrop(fontPaths);
+  });
+}
+
 function wireLanguageToggle() {
   const label = el('btn-lang-label');
   label.textContent = getLanguage().toUpperCase();
@@ -272,6 +306,7 @@ async function bootstrap() {
   wireThemeToggle((theme) => workspace.setTheme(theme));
   wirePanelSwitcher(el('workspace-view'));
   wireImageDrop(workspace, el('editor-host'), toast.show);
+  wireFontDrop(workspace, toast.show);
 
   const preview = createPreview({
     pagesEl: el('preview-pages'),
@@ -345,7 +380,7 @@ async function bootstrap() {
   // normal (solo pedirá nombre y ubicación: las de Universe no traen
   // formulario); el paquete es una transacción del editor.
   const universePanel = registerPanel(el('universe-panel'), {
-    trigger: el('btn-universe'),
+    trigger: [el('btn-universe'), el('btn-launcher-universe')],
     toggle: true,
   });
   el('btn-universe-close').addEventListener('click', universePanel.close);
@@ -376,6 +411,10 @@ async function bootstrap() {
       view.focus();
       universePanel.close();
       toast.show(`${t('universe.imported')} ${spec}`);
+    },
+    onViewPackage: async (spec) => {
+      const result = await openUniversePackagePage(spec);
+      if (!result.ok) toast.show(t('universe.viewOnlineFailed'), 'error');
     },
   });
 

@@ -17,6 +17,7 @@
 
 - [Sobre el proyecto](#-sobre-el-proyecto)
 - [Estado actual](#-estado-actual)
+- [Descárgalo e instálalo](#-descárgalo-e-instálalo)
 - [Público objetivo](#-público-objetivo)
 - [Funcionalidades del MVP](#-funcionalidades-del-mvp)
 - [Requisitos](#-requisitos)
@@ -47,6 +48,52 @@ Sigue la misma filosofía que su proyecto hermano [DBV Markdown Reader](https://
 `v0.3.0` — MVP completo más buena parte de Beta: además del bucle completo (crear proyecto → escribir con resaltado Typst → ver el PDF actualizarse solo → guardar → exportar), incluye Typst Universe (plantillas y paquetes de la comunidad, con detección de fuentes que faltan y arrastrar-y-soltar para añadirlas), Project Archive `.dbvt`, barra de herramientas de inserción del editor (con búsqueda y reemplazo), outline, terminal avanzado, modos de escritura, gestión de imágenes/citas/bibliografía por asistente, actualizador automático e instancia única. Tres temas — claro, oscuro y sepia — con selector segmentado. Validado a mano en la aplicación real (3 bugs de raíz encontrados y corregidos en esta versión) y con 223 tests automáticos en verde (99 de frontend + 124 de backend). Dos tags de versión creados (`v0.2.0`, `v0.3.0`); todavía no hay Release publicada en GitHub — el primer push con tag falló en los tres workflows de CI/Release por un bug de un test preexistente (ya corregido).
 
 La documentación de especificación y arquitectura vive en [`dbv-specs-ops/`](./dbv-specs-ops/) y se actualiza en cada fase del ciclo Spec-Driven Development.
+
+---
+
+## 🚀 Descárgalo e instálalo
+
+**No necesitas instalar Rust, Node.js, ni ninguna herramienta de programación.** El instalador trae todo lo necesario —incluido el compilador Typst— y asocia los archivos `.typ` contigo.
+
+### 🪟 Windows
+
+#### 🏬 Microsoft Store *(en proceso de publicación)*
+
+Identidad ya reservada en Partner Center; en cuanto la ficha esté aprobada, el enlace directo se añadirá aquí. Mientras tanto, usa el instalador `.exe` de abajo — funciona exactamente igual.
+
+#### 1️⃣ Descarga
+
+**[⬇️ Ver todas las versiones (Releases)](https://github.com/davidbuenov/dbv-typst-editor/releases)**
+
+Descarga el instalador de la última versión: `DBV Typst Editor_x.y.z_x64-setup.exe`.
+
+El navegador puede avisar de que el archivo "no se descarga habitualmente" (SmartScreen). Es normal en instaladores nuevos sin firma comercial: en Edge, abre el panel de descargas y pulsa **Mostrar más → Mantener**.
+
+#### 2️⃣ Instala
+
+Doble clic sobre el instalador. No requiere permisos de administrador ni conexión a internet durante la instalación — el compilador Typst ya viaja incluido. Windows puede mostrar un aviso de "Editor no reconocido" — pulsa **Más información → Ejecutar de todas formas**.
+
+#### 3️⃣ Actualiza
+
+Abre el panel **Acerca de** (icono ⓘ) y pulsa **Buscar actualizaciones** — la comprobación es siempre bajo demanda, nunca se ejecuta sola al arrancar. Este mecanismo solo aplica a la instalación por `.exe`; una instalación desde Microsoft Store se actualiza sola vía Windows Update.
+
+### 🐧 Linux
+
+**[⬇️ Descarga el `.deb` o el `.AppImage` desde Releases](https://github.com/davidbuenov/dbv-typst-editor/releases)** — se generan automáticamente en cada versión vía CI.
+
+- **`.deb` (Debian, Ubuntu, Linux Mint y derivadas):** `sudo dpkg -i "DBV Typst Editor_x.y.z_amd64.deb"` (o doble clic desde el gestor de archivos).
+- **`.AppImage` (cualquier distribución):** `chmod +x "DBV Typst Editor_x.y.z_amd64.AppImage"` y ejecútalo directamente. Portátil, sin instalación.
+
+> El canal de Linux no tiene comprobación de actualizaciones integrada — descarga la versión nueva desde Releases cuando quieras actualizar.
+
+### 🍎 macOS
+
+**[⬇️ Descarga el `.dmg` desde Releases](https://github.com/davidbuenov/dbv-typst-editor/releases)** — build universal (Apple Silicon + Intel), generado automáticamente vía CI.
+
+No está firmado ni notarizado (requeriría una cuenta Apple Developer de pago). macOS lo bloqueará la primera vez:
+
+- Clic derecho sobre `DBV Typst Editor.app` → **Abrir** → confirmar en el diálogo.
+- O desde la Terminal: `xattr -cr "DBV Typst Editor.app"` antes de abrirlo.
 
 ---
 
@@ -197,15 +244,24 @@ npm run build
 # Solo Windows: variante con el instalador de WebView2 embebido (~268 MB), para
 # equipos sin WebView2 y sin conexión — aulas aisladas, por ejemplo
 npm run build:win:offline
+
+# Solo Windows, con TAURI_SIGNING_PRIVATE_KEY/_PASSWORD puestas: genera el
+# manifiesto de actualización a partir del .exe firmado que acaba de compilar
+npm run updater:manifest
+
+# Solo Windows, sobre el .exe ya compilado: genera el .msix para Microsoft Store
+npm run tauri:windows:build
 ```
 
 | Plataforma | Quién compila | Release |
 | --- | --- | --- |
-| **Windows** | El mantenedor, en local (`npm run build`) | Sube el `.exe` al borrador de Release a mano |
+| **Windows** | El mantenedor, en local (`npm run build`, requiere la clave de firma del actualizador) | Sube el `.exe` + `.sig` + `latest.json` al borrador de Release a mano; el `.msix` se sube aparte a Partner Center |
 | **Linux** | GitHub Actions (`release-linux.yml`) al empujar un tag `vX.Y.Z` | Adjunta AppImage y `.deb` al borrador automáticamente |
-| **macOS** | Fuera del MVP | — |
+| **macOS** | GitHub Actions (`release-macos.yml`), build universal | Adjunta `.dmg` al borrador automáticamente |
 
 El workflow vendoriza el compilador Typst antes de empaquetar y **falla de forma explícita si falta**: un instalador sin compilador dentro no serviría de nada. Cada push ejecuta además el workflow `ci.yml` con los tests, el build del frontend y las dos verificaciones contra el compilador real.
+
+Preparación para Microsoft Store documentada en [`dbv-specs-ops/docs/MICROSOFT_STORE.md`](./dbv-specs-ops/docs/MICROSOFT_STORE.md).
 
 ---
 

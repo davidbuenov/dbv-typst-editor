@@ -21,7 +21,16 @@
 //   node scripts/updater-manifest.mjs [--notes "Texto de la versión"]
 //
 // Deja `latest.json` en la raíz del proyecto, listo para subirlo a la Release
-// JUNTO al `.nsis.zip` (el actualizador descarga ese zip, no el instalador).
+// JUNTO al instalador (`-setup.exe`) y su `.sig`.
+//
+// CORRECCIÓN (2026-09-06, primer build de Windows real de todo el proyecto):
+// esta cabecera y el código de más abajo asumían que `createUpdaterArtifacts`
+// envuelve el instalador en un `.nsis.zip` con su propio `.sig` — cierto solo
+// en el modo `v1Compatible`, ya no en el por defecto de Tauri v2 (CLI 2.11.x),
+// que firma directamente el `-setup.exe` sin envolverlo en zip. Nunca se había
+// detectado porque ningún build de Windows había llegado a ejecutarse antes de
+// hoy — el mismo patrón que el bug de CI del `/ship` anterior (código que solo
+// se prueba de verdad la primera vez que se ejecuta contra el sistema real).
 
 import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -46,16 +55,18 @@ if (!existsSync(BUNDLE_DIR)) {
   );
 }
 
-// El artefacto de actualización es el `.nsis.zip`, no el `-setup.exe`: el
-// instalador es para la primera instalación, el zip es lo que descarga y
-// aplica el actualizador.
+// El artefacto de actualización es el propio `-setup.exe` (ver corrección de
+// cabecera): se filtra por la versión actual porque `target/release/bundle/`
+// no se limpia entre builds y puede arrastrar instaladores de versiones
+// anteriores con el mismo sufijo `.exe.sig`.
 const entries = readdirSync(BUNDLE_DIR);
-const archive = entries.find((name) => name.endsWith('.nsis.zip'));
-const signature = entries.find((name) => name.endsWith('.nsis.zip.sig'));
+const versionTag = `_${version}_`;
+const archive = entries.find((name) => name.endsWith('-setup.exe') && name.includes(versionTag));
+const signature = entries.find((name) => name.endsWith('-setup.exe.sig') && name.includes(versionTag));
 
 if (!archive || !signature) {
   fail(
-    'No se ha encontrado el artefacto de actualización (.nsis.zip + .sig)',
+    `No se ha encontrado el artefacto de actualización de la versión ${version} (-setup.exe + .sig)`,
     'Comprueba que `createUpdaterArtifacts` sigue en true y que el build tenía la clave de firma.'
   );
 }
@@ -86,5 +97,5 @@ console.log(`\nManifiesto de actualización para v${version}\n`);
 console.log(`  Artefacto  ${archive}`);
 console.log(`  Firma      ${signature} (${signatureContent.length} caracteres)`);
 console.log(`  Escrito    ${outPath}\n`);
-console.log('  Súbelo a la Release de GitHub junto al .nsis.zip y al instalador.');
+console.log('  Súbelo a la Release de GitHub junto al instalador (-setup.exe) y su .sig.');
 console.log('  El actualizador lo busca en releases/latest/download/latest.json\n');

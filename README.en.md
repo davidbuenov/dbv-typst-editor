@@ -17,6 +17,7 @@
 
 - [About](#-about)
 - [Current status](#-current-status)
+- [Download and install](#-download-and-install)
 - [Target audience](#-target-audience)
 - [Planned features (MVP)](#-planned-features-mvp)
 - [Requirements](#-requirements)
@@ -45,6 +46,26 @@ It follows the same philosophy as its sibling project [DBV Markdown Reader](http
 `v0.3.0` — MVP complete plus a good part of Beta: besides the full loop (create a project → write with Typst syntax highlighting → watch the PDF update on its own → save → export), it includes Typst Universe (community templates and packages, with missing-font detection and drag-and-drop to add them), Project Archive `.dbvt`, the editor's insertion toolbar (with find and replace), outline, advanced terminal, writing modes, image/citation/bibliography assistants, an automatic updater and single-instance behavior. Three themes — light, dark and sepia — with a segmented selector. Manually validated in the real app (3 root-cause bugs found and fixed in this version), with 223 automated tests passing (99 frontend + 124 backend). Two version tags created (`v0.2.0`, `v0.3.0`); no GitHub Release published yet — the first tagged push failed all three CI/Release workflows due to a pre-existing test bug (now fixed). Specification and architecture documentation lives in [`dbv-specs-ops/`](./dbv-specs-ops/) and is updated at every phase of the Spec-Driven Development cycle.
 
 > This English README lags behind the Spanish one in some sections below (a known, pre-existing gap) — [`README.md`](./README.md) is the more current reference until it's caught up.
+
+---
+
+## 🚀 Download and install
+
+**No need to install Rust, Node.js, or any programming tool.** The installer bundles everything required — including the Typst compiler — and associates `.typ` files for you.
+
+### 🪟 Windows
+
+**[⬇️ See all versions (Releases)](https://github.com/davidbuenov/dbv-typst-editor/releases)** — download `DBV Typst Editor_x.y.z_x64-setup.exe`. *(Microsoft Store listing in progress — identity already reserved in Partner Center.)*
+
+Your browser may warn that the file "isn't commonly downloaded" (SmartScreen) — this is normal for new installers without a commercial signature. Double-click to install (no admin rights or internet connection required), then check for updates any time from the "About" panel (ⓘ icon) — never automatic on launch.
+
+### 🐧 Linux
+
+**[⬇️ Download the `.deb` or `.AppImage` from Releases](https://github.com/davidbuenov/dbv-typst-editor/releases)** — built automatically on every version via CI.
+
+### 🍎 macOS
+
+**[⬇️ Download the `.dmg` from Releases](https://github.com/davidbuenov/dbv-typst-editor/releases)** — universal build (Apple Silicon + Intel), built automatically via CI. Unsigned and unnotarized: right-click the app → **Open** to bypass Gatekeeper the first time, or run `xattr -cr "DBV Typst Editor.app"` from Terminal.
 
 ---
 

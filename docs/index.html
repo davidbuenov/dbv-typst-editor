@@ -10,12 +10,16 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>DBV Typst Editor — Editor de escritorio para Typst</title>
-  <meta name="description" content="Editor de escritorio nativo para Typst: plantillas académicas, vista previa PDF en tiempo real, 100% local y sin conexión. Windows." />
+  <meta name="description" content="Editor de escritorio nativo para Typst: plantillas académicas, vista previa PDF en tiempo real, 100% local y sin conexión. Windows, macOS y Linux." />
 
   <meta property="og:title" content="DBV Typst Editor — Editor de escritorio para Typst" />
   <meta property="og:description" content="Crea tu TFG, TFM, tesis o artículo desde una plantilla, escribe con vista previa PDF en tiempo real. Gratis y de código abierto." />
+  <meta property="og:image" content="https://davidbuenov.github.io/dbv-typst-editor/images/og-image.jpg" />
+  <meta property="og:image:width" content="1920" />
+  <meta property="og:image:height" content="1080" />
   <meta property="og:type" content="website" />
-  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:image" content="https://davidbuenov.github.io/dbv-typst-editor/images/og-image.jpg" />
 
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22><text y=%2220%22 font-size=%2220%22>📝</text></svg>" />
   <link rel="stylesheet" href="styles.css" />
@@ -32,6 +36,7 @@
       </a>
       <nav class="nav-links">
         <a href="#features">Características</a>
+        <a href="#gallery">Galería</a>
         <a href="#templates">Plantillas</a>
         <a href="#download">Descargar</a>
         <a href="https://github.com/davidbuenov/dbv-typst-editor" class="nav-github" target="_blank" rel="noopener">
@@ -49,7 +54,7 @@
     <!-- ─── Hero ─────────────────────────────────────────────────────────── -->
     <section class="hero">
       <div class="hero-inner">
-        <p class="hero-eyebrow">Gratis · Código abierto · Windows · Español/English</p>
+        <p class="hero-eyebrow">Gratis · Código abierto · Windows, macOS y Linux · Español/English</p>
         <h1>El entorno de escritorio más accesible para Typst</h1>
         <p class="hero-sub">
           Crea tu TFG, TFM, tesis o artículo desde una plantilla académica y escribe
@@ -58,52 +63,29 @@
         </p>
         <div class="hero-ctas">
           <a href="https://github.com/davidbuenov/dbv-typst-editor/releases/latest" class="btn btn-primary btn-lg" target="_blank" rel="noopener">
-            ⬇️ Descargar para Windows
+            ⬇️ Descargar (Windows, macOS, Linux)
           </a>
           <a href="https://github.com/davidbuenov/dbv-typst-editor" class="btn btn-ghost btn-lg" target="_blank" rel="noopener">
             Ver código en GitHub
           </a>
         </div>
-        <p class="hero-note">Windows 10/11 (.exe, también próximamente en Microsoft Store) · Sin cuenta, sin publicidad, sin telemetría · Un proyecto creado aquí es un proyecto Typst normal, sin ataduras</p>
+        <p class="hero-note">Disponible para Windows 10/11 (.exe y Microsoft Store), macOS (.dmg universal) y Linux (.AppImage, .deb) · Sin cuentas, sin publicidad, sin telemetría · Un proyecto creado aquí es un proyecto Typst normal, sin ataduras</p>
       </div>
 
       <div class="hero-shot">
         <div class="window-frame">
           <div class="window-titlebar">
             <span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>
-            <span class="window-title">tfg.typ — DBV Typst Editor</span>
+            <span class="window-title">main.typ — DBV Typst Editor</span>
           </div>
-          <div class="editor-mock" role="img" aria-label="Ilustración de la interfaz: a la izquierda, código Typst con resaltado de sintaxis; a la derecha, el PDF compuesto en tiempo real con título, párrafos y una ecuación">
-            <div class="editor-mock__code"><span class="tok-fn">#import</span> <span class="tok-str">"@preview/charged-ieee:0.1.4"</span>: ieee
-
-<span class="tok-fn">#show</span>: ieee.<span class="tok-fn">with</span>(
-  title: <span class="tok-str">"Difusión de calor
-    en materiales porosos"</span>,
-)
-
-<span class="tok-cm">// Introducción</span>
-<span class="tok-hd">= Introducción</span>
-
-La ecuación que describe el
-fenómeno es
-
-<span class="tok-eq">$ (diff u) / (diff t)
-  = alpha nabla^2 u $</span>
-
-<span class="tok-fn">#cite</span>(<span class="tok-str">&lt;fourier1822&gt;</span>)</div>
-            <div class="editor-mock__preview">
-              <div class="pdf-page">
-                <div class="pdf-title"></div>
-                <div class="pdf-line"></div>
-                <div class="pdf-line"></div>
-                <div class="pdf-line short"></div>
-                <div class="pdf-eq">∂u / ∂t = α∇²u</div>
-                <div class="pdf-line"></div>
-                <div class="pdf-line"></div>
-                <div class="pdf-line short"></div>
-              </div>
-            </div>
-          </div>
+          <img
+            src="screenshots/01-editor-live-preview.png"
+            alt="DBV Typst Editor — Interfaz en tiempo real con editor de código Typst y vista previa de tesis PDF"
+            class="hero-screenshot"
+            width="1906"
+            height="1073"
+            loading="eager"
+          />
         </div>
       </div>
     </section>
@@ -112,7 +94,8 @@ fenómeno es
     <section class="stats">
       <div class="stats-inner">
         <div class="stat"><span class="stat-num">8</span><span class="stat-label">Plantillas académicas</span></div>
-        <div class="stat"><span class="stat-num">100%</span><span class="stat-label">Local, sin conexión</span></div>
+        <div class="stat"><span class="stat-num">+1.500</span><span class="stat-label">Paquetes Typst Universe</span></div>
+        <div class="stat"><span class="stat-num">100%</span><span class="stat-label">Local y sin conexión</span></div>
         <div class="stat"><span class="stat-num">0</span><span class="stat-label">Telemetría</span></div>
         <div class="stat"><span class="stat-num">MIT</span><span class="stat-label">Licencia libre</span></div>
       </div>
@@ -163,9 +146,9 @@ fenómeno es
           </article>
 
           <article class="feature-card">
-            <div class="feature-icon">🖼️</div>
-            <h3>Imágenes por arrastre</h3>
-            <p>Suelta una imagen sobre el editor: se copia al proyecto y se inserta la figura con su pie, sin duplicados.</p>
+            <div class="feature-icon">📁</div>
+            <h3>Imágenes, carpetas y fuentes por arrastre</h3>
+            <p>Arrastra imágenes (se insertan con su pie), carpetas enteras de proyectos o tipografías <code>.otf/.ttf</code> a <code>fonts/</code> para que viajen con tu documento.</p>
           </article>
 
           <article class="feature-card">
@@ -177,7 +160,7 @@ fenómeno es
           <article class="feature-card">
             <div class="feature-icon">✦</div>
             <h3>Typst Universe integrado</h3>
-            <p>Plantillas y paquetes de la comunidad, con la licencia visible antes de instalar nada.</p>
+            <p>Plantillas y paquetes de la comunidad (+1.500), con la licencia visible antes de instalar nada.</p>
           </article>
 
           <article class="feature-card">
@@ -220,6 +203,89 @@ fenómeno es
       </div>
     </section>
 
+    <!-- ─── Showcase / Galería ───────────────────────────────────────────── -->
+    <section class="showcase" id="gallery">
+      <div class="showcase-inner">
+        <h2>Capturas reales de la aplicación</h2>
+        <p class="section-sub">Haz clic sobre cualquier imagen para ampliarla en detalle. Un entorno visual cuidado para que escribir documentos científicos sea un placer.</p>
+        <div class="showcase-grid">
+
+          <article class="showcase-card">
+            <img src="screenshots/01-editor-live-preview.png" alt="Vista dividida con editor y vista previa PDF en tiempo real" class="zoomable" loading="lazy" />
+            <div class="showcase-body">
+              <h3>Vista dividida en tiempo real</h3>
+              <p>Escribe con resaltado nativo de Typst y contempla cómo tus fórmulas matemáticas, definiciones y algoritmos se componen página a página sin pulsar ningún botón.</p>
+            </div>
+          </article>
+
+          <article class="showcase-card">
+            <img src="screenshots/02-outline-navigation-cover.png" alt="Panel de esquema estructural y portada institucional universitaria" class="zoomable" loading="lazy" />
+            <div class="showcase-body">
+              <h3>Esquema estructural y portadas oficiales</h3>
+              <p>Navega al instante por los encabezados de tu TFG o tesis y genera portadas institucionales con escudos y estructura académica normalizada.</p>
+            </div>
+          </article>
+
+          <article class="showcase-card">
+            <img src="screenshots/03-launcher-academic-templates.png" alt="Lanzador inicial con 8 plantillas académicas en Tema Oscuro" class="zoomable" loading="lazy" />
+            <div class="showcase-body">
+              <h3>Lanzador con 8 plantillas académicas</h3>
+              <p>Elige entre TFG, TFM, tesis doctoral, artículo científico, informe técnico, presentación 16:9, CV o proyecto en blanco con un asistente guiado.</p>
+            </div>
+          </article>
+
+          <article class="showcase-card">
+            <img src="screenshots/05-toolbar-citations-autocomplete.png" alt="Barra de herramientas y asistente de citas BibTeX con autocompletado" class="zoomable" loading="lazy" />
+            <div class="showcase-body">
+              <h3>Barra de inserción y citas BibTeX</h3>
+              <p>Filtra claves de tu archivo <code>.bib</code> en tiempo real e inserta ecuaciones, símbolos matemáticos (Σ), tablas y figuras sin memorizar comandos.</p>
+            </div>
+          </article>
+
+          <article class="showcase-card">
+            <img src="screenshots/07-universe-packages.png" alt="Catálogo de paquetes de Typst Universe (cetz, touying, fletcher...)" class="zoomable" loading="lazy" />
+            <div class="showcase-body">
+              <h3>Typst Universe: más de 1.500 paquetes</h3>
+              <p>Explora e incorpora paquetes oficiales y comunitarios (diagramas con cetz, presentaciones con touying, tablas con tablem) con su licencia visible.</p>
+            </div>
+          </article>
+
+          <article class="showcase-card">
+            <img src="screenshots/06-universe-templates.png" alt="Plantillas comunitarias de Typst Universe (IEEE, ACM, Springer...)" class="zoomable" loading="lazy" />
+            <div class="showcase-body">
+              <h3>Typst Universe: plantillas comunitarias</h3>
+              <p>Inicia artículos formateados para conferencias y revistas internacionales (IEEE, ACM acmart, Springer) con un solo clic.</p>
+            </div>
+          </article>
+
+          <article class="showcase-card">
+            <img src="screenshots/04-launcher-sepia-theme.png" alt="Tema Sepia cálido para descanso visual e interfaz bilingüe" class="zoomable" loading="lazy" />
+            <div class="showcase-body">
+              <h3>Tema Sepia cálido y selector de idioma</h3>
+              <p>Diseñado para largas jornadas de lectura y redacción. Cambia al instante entre tema Claro, Oscuro y Sepia, y alterna entre español e inglés.</p>
+            </div>
+          </article>
+
+          <article class="showcase-card">
+            <img src="screenshots/08-embedded-project-fonts.png" alt="Explorador de archivos con fuentes tipográficas propias en fonts/" class="zoomable" loading="lazy" />
+            <div class="showcase-body">
+              <h3>Fuentes que viajan con el proyecto</h3>
+              <p>La carpeta <code>fonts/</code> viaja dentro de tu proyecto y en el archivo <code>.dbvt</code>: tu documento se compone con exactamente los mismos glifos en cualquier PC.</p>
+            </div>
+          </article>
+
+          <article class="showcase-card">
+            <img src="screenshots/09-typst-cli-terminal.png" alt="Terminal flotante integrado ejecutando el compilador Typst 0.15" class="zoomable" loading="lazy" />
+            <div class="showcase-body">
+              <h3>Terminal integrado de Typst</h3>
+              <p>Vía de escape opcional para usuarios avanzados que deseen ejecutar subcomandos directos del compilador Typst 0.15 sin salir de la ventana.</p>
+            </div>
+          </article>
+
+        </div>
+      </div>
+    </section>
+
     <!-- ─── Plantillas ───────────────────────────────────────────────────── -->
     <section class="templates" id="templates">
       <div class="templates-inner">
@@ -234,6 +300,7 @@ fenómeno es
           <div class="template-chip"><strong>Presentación</strong><span>Diapositivas 16:9 nativas de Typst</span></div>
           <div class="template-chip"><strong>Currículum</strong><span>Una página, listo para exportar a PDF</span></div>
           <div class="template-chip"><strong>Proyecto en blanco</strong><span>Sin nada predefinido, para empezar libre</span></div>
+          <div class="template-chip template-chip--universe"><strong>✦ Typst Universe (+1.500)</strong><span>Plantillas y paquetes comunitarios (IEEE, ACM, Springer, apuntes...) con un solo clic</span></div>
         </div>
       </div>
     </section>
@@ -246,7 +313,7 @@ fenómeno es
           <div class="step">
             <span class="step-num">1</span>
             <h3>Descarga e instala</h3>
-            <p>Instalador <code>.exe</code> para Windows desde la página de Releases. Doble clic, sin necesidad de Rust, Node ni ninguna herramienta de programación.</p>
+            <p>Instaladores listos para Windows (.exe y Microsoft Store), macOS (.dmg universal) y Linux (.AppImage, .deb) desde la página de Releases. Sin compilar ni configurar dependencias.</p>
           </div>
           <div class="step">
             <span class="step-num">2</span>
@@ -266,10 +333,10 @@ fenómeno es
     <section class="cta" id="download">
       <div class="cta-inner">
         <h2>Pruébalo — no cuesta nada</h2>
-        <p>Gratis, de código abierto y sin ataduras. Si algo falla, abre un issue en GitHub.</p>
+        <p>Gratis, de código abierto y sin ataduras. Para Windows, macOS y Linux.</p>
         <div class="hero-ctas">
           <a href="https://github.com/davidbuenov/dbv-typst-editor/releases/latest" class="btn btn-primary btn-lg" target="_blank" rel="noopener">
-            ⬇️ Descargar para Windows
+            ⬇️ Descargar (Windows, macOS, Linux)
           </a>
           <a href="https://github.com/davidbuenov/dbv-typst-editor/releases" class="btn btn-ghost btn-lg" target="_blank" rel="noopener">
             Ver todas las versiones
@@ -307,6 +374,56 @@ fenómeno es
       <p>Licencia MIT · © 2026 David Bueno Vallejo</p>
     </div>
   </footer>
+
+  <!-- ─── Lightbox Modal ────────────────────────────────────────────────── -->
+  <div id="lightbox" class="lightbox hidden" role="dialog" aria-modal="true" aria-label="Visualizador de capturas">
+    <div class="lightbox-container">
+      <button class="lightbox-close" id="lightbox-close" aria-label="Cerrar">&times;</button>
+      <img id="lightbox-img" class="lightbox-img" src="" alt="" />
+      <p id="lightbox-caption" class="lightbox-caption"></p>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      const lb = document.getElementById('lightbox');
+      const lbImg = document.getElementById('lightbox-img');
+      const lbCap = document.getElementById('lightbox-caption');
+      const lbClose = document.getElementById('lightbox-close');
+
+      function openLightbox(src, alt) {
+        lbImg.src = src;
+        lbImg.alt = alt || '';
+        lbCap.textContent = alt || '';
+        lb.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+      }
+
+      function closeLightbox() {
+        lb.classList.add('hidden');
+        lbImg.src = '';
+        document.body.style.overflow = '';
+      }
+
+      document.querySelectorAll('.showcase-card img, .hero-screenshot').forEach(function(img) {
+        img.addEventListener('click', function() {
+          openLightbox(this.currentSrc || this.src, this.alt);
+        });
+      });
+
+      lbClose.addEventListener('click', closeLightbox);
+      lb.addEventListener('click', function(e) {
+        if (e.target === lb || e.target.classList.contains('lightbox-container')) {
+          closeLightbox();
+        }
+      });
+      window.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && !lb.classList.contains('hidden')) {
+          closeLightbox();
+        }
+      });
+    })();
+  </script>
 
 </body>
 </html>

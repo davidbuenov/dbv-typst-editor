@@ -20,7 +20,8 @@
     "verify:layout": "node scripts/verify-layout.mjs",
     "test:frontend": "vitest run",
     "test": "npm run test:frontend && cargo test --manifest-path src-tauri/Cargo.toml --lib",
-    "icons": "node scripts/generate-base-icon.mjs && tauri icon src-tauri/icons/base.png"
+    "icons": "node scripts/generate-base-icon.mjs && tauri icon src-tauri/icons/base.png",
+    "tauri:windows:build": "tauri-windows-bundle build --runner npm"
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.20.3",
@@ -38,6 +39,7 @@
     "codemirror-lang-typst": "^0.6.0"
   },
   "devDependencies": {
+    "@choochmeque/tauri-windows-bundle": "^0.1.29",
     "@tauri-apps/cli": "^2.9.0",
     "jsdom": "^29.1.1",
     "vite": "^7.1.0",

@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Sin publicar] / [Unreleased]
 
+### Added
+- **Página de presentación (GitHub Pages), a petición explícita del usuario ("esta aplicación lo merece"), siguiendo el modelo de DBV Markdown Reader.** `docs/index.html` (ES) / `docs/en/index.html` (EN), estilos compartidos en `docs/styles.css` (misma paleta que el tema oscuro de la propia app). Sin capturas reales de la ventana (ninguna sesión ha tenido acceso a Windows para tomarlas): la vista previa del editor es una ilustración honesta en HTML/CSS de las dos mitades reales de la interfaz, marcada como tal, en vez de fabricar una imagen que aparente ser una captura. `docs/privacidad.html`/`privacy.html` migradas al mismo layout compartido (antes eran páginas autocontenidas).
+- **Preparación para Microsoft Store.** Identidad de producto reservada por el usuario en Partner Center (`davidbuenov.dbv-typst-editor`) y volcada a `src-tauri/gen/windows/bundle.config.json`. Empaquetado MSIX con `@choochmeque/tauri-windows-bundle` (mismo paquete y versión que `dbv-md-reader`, `npm run tauri:windows:build`). Corregido proactivamente, antes de cualquier envío, el mismo bug de asset placeholder que ya rechazó `dbv-md-reader` una vez (`Wide310x150Logo.png` generado como un rectángulo negro sólido — ver `dbv-specs-ops/docs/MICROSOFT_STORE.md` §3). Fichas de Store redactadas: `descripcionStore_es.md` / `descripcionStore_en.md`.
+
 ## [0.3.0] - 2026-09-06
 
 ### Added

@@ -12,98 +12,34 @@
   <title>Privacy Policy — DBV Typst Editor</title>
   <meta name="description" content="Privacy policy for DBV Typst Editor: the app collects no personal data and no telemetry. All processing happens locally." />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22><text y=%2220%22 font-size=%2220%22>📝</text></svg>" />
-  <style>
-    :root {
-      color-scheme: light dark;
-      --bg: #ffffff;
-      --bg-secondary: #f6f5f3;
-      --border: #e4e1db;
-      --text-primary: #1c1a17;
-      --text-secondary: #4a463f;
-      --text-muted: #8a8578;
-      --accent: #a8562f;
-    }
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg: #17140f;
-        --bg-secondary: #221e18;
-        --border: #34302a;
-        --text-primary: #f2ede4;
-        --text-secondary: #c9c2b6;
-        --text-muted: #948d80;
-        --accent: #e08a58;
-      }
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      background: var(--bg);
-      color: var(--text-primary);
-      font: 16px/1.7 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    }
-    header.nav {
-      border-bottom: 1px solid var(--border);
-      padding: 16px 24px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 16px;
-      flex-wrap: wrap;
-    }
-    header.nav a { color: var(--text-primary); text-decoration: none; font-weight: 600; }
-    header.nav .lang-switch { color: var(--text-muted); font-weight: 400; font-size: 14px; }
-    header.nav .lang-switch a { color: var(--accent); font-weight: 600; }
-    main.legal {
-      max-width: 720px;
-      margin: 0 auto;
-      padding: 48px 24px 96px;
-    }
-    .legal h1 { font-size: 30px; margin: 0 0 4px; }
-    .legal .updated { color: var(--text-muted); font-size: 14px; margin-bottom: 32px; }
-    .legal h2 { font-size: 19px; margin: 36px 0 10px; color: var(--accent); }
-    .legal p, .legal li { color: var(--text-secondary); }
-    .legal ul { padding-left: 20px; margin: 8px 0; }
-    .legal li { margin-bottom: 6px; }
-    .legal code {
-      font-family: ui-monospace, "Fira Code", monospace;
-      background: var(--bg-secondary);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 1px 6px;
-      font-size: 13px;
-    }
-    .summary {
-      background: var(--bg-secondary);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 20px 24px;
-      margin: 8px 0 8px;
-    }
-    .summary p { color: var(--text-primary); margin: 0; }
-    footer {
-      border-top: 1px solid var(--border);
-      padding: 24px;
-      text-align: center;
-      color: var(--text-muted);
-      font-size: 13px;
-    }
-    footer a { color: var(--text-muted); }
-    a { color: var(--accent); }
-  </style>
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
 
   <header class="nav">
-    <a href="https://github.com/davidbuenov/dbv-typst-editor">📝 DBV Typst Editor</a>
-    <span class="lang-switch">Versión en español: <a href="privacidad.html">privacidad.html</a></span>
+    <div class="nav-inner">
+      <a href="en/#top" class="nav-brand">
+        <span class="nav-logo">📝</span> DBV Typst Editor
+      </a>
+      <nav class="nav-links">
+        <a href="en/#features">Features</a>
+        <a href="en/#templates">Templates</a>
+        <a href="en/#download">Download</a>
+        <a href="https://github.com/davidbuenov/dbv-typst-editor" class="nav-github" target="_blank" rel="noopener">
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          GitHub
+        </a>
+      </nav>
+      <a href="en/#download" class="btn btn-primary btn-nav">Download</a>
+    </div>
   </header>
 
   <main>
     <article class="legal">
       <h1>Privacy Policy</h1>
-      <p class="updated">Last updated: September 6, 2026</p>
+      <p class="legal-updated">Last updated: September 6, 2026</p>
 
-      <div class="summary">
+      <div class="legal-summary">
         <p><strong>Summary:</strong> DBV Typst Editor does not collect, store on its own servers, or share with third parties any personal data. It has no user accounts, no analytics, no advertising, and sends no telemetry of any kind. All processing of your documents happens on your own machine.</p>
       </div>
 
@@ -113,7 +49,7 @@
       <h2>Data stored locally (never transmitted)</h2>
       <ul>
         <li><strong>Recent projects:</strong> the list of your most recently opened projects is saved to a <code>recent_projects.json</code> file inside the app's data folder on your machine. You can remove any entry from the launcher itself.</li>
-        <li><strong>Preferences:</strong> the visual theme (light/dark), interface language, panel layout and preview zoom level are saved locally in the app's built-in browser storage (<code>localStorage</code>), without leaving your machine.</li>
+        <li><strong>Preferences:</strong> the visual theme (light/dark/sepia), interface language, panel layout and preview zoom level are saved locally in the app's built-in browser storage (<code>localStorage</code>), without leaving your machine.</li>
       </ul>
 
       <h2>The only internet connections the app makes</h2>
@@ -135,8 +71,30 @@
     </article>
   </main>
 
-  <footer>
-    <p>MIT License · © 2026 David Bueno Vallejo · <a href="https://github.com/davidbuenov/dbv-typst-editor">github.com/davidbuenov/dbv-typst-editor</a></p>
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <span class="nav-logo">📝</span> DBV Typst Editor
+        <p>Native desktop editor for Typst. Rust + Tauri v2.</p>
+      </div>
+      <div class="footer-links">
+        <div class="footer-col">
+          <h4>Project</h4>
+          <a href="https://github.com/davidbuenov/dbv-typst-editor" target="_blank" rel="noopener">Source code</a>
+          <a href="https://github.com/davidbuenov/dbv-typst-editor/releases" target="_blank" rel="noopener">Releases</a>
+          <a href="https://github.com/davidbuenov/dbv-typst-editor/issues" target="_blank" rel="noopener">Report an issue</a>
+          <a href="en/">Back to home</a>
+        </div>
+        <div class="footer-col">
+          <h4>Author</h4>
+          <a href="https://davidbuenov.com" target="_blank" rel="noopener">davidbuenov.com</a>
+          <a href="https://github.com/davidbuenov" target="_blank" rel="noopener">github.com/davidbuenov</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>MIT License · © 2026 David Bueno Vallejo</p>
+    </div>
   </footer>
 
 </body>

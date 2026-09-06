@@ -1,0 +1,312 @@
+<!--
+  DBV Typst Editor — Página de presentación (GitHub Pages)
+  Copyright (c) 2026 David Bueno Vallejo
+  Licensed under the MIT License. See LICENSE for details.
+  Built with dbv-specs-ops · https://github.com/davidbuenov/dbv-specs-ops
+-->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DBV Typst Editor — Editor de escritorio para Typst</title>
+  <meta name="description" content="Editor de escritorio nativo para Typst: plantillas académicas, vista previa PDF en tiempo real, 100% local y sin conexión. Windows." />
+
+  <meta property="og:title" content="DBV Typst Editor — Editor de escritorio para Typst" />
+  <meta property="og:description" content="Crea tu TFG, TFM, tesis o artículo desde una plantilla, escribe con vista previa PDF en tiempo real. Gratis y de código abierto." />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary" />
+
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22><text y=%2220%22 font-size=%2220%22>📝</text></svg>" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="alternate" hreflang="es" href="https://davidbuenov.github.io/dbv-typst-editor/" />
+  <link rel="alternate" hreflang="en" href="https://davidbuenov.github.io/dbv-typst-editor/en/" />
+</head>
+<body>
+
+  <!-- ─── Nav ─────────────────────────────────────────────────────────────── -->
+  <header class="nav">
+    <div class="nav-inner">
+      <a href="#top" class="nav-brand">
+        <span class="nav-logo">📝</span> DBV Typst Editor
+      </a>
+      <nav class="nav-links">
+        <a href="#features">Características</a>
+        <a href="#templates">Plantillas</a>
+        <a href="#download">Descargar</a>
+        <a href="https://github.com/davidbuenov/dbv-typst-editor" class="nav-github" target="_blank" rel="noopener">
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          GitHub
+        </a>
+        <a href="en/" class="nav-lang" hreflang="en">EN</a>
+      </nav>
+      <a href="#download" class="btn btn-primary btn-nav">Descargar</a>
+    </div>
+  </header>
+
+  <main id="top">
+
+    <!-- ─── Hero ─────────────────────────────────────────────────────────── -->
+    <section class="hero">
+      <div class="hero-inner">
+        <p class="hero-eyebrow">Gratis · Código abierto · Windows · Español/English</p>
+        <h1>El entorno de escritorio más accesible para Typst</h1>
+        <p class="hero-sub">
+          Crea tu TFG, TFM, tesis o artículo desde una plantilla académica y escribe
+          viendo el PDF actualizarse solo, sin pulsar nada. El compilador de Typst
+          viaja dentro de la propia aplicación: todo funciona sin conexión.
+        </p>
+        <div class="hero-ctas">
+          <a href="https://github.com/davidbuenov/dbv-typst-editor/releases/latest" class="btn btn-primary btn-lg" target="_blank" rel="noopener">
+            ⬇️ Descargar para Windows
+          </a>
+          <a href="https://github.com/davidbuenov/dbv-typst-editor" class="btn btn-ghost btn-lg" target="_blank" rel="noopener">
+            Ver código en GitHub
+          </a>
+        </div>
+        <p class="hero-note">Windows 10/11 (.exe, también próximamente en Microsoft Store) · Sin cuenta, sin publicidad, sin telemetría · Un proyecto creado aquí es un proyecto Typst normal, sin ataduras</p>
+      </div>
+
+      <div class="hero-shot">
+        <div class="window-frame">
+          <div class="window-titlebar">
+            <span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>
+            <span class="window-title">tfg.typ — DBV Typst Editor</span>
+          </div>
+          <div class="editor-mock" role="img" aria-label="Ilustración de la interfaz: a la izquierda, código Typst con resaltado de sintaxis; a la derecha, el PDF compuesto en tiempo real con título, párrafos y una ecuación">
+            <div class="editor-mock__code"><span class="tok-fn">#import</span> <span class="tok-str">"@preview/charged-ieee:0.1.4"</span>: ieee
+
+<span class="tok-fn">#show</span>: ieee.<span class="tok-fn">with</span>(
+  title: <span class="tok-str">"Difusión de calor
+    en materiales porosos"</span>,
+)
+
+<span class="tok-cm">// Introducción</span>
+<span class="tok-hd">= Introducción</span>
+
+La ecuación que describe el
+fenómeno es
+
+<span class="tok-eq">$ (diff u) / (diff t)
+  = alpha nabla^2 u $</span>
+
+<span class="tok-fn">#cite</span>(<span class="tok-str">&lt;fourier1822&gt;</span>)</div>
+            <div class="editor-mock__preview">
+              <div class="pdf-page">
+                <div class="pdf-title"></div>
+                <div class="pdf-line"></div>
+                <div class="pdf-line"></div>
+                <div class="pdf-line short"></div>
+                <div class="pdf-eq">∂u / ∂t = α∇²u</div>
+                <div class="pdf-line"></div>
+                <div class="pdf-line"></div>
+                <div class="pdf-line short"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── Stats de confianza ───────────────────────────────────────────── -->
+    <section class="stats">
+      <div class="stats-inner">
+        <div class="stat"><span class="stat-num">8</span><span class="stat-label">Plantillas académicas</span></div>
+        <div class="stat"><span class="stat-num">100%</span><span class="stat-label">Local, sin conexión</span></div>
+        <div class="stat"><span class="stat-num">0</span><span class="stat-label">Telemetría</span></div>
+        <div class="stat"><span class="stat-num">MIT</span><span class="stat-label">Licencia libre</span></div>
+      </div>
+    </section>
+
+    <!-- ─── Por qué ──────────────────────────────────────────────────────── -->
+    <section class="why">
+      <div class="why-inner">
+        <h2>Typst, sin la fricción de un IDE de propósito general</h2>
+        <p>
+          Typst es un compilador de composición de textos moderno, mucho más rápido que LaTeX y sin su
+          sintaxis arcana — pero seguía haciendo falta un terminal y un editor de texto cualquiera para
+          usarlo. <strong>DBV Typst Editor</strong> empaqueta el compilador oficial de Typst dentro de la
+          propia aplicación (Rust + Tauri v2, sin Electron) y añade lo que un documento académico real
+          necesita: plantillas con formulario, asistentes de citas e imágenes, y una vista previa que
+          se actualiza sola mientras escribes.
+        </p>
+        <p>
+          Nada de esto te ata a la aplicación: el proyecto que crees es un directorio Typst corriente,
+          que compila igual de bien desde la terminal con el CLI oficial. Si algún día dejas de usar
+          DBV Typst Editor, tu documento sigue siendo tuyo.
+        </p>
+      </div>
+    </section>
+
+    <!-- ─── Features ─────────────────────────────────────────────────────── -->
+    <section class="features" id="features">
+      <div class="features-inner">
+        <h2>Todo lo que pide un documento académico, nada de lo que sobra</h2>
+        <div class="feature-grid">
+
+          <article class="feature-card">
+            <div class="feature-icon">📄</div>
+            <h3>Vista previa en tiempo real</h3>
+            <p>El PDF se recompila solo tras cada pausa de escritura, página a página, con zoom y ajuste al ancho.</p>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-icon">🧰</div>
+            <h3>Barra de inserción</h3>
+            <p>Formato, encabezados, tablas, ecuaciones y símbolos matemáticos sin aprenderte la sintaxis, si no quieres.</p>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-icon">📚</div>
+            <h3>Citas con autocompletado</h3>
+            <p>Un desplegable con las claves reales de tu <code>.bib</code>, y un formulario para crear entradas nuevas sin salir del editor.</p>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-icon">🖼️</div>
+            <h3>Imágenes por arrastre</h3>
+            <p>Suelta una imagen sobre el editor: se copia al proyecto y se inserta la figura con su pie, sin duplicados.</p>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-icon">🧭</div>
+            <h3>Esquema del documento</h3>
+            <p>Panel de encabezados con clic para saltar directamente a esa página de la vista previa.</p>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-icon">✦</div>
+            <h3>Typst Universe integrado</h3>
+            <p>Plantillas y paquetes de la comunidad, con la licencia visible antes de instalar nada.</p>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-icon">🔍</div>
+            <h3>Búsqueda y reemplazo</h3>
+            <p><kbd>Ctrl</kbd> + <kbd>F</kbd> dentro del editor, sin salir del documento.</p>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-icon">📦</div>
+            <h3>Proyecto empaquetado (.dbvt)</h3>
+            <p>Todo el proyecto —capítulos, imágenes, bibliografía y fuentes propias— en un único fichero para compartirlo.</p>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-icon">&gt;_</div>
+            <h3>Terminal avanzado</h3>
+            <p>Vía de escape opcional al CLI de Typst, para quien prefiera trabajar con comandos.</p>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-icon">🔤</div>
+            <h3>Fuentes propias del proyecto</h3>
+            <p>Una carpeta <code>fonts/</code> viaja con el proyecto — se compone igual en cualquier equipo.</p>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-icon">🎨</div>
+            <h3>Tres temas visuales</h3>
+            <p>Claro, Oscuro y Sepia para sesiones largas de escritura — se recuerda tu elección.</p>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-icon">🌍</div>
+            <h3>Español e inglés</h3>
+            <p>Interfaz completa en los dos idiomas, incluida la ayuda integrada.</p>
+          </article>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── Plantillas ───────────────────────────────────────────────────── -->
+    <section class="templates" id="templates">
+      <div class="templates-inner">
+        <h2>Empieza desde una plantilla, no desde cero</h2>
+        <p class="section-sub">Cada una es un proyecto Typst autocontenido: compila sin conexión, con las fuentes que necesita ya incluidas.</p>
+        <div class="template-grid">
+          <div class="template-chip"><strong>Trabajo de Fin de Grado</strong><span>Portada institucional, índice, capítulos y bibliografía</span></div>
+          <div class="template-chip"><strong>Trabajo de Fin de Máster</strong><span>Misma estructura que el TFG</span></div>
+          <div class="template-chip"><strong>Tesis doctoral</strong><span>Dedicatoria, resumen bilingüe, apéndices con numeración propia</span></div>
+          <div class="template-chip"><strong>Artículo académico</strong><span>Dos columnas, resumen y palabras clave</span></div>
+          <div class="template-chip"><strong>Informe técnico</strong><span>Resumen ejecutivo destacado, cabecera repetida</span></div>
+          <div class="template-chip"><strong>Presentación</strong><span>Diapositivas 16:9 nativas de Typst</span></div>
+          <div class="template-chip"><strong>Currículum</strong><span>Una página, listo para exportar a PDF</span></div>
+          <div class="template-chip"><strong>Proyecto en blanco</strong><span>Sin nada predefinido, para empezar libre</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── Cómo empezar ─────────────────────────────────────────────────── -->
+    <section class="steps">
+      <div class="steps-inner">
+        <h2>Listo para escribir en tres pasos</h2>
+        <div class="step-grid">
+          <div class="step">
+            <span class="step-num">1</span>
+            <h3>Descarga e instala</h3>
+            <p>Instalador <code>.exe</code> para Windows desde la página de Releases. Doble clic, sin necesidad de Rust, Node ni ninguna herramienta de programación.</p>
+          </div>
+          <div class="step">
+            <span class="step-num">2</span>
+            <h3>Elige una plantilla</h3>
+            <p>El lanzador te pregunta qué quieres escribir hoy. Rellena el formulario (título, autor, institución...) y el proyecto se crea solo.</p>
+          </div>
+          <div class="step">
+            <span class="step-num">3</span>
+            <h3>Escribe</h3>
+            <p>El PDF se compone solo mientras escribes. Guarda con <kbd>Ctrl</kbd> + <kbd>S</kbd>, exporta cuando quieras.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── CTA final ────────────────────────────────────────────────────── -->
+    <section class="cta" id="download">
+      <div class="cta-inner">
+        <h2>Pruébalo — no cuesta nada</h2>
+        <p>Gratis, de código abierto y sin ataduras. Si algo falla, abre un issue en GitHub.</p>
+        <div class="hero-ctas">
+          <a href="https://github.com/davidbuenov/dbv-typst-editor/releases/latest" class="btn btn-primary btn-lg" target="_blank" rel="noopener">
+            ⬇️ Descargar para Windows
+          </a>
+          <a href="https://github.com/davidbuenov/dbv-typst-editor/releases" class="btn btn-ghost btn-lg" target="_blank" rel="noopener">
+            Ver todas las versiones
+          </a>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ─── Footer ───────────────────────────────────────────────────────── -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <span class="nav-logo">📝</span> DBV Typst Editor
+        <p>Editor de escritorio nativo para Typst. Rust + Tauri v2.</p>
+      </div>
+      <div class="footer-links">
+        <div class="footer-col">
+          <h4>Proyecto</h4>
+          <a href="https://github.com/davidbuenov/dbv-typst-editor" target="_blank" rel="noopener">Código fuente</a>
+          <a href="https://github.com/davidbuenov/dbv-typst-editor/releases" target="_blank" rel="noopener">Versiones</a>
+          <a href="https://github.com/davidbuenov/dbv-typst-editor/issues" target="_blank" rel="noopener">Reportar un problema</a>
+          <a href="https://github.com/davidbuenov/dbv-typst-editor/blob/master/dbv-specs-ops/CHANGELOG.md" target="_blank" rel="noopener">Changelog</a>
+        </div>
+        <div class="footer-col">
+          <h4>Autor</h4>
+          <a href="https://davidbuenov.com" target="_blank" rel="noopener">davidbuenov.com</a>
+          <a href="https://github.com/davidbuenov" target="_blank" rel="noopener">github.com/davidbuenov</a>
+          <a href="privacidad.html">Privacidad</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>Licencia MIT · © 2026 David Bueno Vallejo</p>
+    </div>
+  </footer>
+
+</body>
+</html>

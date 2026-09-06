@@ -14,7 +14,7 @@ import { createWorkspace } from './app/workspace.js';
 import { createUpdater } from './app/updater.js';
 import { PANELS, getPanelState, initPanels, togglePanel } from './app/workspacePanels.js';
 import { figureActionForPath } from './editor/toolbarActions.js';
-import { applyTranslations, getLanguage, t, toggleLanguage } from './i18n/i18n.js';
+import { applyTranslations, getLanguage, setLanguage, t } from './i18n/i18n.js';
 import { createHelp } from './help/help.js';
 import { createUniversePanel } from './universe/universePanel.js';
 import { importPackageAction, specName } from './universe/universeSpec.js';
@@ -44,7 +44,7 @@ import {
 import { createChoiceDialog } from './ui/choiceDialog.js';
 import { createSplitter } from './ui/splitter.js';
 import { createToast } from './ui/toast.js';
-import { initTheme, toggleTheme } from './themes/theme.js';
+import { cycleTheme, getTheme, initTheme, setTheme } from './themes/theme.js';
 import { getCurrentWebview } from '@tauri-apps/api/webview';
 
 const el = (id) => document.getElementById(id);
@@ -78,13 +78,33 @@ async function renderAbout() {
   });
 }
 
-function wireThemeToggle(onThemeChanged) {
-  const icon = el('btn-theme-icon');
-  el('btn-theme').addEventListener('click', () => {
-    const theme = toggleTheme();
-    icon.textContent = theme === 'dark' ? '◐' : '◑';
+/**
+ * Selector segmentado Claro/Oscuro/Sepia. Cada botón fija su propio tema
+ * directamente (no hay "alternar" con tres opciones); `cycle()` sí hace falta
+ * para el atajo del menú nativo de macOS (Slice 24), que solo puede pedir
+ * "el siguiente", no uno concreto.
+ */
+function wireThemeSwitcher(onThemeChanged) {
+  const buttons = {
+    dark: el('btn-theme-dark'),
+    light: el('btn-theme-light'),
+    sepia: el('btn-theme-sepia'),
+  };
+  function refresh(theme) {
+    for (const [name, button] of Object.entries(buttons)) {
+      button.classList.toggle('active', name === theme);
+    }
+  }
+  function apply(theme) {
+    setTheme(theme);
+    refresh(theme);
     onThemeChanged(theme);
-  });
+  }
+  for (const [name, button] of Object.entries(buttons)) {
+    button.addEventListener('click', () => apply(name));
+  }
+  refresh(getTheme());
+  return { cycle: () => apply(cycleTheme()) };
 }
 
 /** Paneles del espacio de trabajo (Beta, §7.9): tres interruptores independientes. */
@@ -219,12 +239,21 @@ function wireFontDrop(workspace, notify) {
   });
 }
 
-function wireLanguageToggle() {
-  const label = el('btn-lang-label');
-  label.textContent = getLanguage().toUpperCase();
-  el('btn-lang').addEventListener('click', () => {
-    label.textContent = toggleLanguage().toUpperCase();
-  });
+/** Selector segmentado ES/EN — mismo patrón que `wireThemeSwitcher`. */
+function wireLanguageSwitcher() {
+  const buttons = { es: el('btn-lang-es'), en: el('btn-lang-en') };
+  function refresh(language) {
+    for (const [name, button] of Object.entries(buttons)) {
+      button.classList.toggle('active', name === language);
+    }
+  }
+  for (const [name, button] of Object.entries(buttons)) {
+    button.addEventListener('click', () => {
+      setLanguage(name);
+      refresh(name);
+    });
+  }
+  refresh(getLanguage());
 }
 
 /** Ayuda bilingüe (contenido en `help/helpContent.js`). */
@@ -249,7 +278,7 @@ function wireAboutPanel() {
 async function bootstrap() {
   initTheme();
   applyTranslations();
-  wireLanguageToggle();
+  wireLanguageSwitcher();
   wireAboutPanel();
   wireHelpPanel();
 
@@ -303,7 +332,7 @@ async function bootstrap() {
   });
 
   // El editor (CodeMirror) necesita reconfigurar su tema, no solo heredar CSS.
-  wireThemeToggle((theme) => workspace.setTheme(theme));
+  const themeSwitcher = wireThemeSwitcher((theme) => workspace.setTheme(theme));
   wirePanelSwitcher(el('workspace-view'));
   wireImageDrop(workspace, el('editor-host'), toast.show);
   wireFontDrop(workspace, toast.show);
@@ -586,7 +615,7 @@ async function bootstrap() {
   on('menu-save-as', () => el('btn-save-as').click());
   on('menu-export-pdf', () => el('btn-export-pdf').click());
   on('menu-reveal', () => el('btn-reveal').click());
-  on('menu-toggle-theme', () => el('btn-theme').click());
+  on('menu-toggle-theme', () => themeSwitcher.cycle());
   on('menu-outline', () => sidebarTabs.showOutline());
   on('menu-terminal', () => el('btn-terminal').click());
 }

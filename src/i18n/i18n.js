@@ -13,8 +13,11 @@ const STORAGE_KEY = 'dbv-typst-lang';
 const DICTIONARIES = {
   es: {
     'app.tagline': 'Escritura académica y técnica, sencilla. Con Typst.',
-    'action.toggleTheme': 'Cambiar tema claro/oscuro',
-    'action.toggleLang': 'Cambiar idioma',
+    'action.toggleTheme': 'Tema',
+    'action.toggleLang': 'Idioma',
+    'theme.light': 'Claro',
+    'theme.dark': 'Oscuro',
+    'theme.sepia': 'Sepia',
     'action.about': 'Acerca de',
     'action.help': 'Ayuda',
     'action.universe': 'Typst Universe — plantillas y paquetes de la comunidad',
@@ -193,6 +196,7 @@ const DICTIONARIES = {
     'preview.missingFontsOne': 'Falta esta fuente en el sistema:',
     'preview.missingFontsMany': 'Faltan estas fuentes en el sistema:',
     'preview.missingFontsHint': 'Instálala en el sistema, o arrastra el fichero de la fuente (.ttf/.otf) al editor para añadirla al proyecto.',
+    'preview.missingBibliographyHint': 'Esta cita no se resuelve al previsualizar este capítulo suelto, porque la vista previa compila el fichero abierto y la bibliografía se declara en el documento principal (main.typ). No es un error: compílalo desde ahí y funcionará.',
     'preview.zoomFit': 'Ajustar al ancho',
     'preview.zoomIn': 'Acercar',
     'preview.zoomOut': 'Alejar',
@@ -203,6 +207,7 @@ const DICTIONARIES = {
     'toolbar.code': 'Código en línea',
     'toolbar.superscript': 'Superíndice',
     'toolbar.subscript': 'Subíndice',
+    'toolbar.search': 'Buscar y reemplazar (Ctrl+F)',
     'toolbar.heading1': 'Encabezado 1',
     'toolbar.heading2': 'Encabezado 2',
     'toolbar.heading3': 'Encabezado 3',
@@ -225,8 +230,11 @@ const DICTIONARIES = {
   },
   en: {
     'app.tagline': 'Academic and technical writing made simple. Powered by Typst.',
-    'action.toggleTheme': 'Toggle light/dark theme',
-    'action.toggleLang': 'Switch language',
+    'action.toggleTheme': 'Theme',
+    'action.toggleLang': 'Language',
+    'theme.light': 'Light',
+    'theme.dark': 'Dark',
+    'theme.sepia': 'Sepia',
     'action.about': 'About',
     'action.help': 'Help',
     'action.universe': 'Typst Universe — community templates and packages',
@@ -405,6 +413,7 @@ const DICTIONARIES = {
     'preview.missingFontsOne': 'This font is missing on the system:',
     'preview.missingFontsMany': 'These fonts are missing on the system:',
     'preview.missingFontsHint': 'Install it on the system, or drag the font file (.ttf/.otf) onto the editor to add it to the project.',
+    'preview.missingBibliographyHint': 'This citation cannot resolve while previewing this chapter on its own, because the preview compiles the open file and the bibliography is declared in the main document (main.typ). It is not an error: compile from there and it will work.',
     'preview.zoomFit': 'Fit width',
     'preview.zoomIn': 'Zoom in',
     'preview.zoomOut': 'Zoom out',
@@ -415,6 +424,7 @@ const DICTIONARIES = {
     'toolbar.code': 'Inline code',
     'toolbar.superscript': 'Superscript',
     'toolbar.subscript': 'Subscript',
+    'toolbar.search': 'Find and replace (Ctrl+F)',
     'toolbar.heading1': 'Heading 1',
     'toolbar.heading2': 'Heading 2',
     'toolbar.heading3': 'Heading 3',
@@ -488,12 +498,6 @@ export function setLanguage(language) {
   // repintadas) no llevan atributo `data-i18n`: este evento es su única forma
   // de enterarse del cambio de idioma.
   document.dispatchEvent(new CustomEvent('dbv-lang-changed', { detail: language }));
-}
-
-/** Alterna entre los dos idiomas soportados. @returns {'es'|'en'} */
-export function toggleLanguage() {
-  setLanguage(currentLanguage === 'es' ? 'en' : 'es');
-  return currentLanguage;
 }
 
 /**

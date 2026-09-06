@@ -47,6 +47,30 @@ const ASSETS_DIR: &str = "images";
 /// no las carga, y ofrecer arrastrarlas confundiría más que ayudaría.
 const FONT_EXTENSIONS: [&str; 4] = ["ttf", "otf", "ttc", "otc"];
 
+/// Si `dir` ya contiene un fichero con el mismo contenido byte a byte que
+/// `source` —aunque tenga otro nombre—, su ruta. Sin esto, arrastrar (o
+/// seleccionar por el diálogo) la MISMA imagen dos veces crea una copia
+/// idéntica cada vez (`foto.png`, `foto-1.png`, `foto-2.png`...): el nombre
+/// puede repetirse sin que el contenido lo haga, así que la comprobación por
+/// nombre de `unique_destination` no basta para detectar el duplicado.
+/// Compara primero por tamaño (barato) antes de leer el contenido entero.
+fn find_existing_copy(dir: &Path, source: &Path) -> Option<PathBuf> {
+    let source_len = fs::metadata(source).ok()?.len();
+    let source_bytes = fs::read(source).ok()?;
+    let entries = fs::read_dir(dir).ok()?;
+    for entry in entries.flatten() {
+        let path = entry.path();
+        let Ok(metadata) = entry.metadata() else { continue };
+        if !metadata.is_file() || metadata.len() != source_len {
+            continue;
+        }
+        if fs::read(&path).ok().as_deref() == Some(source_bytes.as_slice()) {
+            return Some(path);
+        }
+    }
+    None
+}
+
 /// Nombre de destino libre dentro de `dir`: si `file_name` ya existe, prueba
 /// `nombre-1.ext`, `nombre-2.ext`... Nunca sobrescribe una imagen que el
 /// usuario ya tuviera con ese nombre.
@@ -93,6 +117,11 @@ pub fn copy_asset_into_project(project_root: String, source_path: String) -> Res
     let images_dir = root.join(ASSETS_DIR);
     fs::create_dir_all(&images_dir).map_err(|error| AppError::Io(error.to_string()))?;
 
+    if let Some(existing) = find_existing_copy(&images_dir, &source) {
+        let relative = existing.strip_prefix(&root).unwrap_or(&existing);
+        return Ok(path_to_string(relative).replace('\\', "/"));
+    }
+
     let file_name = source
         .file_name()
         .and_then(|name| name.to_str())
@@ -134,6 +163,11 @@ pub fn copy_font_into_project(project_root: String, source_path: String) -> Resu
 
     let fonts_dir = root.join(crate::typst_engine::PROJECT_FONTS_DIR);
     fs::create_dir_all(&fonts_dir).map_err(|error| AppError::Io(error.to_string()))?;
+
+    if let Some(existing) = find_existing_copy(&fonts_dir, &source) {
+        let relative = existing.strip_prefix(&root).unwrap_or(&existing);
+        return Ok(path_to_string(relative).replace('\\', "/"));
+    }
 
     let file_name = source
         .file_name()
@@ -224,6 +258,29 @@ mod tests {
     }
 
     #[test]
+    fn copy_asset_into_project_reusa_una_copia_existente_con_el_mismo_contenido() {
+        let project = tempfile::tempdir().unwrap();
+        fs::create_dir_all(project.path().join("images")).unwrap();
+        fs::write(project.path().join("images/diagrama.png"), "mismo contenido").unwrap();
+
+        // Mismo contenido, nombre de origen DISTINTO — el usuario seleccionó
+        // la imagen dos veces (o la arrastró dos veces) desde dos sitios.
+        let source_dir = tempfile::tempdir().unwrap();
+        let source = source_dir.path().join("otro-nombre.png");
+        fs::write(&source, "mismo contenido").unwrap();
+
+        let relative =
+            copy_asset_into_project(path_to_string(project.path()), path_to_string(&source)).unwrap();
+
+        // Reutiliza la copia ya existente en vez de crear diagrama-1.png.
+        assert_eq!(relative, "images/diagrama.png");
+        assert_eq!(
+            fs::read_dir(project.path().join("images")).unwrap().count(),
+            1
+        );
+    }
+
+    #[test]
     fn copy_asset_into_project_rechaza_una_raiz_que_no_es_carpeta() {
         let dir = tempfile::tempdir().unwrap();
         let not_a_dir = dir.path().join("no-existe");
@@ -258,6 +315,26 @@ mod tests {
         assert_eq!(
             fs::read_to_string(project.path().join("fonts/MiFuente.ttf")).unwrap(),
             "contenido de prueba"
+        );
+    }
+
+    #[test]
+    fn copy_font_into_project_reusa_una_copia_existente_con_el_mismo_contenido() {
+        let project = tempfile::tempdir().unwrap();
+        fs::create_dir_all(project.path().join("fonts")).unwrap();
+        fs::write(project.path().join("fonts/MiFuente.otf"), "mismo contenido").unwrap();
+
+        let source_dir = tempfile::tempdir().unwrap();
+        let source = source_dir.path().join("copia-de-mi-fuente.otf");
+        fs::write(&source, "mismo contenido").unwrap();
+
+        let relative =
+            copy_font_into_project(path_to_string(project.path()), path_to_string(&source)).unwrap();
+
+        assert_eq!(relative, "fonts/MiFuente.otf");
+        assert_eq!(
+            fs::read_dir(project.path().join("fonts")).unwrap().count(),
+            1
         );
     }
 

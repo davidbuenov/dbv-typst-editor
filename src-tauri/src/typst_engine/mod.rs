@@ -32,8 +32,17 @@ pub enum TypstError {
     SidecarUnavailable(String),
     /// El proceso arrancó pero no se pudo completar su ejecución.
     ExecutionFailed(String),
-    /// El proceso terminó con un código de salida distinto de cero.
-    CompilationFailed { code: Option<i32>, stderr: String },
+    /// El proceso terminó con un código de salida distinto de cero. Solo
+    /// lleva el `stderr` (el código de salida no lo consume nadie, ni aquí ni
+    /// en el frontend) — a propósito: con dos campos, `#[serde(tag =
+    /// "kind", content = "message")]` serializaba `message` como un OBJETO
+    /// `{code, stderr}` en vez de una cadena, y `normalizeError()` del
+    /// frontend (`services/backend.js`), que asume `message: string` para
+    /// TODA variante, lo convertía en el literal `"[object Object]"` — el
+    /// error que veía el usuario en cualquier fallo real de compilación, en
+    /// vez del texto de Typst. Un único campo mantiene la garantía "el
+    /// mensaje siempre es una cadena" para las cuatro variantes del enum.
+    CompilationFailed(String),
     /// Se pidió una página de una vista previa ya sustituida por otra más
     /// reciente. No es un fallo: el frontend espera a la compilación nueva.
     PreviewExpired(String),
@@ -70,10 +79,7 @@ pub async fn run(app: &AppHandle, args: &[&str]) -> Result<TypstOutput, TypstErr
     let result = if output.status.success() {
         Ok(TypstOutput { stdout, stderr })
     } else {
-        Err(TypstError::CompilationFailed {
-            code: output.status.code(),
-            stderr,
-        })
+        Err(TypstError::CompilationFailed(stderr))
     };
     result
 }

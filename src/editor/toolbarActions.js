@@ -163,11 +163,20 @@ function blockTemplate(build) {
  * barra, el hueco no se deja en la ruta —ya se sabe cuál es, la acaba de
  * copiar `copy_asset_into_project`— sino en el pie de figura, que es lo único
  * que queda por escribir.
+ *
+ * `copy_asset_into_project` devuelve la ruta relativa a la RAÍZ del proyecto
+ * (p. ej. `images/foto.png`), pero en Typst una ruta sin barra inicial se
+ * resuelve relativa al fichero que la contiene, no a la raíz — si la imagen
+ * se inserta en un capítulo dentro de una subcarpeta (`chapters/01-intro.typ`,
+ * como ya hacen las plantillas de tesis/TFG), esa ruta apunta a
+ * `chapters/images/foto.png` y el documento no compila. Anteponer `/` la
+ * ancla siempre a la raíz, sin importar desde qué fichero se use.
  */
 export function figureActionForPath(path) {
+  const rootPath = path.startsWith('/') ? path : `/${path}`;
   return blockTemplate((selected) => {
     const caption = selected || 'pie de figura';
-    const text = `#figure(\n  image("${path}"),\n  caption: [${caption}],\n)`;
+    const text = `#figure(\n  image("${rootPath}"),\n  caption: [${caption}],\n)`;
     const captionStart = text.indexOf('[', text.indexOf('caption')) + 1;
     return { text, holeStart: captionStart, holeLength: caption.length };
   });
@@ -226,6 +235,15 @@ export const TOOLBAR_ACTIONS = [
   { id: 'code', group: 'format', glyph: '</>', i18nKey: 'toolbar.code', shortcut: 'Mod-e', buildTransaction: wrapToggle('`', '`') },
   { id: 'superscript', group: 'format', glyph: 'x²', i18nKey: 'toolbar.superscript', buildTransaction: wrapToggle('#super[', ']') },
   { id: 'subscript', group: 'format', glyph: 'x₂', i18nKey: 'toolbar.subscript', buildTransaction: wrapToggle('#sub[', ']') },
+  // Sin buildTransaction real: abre el panel de búsqueda de CodeMirror
+  // (@codemirror/search), que ya funciona por atajo (Ctrl+F) pero no tenía
+  // ningún botón visible — se ejecuta como specialHandler en workspace.js
+  // porque openSearchPanel necesita el EditorView, no solo el estado, y
+  // hace su propio dispatch (no encaja en el contrato TransactionSpec).
+  // Sin `shortcut`: Ctrl+F ya lo da `searchKeymap` (editor.js) y declarar
+  // aquí el mismo atajo con un buildTransaction nulo lo pisaría (el atajo de
+  // `buildToolbarKeymap` gana y no haría nada) en vez de abrir el panel.
+  { id: 'search', group: 'format', glyph: '⌕', i18nKey: 'toolbar.search', buildTransaction: () => null },
 
   // ── Estructura ───────────────────────────────────────────────────────────
   { id: 'heading1', group: 'structure', glyph: 'H1', i18nKey: 'toolbar.heading1', shortcut: 'Mod-Shift-1', buildTransaction: linePrefixToggle('= ', HEADING_PREFIXES) },
@@ -259,7 +277,11 @@ export const TOOLBAR_ACTIONS = [
     glyph: 'Fig',
     i18nKey: 'toolbar.figure',
     buildTransaction: blockTemplate((selected) => {
-      const path = 'images/...';
+      // Con `/` inicial: se resuelve contra la raíz del proyecto pase lo que
+      // pase, en vez de contra la carpeta del fichero donde se escriba —
+      // importa en cuanto el documento vive en una subcarpeta (capítulos de
+      // una tesis o TFG), ver figureActionForPath más arriba.
+      const path = '/images/...';
       const caption = selected || 'pie de figura';
       const text = `#figure(\n  image("${path}"),\n  caption: [${caption}],\n)`;
       return { text, holeStart: text.indexOf(path), holeLength: path.length };

@@ -76,12 +76,15 @@
           <svg class="button__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6.3 2.5h5l3.4 3.4V16a1 1 0 0 1-1 1H6.3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1Z"/><path d="M11.3 2.5V6h3.4"/><path d="M7.3 10h5.4M7.3 12.6h5.4"/></svg>
           <span data-i18n="action.openFileShort"></span>
         </button>
-        <button id="btn-lang" class="icon-button" type="button" data-i18n-title="action.toggleLang">
-          <span id="btn-lang-label" aria-hidden="true">ES</span>
-        </button>
-        <button id="btn-theme" class="icon-button" type="button" data-i18n-title="action.toggleTheme">
-          <span id="btn-theme-icon" aria-hidden="true">◐</span>
-        </button>
+        <div id="lang-switcher" class="segmented-control" data-i18n-title="action.toggleLang">
+          <button id="btn-lang-es" class="segmented-control__btn" type="button">ES</button>
+          <button id="btn-lang-en" class="segmented-control__btn" type="button">EN</button>
+        </div>
+        <div id="theme-switcher" class="segmented-control" data-i18n-title="action.toggleTheme">
+          <button id="btn-theme-light" class="segmented-control__btn" type="button" data-i18n-title="theme.light" aria-label="Light">☀️</button>
+          <button id="btn-theme-dark" class="segmented-control__btn" type="button" data-i18n-title="theme.dark" aria-label="Dark">🌙</button>
+          <button id="btn-theme-sepia" class="segmented-control__btn" type="button" data-i18n-title="theme.sepia" aria-label="Sepia">📜</button>
+        </div>
         <button id="btn-terminal" class="icon-button" type="button" data-i18n-title="action.terminal">&gt;_</button>
         <button id="btn-universe" class="icon-button" type="button" data-i18n-title="action.universe">✦</button>
         <button id="btn-help" class="icon-button" type="button" data-i18n-title="action.help">?</button>

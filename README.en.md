@@ -42,7 +42,7 @@ It follows the same philosophy as its sibling project [DBV Markdown Reader](http
 
 ## 🚦 Current status
 
-`v0.2.0` — MVP complete plus a good part of Beta: besides the full loop (create a project → write with Typst syntax highlighting → watch the PDF update on its own → save → export), it includes Typst Universe (community templates and packages, with missing-font detection and drag-and-drop to add them), Project Archive `.dbvt`, the editor's insertion toolbar, outline, advanced terminal, writing modes, image/citation/bibliography assistants, an automatic updater and single-instance behavior. Manually validated in the real app, with 220 automated tests passing (98 frontend + 122 backend). First version tag (`v0.2.0`) created; no GitHub Release published yet. Specification and architecture documentation lives in [`dbv-specs-ops/`](./dbv-specs-ops/) and is updated at every phase of the Spec-Driven Development cycle.
+`v0.3.0` — MVP complete plus a good part of Beta: besides the full loop (create a project → write with Typst syntax highlighting → watch the PDF update on its own → save → export), it includes Typst Universe (community templates and packages, with missing-font detection and drag-and-drop to add them), Project Archive `.dbvt`, the editor's insertion toolbar (with find and replace), outline, advanced terminal, writing modes, image/citation/bibliography assistants, an automatic updater and single-instance behavior. Three themes — light, dark and sepia — with a segmented selector. Manually validated in the real app (3 root-cause bugs found and fixed in this version), with 223 automated tests passing (99 frontend + 124 backend). Two version tags created (`v0.2.0`, `v0.3.0`); no GitHub Release published yet — the first tagged push failed all three CI/Release workflows due to a pre-existing test bug (now fixed). Specification and architecture documentation lives in [`dbv-specs-ops/`](./dbv-specs-ops/) and is updated at every phase of the Spec-Driven Development cycle.
 
 > This English README lags behind the Spanish one in some sections below (a known, pre-existing gap) — [`README.md`](./README.md) is the more current reference until it's caught up.
 
@@ -64,7 +64,7 @@ It follows the same philosophy as its sibling project [DBV Markdown Reader](http
 - Real-time PDF preview with automatic recompilation
 - Basic project management
 - Editor with Typst syntax highlighting, autocompletion, line numbers, code folding, and find/replace
-- Light and dark themes
+- Light, dark and sepia themes
 - Persistent settings
 - Templates: academic article, undergraduate/master's thesis, doctoral thesis, technical report, CV, presentation
 - Packaging for Windows and Linux (macOS in later phases)
@@ -150,7 +150,7 @@ stop.cmd
 
 ## 📋 Changelog
 
-No release has been published yet. Change history will be documented in `CHANGELOG.md` starting with the first `/ship`.
+`v0.3.0` documented in [`dbv-specs-ops/CHANGELOG.md`](./dbv-specs-ops/CHANGELOG.md). No GitHub Release published yet.
 
 ---
 

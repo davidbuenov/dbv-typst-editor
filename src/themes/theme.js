@@ -6,12 +6,14 @@
 // =============================================================================
 //
 // Mismo mecanismo que dbv-md-reader (atributo `data-theme` en <html> +
-// localStorage), reducido a los dos temas que pide RF-08 y adaptado a ESM.
+// localStorage), adaptado a ESM. El tercer tema, Sepia, llega por petición
+// directa de un usuario que ya lo conocía de dbv-md-reader — mismos valores
+// exactos (`tokens.css`), sin inventar una paleta nueva.
 
 const STORAGE_KEY = 'dbv-typst-theme';
-const THEMES = ['dark', 'light'];
+const THEMES = ['dark', 'light', 'sepia'];
 
-/** @returns {'dark'|'light'} Tema persistido, o el del sistema, o 'dark'. */
+/** @returns {'dark'|'light'|'sepia'} Tema persistido, o el del sistema, o 'dark'. */
 function resolveInitialTheme() {
   let resolved = 'dark';
   try {
@@ -29,12 +31,12 @@ function resolveInitialTheme() {
 
 let currentTheme = resolveInitialTheme();
 
-/** @returns {'dark'|'light'} */
+/** @returns {'dark'|'light'|'sepia'} */
 export function getTheme() {
   return currentTheme;
 }
 
-/** @param {'dark'|'light'} theme */
+/** @param {'dark'|'light'|'sepia'} theme */
 export function setTheme(theme) {
   if (!THEMES.includes(theme)) return;
   currentTheme = theme;
@@ -46,9 +48,18 @@ export function setTheme(theme) {
   }
 }
 
-/** Alterna entre claro y oscuro. @returns {'dark'|'light'} El tema resultante. */
-export function toggleTheme() {
-  setTheme(currentTheme === 'dark' ? 'light' : 'dark');
+/**
+ * Pasa al siguiente tema en orden fijo (oscuro → claro → sepia → oscuro...).
+ * Con tres temas ya no tiene sentido un botón único de alternancia binaria
+ * (RF-08 pedía solo claro/oscuro) — la cabecera usa un selector de tres
+ * botones que llaman a `setTheme` directamente; esta función solo la usa el
+ * menú nativo de macOS (Slice 24), que sigue siendo un único atajo de teclado
+ * y necesita "el siguiente", no "uno concreto".
+ * @returns {'dark'|'light'|'sepia'} El tema resultante.
+ */
+export function cycleTheme() {
+  const index = THEMES.indexOf(currentTheme);
+  setTheme(THEMES[(index + 1) % THEMES.length]);
   return currentTheme;
 }
 

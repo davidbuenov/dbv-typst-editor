@@ -1,0 +1,143 @@
+<!--
+  DBV Typst Editor — Privacy Policy (GitHub Pages)
+  Copyright (c) 2026 David Bueno Vallejo
+  Licensed under the MIT License. See LICENSE for details.
+  Built with dbv-specs-ops · https://github.com/davidbuenov/dbv-specs-ops
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy — DBV Typst Editor</title>
+  <meta name="description" content="Privacy policy for DBV Typst Editor: the app collects no personal data and no telemetry. All processing happens locally." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22><text y=%2220%22 font-size=%2220%22>📝</text></svg>" />
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #ffffff;
+      --bg-secondary: #f6f5f3;
+      --border: #e4e1db;
+      --text-primary: #1c1a17;
+      --text-secondary: #4a463f;
+      --text-muted: #8a8578;
+      --accent: #a8562f;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #17140f;
+        --bg-secondary: #221e18;
+        --border: #34302a;
+        --text-primary: #f2ede4;
+        --text-secondary: #c9c2b6;
+        --text-muted: #948d80;
+        --accent: #e08a58;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text-primary);
+      font: 16px/1.7 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    header.nav {
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    header.nav a { color: var(--text-primary); text-decoration: none; font-weight: 600; }
+    header.nav .lang-switch { color: var(--text-muted); font-weight: 400; font-size: 14px; }
+    header.nav .lang-switch a { color: var(--accent); font-weight: 600; }
+    main.legal {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 48px 24px 96px;
+    }
+    .legal h1 { font-size: 30px; margin: 0 0 4px; }
+    .legal .updated { color: var(--text-muted); font-size: 14px; margin-bottom: 32px; }
+    .legal h2 { font-size: 19px; margin: 36px 0 10px; color: var(--accent); }
+    .legal p, .legal li { color: var(--text-secondary); }
+    .legal ul { padding-left: 20px; margin: 8px 0; }
+    .legal li { margin-bottom: 6px; }
+    .legal code {
+      font-family: ui-monospace, "Fira Code", monospace;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-size: 13px;
+    }
+    .summary {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin: 8px 0 8px;
+    }
+    .summary p { color: var(--text-primary); margin: 0; }
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 24px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+    footer a { color: var(--text-muted); }
+    a { color: var(--accent); }
+  </style>
+</head>
+<body>
+
+  <header class="nav">
+    <a href="https://github.com/davidbuenov/dbv-typst-editor">📝 DBV Typst Editor</a>
+    <span class="lang-switch">Versión en español: <a href="privacidad.html">privacidad.html</a></span>
+  </header>
+
+  <main>
+    <article class="legal">
+      <h1>Privacy Policy</h1>
+      <p class="updated">Last updated: September 6, 2026</p>
+
+      <div class="summary">
+        <p><strong>Summary:</strong> DBV Typst Editor does not collect, store on its own servers, or share with third parties any personal data. It has no user accounts, no analytics, no advertising, and sends no telemetry of any kind. All processing of your documents happens on your own machine.</p>
+      </div>
+
+      <h2>What the app does on your machine</h2>
+      <p>DBV Typst Editor is a desktop editor for Typst documents (<code>.typ</code>), with a real-time PDF preview. It opens, compiles and edits the projects you choose (a folder, a single file, or an imported <code>.dbvt</code> package) entirely on your machine, using a Typst compiler bundled inside the app itself. The content of your documents is never transmitted to any server of ours — there is no server of ours to transmit it to, the app has no backend.</p>
+
+      <h2>Data stored locally (never transmitted)</h2>
+      <ul>
+        <li><strong>Recent projects:</strong> the list of your most recently opened projects is saved to a <code>recent_projects.json</code> file inside the app's data folder on your machine. You can remove any entry from the launcher itself.</li>
+        <li><strong>Preferences:</strong> the visual theme (light/dark), interface language, panel layout and preview zoom level are saved locally in the app's built-in browser storage (<code>localStorage</code>), without leaving your machine.</li>
+      </ul>
+
+      <h2>The only internet connections the app makes</h2>
+      <p>DBV Typst Editor does not connect to the internet except when you explicitly ask it to, in these three cases:</p>
+      <ul>
+        <li><strong>Typst Universe:</strong> if you create a project or insert a package from the community catalogue (the ✦ button), the compiler downloads that specific package from Typst's official public registry and caches it so it isn't downloaded again. If you also click a package's link to view its page, that page opens in your default browser.</li>
+        <li><strong>Checking for updates:</strong> only when you click "Check for updates" in the "About" panel — the app never checks for updates automatically on launch. This check reads the publicly available information about the latest release on GitHub.</li>
+        <li><strong>Links you write yourself:</strong> if your document contains a remote link or image and the preview loads it, that request goes directly from your machine to that address — never through a server of ours.</li>
+      </ul>
+
+      <h2>Installing from an app store</h2>
+      <p>If you install DBV Typst Editor from the Microsoft Store, the Mac App Store, or any other store, that platform may collect installation, usage and diagnostic data under its own privacy policy, independent of this app. Check that store's own privacy policy for details.</p>
+
+      <h2>Third parties</h2>
+      <p>The app includes no analytics, advertising, or third-party SDKs that collect usage data. The external libraries it uses (CodeMirror, the Typst compiler) run locally and make no network calls on their own, other than the explicit Typst Universe package download described above.</p>
+
+      <h2>Contact</h2>
+      <p>If you have questions about this policy, you can open an <a href="https://github.com/davidbuenov/dbv-typst-editor/issues" target="_blank" rel="noopener">issue on GitHub</a> or reach out via <a href="https://davidbuenov.com" target="_blank" rel="noopener">davidbuenov.com</a>.</p>
+    </article>
+  </main>
+
+  <footer>
+    <p>MIT License · © 2026 David Bueno Vallejo · <a href="https://github.com/davidbuenov/dbv-typst-editor">github.com/davidbuenov/dbv-typst-editor</a></p>
+  </footer>
+
+</body>
+</html>

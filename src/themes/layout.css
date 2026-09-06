@@ -709,10 +709,26 @@
   padding: 8px 12px;
   border-top: 1px solid var(--code-tag);
   background: var(--bg-tertiary);
-  color: var(--code-tag);
   font-family: var(--font-mono);
   font-size: 11px;
   white-space: pre-wrap;
+}
+
+/* Dos colores dentro de la misma banda (petición de un usuario real): la
+   pista que añade la propia aplicación no es el error del compilador, así
+   que no debe confundirse con él pintada del mismo rojo — solo el texto
+   crudo de Typst (`.preview__band-message`) usa `--code-tag`. */
+.preview__band-hint {
+  color: var(--band-hint);
+  margin-bottom: 8px;
+}
+
+.preview__band-hint:last-child {
+  margin-bottom: 0;
+}
+
+.preview__band-message {
+  color: var(--code-tag);
 }
 
 /* ─── Modal de elección ───────────────────────────────────────────────────── */

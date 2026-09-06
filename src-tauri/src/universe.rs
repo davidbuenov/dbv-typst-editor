@@ -184,7 +184,7 @@ fn describe(error: &typst_engine::TypstError) -> String {
         typst_engine::TypstError::SidecarUnavailable(message)
         | typst_engine::TypstError::ExecutionFailed(message)
         | typst_engine::TypstError::PreviewExpired(message) => message.clone(),
-        typst_engine::TypstError::CompilationFailed { stderr, .. } => stderr.clone(),
+        typst_engine::TypstError::CompilationFailed(stderr) => stderr.clone(),
     }
 }
 

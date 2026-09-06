@@ -115,56 +115,72 @@
   - [x] **`/code-simplify`**: pase de calidad (4 agentes, reuso/simplificación/eficiencia/altitud) + pase `REVIEW.md` (Bugs/Seguridad/Cumplimiento) — **0 hallazgos Críticos**, gate de `/ship` satisfecho.
   - [x] **Versionado: `0.1.0` → `0.2.0`** (`package.json`, `src-tauri/Cargo.toml`, `src-tauri/tauri.conf.json`) — decisión explícita del usuario de saltar directamente a 0.2.0 en vez de etiquetar un 0.1.0 ya muy superado por el contenido real del repositorio.
   - [x] **`CHANGELOG.md`**: sección `[Sin publicar]` (acumulada desde hace varias sesiones) movida a `[0.2.0] - 2026-09-06`, con las entradas de esta sesión añadidas al principio.
-  - [x] **Tag de versión `v0.2.0` creado.** Push **no ejecutado** — queda como sugerencia, a confirmar por el usuario (ver Context Snapshot).
+  - [x] **Tag de versión `v0.2.0` creado y empujado** (confirmado explícitamente por el usuario, "Adelante") — primera vez que `CI`, `release-linux.yml` y `release-macos.yml` se ejecutan de verdad. **Los tres fallaron.**
+
+- [x] **Fase 9: Entrega `/ship` v0.3.0 — cerrada el 2026-09-06.** Origen: uso real del usuario con la plantilla TFG-ETSI-UMA-Typst (proyecto externo, fuera de este repositorio) en marcha en la aplicación.
+  - [x] **3 bugs de raíz encontrados y corregidos, reportados en vivo por el usuario:**
+    1. `"[object Object]"` en vez del error real de Typst al fallar una compilación — `TypstError::CompilationFailed` colapsada de dos campos a `CompilationFailed(String)` (el `#[serde(tag, content)]` de dos campos serializaba `message` como objeto, no cadena).
+    2. Rutas de imagen rotas al insertar una figura en un capítulo dentro de una subcarpeta — `figureActionForPath()` y el botón "Fig" anteponen `/` a la ruta devuelta por `copy_asset_into_project`, para anclarla siempre a la raíz del proyecto (Typst resuelve rutas sin `/` relativas al FICHERO que las contiene, no a la raíz).
+    3. Duplicados al arrastrar la misma imagen varias veces — `find_existing_copy()` (tamaño + contenido byte a byte) en `assets.rs`, aplicado a imágenes y fuentes. 2 tests nuevos.
+  - [x] **Causa real del fallo de los 3 GitHub Actions de la Fase 8 — encontrada y corregida.** `is_packaged_path_detecta_una_instalacion_de_microsoft_store` depende de que `Path::components()` trocee por `\`, cierto solo en Windows; la CI corre en `ubuntu-22.04` y nunca se había ejecutado antes del primer `/ship`. Tests afectados marcados `#[cfg(target_os = "windows")]`.
+  - [x] **Pista legible cuando una cita no se resuelve al previsualizar un capítulo suelto** (la vista previa compila el fichero abierto, no `main.typ`) — con color distinto al del error real del compilador (`preview__band-hint` vs `preview__band-message`), tras un segundo aviso del usuario de que ambos se veían del mismo rojo. Evaluada y descartada la alternativa de compilar siempre por el entrypoint (coste de recompilar el proyecto entero en cada pulsación).
+  - [x] **Botón de búsqueda (⌕) en la barra del editor** — Ctrl+F ya abría el panel de `@codemirror/search` sin botón visible; documentado además en el panel de Ayuda junto con el autocompletado de referencias con `@`.
+  - [x] **Tema Sepia + selectores segmentados de tema/idioma, copiados de DBV Markdown Reader a petición explícita del usuario.** Mismos valores de paleta; el atajo del menú nativo de macOS ahora rota entre los tres temas.
+  - [x] **Páginas de privacidad para tiendas de aplicaciones** (`docs/privacidad.html` / `docs/privacy.html`, modelo de `dbv-md-reader`, contenido verificado contra el comportamiento real de esta app) y **GitHub Pages activado** sobre `master`/`/docs` (antes inexistente en este repositorio).
+  - [x] **`/test`**: 99/99 Vitest · 124/124 Rust · `verify:frontend` 8/8 (111 elementos) · `build:vite`.
+  - [x] **`REVIEW.md`** (Bugs/Seguridad/Cumplimiento) — **0 hallazgos Críticos.**
+  - [x] **Versionado: `0.2.0` → `0.3.0`** (decisión explícita del usuario: Minor, nueva funcionalidad visible sin romper nada).
+  - [x] **`CHANGELOG.md`**: sección `[0.3.0] - 2026-09-06` añadida.
+  - [x] **Tag de versión `v0.3.0` creado.** Push **no ejecutado** — queda como sugerencia (ver Context Snapshot).
 
 ---
 
 ## 🔄 Context Snapshot / Snapshot de Contexto
 
-> ### 👉 CÓMO RETOMAR ESTE PROYECTO (leer esto primero) — actualizado 2026-09-06, `/ship` v0.2.0 cerrado
+> ### 👉 CÓMO RETOMAR ESTE PROYECTO (leer esto primero) — actualizado 2026-09-06, `/ship` v0.3.0 cerrado
 >
-> **Primer tag de versión real del proyecto: `v0.2.0`.** 51 commits previos nunca se habían etiquetado.
-> Todo commiteado y en verde: **98 Vitest · 122 Rust · frontend 8/8 · layout 9/9.**
+> **`v0.2.0` se empujó** (el usuario confirmó "Adelante") **y los tres GitHub Actions fallaron** — no por
+> el contenido de esa entrega, sino por un test preexistente (`is_packaged_path...`) que nunca se había
+> ejecutado en Linux/macOS hasta ese primer `/ship` real. Ya corregido en esta sesión (§8 de
+> `walkthrough.md`). Todo commiteado y en verde: **99 Vitest · 124 Rust · frontend 8/8 (111 elementos) ·
+> build:vite.**
 >
-> **Trabajo de esta sesión:** 3 mejoras de Typst Universe tras uso real, rediseño de cabecera (icono +
-> etiqueta corta, elegido por el usuario entre 4 direcciones en un canvas de Claude Design), panel
-> "Acerca de" homogeneizado con DBV Markdown Reader, y una investigación completa de migración
-> LaTeX→Typst con spike sobre 3 proyectos reales del usuario que terminó en **ADR-LATEX-001: la
-> migración se aplaza como pilar de v1.0** (ver `memory.md` — el motivo NO es esperar a que maduren
-> Tylax/MiTeX, es que con 3 proyectos la curva de fallos nuevos no se ha aplanado). Detalle completo
-> en `walkthrough.md` de esta sesión.
+> **Trabajo de esta sesión:** el usuario puso en marcha la plantilla nativa TFG-ETSI-UMA-Typst (proyecto
+> externo, fuera de este repositorio) y encontró en uso real 3 bugs de raíz de la aplicación —
+> `"[object Object]"` en errores de compilación, rutas de imagen rotas en capítulos de subcarpetas, y
+> copias duplicadas al arrastrar la misma imagen varias veces — más 2 mejoras de UX pedidas
+> explícitamente (tema Sepia + selectores segmentados, copiados de DBV Markdown Reader; distinción de
+> color entre la pista de la app y el error real del compilador en la banda de vista previa) y la
+> preparación de páginas de privacidad para tiendas de aplicaciones. Detalle completo en
+> `walkthrough.md` de esta sesión.
 >
-> **Nada de lo construido en ESTA sesión se ha visto en la ventana real** (mismo patrón que se repite
-> sesión tras sesión en este proyecto): el botón "Plantillas del Typst Universe" del lanzador, el enlace
-> a la ficha del paquete en cada tarjeta de Universe, el aviso de fuente que falta, arrastrar una fuente
-> al proyecto, la cabecera con icono+etiqueta y el panel "Acerca de" nuevo — todo verificado con
-> capturas de Edge headless y tests automáticos, ninguno con el usuario delante.
+> **Nada de lo construido en ESTA sesión se ha visto en la ventana real salvo lo que el propio usuario
+> reportó en vivo** (los 3 bugs de raíz, confirmados por él mismo): el tema Sepia, los selectores
+> segmentados y la separación de color en la banda de errores se verificaron con build + tests +
+> `verify:frontend`, no con una captura ni con el usuario delante.
 >
 > **Acciones que dependen del usuario, no de código:**
-> 1. **Decidir si se hace `git push origin master --tags`.** El tag `v0.2.0` está creado localmente
->    pero no empujado — al hacerlo se disparan por primera vez en la historia del proyecto
->    `release-linux.yml` y `release-macos.yml`.
-> 2. **Vigilar esa primera ejecución de macOS**, si se empuja el tag: será la PRIMERA vez que
->    `macos_menu.rs` (Slice 24) pase por un compilador real. Si algo falla, es el candidato más probable;
->    segundo candidato, el paso de `lipo` del sidecar.
-> 3. **Compilar Windows con las variables `TAURI_SIGNING_*`** puestas en su terminal y ejecutar
->    `npm run updater:manifest` para el `latest.json` a subir junto al `.nsis.zip` — sigue pendiente
->    de sesiones anteriores, sin cambios esta vez.
-> 4. **Migración LaTeX:** si aparece un cuarto proyecto LaTeX real (idealmente con matemáticas densas —
->    es el único hueco que los 3 medidos no probaron, la red de MiTeX sigue sin ejercitarse), medirlo
->    con `spikes/latex-migration/` cuenta para el disparador de reevaluación de ADR-LATEX-001.
+> 1. **Decidir si se hace `git push origin master --tags`.** El tag `v0.3.0` está creado localmente
+>    pero no empujado — esta vez la causa real del fallo anterior de CI ya está corregida.
+> 2. **Vigilar de nuevo la ejecución de macOS** si se empuja el tag: sigue siendo la plataforma menos
+>    verificada (`macos_menu.rs`, Slice 24, nunca compilado en un Mac real).
+> 3. **Compilar Windows con las variables `TAURI_SIGNING_*`** y ejecutar `npm run updater:manifest` —
+>    sigue pendiente de sesiones anteriores, sin cambios esta vez.
+> 4. **Decidir si se usan ya `docs/privacidad.html`/`docs/privacy.html`** en el formulario de alguna
+>    tienda de aplicaciones — la URL pública (`https://davidbuenov.github.io/dbv-typst-editor/`) solo
+>    existe en cuanto se empuje este commit (GitHub Pages ya está activado, pero sin contenido servido
+>    todavía).
 >
 > **Trabajo técnico pendiente, por orden de valor:**
 > - Bug reportado sin reproducir (arrastrado desde hace sesiones): al escribir dentro de una ecuación,
 >   el estado de la vista previa alterna "Compilando…"/"Página 1" de forma continua. Sin causa de bucle
 >   encontrada en `editor.js`/`watcher.rs`; falta confirmar con el usuario si persiste sin tocar teclas.
-> - Ofrecido y no hecho: separar visualmente avisos (ámbar) de errores (rojo) en la banda de vista previa.
 > - Sigue fuera: LSP `tinymist` (sin research phase), sincronización editor↔preview por posición real,
 >   bibliografía visual de LECTURA, y `docs/DESIGN.md` (deuda documental desde el `/spec` original).
-> - Segundo issue de Tylax reportado esta sesión ([#45](https://github.com/scipenai/tylax/issues/45)) sin
->   seguimiento comprometido — no bloquea nada, es buena vecindad, no trabajo de producto.
+> - Segundo issue de Tylax reportado en la sesión anterior ([#45](https://github.com/scipenai/tylax/issues/45))
+>   sin seguimiento comprometido — no bloquea nada, es buena vecindad, no trabajo de producto.
 >
-> **Última sesión:** 2026-09-06 · **Rama:** `master` · remoto `origin` = `github.com/davidbuenov/dbv-typst-editor` (público) · tag `v0.2.0` creado localmente, **push pendiente de confirmación**.
+> **Última sesión:** 2026-09-06 · **Rama:** `master` · remoto `origin` = `github.com/davidbuenov/dbv-typst-editor` (público) · tag `v0.3.0` creado localmente, **push pendiente de confirmación**.
 
 ### ✅ Qué funciona hoy (MVP v0.1 completo)
 

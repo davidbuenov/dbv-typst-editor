@@ -87,6 +87,12 @@ mod tests {
         assert!(!info.platform.is_empty());
     }
 
+    // `Path::components()` solo trocea por `\` en Windows: en Linux/macOS toda
+    // esta cadena es un único componente literal y ninguna de las dos
+    // aserciones de abajo probaría lo que dicen probar. La CI (`ubuntu-22.04`)
+    // nunca había corrido antes del primer `/ship` — este `#[cfg]` es la
+    // corrección de ese primer fallo real, no un cambio de comportamiento.
+    #[cfg(target_os = "windows")]
     #[test]
     fn is_packaged_path_detecta_una_instalacion_de_microsoft_store() {
         assert!(is_packaged_path(std::path::Path::new(
@@ -94,6 +100,7 @@ mod tests {
         )));
     }
 
+    #[cfg(target_os = "windows")]
     #[test]
     fn is_packaged_path_no_confunde_una_instalacion_manual() {
         assert!(!is_packaged_path(std::path::Path::new(

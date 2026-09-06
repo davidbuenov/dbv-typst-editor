@@ -1,5 +1,5 @@
 /* =============================================================================
-   DBV Typst Editor — Tokens de tema (claro / oscuro)
+   DBV Typst Editor — Tokens de tema (claro / oscuro / sepia)
    Copyright (c) 2026 David Bueno Vallejo
    Licensed under the MIT License. See LICENSE for details.
    Built with dbv-specs-ops · https://github.com/davidbuenov/dbv-specs-ops
@@ -8,10 +8,10 @@
    Diferencias conscientes respecto al original:
      · Sin @import de Google Fonts: el original depende de red para tipografía,
        lo que contradice el objetivo offline-first. Se usa la pila del sistema.
-     · Sin tema sepia (era una función de lectura; RF-08 pide claro/oscuro).
      · Sin tokens --alert-* (específicos de las alertas GFM de Markdown).
-     · Se conservan los tokens --code-*: alimentarán el tema del editor
-       CodeMirror 6 en el Slice 4.
+     · Se conservan los tokens --code-*: alimentan el tema del editor
+       CodeMirror 6 (`editor.js`), que los lee vía `var(--...)` — ningún tema
+       nuevo necesita tocar ese fichero, basta con añadir su bloque aquí.
    ============================================================================= */
 
 :root,
@@ -28,6 +28,11 @@
   --code-bg: #161b22;
   --quote-bg: rgba(88, 166, 255, 0.08);
   --shadow: rgba(0, 0, 0, 0.4);
+  /* Color de las pistas propias de la app en la banda de vista previa
+     (`preview__band-hint`) — separado de `--accent` porque en sepia ambos
+     colores deben poder divergir libremente (ver el bloque `sepia` de más
+     abajo); aquí, donde ya contrasta bien con `--code-tag`, coincide. */
+  --band-hint: var(--accent);
 
   --code-keyword: #cc99cd;
   --code-string: #7ec699;
@@ -52,6 +57,7 @@
   --code-bg: #f6f8fa;
   --quote-bg: rgba(9, 105, 218, 0.05);
   --shadow: rgba(0, 0, 0, 0.12);
+  --band-hint: var(--accent);
 
   --code-keyword: #cf222e;
   --code-string: #0a3069;
@@ -61,6 +67,37 @@
   --code-tag: #116329;
   --code-class: #953800;
   --code-operator: #24292f;
+}
+
+[data-theme='sepia'] {
+  --bg-primary: #faf3e0;
+  --bg-secondary: #f2e8cc;
+  --bg-tertiary: #e8d9b5;
+  --text-primary: #3b2c1a;
+  --text-secondary: #6b5240;
+  --text-muted: #9c7e65;
+  --accent: #8b4513;
+  --accent-hover: #6b340f;
+  --border: #d4bc8a;
+  --code-bg: #f2e8cc;
+  --quote-bg: rgba(139, 69, 19, 0.07);
+  --shadow: rgba(0, 0, 0, 0.15);
+  /* En sepia, `--accent` (#8b4513) y `--code-tag` (#7a4419) son dos marrones
+     casi idénticos: en la banda de vista previa, la pista de la app y el
+     error real del compilador se veían del mismo color (aviso de un usuario
+     real). Un azul frío, ausente del resto de la paleta cálida de este tema,
+     es la única forma de separarlos sin tocar `--accent` (usado en toda la
+     interfaz, no solo en esa banda). */
+  --band-hint: #3d6b99;
+
+  --code-keyword: #9a3324;
+  --code-string: #5b7553;
+  --code-comment: #9c7e65;
+  --code-function: #8b4513;
+  --code-number: #6b4f8f;
+  --code-tag: #7a4419;
+  --code-class: #b3701f;
+  --code-operator: #6b5240;
 }
 
 :root {

@@ -406,7 +406,7 @@ pub async fn typst_compile_preview(
 
     if code != Some(0) {
         // (d) El frontend conserva la última vista buena y enseña este stderr.
-        return Err(TypstError::CompilationFailed { code, stderr });
+        return Err(TypstError::CompilationFailed(stderr));
     }
 
     let files = collect_page_files(workdir.path());
@@ -496,7 +496,7 @@ pub async fn typst_export_pdf(
     let (code, stdout, stderr) = outcome?;
 
     if code != Some(0) {
-        return Err(TypstError::CompilationFailed { code, stderr });
+        return Err(TypstError::CompilationFailed(stderr));
     }
     if stdout.is_empty() {
         return Err(TypstError::ExecutionFailed(
@@ -550,7 +550,7 @@ pub async fn typst_export_png(
     let (code, _stdout, stderr) = outcome?;
 
     if code != Some(0) {
-        return Err(TypstError::CompilationFailed { code, stderr });
+        return Err(TypstError::CompilationFailed(stderr));
     }
     Ok(output)
 }

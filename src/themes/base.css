@@ -151,6 +151,51 @@ body {
   color: #fff;
 }
 
+/* ─── Selector segmentado (tema, idioma) ─────────────────────────────────────
+   Portado de dbv-md-reader/src/styles.css:284-314: un grupo de dos o tres
+   botones dentro de una única píldora, con el activo resaltado — más legible
+   que un solo botón de alternancia cuando hay tres opciones (Claro/Oscuro/
+   Sepia), y el mismo patrón visual para el par ES/EN por consistencia. */
+.segmented-control {
+  display: flex;
+  align-items: center;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 2px;
+  gap: 1px;
+}
+
+.segmented-control__btn {
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+  white-space: nowrap;
+  font-family: inherit;
+  line-height: 1.4;
+}
+
+.segmented-control__btn:hover {
+  color: var(--text-primary);
+}
+
+.segmented-control__btn.active {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.segmented-control__btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
 /* ─── Cuerpo ───────────────────────────────────────────────────────────────
    El layout real de `.app-body` vive en `layout.css` (una sola definición, a
    propósito): aquí había una regla heredada del andamiaje del Slice 1

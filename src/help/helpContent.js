@@ -90,11 +90,15 @@ export const HELP_SECTIONS = [
             'Formato: negrita, cursiva, tachado, código, superíndice y subíndice. Pulsar dos veces quita el marcado en vez de anidarlo.',
             'Estructura: encabezados H1/H2/H3 y tres tipos de lista. Cambiar de una a otra en la misma línea sustituye el marcador, no lo apila.',
             'Sensibilidad al contexto: dentro de una ecuación ($...$) los botones de formato de texto se atenúan y el grupo de Typst pasa al frente.',
+            'Buscar y reemplazar: el botón ⌕ abre el panel de búsqueda (también con Ctrl/Cmd + F), con reemplazo uno a uno o de todas las coincidencias a la vez.',
+            'Referencias con @: al escribir @ dentro del documento aparece un listado con las figuras, tablas, ecuaciones y secciones ya etiquetadas del proyecto, filtrable mientras sigues escribiendo.',
           ],
           en: [
             'Formatting: bold, italic, strikethrough, code, superscript and subscript. Pressing twice removes the markup instead of nesting it.',
             'Structure: H1/H2/H3 headings and three list types. Switching between them on the same line replaces the marker instead of stacking it.',
             'Context aware: inside an equation ($...$) the text-formatting buttons dim and the Typst group moves to the front.',
+            'Find and replace: the ⌕ button opens the search panel (also with Ctrl/Cmd + F), with one-at-a-time or replace-all.',
+            'References with @: typing @ anywhere in the document brings up a list of the project’s already-labelled figures, tables, equations and sections, filterable as you keep typing.',
           ],
         },
       },
@@ -104,6 +108,7 @@ export const HELP_SECTIONS = [
           ['Ctrl/Cmd + I', { es: 'Cursiva', en: 'Italic' }],
           ['Ctrl/Cmd + E', { es: 'Código en línea', en: 'Inline code' }],
           ['Ctrl/Cmd + K', { es: 'Enlace', en: 'Link' }],
+          ['Ctrl/Cmd + F', { es: 'Buscar y reemplazar', en: 'Find and replace' }],
           ['Ctrl/Cmd + Shift + 1/2/3', { es: 'Encabezado de nivel 1, 2 o 3', en: 'Heading level 1, 2 or 3' }],
           ['Ctrl/Cmd + S', { es: 'Guardar', en: 'Save' }],
           ['Esc', { es: 'Cerrar el panel abierto', en: 'Close the open panel' }],
@@ -264,13 +269,13 @@ export const HELP_SECTIONS = [
       {
         list: {
           es: [
-            'El botón ◐ alterna entre tema claro y oscuro.',
-            'El botón ES/EN cambia el idioma de toda la interfaz, incluida esta ayuda.',
+            'El selector Claro/Oscuro/Sepia cambia el tema visual al instante.',
+            'El selector ES/EN cambia el idioma de toda la interfaz, incluida esta ayuda.',
             'Tema, idioma, anchos de panel, nivel de zoom y proyectos recientes se recuerdan entre sesiones.',
           ],
           en: [
-            'The ◐ button toggles between light and dark theme.',
-            'The ES/EN button switches the language of the whole interface, including this help.',
+            'The Light/Dark/Sepia selector switches the visual theme instantly.',
+            'The ES/EN selector switches the language of the whole interface, including this help.',
             'Theme, language, panel widths, zoom level and recent projects are remembered between sessions.',
           ],
         },

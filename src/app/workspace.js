@@ -12,6 +12,8 @@
 // Regla de RF-02b / R-MVP-3 que se hace visible aquí: abrir un proyecto NUNCA
 // escribe nada en su carpeta. `openProjectAt` solo lee.
 
+import { openSearchPanel } from '@codemirror/search';
+
 import { createBibEntryPanel } from '../bibliography/bibEntryPanel.js';
 import { createCitationPicker } from '../editor/citationPicker.js';
 import { createEditor } from '../editor/editor.js';
@@ -100,6 +102,15 @@ export function createWorkspace({ tree, elements, notify, dialog }) {
       // selector nativo de fichero, mismo destino final (`images/` del
       // proyecto) y misma inserción con el hueco en el pie de figura.
       figure: () => insertFigureFromDialog(),
+      // Beta, §7.7.4: `openSearchPanel` necesita el `EditorView` en vivo y
+      // hace su propio dispatch — igual que `figure`, no encaja en
+      // `buildTransaction(state) → TransactionSpec`. El atajo Ctrl+F (vía
+      // `searchKeymap`, editor.js) ya abría este mismo panel; este botón solo
+      // le da un punto de entrada visible a quien no conozca el atajo.
+      search: () => {
+        const view = editor.getView();
+        if (view) openSearchPanel(view);
+      },
     },
   });
 
@@ -565,7 +576,7 @@ export function createWorkspace({ tree, elements, notify, dialog }) {
     suggestedArchiveName,
     exportArchive,
     confirmDiscardChanges,
-    /** @param {'dark'|'light'} theme */
+    /** @param {'dark'|'light'|'sepia'} theme */
     setTheme(theme) {
       editor.setTheme(theme);
     },

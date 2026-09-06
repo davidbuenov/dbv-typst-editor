@@ -48,22 +48,54 @@ const PAGES_PADDING_PX = 32;
 const MISSING_FONT_PATTERN = /unknown font family:\s*"?([^"\n]+?)"?\s*$/gim;
 
 /**
- * Antepone, cuando aplica, un aviso legible sobre fuentes que faltan en el
- * sistema al texto crudo del compilador — que ya usa este mismo nombre de
+ * Reconoce el error de Typst cuando `#cite(...)` (o `#bibliography`) se
+ * compila sin bibliografía en su propio ámbito — verificado contra el binario
+ * real: `the document does not contain a bibliography`.
+ */
+const MISSING_BIBLIOGRAPHY_PATTERN = /the document does not contain a bibliography/i;
+
+/**
+ * Aviso legible sobre fuentes que faltan en el sistema, o `null` si el texto
+ * del compilador no menciona ninguna — que ya usa este mismo nombre de
  * familia en su propio warning, pero perdido entre coordenadas de fichero y
  * columna que solo tienen sentido para quien conoce el código fuente del
  * paquete, no para quien solo quiere saber qué instalar.
  */
-function withFontHint(warnings) {
+function fontHint(warnings) {
   const names = new Set();
   for (const match of warnings.matchAll(MISSING_FONT_PATTERN)) {
     names.add(match[1].trim());
   }
-  if (names.size === 0) return warnings;
+  if (names.size === 0) return null;
 
   const label = names.size === 1 ? t('preview.missingFontsOne') : t('preview.missingFontsMany');
-  const hint = `${label} ${[...names].join(', ')}. ${t('preview.missingFontsHint')}`;
-  return `${hint}\n\n${warnings}`;
+  return `${label} ${[...names].join(', ')}. ${t('preview.missingFontsHint')}`;
+}
+
+/**
+ * Pista sobre por qué una `#cite(...)` que funciona perfectamente al
+ * compilar desde el documento principal falla en este preview, o `null` si
+ * no aplica: la vista previa compila SIEMPRE el fichero abierto, no
+ * `main.typ` (§7.6 ARCHITECTURE.md) — así que un capítulo suelto, incluido
+ * normalmente vía `#include` desde un documento que sí declara
+ * `#bibliography(...)`, no tiene bibliografía en su propio ámbito. No es un
+ * error del proyecto: es una limitación esperada de previsualizar un capítulo
+ * fuera de su documento — mismo patrón que `fontHint` para fuentes.
+ */
+function bibliographyHint(message) {
+  return MISSING_BIBLIOGRAPHY_PATTERN.test(message) ? t('preview.missingBibliographyHint') : null;
+}
+
+/**
+ * Todas las pistas de la aplicación que aplican a este texto de compilador,
+ * separadas del texto en sí — para que `showBand` pueda pintarlas en un color
+ * distinto al del error real y así quede claro que no son parte de lo que
+ * dice el compilador (RF-06, aviso de un usuario real: "en otro color que no
+ * fuera rojo para que el usuario supiera que es de la aplicación").
+ * @returns {string[]}
+ */
+function appHints(message) {
+  return [fontHint(message), bibliographyHint(message)].filter(Boolean);
 }
 
 function readStoredZoom() {
@@ -174,8 +206,26 @@ export function createPreview({ pagesEl, bandEl, bandSplitterEl, statusEl, zoomL
     statusEl.textContent = extra ? `${t(key)} ${extra}` : t(key);
   }
 
+  /**
+   * Pinta la banda inferior: primero las pistas propias de la aplicación
+   * (`preview__band-hint`, color de acento), después el texto crudo del
+   * compilador (`preview__band-message`, el rojo de siempre) — dos nodos
+   * distintos, no un único `textContent` concatenado, para que un usuario
+   * distinga a simple vista "esto lo explica la app" de "esto lo dice Typst".
+   */
   function showBand(message) {
-    bandEl.textContent = message;
+    bandEl.replaceChildren();
+    for (const hint of appHints(message)) {
+      const hintEl = document.createElement('div');
+      hintEl.className = 'preview__band-hint';
+      hintEl.textContent = hint;
+      bandEl.append(hintEl);
+    }
+    const messageEl = document.createElement('div');
+    messageEl.className = 'preview__band-message';
+    messageEl.textContent = message;
+    bandEl.append(messageEl);
+
     bandEl.classList.remove('hidden');
     bandSplitterEl?.classList.remove('hidden');
   }
@@ -270,7 +320,7 @@ export function createPreview({ pagesEl, bandEl, bandSplitterEl, statusEl, zoomL
 
     if (!result.ok) {
       // Última vista buena: no se toca `pagesEl`.
-      showBand(withFontHint(result.error.message || t('preview.error')));
+      showBand(result.error.message || t('preview.error'));
       setStatus('preview.failed');
       return;
     }
@@ -285,7 +335,7 @@ export function createPreview({ pagesEl, bandEl, bandSplitterEl, statusEl, zoomL
     // Recompilar no debe mover al lector de donde estaba leyendo.
     pagesEl.scrollTop = scrollTop;
 
-    if (outcome.warnings.trim()) showBand(withFontHint(outcome.warnings.trim()));
+    if (outcome.warnings.trim()) showBand(outcome.warnings.trim());
     else hideBand();
     setStatus('preview.pages', String(pageCount));
   }

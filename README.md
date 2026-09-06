@@ -44,7 +44,7 @@ Sigue la misma filosofía que su proyecto hermano [DBV Markdown Reader](https://
 
 ## 🚦 Estado actual
 
-`v0.2.0` — MVP completo más buena parte de Beta: además del bucle completo (crear proyecto → escribir con resaltado Typst → ver el PDF actualizarse solo → guardar → exportar), incluye Typst Universe (plantillas y paquetes de la comunidad, con detección de fuentes que faltan y arrastrar-y-soltar para añadirlas), Project Archive `.dbvt`, barra de herramientas de inserción del editor, outline, terminal avanzado, modos de escritura, gestión de imágenes/citas/bibliografía por asistente, actualizador automático e instancia única. Validado a mano en la aplicación real y con 220 tests automáticos en verde (98 de frontend + 122 de backend). Primer tag de versión (`v0.2.0`) creado; todavía no hay Release publicada en GitHub.
+`v0.3.0` — MVP completo más buena parte de Beta: además del bucle completo (crear proyecto → escribir con resaltado Typst → ver el PDF actualizarse solo → guardar → exportar), incluye Typst Universe (plantillas y paquetes de la comunidad, con detección de fuentes que faltan y arrastrar-y-soltar para añadirlas), Project Archive `.dbvt`, barra de herramientas de inserción del editor (con búsqueda y reemplazo), outline, terminal avanzado, modos de escritura, gestión de imágenes/citas/bibliografía por asistente, actualizador automático e instancia única. Tres temas — claro, oscuro y sepia — con selector segmentado. Validado a mano en la aplicación real (3 bugs de raíz encontrados y corregidos en esta versión) y con 223 tests automáticos en verde (99 de frontend + 124 de backend). Dos tags de versión creados (`v0.2.0`, `v0.3.0`); todavía no hay Release publicada en GitHub — el primer push con tag falló en los tres workflows de CI/Release por un bug de un test preexistente (ya corregido).
 
 La documentación de especificación y arquitectura vive en [`dbv-specs-ops/`](./dbv-specs-ops/) y se actualiza en cada fase del ciclo Spec-Driven Development.
 
@@ -70,7 +70,7 @@ La documentación de especificación y arquitectura vive en [`dbv-specs-ops/`](.
 - **Vista previa en tiempo real:** el PDF se recompila solo tras cada pausa de escritura, con zoom y carga de páginas bajo demanda. Un error de sintaxis a medio escribir no borra la vista: mantiene la última correcta y muestra el error en una banda.
 - **Guardar, guardar como y detección de cambios externos**, con recarga automática cuando no hay nada que perder y aviso solo cuando lo hay.
 - **Exportación a PDF** del documento tal como se ve, incluidos los cambios sin guardar.
-- **Temas claro y oscuro**, interfaz en español e inglés y compilador Typst embebido: todo funciona sin conexión.
+- **Temas claro, oscuro y sepia**, interfaz en español e inglés y compilador Typst embebido: todo funciona sin conexión.
 - **Empaquetado** para Windows (NSIS) y Linux (AppImage + `.deb`), con asociación de fichero `.typ`. macOS tiene menú nativo escrito, pendiente de su primera compilación real.
 - **Typst Universe:** plantillas y paquetes de la comunidad, lista curada + identificador libre, con detección de fuentes que faltan en los avisos del compilador y la posibilidad de arrastrarlas al proyecto para añadirlas.
 - **Project Archive `.dbvt`, barra de herramientas de inserción, outline, terminal avanzado, modos de escritura, gestión de imágenes/citas/bibliografía por asistente, instancia única y actualizador automático** — el detalle completo de cada uno vive en `CHANGELOG.md`.
@@ -211,7 +211,7 @@ El workflow vendoriza el compilador Typst antes de empaquetar y **falla de forma
 
 ## 📋 Changelog
 
-`v0.2.0` documentada en [`dbv-specs-ops/CHANGELOG.md`](./dbv-specs-ops/CHANGELOG.md) — primer tag de versión real del proyecto. Sigue sin haber una Release publicada en GitHub.
+`v0.3.0` documentada en [`dbv-specs-ops/CHANGELOG.md`](./dbv-specs-ops/CHANGELOG.md). Sigue sin haber una Release publicada en GitHub.
 
 ---
 

@@ -139,11 +139,11 @@ describe('plantillas con hueco (enlace, figura, tabla, ecuación...)', () => {
     expect(result.doc).toBe('#link("url")[enlace]');
   });
 
-  it('la figura genera un pie de figura y deja el hueco en la ruta de la imagen', () => {
+  it('la figura genera un pie de figura y deja el hueco en la ruta de la imagen, anclada a la raíz', () => {
     const result = apply('figure', '', 0);
-    expect(result.doc).toContain('image("images/...")');
+    expect(result.doc).toContain('image("/images/...")');
     expect(result.doc).toContain('caption: [pie de figura]');
-    expect(result.selectedText).toBe('images/...');
+    expect(result.selectedText).toBe('/images/...');
   });
 
   it('la tabla es un esqueleto 2x2 con la primera celda seleccionada', () => {
@@ -191,15 +191,24 @@ describe('isInsideMath', () => {
 });
 
 describe('figureActionForPath (arrastrar y soltar una imagen, Beta §7.10)', () => {
-  it('deja la ruta ya rellena y el hueco en el pie de figura', () => {
+  it('antepone "/" a la ruta que devuelve copy_asset_into_project, para anclarla a la raíz del proyecto', () => {
     const state = stateWithSelection('', 0);
     const spec = figureActionForPath('images/diagrama-1.png')(state);
     const next = state.update(spec).state;
     expect(next.doc.toString()).toBe(
-      '#figure(\n  image("images/diagrama-1.png"),\n  caption: [pie de figura],\n)'
+      '#figure(\n  image("/images/diagrama-1.png"),\n  caption: [pie de figura],\n)'
     );
     const { from, to } = next.selection.main;
     expect(next.sliceDoc(from, to)).toBe('pie de figura');
+  });
+
+  it('no duplica la barra si la ruta ya viene anclada a la raíz', () => {
+    const state = stateWithSelection('', 0);
+    const spec = figureActionForPath('/images/diagrama-1.png')(state);
+    const next = state.update(spec).state;
+    expect(next.doc.toString()).toBe(
+      '#figure(\n  image("/images/diagrama-1.png"),\n  caption: [pie de figura],\n)'
+    );
   });
 });
 

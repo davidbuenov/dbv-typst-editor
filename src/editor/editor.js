@@ -195,7 +195,7 @@ export function buildExtensions({
  * @param {(view: EditorView) => void} [options.onSelectionChange] Cursor o
  *   selección movidos — lo usa la barra de herramientas (RF-13) para refrescar
  *   la sensibilidad al contexto (dentro/fuera de una ecuación, §7.7.3.3).
- * @param {'dark'|'light'} [options.theme] Tema inicial.
+ * @param {'dark'|'light'|'sepia'} [options.theme] Tema inicial.
  */
 export function createEditor(hostEl, { onChange, onSave, onSelectionChange, theme = 'dark' } = {}) {
   if (!(hostEl instanceof HTMLElement)) {
@@ -270,7 +270,7 @@ export function createEditor(hostEl, { onChange, onSave, onSelectionChange, them
         effects: readOnlyCompartment.reconfigure(EditorState.readOnly.of(readOnly)),
       });
     },
-    /** @param {'dark'|'light'} nextTheme */
+    /** @param {'dark'|'light'|'sepia'} nextTheme */
     setTheme(nextTheme) {
       view.dispatch({
         effects: themeCompartment.reconfigure(buildTheme(nextTheme === 'dark')),

@@ -203,6 +203,61 @@ body {
   word-break: break-all;
 }
 
+.about__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.about__logo {
+  width: 40px;
+  height: 40px;
+  flex: none;
+}
+
+.about__version {
+  margin: 2px 0 14px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.about__links {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0 0 16px;
+}
+
+.about__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.about__link:hover,
+.about__link:focus-visible {
+  color: var(--accent);
+}
+
+.about__link-icon {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+.about__footer {
+  margin: 16px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 11px;
+  text-align: center;
+}
+
 .about-update {
   margin: 16px 0 4px;
   padding-top: 14px;
@@ -556,7 +611,10 @@ body {
   flex-direction: column;
 }
 
-.help__header {
+/* Cabecera genérica de panel flotante (título + botón cerrar "✕"): nació con
+   Ayuda, pero Universe y Acerca de la reutilizan tal cual — el nombre se
+   generalizó para no fingir que sigue siendo cosa solo de Ayuda. */
+.panel__header {
   display: flex;
   align-items: center;
   justify-content: space-between;

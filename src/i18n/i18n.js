@@ -123,6 +123,7 @@ const DICTIONARIES = {
     'about.title': 'DBV Typst Editor',
     'about.text':
       'El entorno de escritorio más accesible para el ecosistema Typst. Proyecto en construcción.',
+    'about.license': 'Licencia MIT',
     'typst.embedded': '(embebido)',
     'typst.fail': 'sidecar no disponible',
     'empty.heading': '¿Qué quieres escribir hoy?',
@@ -334,6 +335,7 @@ const DICTIONARIES = {
     'about.title': 'DBV Typst Editor',
     'about.text':
       'The most user-friendly desktop environment for the Typst ecosystem. Work in progress.',
+    'about.license': 'MIT License',
     'typst.embedded': '(embedded)',
     'typst.fail': 'sidecar unavailable',
     'empty.heading': 'What do you want to write today?',

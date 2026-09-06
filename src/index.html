@@ -305,7 +305,7 @@
 
     <!-- Typst Universe (Beta, ARCHITECTURE.md §7.6): lista curada + identificador libre. -->
     <div id="universe-panel" class="floating-panel floating-panel--universe hidden" role="dialog" aria-modal="false">
-      <div class="help__header">
+      <div class="panel__header">
         <h2 class="floating-panel__title" data-i18n="universe.title"></h2>
         <button id="btn-universe-close" class="icon-button icon-button--small" type="button" data-i18n-title="action.close">✕</button>
       </div>
@@ -327,7 +327,7 @@
 
     <!-- Ayuda (ES/EN, contenido en `help/helpContent.js`). -->
     <div id="help-panel" class="floating-panel floating-panel--help hidden" role="dialog" aria-modal="false">
-      <div class="help__header">
+      <div class="panel__header">
         <h2 class="floating-panel__title" data-i18n="help.title"></h2>
         <button id="btn-help-close" class="icon-button icon-button--small" type="button" data-i18n-title="action.close">✕</button>
       </div>
@@ -337,12 +337,35 @@
       </div>
     </div>
 
-    <div id="about-panel" class="floating-panel hidden" role="dialog" aria-modal="false">
-      <h2 class="floating-panel__title" data-i18n="about.title"></h2>
+    <!-- "Acerca de": mismo patrón de cabecera (título + cierre "✕") que Ayuda y
+         Typst Universe, para que las apps DBV se sientan de la misma familia. -->
+    <div id="about-panel" class="floating-panel floating-panel--about hidden" role="dialog" aria-modal="false">
+      <div class="panel__header">
+        <div class="about__brand">
+          <img class="about__logo" src="./assets/logo-dbv-dark.png" alt="" aria-hidden="true" />
+          <h2 class="floating-panel__title" data-i18n="about.title"></h2>
+        </div>
+        <button id="btn-about-close" class="icon-button icon-button--small" type="button" data-i18n-title="action.close">✕</button>
+      </div>
+      <p class="about__version">
+        <span data-i18n="scaffold.appVersion"></span> <span id="fact-app-version">—</span>
+      </p>
       <p class="floating-panel__text" data-i18n="about.text"></p>
+      <div class="about__links">
+        <a class="about__link" href="https://davidbuenov.com" target="_blank" rel="noopener">
+          <svg class="about__link-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="10" cy="10" r="8"/><path d="M2 10h16"/><path d="M10 2c3 2.2 3 13.8 0 16M10 2c-3 2.2-3 13.8 0 16"/></svg>
+          davidbuenov.com
+        </a>
+        <a class="about__link" href="https://github.com/davidbuenov" target="_blank" rel="noopener">
+          <!-- Único icono de relleno sólido del panel (el resto son de trazo,
+               ver .about__link-icon del globo arriba): es la marca oficial de
+               GitHub, y sus normas de marca piden el glifo tal cual, no un
+               redibujado a trazo — excepción deliberada, no un descuido. -->
+          <svg class="about__link-icon" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" focusable="false"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+          github.com/davidbuenov
+        </a>
+      </div>
       <dl class="scaffold-card__facts">
-        <dt data-i18n="scaffold.appVersion"></dt>
-        <dd id="fact-app-version">—</dd>
         <dt data-i18n="scaffold.platform"></dt>
         <dd id="fact-platform">—</dd>
         <dt data-i18n="scaffold.typst"></dt>
@@ -352,7 +375,7 @@
         <button id="btn-check-update" class="button button--compact" type="button" data-i18n="update.check"></button>
         <p class="about-update-status" id="about-update-status"></p>
       </div>
-      <button id="btn-about-close" class="button" type="button" data-i18n="action.close"></button>
+      <footer class="about__footer">David Bueno Vallejo · <span data-i18n="about.license"></span></footer>
     </div>
 
     <script type="module" src="./main.js"></script>

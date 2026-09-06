@@ -1,7 +1,7 @@
 {
   "name": "dbv-typst-editor",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "description": "Editor de escritorio multiplataforma para documentos Typst, con vista previa PDF en tiempo real",
   "scripts": {

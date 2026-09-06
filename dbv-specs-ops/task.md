@@ -6,7 +6,7 @@
 * **Ubicación**: `d:/Programacion/github-davidbuenov/dbv-typst-editor` (renombrado el 2026-09-05 desde `dbv-academic-writer` para cerrar la ambigüedad con el nombre oficial del producto; si esa ruta no existe, probar el nombre antiguo).
 * **Estado actual**: Fases `/spec` y `/plan` **cerradas y congeladas**. **`/build` COMPLETADA: los 10 slices del MVP v0.1 están construidos, verificados y commiteados.** El bucle de valor completo funciona de punta a punta: crear un proyecto desde una plantilla → escribirlo con resaltado Typst → ver el PDF actualizarse solo → guardarlo → exportarlo a PDF.
 * **Última decisión técnica**: Ver `memory.md`. Del `/build`: modo de lenguaje Typst por parser Lezer sin WASM (R-02 cerrado), carga perezosa de páginas en la vista previa tras medir 82 MB de SVG en una tesis de 209 páginas (R-03 cerrado), plantillas curadas autocontenidas y con fuentes embebidas, e instalador de WebView2 con variante offline bajo demanda.
-* **Próximo paso**: v0.1.0 (`/build`+`/test`+`/code-simplify`+`/ship` documental) y v0.2 completo (RF-13, RF-11, catálogo de 8 plantillas) están cerrados. Una sesión autónoma posterior (2026-09-05, usuario ausente, "avanza todo lo que puedas hasta Beta") completó además **8 slices de Beta — funcionalmente todo lo que no exige una decisión del usuario o infraestructura no disponible**: Outline (§7.8), exportación PNG de página actual (§7.12), terminal avanzado (§7.14), modos de escritura (§7.9), gestión de imágenes por arrastre (§7.10), y los cuatro asistentes con formulario de §7.7.4 completos (cita con autocompletado, figura por arrastre y por selector manual, galería de símbolos, diálogo de tabla). 105 tests de Rust + 66 de Vitest, todos en verde, CI en verde en cada uno de los 10 commits de la sesión. **Ninguno de estos slices se ha visto todavía en la ventana real** — es la siguiente acción, antes de nada más. Sigue también pendiente la decisión de publicación de `v0.1.0` (etiquetar y publicar la Release). Ver Context Snapshot y la lista "Deliberadamente fuera de esta sesión" al final de la Fase 7 para lo que queda de Beta y por qué.
+* **Próximo paso**: `/ship` **v0.2.0 cerrado el 2026-09-06** — primer tag de versión real del proyecto (51 commits previos nunca etiquetados). Ver Fase 8 y el Context Snapshot para el detalle. Sigue pendiente: **empujar el tag** (`git push origin master --tags`, decisión del usuario, dispara por primera vez `release-linux.yml`/`release-macos.yml`) y probar en la ventana real el trabajo de la sesión (Typst Universe, cabecera, "Acerca de" — ninguno visto aún con el usuario delante). Ver la lista "Deliberadamente fuera de esta sesión" al final de la Fase 7 para lo que sigue quedando de Beta.
 
 ## Checklist de Tareas
 
@@ -61,7 +61,7 @@
     - Prueba del instalador generado en las dos variantes de Windows y en Linux. Razón: exige máquinas limpias sin WebView2/deps preinstaladas; el instalador de Linux ni siquiera se ha generado nunca (`release-linux.yml` solo dispara con tags `v*.*.*`).
 
 - [x] **Fase 5: Simplificar (`/code-simplify`) — cerrada el 2026-09-05.** Revisión de tres pases de `docs/REVIEW.md` sobre el estado del repo (construcción de argumentos del sidecar `typst`, `reveal_in_file_manager`, manejo de rutas, secretos): **0 hallazgos Críticos.** 1 hallazgo Importante — `baseName()` duplicada en `app/workspace.js` y `launcher/launcher.js` — corregido (launcher importa la de workspace). Registrado en `CHANGELOG.md`.
-- [x] **Fase 6: Entrega (`/ship`) — cerrada el 2026-09-05** en lo que es documentación: README raíz actualizado, `walkthrough.md` completado, gate de `/code-simplify` satisfecho (0 Críticos), `CHANGELOG.md` con sección fechada `[0.1.0] - 2026-09-05`. **No incluye** crear el tag `v0.1.0` ni publicar la Release de GitHub — acción de mayor alcance, dispara `release-linux.yml` y produce artefactos públicos, dejada pendiente de confirmación explícita del usuario.
+- [x] **Fase 6: Entrega (`/ship`) — cerrada el 2026-09-05** en lo que es documentación: README raíz actualizado, `walkthrough.md` completado, gate de `/code-simplify` satisfecho (0 Críticos), `CHANGELOG.md` con sección fechada `[0.1.0] - 2026-09-05`. **No incluyó** crear el tag ni publicar la Release — ver Fase 8 abajo, donde esa decisión pendiente se resuelve saltando directamente a `v0.2.0`.
 
 - [ ] **Fase 7: Beta (v0.2–v0.4) — en curso desde el 2026-09-05.** Sesión autónoma ("avanza todo lo que puedas hasta la versión Beta"), sin el usuario disponible para resolver ambigüedades: se prioriza lo ya especificado sin preguntas abiertas, en slices verificados uno a uno, y se deja explícitamente fuera lo que exige una decisión del usuario o infraestructura no disponible aquí (ver "Deliberadamente fuera de esta sesión" al final de esta fase).
   - [x] **Slice 25 — Primera pasada manual de Beta en la ventana real (2026-09-05), usuario presente: 3 bugs encontrados y corregidos, 2 rediseños de UX a petición explícita.**
@@ -107,57 +107,64 @@
   - **Bibliografía visual — solo la parte de LECTURA** (panel de exploración de entradas `.bib` ajenas: autor, título, año por entrada). La parte de ESCRITURA ya está — ver Slice 22 (asistente "Nueva entrada bibliográfica"). Sigue abierta la pregunta de `SPECIFICATIONS.md` §9 sobre qué crate de parseo BibTeX usar para la lectura completa; el Slice 22 la esquiva porque generar una entrada nueva no necesita parsear las que ya existen, solo sus claves (`bibliography.rs`, Slice 16).
   - **Ninguno de los slices de esta sesión se ha visto en la ventana real de la aplicación** (misma limitación que ya constaba en la fase `/test`): toda la verificación es `verify:frontend`, tests de Rust/Vitest y compilaciones directas contra el binario vendorizado. Antes de dar Beta por visualmente terminada hace falta una pasada manual completa, como la que ya encontró los dos fallos del Slice 11.
 
+- [x] **Fase 8: Entrega `/ship` v0.2.0 — cerrada el 2026-09-06.** Primer tag de versión real del proyecto (51 commits previos, ninguno etiquetado). Ver `walkthrough.md` de esta sesión para el resumen completo.
+  - [x] **Slice 26 — Typst Universe (3 mejoras tras uso real), rediseño de cabecera (icono+etiqueta corta) y panel "Acerca de" homogeneizado con DBV Markdown Reader.** Detalle en `CHANGELOG.md` `[0.2.0]`.
+  - [x] **Investigación de migración LaTeX→Typst + spike S-1 sobre 3 proyectos reales del usuario (2 sin publicar, solo local) → ADR-LATEX-001: aplazada como pilar de v1.0, baja a investigación viva.** Ver `memory.md` y `docs/LATEX_MIGRATION_RESEARCH.md`. 2 incidencias reportadas aguas arriba: [tylax#44](https://github.com/scipenai/tylax/issues/44), [tylax#45](https://github.com/scipenai/tylax/issues/45). Banco de pruebas conservado en `spikes/latex-migration/`.
+  - [x] **`.claude/commands/` traído del repo oficial de `dbv-specs-ops`** (7 ficheros: `spec, plan, build, test, code-simplify, ship, maintain`) — el paso opcional de la v2.8.0 nunca se había ejecutado en este proyecto; diagnosticado tras un "Unknown command: /ship" del terminal.
+  - [x] **`/test`**: 98/98 Vitest · 122/122 Rust.
+  - [x] **`/code-simplify`**: pase de calidad (4 agentes, reuso/simplificación/eficiencia/altitud) + pase `REVIEW.md` (Bugs/Seguridad/Cumplimiento) — **0 hallazgos Críticos**, gate de `/ship` satisfecho.
+  - [x] **Versionado: `0.1.0` → `0.2.0`** (`package.json`, `src-tauri/Cargo.toml`, `src-tauri/tauri.conf.json`) — decisión explícita del usuario de saltar directamente a 0.2.0 en vez de etiquetar un 0.1.0 ya muy superado por el contenido real del repositorio.
+  - [x] **`CHANGELOG.md`**: sección `[Sin publicar]` (acumulada desde hace varias sesiones) movida a `[0.2.0] - 2026-09-06`, con las entradas de esta sesión añadidas al principio.
+  - [x] **Tag de versión `v0.2.0` creado.** Push **no ejecutado** — queda como sugerencia, a confirmar por el usuario (ver Context Snapshot).
+
 ---
 
 ## 🔄 Context Snapshot / Snapshot de Contexto
 
-> ### 👉 CÓMO RETOMAR ESTE PROYECTO (leer esto primero) — actualizado 2026-09-05, fin de la sesión con el usuario
+> ### 👉 CÓMO RETOMAR ESTE PROYECTO (leer esto primero) — actualizado 2026-09-06, `/ship` v0.2.0 cerrado
 >
-> **Sesión larga de uso real + 16 puntos de trabajo (Slice 25). Todo commiteado y en verde:
-> 119 Rust · 98 Vitest · frontend 8/8 · layout 9/9 · typst 8/8 · plantillas 40/40.**
+> **Primer tag de versión real del proyecto: `v0.2.0`.** 51 commits previos nunca se habían etiquetado.
+> Todo commiteado y en verde: **98 Vitest · 122 Rust · frontend 8/8 · layout 9/9.**
 >
-> **LO PRIMERO DE MAÑANA — probar en la ventana real lo de esta sesión.** Nada de lo construido hoy
-> se ha visto funcionando salvo lo que el usuario probó sobre la marcha (bug de los desplegables,
-> paneles P/E/V, huecos laterales, fuentes). Sin probar: **la ayuda (botón ?), el panel de Universe
-> (botón ✦, plantillas y paquetes), el actualizador (botón en Acerca de) y el modo "ajustar al ancho"**.
-> Es exactamente el patrón que este proyecto repite: lo que rompe en manos del usuario no lo detecta
-> ninguna verificación automática.
+> **Trabajo de esta sesión:** 3 mejoras de Typst Universe tras uso real, rediseño de cabecera (icono +
+> etiqueta corta, elegido por el usuario entre 4 direcciones en un canvas de Claude Design), panel
+> "Acerca de" homogeneizado con DBV Markdown Reader, y una investigación completa de migración
+> LaTeX→Typst con spike sobre 3 proyectos reales del usuario que terminó en **ADR-LATEX-001: la
+> migración se aplaza como pilar de v1.0** (ver `memory.md` — el motivo NO es esperar a que maduren
+> Tylax/MiTeX, es que con 3 proyectos la curva de fallos nuevos no se ha aplanado). Detalle completo
+> en `walkthrough.md` de esta sesión.
+>
+> **Nada de lo construido en ESTA sesión se ha visto en la ventana real** (mismo patrón que se repite
+> sesión tras sesión en este proyecto): el botón "Plantillas del Typst Universe" del lanzador, el enlace
+> a la ficha del paquete en cada tarjeta de Universe, el aviso de fuente que falta, arrastrar una fuente
+> al proyecto, la cabecera con icono+etiqueta y el panel "Acerca de" nuevo — todo verificado con
+> capturas de Edge headless y tests automáticos, ninguno con el usuario delante.
 >
 > **Acciones que dependen del usuario, no de código:**
-> 1. **Compilar Windows con las variables `TAURI_SIGNING_*`** puestas en su terminal (si faltan, el build
->    se niega a propósito) y ejecutar `npm run updater:manifest` para generar el `latest.json` que hay que
->    subir a la Release junto al `.nsis.zip`. Es la única plataforma con auto-actualización, por decisión.
-> 2. **Etiquetar `v0.1.0`/`v0.2.0` y publicar la Release** — sigue pendiente desde hace sesiones.
->    Al empujar el tag se dispararán por primera vez `release-linux.yml` y el **nuevo `release-macos.yml`**.
-> 3. **Vigilar esa primera ejecución de macOS:** será la PRIMERA vez que `macos_menu.rs` (Slice 24) pase por
->    un compilador. Si algo falla ahí, es lo más probable. Segundo candidato: el paso de `lipo` del sidecar.
+> 1. **Decidir si se hace `git push origin master --tags`.** El tag `v0.2.0` está creado localmente
+>    pero no empujado — al hacerlo se disparan por primera vez en la historia del proyecto
+>    `release-linux.yml` y `release-macos.yml`.
+> 2. **Vigilar esa primera ejecución de macOS**, si se empuja el tag: será la PRIMERA vez que
+>    `macos_menu.rs` (Slice 24) pase por un compilador real. Si algo falla, es el candidato más probable;
+>    segundo candidato, el paso de `lipo` del sidecar.
+> 3. **Compilar Windows con las variables `TAURI_SIGNING_*`** puestas en su terminal y ejecutar
+>    `npm run updater:manifest` para el `latest.json` a subir junto al `.nsis.zip` — sigue pendiente
+>    de sesiones anteriores, sin cambios esta vez.
+> 4. **Migración LaTeX:** si aparece un cuarto proyecto LaTeX real (idealmente con matemáticas densas —
+>    es el único hueco que los 3 medidos no probaron, la red de MiTeX sigue sin ejercitarse), medirlo
+>    con `spikes/latex-migration/` cuenta para el disparador de reevaluación de ADR-LATEX-001.
 >
 > **Trabajo técnico pendiente, por orden de valor:**
-> - Bug reportado sin reproducir: al escribir dentro de una ecuación, el estado de la vista previa alterna
->   "Compilando…"/"Página 1" de forma continua. Revisadas las cadenas de `editor.js` y `watcher.rs` sin
->   encontrar bucle; falta confirmar con el usuario si continúa **sin tocar ninguna tecla** durante varios
->   segundos (bug real) o si simplemente seguía escribiendo (comportamiento esperado del debounce).
-> - Ofrecido y no hecho: separar visualmente **avisos (ámbar) de errores (rojo)** en la banda de la vista
->   previa. Con un proyecto que usa una fuente ausente, el aviso sale en cada recompilación y en rojo.
-> - Sigue fuera: LSP `tinymist` (falta su research phase), sincronización editor↔preview por posición real,
->   bibliografía visual de LECTURA (sin resolver qué crate BibTeX), y `docs/DESIGN.md` (deuda documental).
+> - Bug reportado sin reproducir (arrastrado desde hace sesiones): al escribir dentro de una ecuación,
+>   el estado de la vista previa alterna "Compilando…"/"Página 1" de forma continua. Sin causa de bucle
+>   encontrada en `editor.js`/`watcher.rs`; falta confirmar con el usuario si persiste sin tocar teclas.
+> - Ofrecido y no hecho: separar visualmente avisos (ámbar) de errores (rojo) en la banda de vista previa.
+> - Sigue fuera: LSP `tinymist` (sin research phase), sincronización editor↔preview por posición real,
+>   bibliografía visual de LECTURA, y `docs/DESIGN.md` (deuda documental desde el `/spec` original).
+> - Segundo issue de Tylax reportado esta sesión ([#45](https://github.com/scipenai/tylax/issues/45)) sin
+>   seguimiento comprometido — no bloquea nada, es buena vecindad, no trabajo de producto.
 >
-> **Última sesión:** 2026-09-05 · **Rama:** `master` · remoto `origin` = `github.com/davidbuenov/dbv-typst-editor` (público) · **Árbol de trabajo limpio tras el push.**
->
-> **✅ MVP VALIDADO A MANO POR EL USUARIO (2026-09-05).** Probó el bucle completo en la aplicación real
-> y funciona. Es la primera confirmación de producto, no solo de tests.
->
-> **Decisión pendiente — crear el tag `v0.1.0` y publicar la Release.** No se hizo en esta sesión a
-> propósito: es una acción de mayor alcance que documentar la versión en `CHANGELOG.md` (ya hecho) —
-> dispara `release-linux.yml`, genera artefactos públicos descargables (AppImage, `.deb`) y, para
-> Windows, exige subir el instalador a mano al borrador de Release. Ver `walkthrough.md` de esta sesión.
->
-> **Aviso permanente (de la sesión anterior, sigue vigente):** los tres fallos que aparecieron al usar la
-> app de verdad (arranque muerto por un import mal usado, `window.confirm` sin permiso, y la vista previa
-> intentando compilar `refs.bib`) no los detectó ninguna verificación automática de entonces. Siguen
-> corregidos; `npm run verify:frontend` cubre ya sus categorías y esta sesión añadió 33 tests de lógica
-> de frontend (antes, cero) — pero el frontend sigue siendo la capa con menos red de seguridad del
-> proyecto, y las pruebas de integración de ventana real (ver más abajo) siguen sin automatizar.
+> **Última sesión:** 2026-09-06 · **Rama:** `master` · remoto `origin` = `github.com/davidbuenov/dbv-typst-editor` (público) · tag `v0.2.0` creado localmente, **push pendiente de confirmación**.
 
 ### ✅ Qué funciona hoy (MVP v0.1 completo)
 
@@ -226,8 +233,9 @@ Los cuatro primeros se ejecutan también en CI (`.github/workflows/ci.yml`) en c
 4. ~~**Fase `/ship` v0.1.0 (documentación).**~~ ✅ **CERRADA el 2026-09-05** — README, `walkthrough.md`, `CHANGELOG.md` con sección `[0.1.0]`.
 5. ~~**Slice 11 (RF-13, v0.2) — barra de herramientas del editor.**~~ ✅ **CERRADA el 2026-09-05.**
 6. ~~**Instancia única.**~~ ✅ **CERRADA el 2026-09-05 (Slice 23).**
-7. **Decisión pendiente del usuario:** etiquetar `v0.1.0` (`git tag` + Release de GitHub, con el instalador de Windows subido a mano). No es trabajo técnico nuevo — es una decisión de publicación.
+7. ~~**Etiquetar una versión.**~~ ✅ **`v0.2.0` creado el 2026-09-06** (Fase 8) — se saltó directamente `v0.1.0` por decisión del usuario, ya muy superado por el contenido real. **Pendiente:** empujar el tag y publicar la Release de GitHub (con el instalador de Windows subido a mano) — decisión de publicación, no trabajo técnico.
 8. **`docs/DESIGN.md`** — deuda documental consciente, sigue sin escribir (ver Fase 1). Buen candidato de bajo riesgo para cuando se retome.
+9. **Migración LaTeX→Typst** — investigación cerrada con `ADR-LATEX-001` (aplazada como pilar de v1.0). Se retoma solo si se cumple su disparador explícito (ver `memory.md`), no por defecto en la siguiente sesión.
 
 ### 📜 Commits de la sesión del 2026-09-05
 

@@ -1,0 +1,15 @@
+# Banco de pruebas del spike S-1 (migración LaTeX → Typst).
+# Crate INDEPENDIENTE a propósito: no forma parte del workspace de la
+# aplicación (`src-tauri/` no es workspace) y no se compila con ella, así que
+# `tylax` NO entra en el binario que se distribuye. Es una herramienta de
+# investigación, no una dependencia del producto.
+[package]
+name = "dbv-latex-migration-spike"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+# Fijada a la versión exacta medida en el spike (2026-09-06). Subirla invalida
+# las cifras de LATEX_MIGRATION_RESEARCH.md §0.bis hasta volver a medir.
+tylax = "=0.3.7"

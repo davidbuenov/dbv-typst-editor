@@ -42,7 +42,9 @@ It follows the same philosophy as its sibling project [DBV Markdown Reader](http
 
 ## 🚦 Current status
 
-Project in bootstrap phase (`v0.1.0` in development). No binaries or releases have been published yet. Specification and architecture documentation lives in [`dbv-specs-ops/`](./dbv-specs-ops/) and is updated at every phase of the Spec-Driven Development cycle.
+`v0.2.0` — MVP complete plus a good part of Beta: besides the full loop (create a project → write with Typst syntax highlighting → watch the PDF update on its own → save → export), it includes Typst Universe (community templates and packages, with missing-font detection and drag-and-drop to add them), Project Archive `.dbvt`, the editor's insertion toolbar, outline, advanced terminal, writing modes, image/citation/bibliography assistants, an automatic updater and single-instance behavior. Manually validated in the real app, with 220 automated tests passing (98 frontend + 122 backend). First version tag (`v0.2.0`) created; no GitHub Release published yet. Specification and architecture documentation lives in [`dbv-specs-ops/`](./dbv-specs-ops/) and is updated at every phase of the Spec-Driven Development cycle.
+
+> This English README lags behind the Spanish one in some sections below (a known, pre-existing gap) — [`README.md`](./README.md) is the more current reference until it's caught up.
 
 ---
 

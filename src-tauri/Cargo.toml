@@ -1,6 +1,6 @@
 [package]
 name = "dbv-typst-editor"
-version = "0.1.0"
+version = "0.2.0"
 description = "Editor de escritorio multiplataforma para documentos Typst, con vista previa PDF en tiempo real"
 authors = ["David Bueno Vallejo <https://github.com/davidbuenov>"]
 license = "MIT"

@@ -2,14 +2,27 @@
 
 **🇪🇸 Español · [🇬🇧 English](./README.en.md)**
 
+[![Sitio Web](https://img.shields.io/badge/Sitio%20Web-davidbuenov.github.io%2Fdbv--typst--editor-2563eb?style=flat&logo=googlechrome&logoColor=white)](https://davidbuenov.github.io/dbv-typst-editor/)
+[![Releases](https://img.shields.io/badge/Releases-v0.3.0-brightgreen?logo=github)](https://github.com/davidbuenov/dbv-typst-editor/releases)
+![Status](https://img.shields.io/badge/status-estable%20%7C%20v0.3.0-success)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
+![Windows](https://img.shields.io/badge/Windows-10%20%2F%2011%20(.exe%20%2B%20Store)-0078D6?logo=windows&logoColor=white)
+![macOS](https://img.shields.io/badge/macOS-Universal%20(.dmg)-000000?logo=apple&logoColor=white)
+![Linux](https://img.shields.io/badge/Linux-AppImage%20%7C%20.deb-FCC624?logo=linux&logoColor=black)
 ![Rust](https://img.shields.io/badge/Rust-1.76+-000000?logo=rust&logoColor=white)
 ![Tauri](https://img.shields.io/badge/Tauri-v2-FFC131?logo=tauri&logoColor=white)
-![Typst](https://img.shields.io/badge/Typst-powered-239DAD?logo=typst&logoColor=white)
-![Status](https://img.shields.io/badge/status-en%20desarrollo-yellow)
+![Typst](https://img.shields.io/badge/Typst-0.15+-239DAD?logo=typst&logoColor=white)
 [![Framework](https://img.shields.io/badge/framework-dbv--specs--ops-111827?logo=github&logoColor=white)](https://github.com/davidbuenov/dbv-specs-ops)
 
 > Editor de escritorio multiplataforma, ligero y offline-first para documentos [Typst](https://typst.app), con vista previa PDF en tiempo real. *"Academic and technical writing made simple. Powered by Typst."*
+>
+> 🌐 **Sitio web oficial:** [https://davidbuenov.github.io/dbv-typst-editor/](https://davidbuenov.github.io/dbv-typst-editor/)
+
+<p align="center">
+  <a href="https://davidbuenov.github.io/dbv-typst-editor/">
+    <img src="docs/images/featured-hero-text.jpg" alt="DBV Typst Editor — Banner oficial" width="100%" style="border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);" />
+  </a>
+</p>
 
 ---
 
@@ -45,9 +58,23 @@ Sigue la misma filosofía que su proyecto hermano [DBV Markdown Reader](https://
 
 ## 🚦 Estado actual
 
-`v0.3.0` — MVP completo más buena parte de Beta: además del bucle completo (crear proyecto → escribir con resaltado Typst → ver el PDF actualizarse solo → guardar → exportar), incluye Typst Universe (plantillas y paquetes de la comunidad, con detección de fuentes que faltan y arrastrar-y-soltar para añadirlas), Project Archive `.dbvt`, barra de herramientas de inserción del editor (con búsqueda y reemplazo), outline, terminal avanzado, modos de escritura, gestión de imágenes/citas/bibliografía por asistente, actualizador automático e instancia única. Tres temas — claro, oscuro y sepia — con selector segmentado. Validado a mano en la aplicación real (3 bugs de raíz encontrados y corregidos en esta versión) y con 223 tests automáticos en verde (99 de frontend + 124 de backend). Dos tags de versión creados (`v0.2.0`, `v0.3.0`); todavía no hay Release publicada en GitHub — el primer push con tag falló en los tres workflows de CI/Release por un bug de un test preexistente (ya corregido).
+**Versión actual:** `v0.3.0` · **Estado:** 🟢 Estable y listo para producción
 
-La documentación de especificación y arquitectura vive en [`dbv-specs-ops/`](./dbv-specs-ops/) y se actualiza en cada fase del ciclo Spec-Driven Development.
+- 🌐 **Sitio Web Oficial:** [https://davidbuenov.github.io/dbv-typst-editor/](https://davidbuenov.github.io/dbv-typst-editor/) (con galería interactiva de capturas en alta resolución y selector bilingüe ES/EN).
+- 📦 **Instaladores disponibles en Releases:** [GitHub Releases v0.3.0](https://github.com/davidbuenov/dbv-typst-editor/releases):
+  - 🪟 **Windows**: Instalador `.exe` autónomo (sin dependencias externas).
+  - 🍎 **macOS**: Archivo `.dmg` universal (compatible con Apple Silicon e Intel).
+  - 🐧 **Linux**: Paquetes `.AppImage` (portable) y `.deb` (Debian/Ubuntu/Mint).
+- 🏬 **Microsoft Store:** Identidad reservada en Partner Center; en proceso de validación y certificación para distribución directa en Windows 10/11.
+- 🧪 **Calidad y estabilidad:** 223 pruebas automatizadas pasando al 100% (99 tests unitarios de frontend + 124 tests de backend en Rust) y validación de layout en motor Chromium/WebKit real.
+- 🚀 **Funcionalidades destacadas incluidas:**
+  - Bucle completo de edición y previsualización PDF en tiempo real.
+  - Integración nativa con Typst Universe (+1.500 paquetes y plantillas comunitarias).
+  - 8 plantillas académicas oficiales preconfiguradas con fuentes incrustadas.
+  - Asistente de citas bibliográficas BibTeX con autocompletado en vivo.
+  - Inserción y arrastre de imágenes, carpetas completas y tipografías a `fonts/`.
+  - Empaquetado completo en un único archivo de proyecto `.dbvt`.
+  - 3 temas visuales (Claro, Oscuro y Sepia cálido) y terminal Typst integrado.
 
 ---
 

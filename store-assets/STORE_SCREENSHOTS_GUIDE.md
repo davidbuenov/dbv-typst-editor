@@ -59,6 +59,13 @@ Sube las capturas en este orden exacto en la sección **"Capturas de pantalla de
 
 ## 🎨 Imagen Promocional / Destacada (Featured Promo)
 
-- **Archivo**: `store-assets/featured-hero.jpg`
-- **Resolución**: 1920 × 1080 px (16:9)
-- **Uso**: Úsala si Partner Center te solicita una imagen promocional o póster, o como imagen de cabecera en redes sociales y LinkedIn.
+- **Archivos listos en Español (recomendados para la ficha en español de Microsoft Store)**:
+  - `store-assets/featured-hero-text-es-1080p.png` (1920 × 1080 px, Full HD 16:9, PNG sin compresión)
+  - `store-assets/featured-hero-text-es.png` (1376 × 768 px, PNG original)
+  - `store-assets/featured-hero-text-es.jpg` (JPEG de alta calidad)
+- **Archivos en Inglés (para listados en inglés o campañas globales)**:
+  - `store-assets/featured-hero-text-en-1080p.png` / `store-assets/featured-hero-text-en.png`
+- **Versión limpia (sin texto, solo portátil y ambiente)**:
+  - `store-assets/featured-hero-1080p.png` / `store-assets/featured-hero.png` / `store-assets/featured-hero.jpg`
+- **Uso**: Úsala si Partner Center te solicita una imagen promocional o póster destacado, o como banner de cabecera en redes sociales y LinkedIn.
+

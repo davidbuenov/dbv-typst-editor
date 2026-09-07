@@ -86,6 +86,42 @@ Igual que en `dbv-md-reader` (§2 de su documento): para instalar el `.msix` en 
 - **Sin telemetría ni recolección de datos personales:** verificado y documentado en `docs/privacidad.html`/`privacy.html` (GitHub Pages, `master`/`/docs`) — único tráfico de red saliente: descargas de Typst Universe bajo petición explícita, y la comprobación manual de actualizaciones (nunca automática).
 - **Política de privacidad publicada:** `https://davidbuenov.github.io/dbv-typst-editor/privacidad.html` (ES) / `.../privacy.html` (EN) — lista para pegar en el campo correspondiente de Partner Center.
 - **Ficha de Store redactada:** `descripcionStore_es.md` / `descripcionStore_en.md` en la raíz del repositorio, listos para copiar campo a campo a Partner Center.
+- **Notas para la certificación (Certification Notes):** redactadas en inglés (preferido por evaluadores globales de Microsoft) y español, listas para copiar al campo "Notas para la certificación / Additional Testing Info" (ver §4.1).
+
+---
+
+### 4.1. Notas para la certificación (Additional Testing Info / Certification Notes)
+
+> **Consejo clave:** Los evaluadores de Microsoft Store son un equipo global y realizan las revisiones principalmente en **inglés**. Proporcionar las notas en inglés (o bilingüe) y un flujo de prueba paso a paso de 1 a 2 minutos reduce drásticamente los tiempos de certificación y evita rechazos por "falta de credenciales" o "no entender cómo probar la app".
+> 
+> **Credenciales:** No rellenar nada en "Credenciales" (la app es 100% offline y no requiere login).
+
+#### Texto recomendado para copiar en "Descripción" (Inglés - Recomendado para agilizar):
+
+```text
+APPLICATION OVERVIEW:
+DBV Typst Editor is a native, offline-first desktop editor for the Typst typesetting system (used for academic writing, theses, research papers, and technical reports). It includes a bundled Typst compiler CLI sidecar and a real-time live preview.
+
+NO CREDENTIALS REQUIRED:
+This application is 100% local and offline-first. No login, account creation, or credentials are required.
+
+QUICK 2-MINUTE TESTING GUIDE:
+1. Launch the application. The Task Launcher screen will appear.
+2. Under "Templates" / "Plantillas", click on "Blank Project" (or any template like "TFG / Bachelor Thesis").
+3. Click "Create project" / "Crear proyecto" and select any temporary folder on your disk.
+4. The main editor window will open with two panels:
+   - Left side: Typst code editor with syntax highlighting.
+   - Right side: Real-time SVG/PDF live document preview.
+5. Type any text in the editor (e.g., "= Test Heading") and notice the preview pane on the right immediately recompiles and renders the new content in real time.
+6. Test the top insertion toolbar buttons (e.g., Bold, Equations, Tables, Headings) to verify syntax insertion and live re-rendering.
+7. Click "Export PDF" (or File > Export PDF) to verify standalone PDF generation.
+8. (Optional) You can toggle the UI language between English and Spanish, and switch themes (Light, Dark, Sepia) using the controls in the top bar.
+
+ADDITIONAL TECHNICAL CONTEXT:
+- The Typst CLI engine is bundled inside the application package, requiring no external dependencies, LaTeX installations, or internet connectivity.
+- Internet connectivity is only used if the user explicitly browses or downloads optional community packages from Typst Universe.
+- No background telemetry, no advertising, no tracking.
+```
 
 ---
 

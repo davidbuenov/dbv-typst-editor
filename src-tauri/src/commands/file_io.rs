@@ -176,7 +176,7 @@ pub fn read_file(path: String) -> Result<FilePayload, AppError> {
         return Err(AppError::NotFound(path));
     }
 
-    let canonical = fs::canonicalize(&path_buf).map_err(|e| AppError::Io(e.to_string()))?;
+    let canonical = dunce::canonicalize(&path_buf).map_err(|e| AppError::Io(e.to_string()))?;
     let content = fs::read_to_string(&canonical).map_err(|e| AppError::Io(e.to_string()))?;
 
     let payload = FilePayload {

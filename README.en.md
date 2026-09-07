@@ -3,8 +3,8 @@
 **[🇪🇸 Español](./README.md) · 🇬🇧 English**
 
 [![Website](https://img.shields.io/badge/Website-davidbuenov.github.io%2Fdbv--typst--editor-2563eb?style=flat&logo=googlechrome&logoColor=white)](https://davidbuenov.github.io/dbv-typst-editor/en/)
-[![Releases](https://img.shields.io/badge/Releases-v0.3.0-brightgreen?logo=github)](https://github.com/davidbuenov/dbv-typst-editor/releases)
-![Status](https://img.shields.io/badge/status-stable%20%7C%20v0.3.0-success)
+[![Releases](https://img.shields.io/badge/Releases-v0.3.1-brightgreen?logo=github)](https://github.com/davidbuenov/dbv-typst-editor/releases)
+![Status](https://img.shields.io/badge/status-stable%20%7C%20v0.3.1-success)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
 ![Windows](https://img.shields.io/badge/Windows-10%20%2F%2011%20(.exe%20%2B%20Store)-0078D6?logo=windows&logoColor=white)
 ![macOS](https://img.shields.io/badge/macOS-Universal%20(.dmg)-000000?logo=apple&logoColor=white)
@@ -56,14 +56,14 @@ It follows the same philosophy as its sibling project [DBV Markdown Reader](http
 
 ## 🚦 Current status
 
-**Current version:** `v0.3.0` · **Status:** 🟢 Stable and production ready
+**Current version:** `v0.3.1` · **Status:** 🟢 Stable and production ready
 
 - 🌐 **Official Website:** [https://davidbuenov.github.io/dbv-typst-editor/en/](https://davidbuenov.github.io/dbv-typst-editor/en/) (featuring full-resolution interactive screenshot gallery and bilingual ES/EN switch).
-- 📦 **Installers available on Releases:** [GitHub Releases v0.3.0](https://github.com/davidbuenov/dbv-typst-editor/releases):
+- 📦 **Installers available on Releases:** [GitHub Releases v0.3.1](https://github.com/davidbuenov/dbv-typst-editor/releases):
   - 🪟 **Windows**: Standalone `.exe` installer (no external dependencies).
   - 🍎 **macOS**: Universal `.dmg` (compatible with Apple Silicon & Intel).
   - 🐧 **Linux**: `.AppImage` (portable) and `.deb` (Debian/Ubuntu/Mint) packages.
-- 🏬 **Microsoft Store:** Identity reserved in Partner Center; undergoing certification for direct distribution on Windows 10/11.
+- 🏬 **Microsoft Store:** published. ⚠️ **Store packages before `v0.3.1` shipped without the Typst compiler inside** and every compiler-dependent feature failed; fixed in this release (see [`CHANGELOG.md`](./dbv-specs-ops/CHANGELOG.md)). If you installed from the Store, update to `v0.3.1`.
 - 🧪 **Quality & Stability:** 223 automated tests passing at 100% (99 frontend tests + 124 Rust backend tests) and layout verification in real rendering engines.
 - 🚀 **Key Highlights:**
   - Full loop with real-time automatic PDF preview as you type.
@@ -82,7 +82,7 @@ It follows the same philosophy as its sibling project [DBV Markdown Reader](http
 
 ### 🪟 Windows
 
-**[⬇️ See all versions (Releases)](https://github.com/davidbuenov/dbv-typst-editor/releases)** — download `DBV Typst Editor_x.y.z_x64-setup.exe`. *(Microsoft Store listing in progress — identity already reserved in Partner Center.)*
+**[⬇️ See all versions (Releases)](https://github.com/davidbuenov/dbv-typst-editor/releases)** — download `DBV Typst Editor_x.y.z_x64-setup.exe`. *(Also on the Microsoft Store, Store ID `9PCPSVTNJMP0` — make sure you get `v0.3.1` or later; earlier Store packages shipped without the Typst compiler. The `.exe` installer was never affected.)*
 
 Your browser may warn that the file "isn't commonly downloaded" (SmartScreen) — this is normal for new installers without a commercial signature. Double-click to install (no admin rights or internet connection required), then check for updates any time from the "About" panel (ⓘ icon) — never automatic on launch.
 
@@ -198,7 +198,7 @@ stop.cmd
 
 ## 📋 Changelog
 
-`v0.3.0` documented in [`dbv-specs-ops/CHANGELOG.md`](./dbv-specs-ops/CHANGELOG.md). No GitHub Release published yet.
+`v0.3.1` documented in [`dbv-specs-ops/CHANGELOG.md`](./dbv-specs-ops/CHANGELOG.md) — corrective release fixing the Microsoft Store MSIX packaging.
 
 ---
 

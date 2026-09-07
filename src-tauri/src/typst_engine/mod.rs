@@ -109,14 +109,25 @@ pub struct TerminalOutput {
 /// compile/export/outline, con argumentos que el propio usuario escribe para
 /// su propio proyecto.
 #[tauri::command]
-pub async fn typst_run_raw(app: AppHandle, args: Vec<String>) -> Result<TerminalOutput, TypstError> {
-    let command = app
+pub async fn typst_run_raw(
+    app: AppHandle,
+    args: Vec<String>,
+    root: Option<String>,
+) -> Result<TerminalOutput, TypstError> {
+    let mut command = app
         .shell()
         .sidecar(SIDECAR)
-        .map_err(|error| TypstError::SidecarUnavailable(error.to_string()))?;
+        .map_err(|error| TypstError::SidecarUnavailable(error.to_string()))?
+        .args(args);
+
+    // Sin esto el proceso hijo hereda el cwd de la propia app (no el proyecto
+    // abierto), así que las rutas relativas que el usuario escribe en la
+    // terminal ("compile main.typ") no se resuelven contra su proyecto.
+    if let Some(root) = root {
+        command = command.current_dir(root);
+    }
 
     let output = command
-        .args(args)
         .output()
         .await
         .map_err(|error| TypstError::ExecutionFailed(error.to_string()))?;

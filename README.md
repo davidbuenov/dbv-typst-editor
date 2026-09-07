@@ -3,8 +3,8 @@
 **🇪🇸 Español · [🇬🇧 English](./README.en.md)**
 
 [![Sitio Web](https://img.shields.io/badge/Sitio%20Web-davidbuenov.github.io%2Fdbv--typst--editor-2563eb?style=flat&logo=googlechrome&logoColor=white)](https://davidbuenov.github.io/dbv-typst-editor/)
-[![Releases](https://img.shields.io/badge/Releases-v0.3.0-brightgreen?logo=github)](https://github.com/davidbuenov/dbv-typst-editor/releases)
-![Status](https://img.shields.io/badge/status-estable%20%7C%20v0.3.0-success)
+[![Releases](https://img.shields.io/badge/Releases-v0.3.1-brightgreen?logo=github)](https://github.com/davidbuenov/dbv-typst-editor/releases)
+![Status](https://img.shields.io/badge/status-estable%20%7C%20v0.3.1-success)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
 ![Windows](https://img.shields.io/badge/Windows-10%20%2F%2011%20(.exe%20%2B%20Store)-0078D6?logo=windows&logoColor=white)
 ![macOS](https://img.shields.io/badge/macOS-Universal%20(.dmg)-000000?logo=apple&logoColor=white)
@@ -58,14 +58,14 @@ Sigue la misma filosofía que su proyecto hermano [DBV Markdown Reader](https://
 
 ## 🚦 Estado actual
 
-**Versión actual:** `v0.3.0` · **Estado:** 🟢 Estable y listo para producción
+**Versión actual:** `v0.3.1` · **Estado:** 🟢 Estable y listo para producción
 
 - 🌐 **Sitio Web Oficial:** [https://davidbuenov.github.io/dbv-typst-editor/](https://davidbuenov.github.io/dbv-typst-editor/) (con galería interactiva de capturas en alta resolución y selector bilingüe ES/EN).
-- 📦 **Instaladores disponibles en Releases:** [GitHub Releases v0.3.0](https://github.com/davidbuenov/dbv-typst-editor/releases):
+- 📦 **Instaladores disponibles en Releases:** [GitHub Releases v0.3.1](https://github.com/davidbuenov/dbv-typst-editor/releases):
   - 🪟 **Windows**: Instalador `.exe` autónomo (sin dependencias externas).
   - 🍎 **macOS**: Archivo `.dmg` universal (compatible con Apple Silicon e Intel).
   - 🐧 **Linux**: Paquetes `.AppImage` (portable) y `.deb` (Debian/Ubuntu/Mint).
-- 🏬 **Microsoft Store:** Identidad reservada en Partner Center; en proceso de validación y certificación para distribución directa en Windows 10/11.
+- 🏬 **Microsoft Store:** publicada. ⚠️ **El paquete de la Store anterior a `v0.3.1` salía sin el compilador Typst dentro** y toda función que dependiera de él fallaba; corregido en esta versión (ver [`CHANGELOG.md`](./dbv-specs-ops/CHANGELOG.md)). Si instalaste desde la Store, actualiza a `v0.3.1`.
 - 🧪 **Calidad y estabilidad:** 223 pruebas automatizadas pasando al 100% (99 tests unitarios de frontend + 124 tests de backend en Rust) y validación de layout en motor Chromium/WebKit real.
 - 🚀 **Funcionalidades destacadas incluidas:**
   - Bucle completo de edición y previsualización PDF en tiempo real.
@@ -84,9 +84,9 @@ Sigue la misma filosofía que su proyecto hermano [DBV Markdown Reader](https://
 
 ### 🪟 Windows
 
-#### 🏬 Microsoft Store *(en proceso de publicación)*
+#### 🏬 Microsoft Store
 
-Identidad ya reservada en Partner Center; en cuanto la ficha esté aprobada, el enlace directo se añadirá aquí. Mientras tanto, usa el instalador `.exe` de abajo — funciona exactamente igual.
+Disponible en la Microsoft Store (Store ID `9PCPSVTNJMP0`). **Asegúrate de tener `v0.3.1` o superior:** los paquetes anteriores se publicaron sin el compilador Typst dentro y fallaban al compilar (ver [`CHANGELOG.md`](./dbv-specs-ops/CHANGELOG.md)). El instalador `.exe` de abajo nunca estuvo afectado por ese problema.
 
 #### 1️⃣ Descarga
 
@@ -294,7 +294,7 @@ Preparación para Microsoft Store documentada en [`dbv-specs-ops/docs/MICROSOFT_
 
 ## 📋 Changelog
 
-`v0.3.0` documentada en [`dbv-specs-ops/CHANGELOG.md`](./dbv-specs-ops/CHANGELOG.md). Sigue sin haber una Release publicada en GitHub.
+`v0.3.1` documentada en [`dbv-specs-ops/CHANGELOG.md`](./dbv-specs-ops/CHANGELOG.md) — entrega correctiva del empaquetado MSIX de Microsoft Store.
 
 ---
 

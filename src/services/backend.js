@@ -151,7 +151,7 @@ export const copyFontIntoProject = (projectRoot, sourcePath) =>
 // ─── Terminal avanzado (Beta, §7.14) ──────────────────────────────────────────
 
 /** `args` ya viene troceado — el frontend separa por espacios, sin más. */
-export const runTypstCommand = (args) => call('typst_run_raw', { args });
+export const runTypstCommand = (args, root) => call('typst_run_raw', { args, root: root ?? null });
 export const exportPdf = ({ document, root, output, content }) =>
   call('typst_export_pdf', { document, root, output, content: content ?? null });
 export const exportPng = ({ document, root, output, page, content }) =>

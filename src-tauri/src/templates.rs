@@ -320,14 +320,14 @@ pub async fn create_project(
         return Err(AppError::InvalidPath(parent_dir));
     }
 
+    // `dunce::simplified`, no `.to_string_lossy()` directo: en Windows
+    // `resource_dir()` puede devolver el prefijo de longitud extendida
+    // `\\?\` (más probable en el paquete de la Store), que el sidecar
+    // `typst` no resuelve bien en `--package-path` ("os error 2").
+    let package_path = dunce::simplified(&templates_root).to_string_lossy().to_string();
+    let target_arg = dunce::simplified(&target).to_string_lossy().to_string();
     let spec = format!("@{LOCAL_NAMESPACE}/{template_name}:{template_version}");
-    let args = vec![
-        "init",
-        "--package-path",
-        &templates_root.to_string_lossy(),
-        &spec,
-        &target.to_string_lossy(),
-    ]
+    let args = vec!["init", "--package-path", &package_path, &spec, &target_arg]
     .into_iter()
     .map(str::to_string)
     .collect::<Vec<String>>();

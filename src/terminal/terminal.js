@@ -21,8 +21,11 @@ import { runTypstCommand } from '../services/backend.js';
  * @param {object} deps
  * @param {HTMLElement} deps.outputEl
  * @param {HTMLInputElement} deps.inputEl
+ * @param {() => string | undefined} deps.getRoot Raíz del proyecto abierto,
+ *   para que el sidecar resuelva rutas relativas contra él en vez de contra
+ *   el cwd de la propia app.
  */
-export function createTerminal({ outputEl, inputEl }) {
+export function createTerminal({ outputEl, inputEl, getRoot }) {
   function appendLine(text, modifier) {
     if (!text) return;
     const line = document.createElement('pre');
@@ -38,7 +41,7 @@ export function createTerminal({ outputEl, inputEl }) {
     appendLine(`$ typst ${trimmed}`, 'command');
 
     const args = trimmed.split(/\s+/);
-    const result = await runTypstCommand(args);
+    const result = await runTypstCommand(args, getRoot?.());
     if (!result.ok) {
       appendLine(result.error.message, 'error');
       return;

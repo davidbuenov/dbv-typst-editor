@@ -1,7 +1,7 @@
 # 🏬 Publicación en Microsoft Store: DBV Typst Editor
 
-> **Estado:** 🔶 Identidad reservada en Partner Center, MSIX preparado localmente. **Pendiente de envío.**
-> **Última revisión:** 2026-09-06
+> **Estado:** 🟢 **Publicada en Microsoft Store.** ⚠️ El primer paquete publicado salió **sin el compilador Typst ni el catálogo de plantillas dentro** (ver §6) — corregido en `v0.3.1`, pendiente de reenvío a Partner Center.
+> **Última revisión:** 2026-09-07
 
 Documento operativo (no una especificación de producto): checklist accionable para publicar `dbv-typst-editor` en la Microsoft Store, y registro de las decisiones técnicas que llevaron hasta aquí. Sigue el mismo modelo que [`dbv-md-reader`](https://github.com/davidbuenov/dbv-md-reader) (ya publicado, `9N7BMDZGCP0S`) y la guía general [`MARKETPLACE_PUBLISHING.md`](./MARKETPLACE_PUBLISHING.md) — este documento solo registra lo específico de este proyecto.
 
@@ -131,3 +131,38 @@ ADDITIONAL TECHNICAL CONTEXT:
 2. **Build de Windows firmado** (`npm run build`, requiere `TAURI_SIGNING_PRIVATE_KEY`/`_PASSWORD` en el terminal del usuario — nunca en manos de la IA, regla ya registrada en `memory.md` para el instalador NSIS y válida también aquí) — el `.msix` no puede generarse sin el `.exe` compilado.
 3. **Generar el `.msix` final** (`npm run tauri:windows:build`) sobre ese build ya compilado.
 4. **Enviar a certificación en Partner Center**, siguiendo el checklist de `MARKETPLACE_PUBLISHING.md` §8, citando el Store ID (`9PCPSVTNJMP0`) si hace falta contactar soporte.
+
+---
+
+## 6. ⛔ El paquete publicado salió SIN el compilador dentro (incidencia real, 2026-09-07)
+
+**Esta es la sección más importante del documento.** La primera versión publicada en la Store llegó a los usuarios sin el sidecar `typst.exe` ni la carpeta `templates/`. La app abría y dejaba escribir, pero **toda** función que dependiera del compilador (vista previa, exportar PDF/PNG, terminal avanzada, crear proyecto desde plantilla) fallaba con `El sistema no puede encontrar el archivo especificado. (os error 2)`.
+
+### Causa raíz
+
+`@choochmeque/tauri-windows-bundle` (v0.1.29, la última publicada) **no implementa `bundle.externalBin`**. Su `prepareAppxContent()` copia el `.exe` principal, los `Assets` y `bundle.resources` — y nada más. El bundler **oficial** de Tauri (NSIS/MSI/dmg/deb/AppImage) sí lo soporta y además falla el build si el sidecar no está, razón por la cual **solo el canal MSIX pudo publicar un artefacto inservible en silencio.**
+
+Un segundo fallo, independiente: `bundle.resources` en forma de array y con prefijo `../` (aquí `"../templates"`) se copiaba con `path.join(appxDir, "../templates")`, dejando la carpeta como *hermana* de la raíz del paquete y por tanto **fuera** del `.msix`.
+
+### Solución aplicada
+
+`patches/@choochmeque+tauri-windows-bundle+0.1.29.patch`, gestionado con `patch-package` y reaplicado solo en cada `npm install` (script `postinstall`). Añade el copiado de `externalBin` y normaliza el destino de los recursos con `../`.
+
+⚠️ **Detalle que costó un ciclo entero de build:** el sidecar debe copiarse **sin el sufijo del target triple**. `tauri-plugin-shell` resuelve `sidecar("typst")` a `<carpeta del ejecutable>/typst.exe` (`relative_command_path()`), no a `typst-x86_64-pc-windows-msvc.exe`. Copiarlo con el nombre vendorizado produce exactamente el mismo `os error 2`.
+
+### Verificación OBLIGATORIA antes de cada envío a Partner Center
+
+No basta con que el build termine sin error. Comprobar las tres cosas:
+
+```powershell
+# 1. La raíz del paquete debe contener typst.exe Y templates\
+Get-ChildItem src-tauri\target\appx\x64
+
+# 2. El .msix debe pesar ~30 MB, no ~6 MB.
+#    A 6 MB NO cabe dentro un compilador de 51 MB: es la señal de alarma más rápida.
+Get-ChildItem src-tauri\target\msix\*.msix | Select-Object Name, @{n='MB';e={[int]($_.Length/1MB)}}
+```
+
+Y por último, **instalar el `.msix` y ejecutar la guía de prueba de 2 minutos de §4.1** (crear proyecto desde plantilla → vista previa en vivo → exportar PDF). Este paso es el único que habría detectado el fallo original, porque el paquete roto se construía, firmaba, certificaba e instalaba **sin un solo error**.
+
+Para instalar en local hace falta firmar el `.msix` con el certificado de pruebas (§3): `signtool sign /fd SHA256 /a /f <pfx> /p <pwd> <ruta.msix>`. Si ya hay una versión instalada con la misma identidad y versión (p. ej. la de la Store), hay que desinstalarla antes o `Add-AppxPackage` falla con `0x80073CF9 / 0x80070057`.

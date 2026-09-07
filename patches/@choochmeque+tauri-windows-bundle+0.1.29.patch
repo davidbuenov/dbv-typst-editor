@@ -1,0 +1,64 @@
+diff --git a/node_modules/@choochmeque/tauri-windows-bundle/dist/cli.js b/node_modules/@choochmeque/tauri-windows-bundle/dist/cli.js
+index cee555e..33c1242 100644
+--- a/node_modules/@choochmeque/tauri-windows-bundle/dist/cli.js
++++ b/node_modules/@choochmeque/tauri-windows-bundle/dist/cli.js
+@@ -935,6 +935,14 @@ function prepareAppxContent(projectRoot, arch, config, tauriConfig, minVersion,
+         throw new Error(`Executable not found: ${srcExe}`);
+     }
+     fs.copyFileSync(srcExe, path.join(appxDir, exeName));
++    // Copy externalBin sidecars from tauri.conf.json (PATCH: upstream
++    // tauri-windows-bundle 0.1.29 never copies these — a Tauri app whose
++    // functionality depends on a bundle.externalBin sidecar, like a bundled
++    // compiler, silently ships an MSIX without it, and every command that
++    // spawns the sidecar fails at runtime with a bare "cannot find the file"
++    // I/O error — no Rust/Typst-formatted diagnostic, because the process
++    // never launches).
++    copyExternalBinSidecars(srcTauriDir, appxDir, tauriConfig, target);
+     // Generate AppxManifest.xml
+     const manifest = generateManifest(config, arch, minVersion, windowsDir);
+     fs.writeFileSync(path.join(appxDir, 'AppxManifest.xml'), manifest);
+@@ -949,6 +957,26 @@ function prepareAppxContent(projectRoot, arch, config, tauriConfig, minVersion,
+     copyBundledResources(projectRoot, appxDir, tauriConfig);
+     return appxDir;
+ }
++// PATCH: see call site above. Mirrors Tauri's own sidecar convention: an
++// `externalBin` entry names a base path (e.g. "binaries/typst") whose file on
++// disk carries the target-triple suffix ("binaries/typst-x86_64-pc-windows-msvc.exe"),
++// but the bundler DROPS that suffix when placing the binary in the app dir,
++// because `tauri-plugin-shell`'s sidecar() resolves at runtime to
++// `<dir of the running exe>/<base name>.exe` — no triple. Copying it under
++// the suffixed name would ship a binary the app can never find.
++function copyExternalBinSidecars(srcTauriDir, appxDir, tauriConfig, target) {
++    const externalBin = tauriConfig.bundle?.externalBin;
++    if (!externalBin || externalBin.length === 0)
++        return;
++    for (const base of externalBin) {
++        const baseName = path.basename(base);
++        const srcSidecar = path.join(srcTauriDir, path.dirname(base), `${baseName}-${target}.exe`);
++        if (!fs.existsSync(srcSidecar)) {
++            throw new Error(`Sidecar not found: ${srcSidecar} (declared in bundle.externalBin as "${base}")`);
++        }
++        fs.copyFileSync(srcSidecar, path.join(appxDir, `${baseName}.exe`));
++    }
++}
+ function copyBundledResources(projectRoot, appxDir, tauriConfig) {
+     const resources = tauriConfig.bundle?.resources;
+     if (!resources)
+@@ -969,7 +997,16 @@ function copyBundledResources(projectRoot, appxDir, tauriConfig) {
+                 continue;
+             let dest;
+             if (target === undefined) {
+-                dest = path.join(appxDir, file);
++                // PATCH: a resource declared outside `src-tauri/` (e.g. Tauri's
++                // own "../templates" convention) kept its leading "../" here,
++                // which lands the copy as a SIBLING of appxDir instead of
++                // inside it — silently dropped from the final .msix, since
++                // only appxDir itself gets zipped. Strip it so the resource
++                // lands inside the package root, matching how a normal Tauri
++                // bundle (and this app's own `resource_dir()` lookup) expects
++                // to find it.
++                const inPackagePath = file.replace(/^(\.\.[\\/])+/, '');
++                dest = path.join(appxDir, inPackagePath);
+             }
+             else if (matches.length > 1 || /[*?[\]]/.test(src)) {
+                 // Map form with a glob: flatten into target dir.

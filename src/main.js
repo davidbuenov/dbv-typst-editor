@@ -388,6 +388,9 @@ async function bootstrap() {
   const terminal = createTerminal({
     outputEl: el('terminal-output'),
     inputEl: el('terminal-input'),
+    // Se lee en cada comando, no se captura una vez: el proyecto abierto puede
+    // cambiar con el panel de terminal ya creado.
+    getRoot: () => workspace.state.project?.root,
   });
   const terminalPanel = registerPanel(el('terminal-panel'), {
     trigger: el('btn-terminal'),

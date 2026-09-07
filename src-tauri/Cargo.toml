@@ -1,6 +1,6 @@
 [package]
 name = "dbv-typst-editor"
-version = "0.3.0"
+version = "0.3.1"
 description = "Editor de escritorio multiplataforma para documentos Typst, con vista previa PDF en tiempo real"
 authors = ["David Bueno Vallejo <https://github.com/davidbuenov>"]
 license = "MIT"
@@ -37,6 +37,12 @@ tauri-plugin-single-instance = "2"
 # `updater` no existe en móvil y `process` sirve para reiniciar tras instalar.
 tauri-plugin-updater = "2"
 tauri-plugin-process = "2"
+# `fs::canonicalize` devuelve en Windows rutas con el prefijo de longitud
+# extendida `\\?\`, que el sidecar `typst` no resuelve bien como `--root` ni
+# `--package-path` ("os error 2" al abrir un `.typ` suelto, compilar desde la
+# terminal avanzada o crear un proyecto desde plantilla). `dunce` da la misma
+# ruta canónica sin ese prefijo.
+dunce = "1"
 
 # Beta: menú nativo de macOS (macos_menu.rs) — dependencia exclusiva de esa
 # plataforma (`[target...]`, no una feature): en Windows/Linux ni siquiera se

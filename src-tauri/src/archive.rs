@@ -165,7 +165,7 @@ pub fn import_project_archive(archive_path: String, target_dir: String) -> Resul
     let target_root = PathBuf::from(&target_dir);
     fs::create_dir_all(&target_root).map_err(|error| AppError::Io(error.to_string()))?;
     let canonical_root =
-        fs::canonicalize(&target_root).map_err(|error| AppError::Io(error.to_string()))?;
+        dunce::canonicalize(&target_root).map_err(|error| AppError::Io(error.to_string()))?;
 
     for index in 0..archive.len() {
         let mut entry = archive
@@ -362,7 +362,7 @@ mod tests {
         let destino = target.path().join("no-existe-todavia");
 
         let imported = import_project_archive(path_to_string(&archive_path), path_to_string(&destino)).unwrap();
-        assert_eq!(imported.root, path_to_string(&fs::canonicalize(&destino).unwrap()));
+        assert_eq!(imported.root, path_to_string(&dunce::canonicalize(&destino).unwrap()));
     }
 
     #[test]

@@ -195,7 +195,10 @@ pub fn describe(path: &Path) -> Result<Project, AppError> {
         return Err(AppError::NotFound(path_to_string(path)));
     }
 
-    let root = fs::canonicalize(path).map_err(|error| AppError::Io(error.to_string()))?;
+    // `dunce::canonicalize`, no `fs::canonicalize`: en Windows este último
+    // devuelve el prefijo de longitud extendida `\\?\`, que el sidecar `typst`
+    // no resuelve bien como `--root` ("os error 2" al compilar).
+    let root = dunce::canonicalize(path).map_err(|error| AppError::Io(error.to_string()))?;
     let file_names: Vec<String> = fs::read_dir(&root)
         .map_err(|error| AppError::Io(error.to_string()))?
         .filter_map(|entry| entry.ok())
@@ -233,7 +236,7 @@ fn describe_single_file(path: &Path) -> Result<Project, AppError> {
     if !has_extension(&path.to_string_lossy(), &TYPST_EXTENSIONS) {
         return Err(AppError::InvalidPath(path_to_string(path)));
     }
-    let canonical = fs::canonicalize(path).map_err(|error| AppError::Io(error.to_string()))?;
+    let canonical = dunce::canonicalize(path).map_err(|error| AppError::Io(error.to_string()))?;
     let file_name = canonical
         .file_name()
         .map(|name| name.to_string_lossy().to_string())

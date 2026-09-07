@@ -253,6 +253,21 @@ Los cuatro primeros se ejecutan también en CI (`.github/workflows/ci.yml`) en c
 - **El espejo de vista previa (`.dbv-preview.typ`)** es un fichero oculto y transitorio en la carpeta del
   usuario mientras hay cambios sin guardar. Filtrado del explorador y del watcher; si la aplicación muriese
   a mitad de una compilación podría quedar uno huérfano (se sobrescribe en el siguiente arranque).
+- **Pista legible cuando un paquete de Typst Universe es incompatible con la versión de Typst incluida**
+  (detectada el 2026-09-07, en la validación de `v0.3.1`). Caso real: crear un proyecto desde la plantilla
+  `@preview/springer-spaniel:0.1.0` falla con `error: type state has no method 'display'` en
+  `@preview/ctheorems:1.1.2`, porque `state.display()` se eliminó de Typst en la 0.13 y la app trae la
+  0.15.1. La traza que ve el usuario son 5 niveles de `while importing` de ficheros que él no ha escrito
+  y no puede tocar, sin ninguna indicación de que el culpable es el paquete y no su documento. **No es un
+  bug de la app** (reproducido idéntico con el binario a pelo, fuera de la aplicación) y la corrección de
+  fondo corresponde al autor del paquete: `ctheorems 1.1.3` ya lo arregla, pero `springer-spaniel 0.1.0`
+  lo fija a `1.1.2` y no tiene versión posterior publicada.
+  **Trabajo propuesto:** reconocer este patrón de error y anteponer una pista, exactamente igual que ya se
+  hace con "unknown font family" (Slice 26) y con la bibliografía ausente al previsualizar un capítulo
+  suelto (Slice 27) — mismo mecanismo `preview__band-hint` ya existente, sin infraestructura nueva.
+  Conviene además distinguir dos casos: paquete demasiado ANTIGUO para el Typst incluido (este) y paquete
+  que exige uno más NUEVO. Ojo al redactarlo: el mensaje debe dejar claro que la solución no está en manos
+  del usuario, para no mandarle a depurar un fichero ajeno.
 
 ### 🧭 Pasos siguientes acordados (orden recomendado)
 

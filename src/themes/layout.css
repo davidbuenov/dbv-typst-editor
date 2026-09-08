@@ -199,23 +199,32 @@
 
 .recent-item {
   display: flex;
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: transparent;
+  transition: background var(--transition), border-color var(--transition);
+}
+
+.recent-item:hover,
+.recent-item:focus-within {
+  background: var(--bg-tertiary);
+  border-color: var(--border);
+}
+
+.recent-item__open {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
   flex-direction: column;
   gap: 2px;
   padding: 8px 10px;
-  border: 1px solid transparent;
-  border-radius: var(--radius);
+  border: none;
   background: transparent;
   color: inherit;
   font-family: inherit;
   text-align: left;
   cursor: pointer;
-  transition: background var(--transition), border-color var(--transition);
-}
-
-.recent-item:hover,
-.recent-item:focus-visible {
-  background: var(--bg-tertiary);
-  border-color: var(--border);
   outline: none;
 }
 
@@ -228,6 +237,38 @@
   font-size: 11px;
   color: var(--text-muted);
   word-break: break-all;
+}
+
+.recent-item__remove {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  margin-right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  opacity: 0;
+  padding: 0;
+  transition: opacity var(--transition), background var(--transition), color var(--transition), border-color var(--transition);
+}
+
+.recent-item:hover .recent-item__remove,
+.recent-item:focus-within .recent-item__remove {
+  opacity: 1;
+}
+
+.recent-item__remove:hover,
+.recent-item__remove:focus-visible {
+  opacity: 1;
+  border-color: var(--border);
+  background: var(--bg-secondary);
+  color: var(--code-tag);
+  outline: none;
 }
 
 .recent-list__empty {
@@ -660,6 +701,27 @@
   gap: 16px;
 }
 
+/* Indicador centrado mientras se compila el documento completo por primera vez */
+.preview__loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin: auto;
+  padding: 48px 32px;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 500;
+  user-select: none;
+}
+
+.preview__loading .preview-page__spinner {
+  width: 36px;
+  height: 36px;
+  border-width: 3px;
+}
+
 /* Cada página conserva su tamaño natural y se escala con el zoom: escalar el
    contenedor en vez del SVG mantiene la nitidez vectorial a cualquier nivel. */
 /* El hueco se reserva con la proporción real de la página ANTES de traer su
@@ -684,6 +746,7 @@
   border-radius: 2px;
   overflow: hidden;
   line-height: 0;
+  position: relative;
 }
 
 /* Una vez cargada, manda la altura natural del SVG, no la proporción estimada. */
@@ -695,6 +758,39 @@
   width: 100%;
   height: auto;
   display: block;
+}
+
+/* Indicador de carga para páginas cuyo SVG aún no se ha traído (desplazamiento rápido). */
+.preview-page__placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  height: 100%;
+  color: #64748b;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  user-select: none;
+  background: #fff;
+}
+
+.preview-page__spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid rgba(0, 0, 0, 0.08);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: preview-page-spin 0.8s linear infinite;
+}
+
+@keyframes preview-page-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Banda de error: no intrusiva y sin borrar la última vista buena (requisito

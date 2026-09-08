@@ -6,15 +6,16 @@
 // =============================================================================
 //
 // ARCHITECTURE.md §7.8. Mismo ciclo de vida que `preview.js` a propósito
-// (`setDocument`/`onContentChanged`/`detachLiveContent`/`clear`): ambos leen
-// el mismo documento en vivo, y mantener el contrato idéntico es lo que evita
-// que `main.js` tenga que tratarlos de forma distinta.
+// (`restart`/`onContentChanged`/`clear`): desde RF-14 los dos compilan el MISMO
+// objetivo, que pide cada uno a `workspace.getCompileTarget()` en el momento de
+// usarlo. Si el outline eligiera su documento por su cuenta, el panel listaría
+// los encabezados de algo distinto de lo que se ve compilado, y la navegación
+// llevaría a páginas que no existen en la vista previa.
 //
-// Clic→navegación cubre hoy solo la vista previa (página + coordenada `y`,
-// que es justo lo que expone `typst eval`); saltar también el cursor del
-// editor a la posición exacta necesitaría mapear posición de PDF a posición de
-// texto fuente, que es la sincronización "por posición real" que
-// ARCHITECTURE.md deja para más adelante en Beta — no está aquí todavía.
+// Clic→navegación cubre hoy solo la vista previa (página + coordenada `y`, que
+// es justo lo que expone `typst eval`). Llevar además el cursor del editor a la
+// posición del fuente es RF-16, que se apoya en anclas y llega en el Slice 30
+// (ADR-SYNC-001: no hay posición real de fuente accesible desde el sidecar).
 
 import { t } from '../i18n/i18n.js';
 import { getOutline } from '../services/backend.js';
@@ -25,11 +26,12 @@ const DEBOUNCE_MS = 500;
  * @param {object} deps
  * @param {HTMLElement} deps.listEl Contenedor donde se pintan las entradas.
  * @param {(entry: {page: number, yPt: number}) => void} deps.onNavigate
+ * @param {() => (import('../services/backend.js').CompileTarget | null)} deps.getTarget
+ *   El MISMO objetivo que compila la vista previa (RF-14): un outline que
+ *   listara los encabezados de otro fichero no navegaría a lo que se ve.
  */
-export function createOutline({ listEl, onNavigate }) {
+export function createOutline({ listEl, onNavigate, getTarget }) {
   let debounceTimer = null;
-  /** @type {null | {document: string, root: string, content: string|null, dirty: boolean}} */
-  let request = null;
 
   function render(entries) {
     listEl.replaceChildren();
@@ -54,12 +56,9 @@ export function createOutline({ listEl, onNavigate }) {
   }
 
   async function fetchNow() {
-    if (!request?.document || !request?.root) return;
-    const result = await getOutline({
-      document: request.document,
-      root: request.root,
-      content: request.dirty ? request.content : null,
-    });
+    const target = getTarget();
+    if (!target?.document || !target?.root) return;
+    const result = await getOutline(target);
     // Un error de compilación no vacía el panel: se queda el último esquema
     // bueno, igual que la vista previa mantiene su última vista buena.
     if (result.ok) render(result.value);
@@ -73,28 +72,15 @@ export function createOutline({ listEl, onNavigate }) {
   render([]);
 
   return {
-    setDocument({ document, root, content }) {
-      request = { document, root, content, dirty: false };
+    /** Empieza de cero con el objetivo vigente. */
+    restart() {
       fetchNow();
     },
-    onContentChanged(content) {
-      if (!request) return;
-      request.content = content;
-      request.dirty = true;
+    onContentChanged() {
       schedule();
-    },
-    detachLiveContent() {
-      if (!request) return;
-      request.dirty = false;
-      request.content = null;
-    },
-    onSaved() {
-      if (!request) return;
-      request.dirty = false;
     },
     clear() {
       if (debounceTimer) clearTimeout(debounceTimer);
-      request = null;
       render([]);
     },
   };

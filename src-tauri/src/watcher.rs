@@ -58,10 +58,10 @@ pub fn is_relevant_change(path: &Path) -> bool {
         || name.starts_with(".dbv-preview")
         || (name.starts_with('.') && name.contains(".sw"));
     let in_noise_dir = path.components().any(|component| {
-        matches!(
-            component.as_os_str().to_str(),
-            Some(".git") | Some("node_modules") | Some("target") | Some(".svn")
-        )
+        component
+            .as_os_str()
+            .to_str()
+            .is_some_and(crate::commands::file_io::is_noise_dir)
     });
     !is_temp && !in_noise_dir
 }

@@ -375,7 +375,7 @@ body {
 /* Desplegable de citas (Beta, §7.7.4): posición dinámica, fijada en JS
    (`citationPicker.js`) justo debajo del botón "Cite" que lo abre — por eso
    aquí solo se fijan tamaño y aspecto, no `top`/`left`. */
-.floating-panel--citation {
+.floating-panel--picker {
   top: 0;
   left: 0;
   right: auto;
@@ -385,7 +385,7 @@ body {
   padding: 8px;
 }
 
-.citation-picker__filter {
+.picker__filter {
   width: 100%;
   margin-bottom: 6px;
   padding: 6px 8px;
@@ -397,7 +397,7 @@ body {
   font-size: 12px;
 }
 
-.citation-picker__item {
+.picker__item {
   display: block;
   width: 100%;
   padding: 5px 8px;
@@ -411,17 +411,17 @@ body {
   cursor: pointer;
 }
 
-.citation-picker__item:hover {
+.picker__item:hover {
   background: var(--bg-tertiary);
 }
 
-.citation-picker__empty {
+.picker__empty {
   margin: 4px;
   color: var(--text-muted);
   font-size: 12px;
 }
 
-.citation-picker__new {
+.picker__action {
   display: block;
   width: 100%;
   margin-top: 4px;
@@ -435,7 +435,7 @@ body {
   cursor: pointer;
 }
 
-.citation-picker__new:hover {
+.picker__action:hover {
   border-color: var(--accent);
   color: var(--text-primary);
 }
@@ -842,4 +842,35 @@ body {
 
 .hidden {
   display: none !important;
+}
+
+/* Controles de alcance y refresco de la vista previa (RF-14, RF-15). Píldoras
+   discretas: son estado permanente, no acciones, así que no compiten
+   visualmente con los botones de zoom. */
+.preview__chip {
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: none;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.preview__chip:hover {
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+
+/* "Desactualizada" (RF-15b): nunca se enseña contenido viejo como si fuera el
+   actual. Usa el color de aviso, no el de error: no ha fallado nada. */
+.preview__stale {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-size: 11px;
+  white-space: nowrap;
 }

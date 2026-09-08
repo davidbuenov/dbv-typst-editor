@@ -20,13 +20,18 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use serde::Serialize;
 use tauri::AppHandle;
 use tauri_plugin_dialog::DialogExt;
 
-use crate::commands::file_io::path_to_string;
+use crate::commands::file_io::{has_extension, is_noise_dir, path_to_string};
 use crate::error::AppError;
 
 /// Extensiones de imagen que Typst sabe incrustar con `image(...)`.
+///
+/// Única fuente de verdad: el frontend las pide con `supported_asset_extensions`
+/// en vez de mantener su propia lista, que ya se había desincronizado de esta
+/// (incluía `bmp`, que Typst no incrusta).
 const IMAGE_EXTENSIONS: [&str; 6] = ["png", "jpg", "jpeg", "gif", "svg", "webp"];
 
 /// Selector nativo de una imagen a copiar al proyecto (alternativa a
@@ -113,6 +118,12 @@ pub fn copy_asset_into_project(project_root: String, source_path: String) -> Res
     if !source.is_file() {
         return Err(AppError::NotFound(source_path));
     }
+    // Misma guarda que `copy_font_into_project`: sin ella, el frontend era el
+    // único que decidía qué es una imagen, y su lista se había desincronizado
+    // de `IMAGE_EXTENSIONS` (aceptaba `.bmp`, que Typst no sabe incrustar).
+    if !has_extension(&source_path, &IMAGE_EXTENSIONS) {
+        return Err(AppError::InvalidPath(source_path));
+    }
 
     let images_dir = root.join(ASSETS_DIR);
     fs::create_dir_all(&images_dir).map_err(|error| AppError::Io(error.to_string()))?;
@@ -179,6 +190,98 @@ pub fn copy_font_into_project(project_root: String, source_path: String) -> Resu
 
     let relative = destination.strip_prefix(&root).unwrap_or(&destination);
     Ok(path_to_string(relative).replace('\\', "/"))
+}
+
+/// Extensiones que la aplicación acepta por arrastre, servidas al frontend
+/// para que no mantenga su propia copia de las listas (RF-18).
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AssetExtensions {
+    pub images: Vec<String>,
+    pub fonts: Vec<String>,
+}
+
+/// Extensiones de imagen y de fuente que la aplicación sabe copiar al proyecto.
+#[tauri::command]
+pub fn supported_asset_extensions() -> AssetExtensions {
+    AssetExtensions {
+        images: IMAGE_EXTENSIONS.iter().map(|ext| ext.to_string()).collect(),
+        fonts: FONT_EXTENSIONS.iter().map(|ext| ext.to_string()).collect(),
+    }
+}
+
+/// Una imagen que ya vive en el proyecto, lista para insertar en una figura.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProjectImage {
+    /// Ruta anclada a la raíz (`/images/foto.png`), tal cual va dentro de
+    /// `image("...")`. Anclada porque Typst resuelve las rutas sin `/` relativas
+    /// al fichero que las contiene, no a la raíz — un capítulo en una subcarpeta
+    /// rompería la ruta relativa (corregido en el Slice 27).
+    pub path: String,
+    /// Nombre del fichero: lo que el usuario reconoce y por lo que filtra.
+    pub name: String,
+}
+
+/// Profundidad máxima del escaneo. Un proyecto Typst real no anida recursos más
+/// allá de dos o tres niveles; el límite existe para que un proyecto ajeno con un
+/// árbol enorme (RF-02b) no cueste un recorrido completo al abrir el desplegable.
+const MAX_SCAN_DEPTH: usize = 6;
+
+/// Acumula en `found` las imágenes de `dir`, descendiendo hasta `MAX_SCAN_DEPTH`.
+///
+/// Se saltan las carpetas de ruido compartidas con el watcher y cualquier carpeta
+/// oculta: ni `.git` ni `.vscode` contienen recursos del documento, y recorrerlas
+/// solo añade coste y resultados que el usuario nunca querría insertar.
+fn collect_images(dir: &Path, root: &Path, depth: usize, found: &mut Vec<ProjectImage>) {
+    if depth > MAX_SCAN_DEPTH {
+        return;
+    }
+    let Ok(entries) = fs::read_dir(dir) else {
+        return;
+    };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        let Some(name) = path.file_name().and_then(|name| name.to_str()) else {
+            continue;
+        };
+        if path.is_dir() {
+            if !is_noise_dir(name) && !name.starts_with('.') {
+                collect_images(&path, root, depth + 1, found);
+            }
+            continue;
+        }
+        if !has_extension(name, &IMAGE_EXTENSIONS) {
+            continue;
+        }
+        let Ok(relative) = path.strip_prefix(root) else {
+            continue;
+        };
+        found.push(ProjectImage {
+            path: format!("/{}", path_to_string(relative).replace('\\', "/")),
+            name: name.to_string(),
+        });
+    }
+}
+
+/// Imágenes disponibles en el proyecto (RF-17, desplegable del botón "Fig").
+///
+/// Espejo de `bibliography::bibliography_keys` en forma y contrato, con una
+/// diferencia deliberada: aquí sí se recorre el árbol, porque una imagen puede
+/// estar en cualquier carpeta de un proyecto ajeno (RF-02b), mientras que el
+/// `.bib` está siempre en la raíz en las 8 plantillas curadas. Un proyecto sin
+/// imágenes no es un error: devuelve una lista vacía.
+#[tauri::command]
+pub fn project_images(root: String) -> Result<Vec<ProjectImage>, AppError> {
+    let root_path = Path::new(&root);
+    if !root_path.is_dir() {
+        return Err(AppError::InvalidPath(root));
+    }
+
+    let mut images = Vec::new();
+    collect_images(root_path, root_path, 0, &mut images);
+    images.sort_by(|left, right| left.path.cmp(&right.path));
+    Ok(images)
 }
 
 #[cfg(test)]
@@ -363,5 +466,115 @@ mod tests {
             copy_font_into_project(path_to_string(project.path()), path_to_string(&source)).unwrap();
 
         assert_eq!(relative, "fonts/MiFuente-1.otf");
+    }
+
+    // ─── RF-17: imágenes del proyecto ────────────────────────────────────────
+
+    fn png(dir: &Path, name: &str) -> PathBuf {
+        let path = dir.join(name);
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).unwrap();
+        }
+        fs::write(&path, b"no-es-un-png-real-pero-basta").unwrap();
+        path
+    }
+
+    #[test]
+    fn project_images_encuentra_imagenes_en_subcarpetas_y_ancla_a_la_raiz() {
+        let dir = tempfile::tempdir().unwrap();
+        png(dir.path(), "images/grafico.png");
+        png(dir.path(), "chapters/figuras/esquema.svg");
+
+        let images = project_images(dir.path().to_string_lossy().to_string()).unwrap();
+
+        let paths: Vec<&str> = images.iter().map(|image| image.path.as_str()).collect();
+        assert_eq!(paths, vec!["/chapters/figuras/esquema.svg", "/images/grafico.png"]);
+        assert_eq!(images[1].name, "grafico.png");
+    }
+
+    #[test]
+    fn project_images_ignora_el_ruido_de_repositorio_y_las_carpetas_ocultas() {
+        let dir = tempfile::tempdir().unwrap();
+        png(dir.path(), "images/buena.png");
+        png(dir.path(), ".git/objects/basura.png");
+        png(dir.path(), "node_modules/paquete/logo.png");
+        png(dir.path(), ".vscode/icono.png");
+
+        let images = project_images(dir.path().to_string_lossy().to_string()).unwrap();
+
+        assert_eq!(images.len(), 1, "solo la imagen del proyecto: {images:?}");
+        assert_eq!(images[0].path, "/images/buena.png");
+    }
+
+    #[test]
+    fn project_images_descarta_lo_que_no_es_una_imagen_de_typst() {
+        let dir = tempfile::tempdir().unwrap();
+        png(dir.path(), "images/valida.png");
+        fs::write(dir.path().join("main.typ"), "= Hola").unwrap();
+        fs::write(dir.path().join("images/mapa.bmp"), b"x").unwrap();
+
+        let images = project_images(dir.path().to_string_lossy().to_string()).unwrap();
+
+        assert_eq!(images.len(), 1);
+        assert_eq!(images[0].name, "valida.png");
+    }
+
+    #[test]
+    fn project_images_sin_imagenes_devuelve_lista_vacia_no_error() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("main.typ"), "= Hola").unwrap();
+
+        let images = project_images(dir.path().to_string_lossy().to_string()).unwrap();
+
+        assert!(images.is_empty());
+    }
+
+    #[test]
+    fn project_images_rechaza_una_ruta_que_no_es_carpeta() {
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join("main.typ");
+        fs::write(&file, "= Hola").unwrap();
+
+        let result = project_images(file.to_string_lossy().to_string());
+
+        assert!(matches!(result, Err(AppError::InvalidPath(_))));
+    }
+
+    #[test]
+    fn project_images_no_desciende_mas_alla_del_limite_de_profundidad() {
+        let dir = tempfile::tempdir().unwrap();
+        let profunda = (0..MAX_SCAN_DEPTH + 2).map(|_| "n").collect::<Vec<_>>().join("/");
+        png(dir.path(), &format!("{profunda}/lejos.png"));
+        png(dir.path(), "cerca.png");
+
+        let images = project_images(dir.path().to_string_lossy().to_string()).unwrap();
+
+        assert_eq!(images.len(), 1);
+        assert_eq!(images[0].name, "cerca.png");
+    }
+
+    #[test]
+    fn copy_asset_into_project_rechaza_un_fichero_que_no_es_imagen_de_typst() {
+        // Antes de RF-18 el frontend era el único filtro y aceptaba `.bmp`.
+        let dir = tempfile::tempdir().unwrap();
+        let root = tempfile::tempdir().unwrap();
+        let mapa = dir.path().join("mapa.bmp");
+        fs::write(&mapa, b"x").unwrap();
+
+        let result = copy_asset_into_project(
+            root.path().to_string_lossy().to_string(),
+            mapa.to_string_lossy().to_string(),
+        );
+
+        assert!(matches!(result, Err(AppError::InvalidPath(_))));
+    }
+
+    #[test]
+    fn supported_asset_extensions_sirve_las_dos_listas_reales() {
+        let extensions = supported_asset_extensions();
+
+        assert!(extensions.images.contains(&"png".to_string()));
+        assert!(!extensions.images.contains(&"bmp".to_string()));
+        assert!(extensions.fonts.contains(&"ttf".to_string()));
     }
 }

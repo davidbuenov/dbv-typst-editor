@@ -15,6 +15,21 @@ Read these files at the start of each session before proposing any code or plan:
 
 > **Note:** This file is auto-loaded by both **Gemini CLI** and **Antigravity**. For Antigravity-specific setup, see `ANTIGRAVITY.md`.
 
+## 🌐 Changelog bilingüe (regla del proyecto)
+
+El repositorio lo consultan también lectores de habla inglesa, así que el changelog vive en
+**dos ficheros espejo** que deben mantenerse sincronizados:
+
+| Fichero | Idioma | Enganchado desde |
+| --- | --- | --- |
+| `dbv-specs-ops/CHANGELOG.md` | Español | `README.md` |
+| `dbv-specs-ops/CHANGELOG.en.md` | Inglés | `README.en.md` |
+
+**Siempre que añadas o muevas una entrada del changelog —en `/build`, `/test` o `/ship`—
+hazlo en los DOS ficheros y en el mismo commit.** No es una traducción automática ni un
+resumen: la entrada inglesa debe llevar el mismo detalle técnico que la española. Un `/ship`
+que publica una versión tiene que crear la sección versionada en ambos.
+
 ## ⚠️ Core Rules
 **Read `dbv-specs-ops/docs/MASTER_PROMPT.md` and follow its workflow strictly.**
 

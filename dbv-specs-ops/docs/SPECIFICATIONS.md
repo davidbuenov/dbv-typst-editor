@@ -80,6 +80,93 @@ Toda la aplicación (lanzador, asistente de creación, explorador de ficheros, e
 
 - [ ] **RF-12 Empaquetado:** Instalador para Windows (NSIS) y Linux (AppImage + .deb), reutilizando la configuración CI de DBV Markdown Reader, más el vendorizado del binario `typst` por plataforma (`ARCHITECTURE.md` §7.2, §6).
 
+## ✨ 5b. Funcionalidades — v0.4.0 (Beta)
+
+> Alcance fijado con el usuario el 2026-09-08, a partir de dos peticiones de uso real (sincronización
+> editor↔vista previa; el botón "Fig" debería ofrecer las imágenes del proyecto como hace "Cite" con
+> las claves del `.bib`) y de los resultados medidos del **Spike S-2** (`spikes/preview-sync/README.md`).
+>
+> **Enmienda de especificación:** §6 y §11 prometían la sincronización *"por posición real de fuente
+> (no por anclas)"* apoyada en el LSP `tinymist`. El Spike S-2 demuestra que eso es **inalcanzable con
+> la arquitectura de sidecar** —Typst no expone el `span` de origen en el API de scripting ni anota el
+> SVG—, y §9 ya había descartado `tinymist` al resolver las posiciones del outline. La cláusula queda
+> **sustituida** por el mecanismo de anclas, con sus limitaciones escritas aquí de forma explícita.
+> `tinymist` se conserva como posible mejora futura de precisión, nunca como dependencia.
+
+- [ ] **RF-14 Alcance de la vista previa: el documento completo, conmutable.** La vista previa compila
+  el **documento raíz** del proyecto (el `entrypoint` ya resuelto por `pick_entrypoint()` o por el
+  manifiesto), no el fichero abierto. Un conmutador en la barra de la vista previa permite volver a
+  "solo este fichero". *Motivo:* compilar el capítulo suelto no es solo un alcance distinto, es
+  **incorrecto** — sin el raíz no hay bibliografía, ni numeración de páginas, ni referencias cruzadas,
+  y el capítulo real de `testfiles/demo-proyecto` ni siquiera compila (`label <knuth1984> does not
+  exist`). Es además condición necesaria de RF-16.
+  - **Criterios de aceptación:** (a) editar un capítulo muestra el documento entero, con su
+    bibliografía y su numeración reales; (b) los cambios **sin guardar** del capítulo se ven en esa
+    vista previa; (c) un `.typ` suelto sin proyecto sigue funcionando igual que hoy; (d) el conmutador
+    persiste por proyecto; (e) la pista de "no hay bibliografía" (Slice 27) deja de dispararse en el
+    modo por defecto, porque su causa desaparece.
+
+- [ ] **RF-15 Control de refresco de la vista previa: automático o manual.** Dos modos, conmutables
+  desde la barra de la vista previa: **automático** (recompilar tras la pausa de escritura, el
+  comportamiento actual) y **manual** (no recompila sola; un botón "Refrescar" y su atajo disparan la
+  compilación). *Motivo:* no es una comodidad, es **requisito** de RF-14. Medido en el Spike S-2:
+  compilar el documento completo cuesta **×9** lo que cuesta el capítulo (828 ms frente a 91 ms en una
+  tesis de 202 páginas) y **supera la pausa de tecleo** de 350 ms; en automático el compilador estaría
+  corriendo casi sin parar. En proyectos pequeños no hay problema (136 ms el proyecto de demo entero).
+  - **Criterios de aceptación:** (a) en modo manual, escribir no dispara ninguna compilación; (b) la
+    vista previa se marca **visiblemente como desactualizada** cuando hay cambios sin recompilar —
+    nunca se muestra contenido viejo como si fuera actual; (c) el modo persiste por proyecto; (d) se
+    descarta de momento un tercer modo "cada N segundos": paga el coste completo igual, solo que con
+    menos frecuencia, y el usuario no sabe cuándo le caerá.
+
+- [ ] **RF-16 Sincronización editor ↔ vista previa (bidireccional).** Doble clic en la vista previa
+  lleva el cursor al punto correspondiente del fuente, **abriendo el fichero que corresponda** si no
+  es el que está abierto; y desde el editor, una acción explícita lleva la vista previa al punto que
+  se está escribiendo. *Sustituye* a la cláusula de §6 sobre sync por posición real.
+  - **Mecanismo (cerrado por el Spike S-2, no reabrir en `/plan` sin datos nuevos):** anclas
+    `#metadata((f: …, l: …))<dbv-sync>` inyectadas **entre bloques** en una **raíz sombra temporal**
+    —nunca en la carpeta del usuario—, y tabla extraída con `typst eval` +
+    `query(<dbv-sync>)`, que devuelve de una pasada el payload propio y `location().position()`.
+    Medido: anclas entre bloques dejan el SVG **byte a byte idéntico**, a 0,007 ms por ancla.
+  - **Criterios de aceptación:** (a) funciona **entre ficheros**, que es el caso que originó la
+    petición; (b) la tabla de anclas se calcula **bajo demanda y se cachea**, nunca en cada pausa de
+    escritura — la pasada de `eval` cuesta otra composición completa (≈750 ms); (c) la búsqueda ordena
+    por **(página, banda de x, y)**, no por (página, y), porque en documentos a dos columnas la segunda
+    columna tiene una `y` menor que la primera; (d) el camino inverso sobre una vista previa marcada
+    como desactualizada (RF-15) tiene un comportamiento definido y explicado, no silencioso.
+  - **Limitaciones aceptadas y documentadas:** la precisión es de **bloque**, no de línea (la
+    imprecisión típica es la altura de un párrafo). Los **flotantes no se resuelven por posición**:
+    `location().position()` de una `figure(..., placement: top)` devuelve su posición en el flujo, no
+    dónde se dibuja, así que un clic sobre ella no tiene ancla anterior válida y debe caer al ancla más
+    cercana en distancia absoluta.
+
+- [ ] **RF-17 Selector de imágenes del proyecto en el botón "Fig".** Pulsar "Fig" abre un desplegable
+  filtrable con las **imágenes que ya existen en el proyecto**, listas para insertar, y como última
+  opción "Buscar una imagen…", que abre el selector nativo de fichero y la copia al proyecto.
+  *Motivo:* petición explícita del usuario por **coherencia con "Cite"**, que ya funciona así (lista de
+  claves reales del `.bib` + "No encuentro la fuente que busco"). Hoy "Fig" salta directo al explorador
+  de ficheros, lo que obliga a navegar el disco para reutilizar una imagen que ya está en el proyecto.
+  - **Criterios de aceptación:** (a) mismo patrón de interacción y mismo aspecto que el desplegable de
+    citas (`citationPicker.js` es el modelo a reutilizar, no a duplicar); (b) la ruta insertada se
+    ancla a la raíz con `/`, como ya hace `figureActionForPath()` desde el Slice 27; (c) un proyecto
+    sin imágenes muestra un vacío explicado y la opción de buscar, nunca un desplegable en blanco;
+    (d) funciona sin conexión y con textos ES/EN.
+  - **[SUPUESTO a confirmar en `/plan`]** el listado recorre el proyecto entero buscando imágenes, no
+    solo `images/`, para no romperse con proyectos ajenos que organicen los recursos de otra forma
+    (RF-02b). Coste y forma del comando Rust —espejo de `bibliography_keys`— se cierran en `/plan`.
+
+- [ ] **RF-18 Arrastre de imágenes coherente con el de fuentes.** Soltar una imagen en **cualquier
+  parte de la ventana** la copia al proyecto y lo notifica; si además se soltó sobre el editor, se
+  inserta la figura en el cursor como hasta ahora. *Motivo:* hoy `wireImageDrop` exige soltar dentro del
+  panel del editor, mientras que `wireFontDrop` acepta la ventana entera. Soltar una imagen sobre el
+  explorador de proyecto **no hace nada, y en silencio** — el peor modo de fallo posible, y la razón de
+  que un usuario creyera recordar que ya funcionaba. No es alcance nuevo: es corregir un defecto contra
+  el espíritu de la cláusula de §6 ("gestión de imágenes por arrastre: copiar al proyecto, organizar").
+  - **Criterios de aceptación:** (a) soltar sobre el explorador de proyecto copia la imagen y avisa;
+    (b) soltar sobre el editor copia **e** inserta, sin cambio respecto a hoy; (c) se reutiliza la
+    deduplicación por contenido ya existente (`find_existing_copy`, Slice 27) — soltar dos veces la
+    misma imagen no crea `foto-1.png`; (d) sin proyecto abierto, no se copia nada y se explica por qué.
+
 ## 🚀 6. Funcionalidades — Beta y v1.0 (detalle del Spec Addendum)
 
 Estas funcionalidades están **descritas y arquitectónicamente resueltas** (ver `ARCHITECTURE.md` §7.6–§7.14 y `TYPST_ECOSYSTEM_RESEARCH.md`) pero **fuera del MVP v0.1** por decisión explícita de alcance del usuario. Nota de encuadre: el **Universe Browser** (Package Explorer + Template Explorer, ver árbol de navegación en `ARCHITECTURE.md` §7.6.0.1) se posiciona como punto de entrada de primer nivel de la aplicación (§2), no como un add-on menor — esto afecta a su importancia de diseño y visibilidad en Beta, no reabre el acuerdo de fases ya cerrado con el usuario (el Lanzador de plantillas curadas, MVP, ya adelanta esta experiencia — ver `ARCHITECTURE.md` §7.6):
@@ -88,13 +175,13 @@ Estas funcionalidades están **descritas y arquitectónicamente resueltas** (ver
 - **Universe Browser — Package Explorer** (ecosistema distinto del de plantillas — clarificación explícita del usuario): buscar/explorar paquetes Typst por categoría, ver instalados/detalle/documentación/versión/actualizaciones, botón "Añadir al proyecto" que inserta el `#import` automáticamente. Incluye detección automática de "Paquetes usados" al abrir un proyecto, con **Versión actual / Última versión / insignia de actualización disponible** por paquete y botón "Actualizar" (reescribe el `#import`, no delega en el CLI — no existe comando equivalente). Apoyado en el `index.json` público oficial de Typst (`packages.typst.org`), no en un registro propio — ver `ARCHITECTURE.md` §7.6.2 y `TYPST_ECOSYSTEM_RESEARCH.md`.
 - **Universe Browser — Template Explorer** (distinto del Package Explorer, mismo nivel de navegación — ver §7.6.0.1): pestañas Instaladas / Comunidad / Favoritas / Recientes / Actualizaciones; ficha de plantilla con imagen de vista previa, nombre, autor, versión, descripción, categoría; acción principal "Crear Proyecto" (nunca "Descargar código"). La pestaña Comunidad usa el mismo `index.json` oficial, filtrado por plantillas — ver `ARCHITECTURE.md` §7.6.3.
 - Panel de navegación estructural (esquema del documento, actualizado automáticamente, navegación rápida) — crítico para tesis y documentos extensos. Vía `typst query` del sidecar CLI.
-- Asistentes de inserción **con formulario** (la barra de botones en sí es **v0.2**, RF-13): galería de símbolos matemáticos con búsqueda, diálogo de tabla con dimensiones y alineación, inserción de figura con selector de fichero y copia al proyecto, cita con autocompletado sobre las claves del `.bib`. Es la capa que necesita UI y datos propios por encima del simple emisor de marcado de RF-13.
-- Gestión de imágenes por arrastre: copiar al proyecto, organizar, generar `figure()` con caption automáticamente.
+- Asistentes de inserción **con formulario** (la barra de botones en sí es **v0.2**, RF-13): galería de símbolos matemáticos con búsqueda, diálogo de tabla con dimensiones y alineación, inserción de figura con selector de fichero y copia al proyecto —ampliado en **RF-17** (§5b) a un desplegable con las imágenes que ya tiene el proyecto, por coherencia con el de citas—, cita con autocompletado sobre las claves del `.bib`. Es la capa que necesita UI y datos propios por encima del simple emisor de marcado de RF-13.
+- Gestión de imágenes por arrastre: copiar al proyecto, organizar, generar `figure()` con caption automáticamente. *Entregado en el Slice 19, pero restringido a soltar dentro del panel del editor; **RF-18** (§5b) lo iguala con el arrastre de fuentes, que acepta la ventana entera.*
 - Gestión visual de bibliografía (`.bib`): exploración de referencias, autocompletado de citas, validación.
 - Modos de trabajo: Escritura (mínima distracción), Edición (todas las herramientas), Dividido (editor + PDF), Lectura (documento final).
 - Exportación PNG (página actual / rango / documento completo).
 - **Terminal avanzado:** consola opcional, oculta por defecto, para ejecutar subcomandos oficiales de Typst directamente sobre el proyecto activo, con salida mostrada en la app — para usuarios avanzados; no sustituye a ningún flujo guiado. `ARCHITECTURE.md` §7.14.
-- Autocompletado semántico y diagnósticos en línea vía LSP `tinymist`; sincronización de scroll editor↔preview por posición real de fuente (no por anclas).
+- Autocompletado semántico y diagnósticos en línea vía LSP `tinymist`. ~~Sincronización de scroll editor↔preview por posición real de fuente (no por anclas).~~ **Sustituido el 2026-09-08 por RF-16 (§5b):** el Spike S-2 demuestra que no existe posición real de fuente accesible desde el sidecar —ni `span` en el API de scripting ni anotación en el SVG— y §9 ya había descartado `tinymist` para esto mismo. La sincronización se implementa **con anclas**. `tinymist` sigue siendo candidato para el autocompletado semántico y, en el futuro, para elevar la precisión del sync de bloque a línea.
 - Empaquetado macOS, auto-actualizador (`tauri-plugin-updater`).
 
 **v1.0:**
@@ -142,6 +229,8 @@ Estas funcionalidades están **descritas y arquitectónicamente resueltas** (ver
 - [ ] Diseño de UX pendiente (`/build`, Beta): cómo comunicar al usuario que el Universe Browser muestra el catálogo **cacheado en el último sincronizado**, no en vivo, cuando no hay red o el usuario no ha pulsado "Actualizar catálogo" — evitar que parezca desactualizado sin explicación (`ARCHITECTURE.md` §7.6.1).
 - [x] ¿Cómo enriquecer plantillas *comunitarias* con la Capa DBV (`dbv-template.toml`) sin crear problemas de mantenimiento por desajuste de versión? → Resuelto a nivel de diseño: overlay propio de DBV indexado por `(namespace/nombre, versión)`, nunca co-ubicado en la caché de paquetes de Typst; degrada limpiamente a "sin formulario" si no hay overlay para la versión instalada — ver `ARCHITECTURE.md` §7.6.3 y riesgo en §6.
 
+- [x] Spike técnico (S-2, 2026-09-08): ¿se puede sincronizar editor y vista previa con el compilador vendorizado como sidecar? → **Resuelto, con matices.** No por posición real de fuente: Typst **no** expone el `span` de origen (`heading.span` no existe) ni anota el SVG (sin un solo `data-*`). Sí con **anclas `#metadata` + `query`**, que devuelven payload y posición de una pasada y dejan el SVG byte a byte idéntico. Informe y mediciones en `spikes/preview-sync/README.md`; consecuencias en RF-14 a RF-16 (§5b).
+
 ## 🧪 10. Criterios de Evaluación (No Deterministas)
 
 - No aplica en el MVP: el pipeline de compilación Typst es determinista. Si en fases futuras se añaden asistentes de redacción con IA (§6, Futuro), se definirán evals en ese momento.
@@ -162,7 +251,8 @@ Orden de prioridad para toda decisión de diseño/arquitectura (fijado explícit
 | --- | --- | --- |
 | **MVP (v0.1)** — alcance reducido aprobado | Bucle de valor completo: lanzador, proyectos (incl. apertura de proyectos existentes y operaciones Abrir/Mostrar/Recientes), asistente de creación, **4 plantillas** (Proyecto en blanco, TFG, Artículo académico, CV), editor CodeMirror 6, preview SVG en tiempo real, guardado con detección de conflicto, temas, configuración, exportación PDF, empaquetado Windows + Linux. | 🔨 En construcción |
 | **v0.2** | **Barra de herramientas de inserción del editor (RF-13)** + Project Archive `.dbvt` (export/import) + 4 plantillas restantes (TFM, Tesis doctoral, Informe técnico, Presentación). | ✅ Completado (2026-09-05) |
-| **Beta (v0.2–v0.4)** | **Universe Browser** (Package Explorer + Template Explorer, separados a nivel de UX, sobre el `index.json` oficial de Typst Universe), navegación estructural, asistentes de inserción con formulario (la barra en sí es v0.2, RF-13), gestión de imágenes por arrastre, bibliografía visual, modos de escritura, exportación PNG, terminal avanzado, LSP `tinymist`, sync editor↔preview por posición real, macOS, auto-actualizador. | Futuro |
+| **v0.4.0** | Vista previa del **documento completo** conmutable (RF-14), **control de refresco** automático/manual (RF-15), **sincronización editor↔vista previa** por anclas (RF-16), **selector de imágenes del proyecto** en el botón Fig (RF-17) y **arrastre de imágenes** coherente con el de fuentes (RF-18). Especificado el 2026-09-08 sobre el Spike S-2. | 📋 Especificado |
+| **Beta (v0.2–v0.4)** | **Universe Browser** (Package Explorer + Template Explorer, separados a nivel de UX, sobre el `index.json` oficial de Typst Universe), navegación estructural, asistentes de inserción con formulario (la barra en sí es v0.2, RF-13), gestión de imágenes por arrastre, bibliografía visual, modos de escritura, exportación PNG, terminal avanzado, LSP `tinymist`, macOS, auto-actualizador. | Futuro |
 | **v1.0** | Ecosistema completo de plantillas, exportación SVG, asistentes avanzados, Paquete Docente, publicación en stores, accesibilidad WCAG AA. | Futuro |
 | **Futuro (post-1.0)** | IA, repositorio comunitario, sincronización, colaboración en tiempo real, integración Zotero/Mendeley, asistentes de redacción académica. | Exploratorio |
 

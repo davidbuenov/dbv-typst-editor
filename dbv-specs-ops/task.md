@@ -3,10 +3,10 @@
 ## Contexto del Proyecto (Context Snapshot)
 
 * **Objetivo**: Construir "el entorno de escritorio más accesible para el ecosistema Typst" (posicionamiento oficial) — no un editor de código con soporte Typst — orientado a documento/proyecto ("para Typst lo que Obsidian es para Markdown"), ligero, offline-first y multiplataforma, reutilizando al máximo la arquitectura de [DBV Markdown Reader](https://github.com/davidbuenov/dbv-md-reader).
-* **Ubicación**: `d:/Programacion/github-davidbuenov/dbv-typst-editor` (renombrado el 2026-09-05 desde `dbv-academic-writer` para cerrar la ambigüedad con el nombre oficial del producto; si esa ruta no existe, probar el nombre antiguo).
-* **Estado actual**: Fases `/spec` y `/plan` **cerradas y congeladas**. **`/build` COMPLETADA: los 10 slices del MVP v0.1 están construidos, verificados y commiteados.** El bucle de valor completo funciona de punta a punta: crear un proyecto desde una plantilla → escribirlo con resaltado Typst → ver el PDF actualizarse solo → guardarlo → exportarlo a PDF.
-* **Última decisión técnica**: Ver `memory.md`. Del `/build`: modo de lenguaje Typst por parser Lezer sin WASM (R-02 cerrado), carga perezosa de páginas en la vista previa tras medir 82 MB de SVG en una tesis de 209 páginas (R-03 cerrado), plantillas curadas autocontenidas y con fuentes embebidas, e instalador de WebView2 con variante offline bajo demanda.
-* **Próximo paso**: `/ship` **v0.3.1 cerrado el 2026-09-07** (Fase 10) — entrega correctiva: el `.msix` publicado en Microsoft Store salía **sin el compilador Typst ni las plantillas dentro**, porque el empaquetador de terceros no implementa `bundle.externalBin`. Corregido con un parche `patch-package` y **verificado end-to-end** sobre la instalación real. ⚠️ **ACCIÓN URGENTE PENDIENTE DEL USUARIO: reenviar el `.msix` corregido a Partner Center — la ficha publicada sigue sirviendo el paquete roto.** Antes de cualquier reenvío, ejecutar la verificación obligatoria de `docs/MICROSOFT_STORE.md` §6 (el paquete roto se construía, firmaba, certificaba e instalaba sin un solo error; solo una prueba funcional lo detecta). Pendiente también empujar `master` + tag `v0.3.1`.
+* **Ubicación**: `d:/Programacion/github-davidbuenov/dbv-typst-editor`.
+* **Estado actual**: **`/ship` v0.4.0 COMPLETADO (2026-09-08)**. Slices 28 (imágenes y arrastre), 29 (compilación documento completo y refresco) y 30 (sincronización bidireccional editor ↔ vista previa) cerrados y verificados. 313 tests pasando (152 Vitest + 161 Rust), ayuda bilingüe actualizada y créditos de colaboradores e IA completados.
+* **Última decisión técnica**: Ver `memory.md` y `ADR-SYNC-001`. Inyección de anclas `#metadata` en raíz sombra para navegación bidireccional sin tocar el código original del usuario; ámbito de compilación compartido con outline y exportación; eliminación de recientes en el lanzador.
+* **Próximo paso**: Validar la publicación de la release v0.4.0 en GitHub y reenvío de la actualización a Microsoft Store si procede.
 
 ## Checklist de Tareas
 
@@ -148,6 +148,19 @@
 
 ---
 
+- [x] **Fase 11: v0.4.0 — `/ship` COMPLETADO el 2026-09-08 (`/plan` cerrado el 2026-09-08 — `implementation_plan.md`).**
+  - [x] **Slice 28 (2026-09-08) — Imágenes (RF-17, RF-18).** Comando Rust `project_images` espejo de `bibliography_keys`; generalizar `citationPicker.js` a componente de lista filtrable reutilizable y construir sobre él el picker de imágenes, con "Buscar una imagen…" como última opción; quitar la restricción `droppedOnEditor` de la *copia* en `wireImageDrop` conservándola solo para decidir si además se inserta. Independiente de la vista previa: se puede revertir solo.
+  - [x] **Slice 29 (2026-09-08) — Vista previa del documento completo y control de refresco (RF-14, RF-15).** Módulo `typst_engine/shadow.rs` (raíz sombra en temporal: copia para `.typ`/`.bib`, enlace duro para el resto) que **sustituye por completo a `prepare_input()`**; alcance conmutable documento/fichero compartido por vista previa, outline y exportación; modos de refresco automático/manual con indicador de "desactualizada". **Arranca verificando R-10 contra el binario real; si falla, se para.** Al cerrar, `MIRROR_FILE_NAME` y su escritura en la carpeta del usuario deben haber desaparecido.
+  - [x] **Slice 30 (2026-09-08) — Sincronización editor ↔ vista previa (RF-16).** Anclas entre bloques inyectadas en la sombra con el número de línea del fichero **original**; comando `typst_sync_anchors` atado a la generación de `EngineState`; tabla cacheada bajo demanda; búsqueda por (página, banda de x, y). Depende del Slice 29.
+  - [x] **Mejoras complementarias y pulido de v0.4.0:**
+    - Corrección de preservación del scroll en vista previa al navegar con doble clic entre capítulos.
+    - Placeholder de carga por página ("Cargando página X...") y spinner animado en primera composición.
+    - Eliminación de proyectos recientes desde el lanzador con icono de cruz.
+    - Actualización bilingüe (ES / EN) de `helpContent.js` y tests en verde.
+    - Colaboradores y créditos de IA en `README.md` y `README.en.md`.
+    - Bump de versión `0.3.1` → `0.4.0` en `package.json`, `Cargo.toml` y `tauri.conf.json`.
+    - 313 pruebas pasando al 100% (152 Vitest + 161 Rust).
+
 ## 🔄 Context Snapshot / Snapshot de Contexto
 
 > ### 👉 CÓMO RETOMAR ESTE PROYECTO (leer esto primero) — actualizado 2026-09-06, `/ship` v0.3.0 cerrado
@@ -268,6 +281,20 @@ Los cuatro primeros se ejecutan también en CI (`.github/workflows/ci.yml`) en c
   Conviene además distinguir dos casos: paquete demasiado ANTIGUO para el Typst incluido (este) y paquete
   que exige uno más NUEVO. Ojo al redactarlo: el mensaje debe dejar claro que la solución no está en manos
   del usuario, para no mandarle a depurar un fichero ajeno.
+- **Pista legible al abrir una plantilla de Pandoc** (decidido el 2026-09-07, ver `memory.md` →
+  ADR-PANDOC-001). Detectar la sintaxis `$variable$` de Pandoc y explicar que el fichero pertenece a un
+  flujo Markdown → Pandoc → Typst y **no está pensado para compilarse solo**. Deliberadamente NO se
+  sustituyen las variables: en el caso medido eso habría producido un PDF vacío sin ninguna pista, peor
+  que el error actual. **Mismo mecanismo y misma entrega que el punto anterior** — son tres casos del
+  mismo patrón ("el fallo no es tuyo y no está en tu mano"), junto con "unknown font family" (Slice 26)
+  y la bibliografía ausente (Slice 27); conviene implementarlos como una sola pasada sobre el
+  reconocimiento de errores del compilador, no por separado.
+- **Investigación abierta: importador Markdown → Typst.** Palanca de adquisición para el público que viene
+  de Markdown/Pandoc/MkDocs, muy superior a soportar plantillas Pandoc (razonamiento en ADR-PANDOC-001).
+  Aplicando la disciplina de ADR-LATEX-001, **se mide sobre proyectos reales antes de comprometer alcance**.
+  Primer caso disponible: curso propio del usuario sobre Unreal Engine en Markdown; su motivación declarada
+  para migrar es que **Markdown da muy poca libertad con las imágenes**, así que la conversión no debe
+  limitarse a preservar sino a mejorar el tratamiento de figuras (tamaño, posición, pies, rejillas).
 
 ### 🧭 Pasos siguientes acordados (orden recomendado)
 
@@ -279,7 +306,8 @@ Los cuatro primeros se ejecutan también en CI (`.github/workflows/ci.yml`) en c
 6. ~~**Instancia única.**~~ ✅ **CERRADA el 2026-09-05 (Slice 23).**
 7. ~~**Etiquetar una versión.**~~ ✅ **`v0.2.0` creado el 2026-09-06** (Fase 8) — se saltó directamente `v0.1.0` por decisión del usuario, ya muy superado por el contenido real. **Pendiente:** empujar el tag y publicar la Release de GitHub (con el instalador de Windows subido a mano) — decisión de publicación, no trabajo técnico.
 8. **`docs/DESIGN.md`** — deuda documental consciente, sigue sin escribir (ver Fase 1). Buen candidato de bajo riesgo para cuando se retome.
-9. **Migración LaTeX→Typst** — investigación cerrada con `ADR-LATEX-001` (aplazada como pilar de v1.0). Se retoma solo si se cumple su disparador explícito (ver `memory.md`), no por defecto en la siguiente sesión.
+9. **Sincronización editor ↔ vista previa** — **Spike S-2 CERRADO el 2026-09-08** (`spikes/preview-sync/README.md`). Pedido por un usuario (doble clic bidireccional). Veredicto: el mecanismo de anclas `#metadata` + `query` funciona y es barato, Typst **no** ofrece puente nativo render→fuente, y la raíz sombra en temporal resuelve los cambios sin guardar a través de un `#include` con un 2 % de sobrecoste. **Decidido con el usuario:** la vista previa pasará a compilar el documento raíz (con conmutador a "solo este fichero"), y el control de refresco automático/manual es **requisito**, no comodidad — compilar el documento completo cuesta ×9 y supera la pausa de tecleo. **`/spec` de v0.4.0 CERRADA el 2026-09-08**: RF-14 a RF-18 en `SPECIFICATIONS.md` §5b, con `ADR-SYNC-001` y la enmienda de la cláusula de §6/§11 que prometía sync "por posición real de fuente (no por anclas)", desmentida por el spike. **`/build` de v0.4.0 COMPLETADO el 2026-09-08** — los tres slices construidos y verdes (160 tests Rust, 152 JS, 8/8 verificaciones de frontend). ⚠️ **PENDIENTE: nada de esto se ha visto funcionando en la aplicación real** — no ha habido ejecución de la GUI en esta sesión; es lo primero que hay que hacer al retomar, antes de `/test`. **Tampoco hay ningún commit**: todo el trabajo de la sesión está en el árbol sin confirmar. **`/plan` cerrado el 2026-09-08** (`implementation_plan.md`, con Adversarial Architect Review de 6 objeciones y 3 slices). **Siguiente paso: aprobación del usuario y `/build` del Slice 28.** El informe del spike trae el informe trae recomendaciones concretas de granularidad, ordenación por (página, banda de x, y) y las dos limitaciones del camino inverso (columnas y flotantes).
+10. **Migración LaTeX→Typst** — investigación cerrada con `ADR-LATEX-001` (aplazada como pilar de v1.0). Se retoma solo si se cumple su disparador explícito (ver `memory.md`), no por defecto en la siguiente sesión.
 
 ### 📜 Commits de la sesión del 2026-09-05
 

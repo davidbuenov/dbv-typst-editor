@@ -173,6 +173,13 @@
           <div class="preview__bar">
             <span class="preview__title" data-i18n="preview.title"></span>
             <span class="preview__status" id="preview-status"></span>
+            <!-- Alcance (RF-14) y refresco (RF-15): las dos decisiones que
+                 gobiernan qué se compila y cuándo. -->
+            <button id="btn-preview-scope" class="preview__chip" type="button" data-i18n-title="preview.scopeTitle"></button>
+            <button id="btn-preview-refresh-mode" class="preview__chip" type="button" data-i18n-title="preview.refreshModeTitle"></button>
+            <button id="btn-preview-refresh" class="icon-button icon-button--small hidden" type="button" data-i18n-title="preview.refreshNow">⟳</button>
+            <button id="btn-sync-preview" class="icon-button icon-button--small" type="button" data-i18n-title="sync.toPreview">⇥</button>
+            <span id="preview-stale" class="preview__stale hidden" data-i18n="preview.stale"></span>
             <div class="preview__zoom">
               <button id="btn-zoom-fit" class="icon-button icon-button--small" type="button" data-i18n-title="preview.zoomFit">↔</button>
               <button id="btn-zoom-out" class="icon-button icon-button--small" type="button" data-i18n-title="preview.zoomOut">−</button>
@@ -243,7 +250,7 @@
     <div id="symbol-panel" class="floating-panel floating-panel--symbols hidden" role="dialog" aria-modal="false">
       <input
         id="symbol-filter"
-        class="citation-picker__filter"
+        class="picker__filter"
         type="search"
         data-i18n-placeholder="symbols.filterPlaceholder"
       />
@@ -269,15 +276,28 @@
     </div>
 
     <!-- Desplegable de citas (Beta, ARCHITECTURE.md §7.7.4). -->
-    <div id="citation-panel" class="floating-panel floating-panel--citation hidden" role="dialog" aria-modal="false">
+    <div id="citation-panel" class="floating-panel floating-panel--picker hidden" role="dialog" aria-modal="false">
       <input
         id="citation-filter"
-        class="citation-picker__filter"
+        class="picker__filter"
         type="search"
         data-i18n-placeholder="citation.filterPlaceholder"
       />
-      <div class="citation-picker__list" id="citation-list"></div>
-      <button id="citation-new-entry" class="citation-picker__new" type="button" data-i18n="citation.newEntry"></button>
+      <div class="picker__list" id="citation-list"></div>
+      <button id="citation-new-entry" class="picker__action" type="button" data-i18n="citation.newEntry"></button>
+    </div>
+
+    <!-- Desplegable de imágenes del proyecto (RF-17): mismo componente que el
+         de citas, con "Buscar una imagen…" como última opción. -->
+    <div id="image-panel" class="floating-panel floating-panel--picker hidden" role="dialog" aria-modal="false">
+      <input
+        id="image-filter"
+        class="picker__filter"
+        type="search"
+        data-i18n-placeholder="image.filterPlaceholder"
+      />
+      <div class="picker__list" id="image-list"></div>
+      <button id="image-browse" class="picker__action" type="button" data-i18n="image.browse"></button>
     </div>
 
     <!-- Nueva entrada bibliográfica (Beta, ARCHITECTURE.md §7.11). -->

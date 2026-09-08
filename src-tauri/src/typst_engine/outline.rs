@@ -18,13 +18,12 @@
 //   · la coordenada vertical (`h.location().position().y`) llega como CADENA
 //     con unidad ("70.87pt"), no como número.
 
-use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
 
-use super::compile::prepare_input;
+use super::compile::{prepare_input, CompileTarget};
 use super::{run, TypstError};
 
 /// Encabezado de un documento, listo para pintar en el panel y para
@@ -71,7 +70,7 @@ fn flatten_text(value: &serde_json::Value) -> String {
 
 /// "70.87pt" → 70.87. Un valor que no se pueda parsear cae a 0.0 (encabezado
 /// al principio de la página) en vez de reventar el panel entero por uno malo.
-fn parse_pt(raw: &str) -> f64 {
+pub(crate) fn parse_pt(raw: &str) -> f64 {
     raw.trim_end_matches("pt").parse().unwrap_or(0.0)
 }
 
@@ -83,35 +82,29 @@ pagina: h.location().page(), y: h.location().position().y))";
 #[tauri::command]
 pub async fn typst_outline(
     app: AppHandle,
-    document: String,
-    root: String,
-    content: Option<String>,
+    target: CompileTarget,
 ) -> Result<Vec<OutlineEntry>, TypstError> {
-    let document_path = PathBuf::from(&document);
-    let (input, mirror) = prepare_input(&document_path, content.as_deref())?;
+    // Mismo documento objetivo y misma raíz sombra que la vista previa (RF-14):
+    // si el outline mirase otro fichero, el panel enseñaría los encabezados de
+    // algo distinto de lo que se está viendo compilado.
+    let prepared = prepare_input(&target)?;
 
-    let input_str = input.to_string_lossy().to_string();
     // Las fuentes propias del proyecto también hacen falta aquí: `eval`
     // compone el documento para resolver `h.location()`, así que sin ellas
     // emitiría los mismos avisos de fuente que la compilación.
-    let font_args = super::font_path_args(Path::new(&root));
+    let font_args = super::font_path_args(Path::new(prepared.root()));
     let mut args: Vec<&str> = vec![
         "eval",
         OUTLINE_QUERY,
         "--root",
-        &root,
+        prepared.root(),
         "--in",
-        &input_str,
+        prepared.input(),
         "--format",
         "json",
     ];
     args.extend(font_args.iter().map(String::as_str));
-    let output = run(&app, &args).await;
-
-    if let Some(mirror) = mirror {
-        let _ = fs::remove_file(mirror);
-    }
-    let output = output?;
+    let output = run(&app, &args).await?;
 
     let raw: Vec<RawHeading> = serde_json::from_str(output.stdout.trim()).map_err(|error| {
         TypstError::ExecutionFailed(format!("salida de outline inesperada: {error}"))

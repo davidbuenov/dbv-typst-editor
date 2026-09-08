@@ -30,3 +30,22 @@ export function baseName(path) {
   const index = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
   return index >= 0 ? path.slice(index + 1) : path;
 }
+
+/** Normaliza separadores a `/` y quita el que sobre al final. */
+function normalize(path) {
+  return path.split('\\').join('/').replace(/\/+$/, '');
+}
+
+/**
+ * Ruta de `path` relativa a `root`, siempre con `/`, o `null` si no cuelga de
+ * ella (RF-16: es la forma en que las anclas identifican cada fichero, y la
+ * misma que produce `shadow::seed_anchors` en el backend).
+ */
+export function relativeToRoot(root, path) {
+  if (!root || !path) return null;
+  const normalizedRoot = normalize(root);
+  const normalizedPath = normalize(path);
+  if (normalizedPath === normalizedRoot) return '';
+  const prefix = `${normalizedRoot}/`;
+  return normalizedPath.startsWith(prefix) ? normalizedPath.slice(prefix.length) : null;
+}

@@ -16,6 +16,7 @@ import { openSearchPanel } from '@codemirror/search';
 
 import { createBibEntryPanel } from '../bibliography/bibEntryPanel.js';
 import { createCitationPicker } from '../editor/citationPicker.js';
+import { createImagePicker } from '../editor/imagePicker.js';
 import { createEditor } from '../editor/editor.js';
 import { createSymbolPicker } from '../editor/symbolPicker.js';
 import { createTableDialog } from '../editor/tableDialog.js';
@@ -23,7 +24,8 @@ import { createToolbar } from '../editor/toolbar.js';
 import { figureActionForPath } from '../editor/toolbarActions.js';
 import { t } from '../i18n/i18n.js';
 import { getTheme } from '../themes/theme.js';
-import { isTypstPath, joinPath } from './paths.js';
+import { isTypstPath, joinPath, relativeToRoot } from './paths.js';
+import { buildCompileTarget, hasRootDocument } from './compileTarget.js';
 import {
   PROJECT_CHANGE_EVENT,
   addRecentProject,
@@ -55,7 +57,7 @@ const SELF_WRITE_GRACE_MS = 1500;
 // módulo hoja del que `bibliography/bibEntryPanel.js` puede importar sin
 // crear un ciclo (`workspace.js` → `bibEntryPanel.js` → `workspace.js`). Se
 // re-exportan aquí para no romper a quien ya las importaba de este fichero.
-export { baseName, isTypstPath, joinPath } from './paths.js';
+export { baseName, isTypstPath, joinPath, relativeToRoot } from './paths.js';
 
 /**
  * @param {object} deps
@@ -70,6 +72,7 @@ export function createWorkspace({ tree, elements, notify, dialog }) {
   // referenciar `toolbar` aunque todavía no se le haya asignado nada.
   let toolbar;
   let citationPicker;
+  let imagePicker;
   let symbolPicker;
   let tableDialog;
   const editor = createEditor(elements.editorHost, {
@@ -98,10 +101,10 @@ export function createWorkspace({ tree, elements, notify, dialog }) {
       citation: (button) => citationPicker?.openNear(button),
       symbols: (button) => symbolPicker?.openNear(button),
       table: (button) => tableDialog?.openNear(button),
-      // Beta, §7.7.4: vía alternativa a arrastrar y soltar (Slice 19) — un
-      // selector nativo de fichero, mismo destino final (`images/` del
-      // proyecto) y misma inserción con el hueco en el pie de figura.
-      figure: () => insertFigureFromDialog(),
+      // RF-17: el botón ya no salta al explorador de ficheros, sino que
+      // ofrece primero las imágenes que el proyecto ya tiene —coherencia con
+      // "Cite"—, dejando el selector nativo como última opción del desplegable.
+      figure: (button) => imagePicker?.openNear(button),
       // Beta, §7.7.4: `openSearchPanel` necesita el `EditorView` en vivo y
       // hace su propio dispatch — igual que `figure`, no encaja en
       // `buildTransaction(state) → TransactionSpec`. El atajo Ctrl+F (vía
@@ -122,7 +125,47 @@ export function createWorkspace({ tree, elements, notify, dialog }) {
     dirty: false,
     /** Instante hasta el que se ignora el eco del propio guardado. */
     suppressSelfWriteUntil: 0,
+    /**
+     * Último documento Typst abierto (RF-14). No coincide siempre con
+     * `document`: abrir `refs.bib` cambia lo que hay en el editor pero no lo que
+     * la vista previa debe compilar en el alcance "solo este fichero".
+     * @type {string | null}
+     */
+    previewDocument: null,
+    /** Alcance de la compilación (RF-14): 'document' | 'file'. */
+    previewScope: 'document',
   };
+
+  /** Clave por proyecto: el alcance es una preferencia de ESE proyecto. */
+  const scopeKey = (root) => `dbv-typst-preview-scope:${root}`;
+
+  function readStoredScope(root) {
+    try {
+      return localStorage.getItem(scopeKey(root)) === 'file' ? 'file' : 'document';
+    } catch {
+      return 'document';
+    }
+  }
+
+  /**
+   * Objetivo de compilación, compartido por vista previa, outline y exportación
+   * (RF-14). La regla vive en `compileTarget.js` como función pura; aquí solo se
+   * le pasa el estado. El fichero sucio puede no ser el que se compila —editar
+   * un capítulo mientras se previsualiza `main.typ` es el caso que motivó RF-14—
+   * y también vale un `.bib` sin guardar, que sí afecta al render.
+   *
+   * @returns {import('../services/backend.js').CompileTarget | null}
+   */
+  function getCompileTarget() {
+    const dirtyPath = state.dirty && state.document ? state.document.path : null;
+    return buildCompileTarget({
+      project: state.project,
+      previewDocument: state.previewDocument,
+      dirtyPath,
+      dirtyContent: dirtyPath ? editor.getContent() : null,
+      scope: state.previewScope,
+    });
+  }
 
   citationPicker = createCitationPicker({
     panelEl: elements.citationPanel,
@@ -130,6 +173,16 @@ export function createWorkspace({ tree, elements, notify, dialog }) {
     filterEl: elements.citationFilter,
     newEntryButtonEl: elements.citationNewEntry,
     onCreateNew: () => bibEntryPanel.open(),
+    getRoot: () => state.project?.root ?? null,
+    getView: editor.getView,
+  });
+
+  imagePicker = createImagePicker({
+    panelEl: elements.imagePanel,
+    listEl: elements.imageList,
+    filterEl: elements.imageFilter,
+    browseButtonEl: elements.imageBrowse,
+    onBrowse: () => insertFigureFromDialog(),
     getRoot: () => state.project?.root ?? null,
     getView: editor.getView,
   });
@@ -256,7 +309,8 @@ export function createWorkspace({ tree, elements, notify, dialog }) {
     // escribiendo. Solo se le avisa de que el editor ya no está encima de él,
     // para que deje de usar el contenido en vivo y compile lo que hay en disco.
     if (isTypstPath(payload.path)) {
-      listeners.documentOpened?.({ ...state.document, content: payload.content });
+      state.previewDocument = payload.path;
+      listeners.documentOpened?.();
     } else {
       listeners.documentDetached?.();
     }
@@ -285,6 +339,8 @@ export function createWorkspace({ tree, elements, notify, dialog }) {
     state.project = result.value;
     state.document = null;
     state.dirty = false;
+    state.previewDocument = null;
+    state.previewScope = readStoredScope(result.value.root);
     renderProjectBar();
     renderDocumentBar();
 
@@ -333,18 +389,16 @@ export function createWorkspace({ tree, elements, notify, dialog }) {
    *
    * El PDF es el artefacto final que el usuario comparte, así que se exporta el
    * contenido que tiene delante —incluidos los cambios sin guardar— y no una
-   * versión antigua del disco que sería una sorpresa desagradable.
+   * versión antigua del disco que sería una sorpresa desagradable. Desde RF-14
+   * usa el MISMO objetivo que la vista previa: exportar el capítulo mientras se
+   * ve el documento completo en pantalla sería la peor sorpresa de todas.
    */
   async function exportToPdf(output) {
-    if (!state.document || !state.project) return false;
+    const target = getCompileTarget();
+    if (!target) return false;
 
     notify(t('export.working'));
-    const result = await exportPdf({
-      document: state.document.path,
-      root: state.project.root,
-      output,
-      content: state.dirty ? editor.getContent() : null,
-    });
+    const result = await exportPdf({ target, output });
 
     if (!result.ok) {
       notify(`${t('export.failed')} — ${result.error.message}`, 'error');
@@ -362,16 +416,11 @@ export function createWorkspace({ tree, elements, notify, dialog }) {
    * que `exportToPdf`.
    */
   async function exportPng(output, page) {
-    if (!state.document || !state.project) return false;
+    const target = getCompileTarget();
+    if (!target) return false;
 
     notify(t('export.pngWorking'));
-    const result = await backendExportPng({
-      document: state.document.path,
-      root: state.project.root,
-      output,
-      page,
-      content: state.dirty ? editor.getContent() : null,
-    });
+    const result = await backendExportPng({ target, output, page });
 
     if (!result.ok) {
       notify(`${t('export.pngFailed')} — ${result.error.message}`, 'error');
@@ -562,12 +611,65 @@ export function createWorkspace({ tree, elements, notify, dialog }) {
     editor,
     openProjectAt,
     openDocument,
+    /**
+     * Lleva el editor a `file:line` (RF-16, render → editor). `file` viene
+     * relativo a la raíz del proyecto, que es como lo guardan las anclas, y se
+     * abre el fichero si no es el que ya está delante.
+     */
+    async goToSource(file, line) {
+      if (!state.project) return false;
+
+      const absolute = joinPath(state.project.root, file);
+      if (absolute !== state.document?.path && !(await openDocument(absolute))) return false;
+
+      const view = editor.getView();
+      if (!view) return false;
+      // Una línea fuera del documento (el fuente cambió desde la última
+      // compilación) se recorta al final en vez de reventar el editor.
+      const target = Math.min(Math.max(1, line), view.state.doc.lines);
+      const position = view.state.doc.line(target).from;
+      view.dispatch({ selection: { anchor: position }, scrollIntoView: true });
+      view.focus();
+      return true;
+    },
+    /** Fichero abierto y línea del cursor, relativos a la raíz (RF-16). */
+    getCursorSource() {
+      const view = editor.getView();
+      if (!view || !state.project || !state.document) return null;
+
+      const file = relativeToRoot(state.project.root, state.document.path);
+      if (file === null) return null;
+
+      return {
+        file,
+        line: view.state.doc.lineAt(view.state.selection.main.head).number,
+      };
+    },
     closeProject,
     revealProject,
     save,
     saveAs,
     suggestedPdfName,
     exportPdf: exportToPdf,
+    /** Objetivo de compilación vigente (RF-14), o `null` si no hay nada que compilar. */
+    getCompileTarget,
+    /** Alcance actual de la vista previa: 'document' | 'file'. */
+    getPreviewScope: () => state.previewScope,
+    /** Cambia el alcance y lo recuerda para este proyecto. Devuelve el nuevo. */
+    setPreviewScope(scope) {
+      state.previewScope = scope === 'file' ? 'file' : 'document';
+      if (state.project) {
+        try {
+          localStorage.setItem(scopeKey(state.project.root), state.previewScope);
+        } catch {
+          // Sin almacenamiento el alcance simplemente no se recuerda; no es
+          // motivo para impedir el cambio.
+        }
+      }
+      return state.previewScope;
+    },
+    /** True si el proyecto tiene un documento raíz distinto del fichero abierto. */
+    hasRootDocument: () => hasRootDocument(state.project),
     suggestedPngName(page) {
       if (!state.document) return `documento-${page}.png`;
       return `${state.document.fileName.replace(/\.typ$/i, '')}-p${page}.png`;

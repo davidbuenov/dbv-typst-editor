@@ -59,6 +59,17 @@ pub fn path_to_string(path: &Path) -> String {
     path.to_string_lossy().to_string()
 }
 
+/// Carpetas que no forman parte del contenido de un proyecto y que ningún
+/// recorrido debe pisar: repositorio y artefactos de herramientas. Vive aquí,
+/// junto al resto de criterios de ruta compartidos, para que el filtro del
+/// watcher y el escaneo de recursos no puedan divergir.
+pub const NOISE_DIRS: [&str; 4] = [".git", "node_modules", "target", ".svn"];
+
+/// True si `name` es una de las carpetas de ruido de `NOISE_DIRS`.
+pub fn is_noise_dir(name: &str) -> bool {
+    NOISE_DIRS.contains(&name)
+}
+
 /// True si `name` termina en una de `extensions` (comparación insensible a
 /// mayúsculas). Función pura: la misma para el diálogo y para el árbol.
 pub fn has_extension(name: &str, extensions: &[&str]) -> bool {

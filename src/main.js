@@ -14,6 +14,7 @@ import { createWorkspace } from './app/workspace.js';
 import { createUpdater } from './app/updater.js';
 import { PANELS, getPanelState, initPanels, togglePanel } from './app/workspacePanels.js';
 import { figureActionForPath } from './editor/toolbarActions.js';
+import { decideImageDrop, pathsWithExtension } from './app/dropTarget.js';
 import { applyTranslations, getLanguage, setLanguage, t } from './i18n/i18n.js';
 import { createHelp } from './help/help.js';
 import { createUniversePanel } from './universe/universePanel.js';
@@ -32,6 +33,7 @@ import {
   getAppInfo,
   isPackagedApp,
   getStartupDocument,
+  getSupportedAssetExtensions,
   getTypstVersion,
   importProjectArchive,
   on,
@@ -167,21 +169,28 @@ function wireSidebarTabs(workspaceEl) {
 }
 
 /**
- * Gestión de imágenes por arrastre (Beta, ARCHITECTURE.md §7.10).
+ * Gestión de imágenes por arrastre (Beta, ARCHITECTURE.md §7.10; RF-18).
  *
  * Se usa el evento de ventana propio de Tauri, no el `drop` del DOM: el `File`
  * del navegador nunca expone una ruta absoluta del sistema (por diseño de la
  * API web), y en Tauri v2 el drop nativo de ficheros intercepta además el
  * evento del DOM por defecto — `getCurrentWebview().onDragDropEvent()` es la
  * única vía fiable para obtener la ruta real del fichero soltado.
+ *
+ * RF-18: la imagen se copia caiga donde caiga en la ventana, igual que ya hacían
+ * las fuentes; el panel del editor solo decide si además se INSERTA la figura en
+ * el cursor. Antes, soltarla sobre el explorador de proyecto no hacía nada y no
+ * lo decía, que es el peor modo de fallo posible.
  */
-function wireImageDrop(workspace, editorHostEl, notify) {
-  const IMAGE_EXTENSIONS = /\.(png|jpe?g|gif|svg|webp|bmp)$/i;
-
-  async function handleDrop(imagePath) {
+function wireImageDrop(workspace, editorHostEl, notify, getExtensions) {
+  async function handleDrop(imagePath, insert) {
     const result = await copyAssetIntoProject(workspace.state.project.root, imagePath);
     if (!result.ok) {
       notify(`${t('asset.copyFailed')} — ${result.error.message}`, 'error');
+      return;
+    }
+    if (!insert) {
+      notify(`${t('asset.imageAdded')} ${result.value}`);
       return;
     }
     const view = workspace.editor.getView();
@@ -190,20 +199,20 @@ function wireImageDrop(workspace, editorHostEl, notify) {
   }
 
   getCurrentWebview().onDragDropEvent((event) => {
-    if (event.payload.type !== 'drop' || !workspace.state.project) return;
+    if (event.payload.type !== 'drop') return;
 
-    // `position` llega en píxeles físicos de ventana; `getBoundingClientRect()`
-    // en píxeles lógicos — hay que pasar por `devicePixelRatio` para comparar.
     const { position, paths } = event.payload;
-    const ratio = window.devicePixelRatio || 1;
-    const x = position.x / ratio;
-    const y = position.y / ratio;
-    const rect = editorHostEl.getBoundingClientRect();
-    const droppedOnEditor = x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
-    if (!droppedOnEditor) return;
+    const [imagePath] = pathsWithExtension(paths, getExtensions().images);
+    if (!imagePath) return;
 
-    const imagePath = paths.find((path) => IMAGE_EXTENSIONS.test(path));
-    if (imagePath) handleDrop(imagePath);
+    if (!workspace.state.project) {
+      notify(t('asset.needsProject'), 'error');
+      return;
+    }
+
+    const rect = editorHostEl?.getBoundingClientRect() ?? null;
+    const { insert } = decideImageDrop(position, rect, window.devicePixelRatio);
+    handleDrop(imagePath, insert);
   });
 }
 
@@ -214,9 +223,7 @@ function wireImageDrop(workspace, editorHostEl, notify) {
  * `set text(font: "...")` en cualquier parte del proyecto, así que no importa
  * dónde de la ventana caiga ni cuántos ficheros vengan en el mismo soltado.
  */
-function wireFontDrop(workspace, notify) {
-  const FONT_EXTENSIONS = /\.(ttf|otf|ttc|otc)$/i;
-
+function wireFontDrop(workspace, notify, getExtensions) {
   async function handleDrop(fontPaths) {
     const added = [];
     for (const fontPath of fontPaths) {
@@ -232,10 +239,16 @@ function wireFontDrop(workspace, notify) {
   }
 
   getCurrentWebview().onDragDropEvent((event) => {
-    if (event.payload.type !== 'drop' || !workspace.state.project) return;
+    if (event.payload.type !== 'drop') return;
 
-    const fontPaths = event.payload.paths.filter((path) => FONT_EXTENSIONS.test(path));
-    if (fontPaths.length > 0) handleDrop(fontPaths);
+    const fontPaths = pathsWithExtension(event.payload.paths, getExtensions().fonts);
+    if (fontPaths.length === 0) return;
+
+    if (!workspace.state.project) {
+      notify(t('asset.needsProject'), 'error');
+      return;
+    }
+    handleDrop(fontPaths);
   });
 }
 
@@ -305,6 +318,10 @@ async function bootstrap() {
       citationList: el('citation-list'),
       citationFilter: el('citation-filter'),
       citationNewEntry: el('citation-new-entry'),
+      imagePanel: el('image-panel'),
+      imageList: el('image-list'),
+      imageFilter: el('image-filter'),
+      imageBrowse: el('image-browse'),
       bibEntryPanel: el('bib-entry-panel'),
       bibEntryType: el('bib-entry-type'),
       bibEntryKey: el('bib-entry-key'),
@@ -334,15 +351,28 @@ async function bootstrap() {
   // El editor (CodeMirror) necesita reconfigurar su tema, no solo heredar CSS.
   const themeSwitcher = wireThemeSwitcher((theme) => workspace.setTheme(theme));
   wirePanelSwitcher(el('workspace-view'));
-  wireImageDrop(workspace, el('editor-host'), toast.show);
-  wireFontDrop(workspace, toast.show);
+  // Extensiones aceptadas por arrastre: las decide Rust (RF-18), no el
+  // frontend. Se piden una vez y se cachean; hasta que llegue la respuesta, un
+  // soltado no encuentra nada que copiar, que es preferible a mantener aquí una
+  // segunda lista que vuelva a desincronizarse de la de `assets.rs`.
+  let assetExtensions = { images: [], fonts: [] };
+  getSupportedAssetExtensions().then((result) => {
+    if (result.ok) assetExtensions = result.value;
+  });
+  const getAssetExtensions = () => assetExtensions;
 
+  wireImageDrop(workspace, el('editor-host'), toast.show, getAssetExtensions);
+  wireFontDrop(workspace, toast.show, getAssetExtensions);
+
+  const staleEl = el('preview-stale');
   const preview = createPreview({
     pagesEl: el('preview-pages'),
     bandEl: el('preview-band'),
     bandSplitterEl: el('splitter-band'),
     statusEl: el('preview-status'),
     zoomLabelEl: el('preview-zoom-label'),
+    getTarget: () => workspace.getCompileTarget(),
+    onStaleChange: (stale) => staleEl.classList.toggle('hidden', !stale),
   });
   createSplitter(el('splitter-band'), {
     hostEl: el('workspace-view').querySelector('.preview'),
@@ -360,22 +390,37 @@ async function bootstrap() {
   const outline = createOutline({
     listEl: el('outline-list'),
     onNavigate: (entry) => preview.scrollToPage(entry.page, entry.yPt),
+    getTarget: () => workspace.getCompileTarget(),
   });
+
+  let lastTargetDocument = null;
 
   // El bucle de vista previa se engancha al workspace en vez de vivir dentro de
   // él: el workspace sabe qué documento está abierto, no cómo se compila.
-  workspace.setListener('documentOpened', (doc) => {
-    const payload = { document: doc.path, root: workspace.state.project.root, content: doc.content };
-    preview.setDocument(payload);
-    outline.setDocument(payload);
+  // Solo se reinicia la vista previa y el outline si el documento objetivo ha
+  // cambiado (RF-14). En modo 'document', abrir otro capítulo no cambia el
+  // documento raíz compilado (main.typ): reiniciar aquí reseteaba el scroll a
+  // la página 1 y rompía la experiencia del doble clic (RF-16).
+  workspace.setListener('documentOpened', () => {
+    refreshPreviewControls();
+    const target = workspace.getCompileTarget();
+    const targetDoc = target?.document ?? null;
+    if (targetDoc !== lastTargetDocument) {
+      lastTargetDocument = targetDoc;
+      preview.restart();
+      outline.restart();
+    }
   });
+  // Abrir un fichero acompañante (`.bib`, `.toml`) no cambia el documento
+  // objetivo, pero sí puede cambiar el render: un `.bib` editado en vivo afecta
+  // a la bibliografía, así que se recompila igual que con cualquier cambio.
   workspace.setListener('documentDetached', () => {
-    preview.detachLiveContent();
-    outline.detachLiveContent();
+    preview.onContentChanged();
+    outline.onContentChanged();
   });
-  workspace.setListener('documentChanged', (content) => {
-    preview.onContentChanged(content);
-    outline.onContentChanged(content);
+  workspace.setListener('documentChanged', () => {
+    preview.onContentChanged();
+    outline.onContentChanged();
   });
   workspace.setListener('externalChange', (change) => {
     if (!change.isActiveDocument) preview.onExternalChange();
@@ -517,6 +562,7 @@ async function bootstrap() {
   const closeProject = async () => {
     const closed = await workspace.closeProject();
     if (!closed) return;
+    lastTargetDocument = null;
     await preview.clear();
     outline.clear();
     await launcher.refreshRecent();
@@ -526,8 +572,8 @@ async function bootstrap() {
   // Guardado: botones, Ctrl/Cmd+S desde el editor y refresco de la vista previa.
   workspace.setListener('saveRequested', () => workspace.save());
   workspace.setListener('saved', () => {
-    preview.onSaved();
-    outline.onSaved();
+    preview.onContentChanged();
+    outline.onContentChanged();
   });
   el('btn-save').addEventListener('click', () => workspace.save());
   el('btn-save-as').addEventListener('click', () => workspace.saveAs());
@@ -545,6 +591,62 @@ async function bootstrap() {
     const picked = await pickSaveTarget(workspace.suggestedPngName(page), 'PNG', ['png']);
     if (picked.ok && picked.value) await workspace.exportPng(picked.value, page);
   });
+
+  // Alcance (RF-14) y refresco (RF-15). El botón "Refrescar" solo existe en modo
+  // manual: en automático no tendría nada que hacer que la pausa no haga ya.
+  const scopeButton = el('btn-preview-scope');
+  const refreshModeButton = el('btn-preview-refresh-mode');
+  const refreshButton = el('btn-preview-refresh');
+
+  function refreshPreviewControls() {
+    const scope = workspace.getPreviewScope();
+    const canUseRoot = workspace.hasRootDocument();
+    scopeButton.textContent = t(scope === 'file' || !canUseRoot ? 'preview.scopeFile' : 'preview.scopeDocument');
+    // Un `.typ` suelto no tiene documento raíz distinto: el conmutador sobra.
+    scopeButton.classList.toggle('hidden', !canUseRoot);
+
+    const mode = preview.getRefreshMode();
+    refreshModeButton.textContent = t(mode === 'manual' ? 'preview.refreshManual' : 'preview.refreshAuto');
+    refreshButton.classList.toggle('hidden', mode !== 'manual');
+  }
+
+  scopeButton.addEventListener('click', () => {
+    workspace.setPreviewScope(workspace.getPreviewScope() === 'document' ? 'file' : 'document');
+    refreshPreviewControls();
+    lastTargetDocument = workspace.getCompileTarget()?.document ?? null;
+    preview.restart();
+    outline.restart();
+  });
+  refreshModeButton.addEventListener('click', () => {
+    preview.toggleRefreshMode();
+    refreshPreviewControls();
+  });
+  refreshButton.addEventListener('click', () => preview.refreshNow());
+  refreshPreviewControls();
+
+  // ── Sincronización editor ↔ vista previa (RF-16) ──────────────────────────
+  // Doble clic en el render: se resuelve el ancla y se lleva el cursor al
+  // fuente, abriendo el capítulo que corresponda si no es el que está delante.
+  // Typst no da la posición de origen (ADR-SYNC-001), así que esto se apoya en
+  // las anclas sembradas por `shadow.rs`.
+  el('preview-pages').addEventListener('dblclick', async (event) => {
+    const source = await preview.sourceAt(event.clientX, event.clientY);
+    if (!source) {
+      toast.show(t('sync.notFound'));
+      return;
+    }
+    await workspace.goToSource(source.file, source.line);
+  });
+
+  // Dirección contraria, como acción explícita: seguir el cursor de forma
+  // continua obligaría a recalcular la tabla de anclas sin parar.
+  async function syncPreviewToCursor() {
+    const cursor = workspace.getCursorSource();
+    if (!cursor) return;
+    const found = await preview.scrollToSource(cursor.file, cursor.line);
+    if (!found) toast.show(t('sync.notFound'));
+  }
+  el('btn-sync-preview').addEventListener('click', syncPreviewToCursor);
 
   el('btn-zoom-in').addEventListener('click', preview.zoomIn);
   el('btn-zoom-out').addEventListener('click', preview.zoomOut);
@@ -588,6 +690,7 @@ async function bootstrap() {
     launcher.refreshRecent();
     workspace.renderDocumentBar();
     preview.refreshStatus();
+    refreshPreviewControls();
   });
 
   await Promise.all([renderAbout(), launcher.load()]);

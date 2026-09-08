@@ -6,13 +6,24 @@
 // =============================================================================
 //
 // La asociación de fichero `.typ` (RF-12) hace que el SO arranque la aplicación
-// pasándole la ruta del documento como argumento. Este módulo lo traduce a algo
-// que el frontend pueda pedir al arrancar, sin que tenga que saber nada de
-// `argv` ni de convenciones de plataforma.
+// con el documento que el usuario ha abierto. Este módulo lo traduce a algo que
+// el frontend pueda pedir al arrancar, sin que tenga que saber nada de `argv` ni
+// de convenciones de plataforma. Y son dos convenciones distintas
+// (NATIVE_DESKTOP_APPS.md §8):
+//
+// - Windows y Linux pasan la ruta como argumento de línea de comandos.
+// - macOS no: Finder entrega la apertura como un Apple Event `kAEOpenDocuments`,
+//   que Tauri expone solo vía `RunEvent::Opened { urls }` —y que llega *antes*
+//   de que exista ninguna ventana. De ahí `PendingDocument`: guarda la ruta
+//   hasta que el frontend está vivo para recogerla.
 
 use std::path::Path;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Mutex;
 
-use crate::commands::file_io::{has_extension, TYPST_EXTENSIONS};
+use tauri::{AppHandle, Emitter, Manager, State, Url};
+
+use crate::commands::file_io::{has_extension, path_to_string, TYPST_EXTENSIONS};
 
 /// Primer argumento que parece un documento Typst.
 ///
@@ -29,13 +40,58 @@ pub fn first_document_argument<I: IntoIterator<Item = String>>(args: I) -> Optio
     found
 }
 
+/// Primer documento Typst de una lista de URLs `file://` (Apple Events de macOS).
+///
+/// Hermana de `first_document_argument` para el otro camino de entrada, con el
+/// mismo criterio de aceptación —extensión y existencia en disco— para que las
+/// dos plataformas no puedan divergir en qué consideran abrible. `to_file_path`
+/// es lo que deshace el escapado de la URL: sin él, un `tesis de doña.typ`
+/// llegaría como `tesis%20de%20do%C3%B1a.typ` y no existiría en disco.
+pub fn first_document_url<I: IntoIterator<Item = Url>>(urls: I) -> Option<String> {
+    urls.into_iter()
+        .filter(|url| url.scheme() == "file")
+        .filter_map(|url| url.to_file_path().ok())
+        .find(|path| has_extension(&path_to_string(path), &TYPST_EXTENSIONS) && path.is_file())
+        .map(|path| path_to_string(&path))
+}
+
+/// Documento que el SO ha pedido abrir por Apple Event antes de que el frontend
+/// pudiera escucharlo. Estado gestionado porque `RunEvent::Opened` puede llegar
+/// en cualquier momento —incluso antes de que exista la ventana principal.
+#[derive(Default)]
+pub struct PendingDocument {
+    path: Mutex<Option<String>>,
+    /// El frontend ya ha llamado a `startup_document`, luego su listener de
+    /// `open-document` está registrado y podemos emitirle eventos.
+    frontend_ready: AtomicBool,
+}
+
+/// Entrega a la interfaz un documento pedido por el sistema: si el frontend ya
+/// arrancó se le emite; si no, se guarda para que lo recoja en su llamada
+/// inicial a `startup_document`.
+pub fn deliver(app: &AppHandle, document: String) {
+    let pending = app.state::<PendingDocument>();
+    if pending.frontend_ready.load(Ordering::SeqCst) {
+        if let Some(window) = app.get_webview_window("main") {
+            let _ = window.unminimize();
+            let _ = window.set_focus();
+        }
+        let _ = app.emit("open-document", document);
+    } else if let Ok(mut slot) = pending.path.lock() {
+        *slot = Some(document);
+    }
+}
+
 /// Documento con el que se ha arrancado la aplicación, si lo hay.
 ///
 /// El frontend lo consulta una vez al iniciarse: si viene una ruta, abre ese
-/// documento en lugar de mostrar el lanzador.
+/// documento en lugar de mostrar el lanzador. Prevalece lo que haya llegado por
+/// Apple Event (macOS); si no hay nada, se mira `argv` (Windows y Linux).
 #[tauri::command]
-pub fn startup_document() -> Option<String> {
-    first_document_argument(std::env::args())
+pub fn startup_document(pending: State<PendingDocument>) -> Option<String> {
+    pending.frontend_ready.store(true, Ordering::SeqCst);
+    let from_event = pending.path.lock().ok().and_then(|mut slot| slot.take());
+    from_event.or_else(|| first_document_argument(std::env::args()))
 }
 
 #[cfg(test)]
@@ -87,5 +143,66 @@ mod tests {
 
         let resultado = first_document_argument(args(&["app.exe", &file.to_string_lossy()]));
         assert_eq!(resultado, None);
+    }
+
+    // ─── Apple Events (macOS) ────────────────────────────────────────────────
+
+    fn escribir(dir: &Path, nombre: &str) -> std::path::PathBuf {
+        let file = dir.join(nombre);
+        std::fs::write(&file, "= Hola").unwrap();
+        file
+    }
+
+    #[test]
+    fn devuelve_el_documento_de_una_url_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let file = escribir(dir.path(), "tesis.typ");
+        let url = Url::from_file_path(&file).unwrap();
+
+        assert_eq!(first_document_url([url]), Some(path_to_string(&file)));
+    }
+
+    #[test]
+    fn decodifica_espacios_y_acentos_de_la_url() {
+        // Finder escapa la ruta: `tesis de doña.typ` viaja como
+        // `tesis%20de%20do%C3%B1a.typ`. Sin decodificar, no existe en disco.
+        let dir = tempfile::tempdir().unwrap();
+        let file = escribir(dir.path(), "tesis de doña.typ");
+        let url = Url::from_file_path(&file).unwrap();
+        assert!(url.as_str().contains("%20"), "la URL debería venir escapada");
+
+        assert_eq!(first_document_url([url]), Some(path_to_string(&file)));
+    }
+
+    #[test]
+    fn toma_el_primer_typ_de_una_seleccion_multiple() {
+        let dir = tempfile::tempdir().unwrap();
+        let notas = dir.path().join("notas.md");
+        std::fs::write(&notas, "# no").unwrap();
+        let file = escribir(dir.path(), "tesis.typ");
+
+        let urls = [
+            Url::from_file_path(&notas).unwrap(),
+            Url::from_file_path(&file).unwrap(),
+        ];
+        assert_eq!(first_document_url(urls), Some(path_to_string(&file)));
+    }
+
+    #[test]
+    fn descarta_una_url_a_un_typ_inexistente() {
+        let dir = tempfile::tempdir().unwrap();
+        let url = Url::from_file_path(dir.path().join("no-existe-dbv.typ")).unwrap();
+        assert_eq!(first_document_url([url]), None);
+    }
+
+    #[test]
+    fn descarta_urls_que_no_son_file() {
+        let url = Url::parse("https://typst.app/tesis.typ").unwrap();
+        assert_eq!(first_document_url([url]), None);
+    }
+
+    #[test]
+    fn sin_urls_no_hay_documento() {
+        assert_eq!(first_document_url([]), None);
     }
 }

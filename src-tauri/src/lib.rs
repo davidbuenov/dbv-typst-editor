@@ -37,6 +37,10 @@ pub fn run() {
     // ocurra antes de que arranque nada más. Un segundo lanzamiento (doble
     // clic en otro `.typ` con la app ya abierta) no crea un proceso nuevo:
     // enfoca la ventana existente y le pide abrir el documento nuevo.
+    //
+    // Esto cubre Windows y Linux. En macOS un segundo doble clic tampoco crea
+    // proceso nuevo, pero la ruta no llega por `argv` sino por Apple Event
+    // (`RunEvent::Opened`, más abajo).
     #[cfg(desktop)]
     let builder = builder.plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
         if let Some(window) = app.get_webview_window("main") {
@@ -61,6 +65,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .manage(watcher::WatcherState::default())
         .manage(typst_engine::compile::EngineState::default())
+        .manage(commands::startup::PendingDocument::default())
         .setup(|_app| {
             // Menú nativo de macOS (Beta): Tauri v2 no trae uno por defecto en
             // esta plataforma, y sin él no hay Cmd+Q, Cmd+H ni el Edit del
@@ -77,6 +82,8 @@ pub fn run() {
             assets::copy_asset_into_project,
             assets::copy_font_into_project,
             assets::pick_image_dialog,
+            assets::project_images,
+            assets::supported_asset_extensions,
             bibliography::bibliography_keys,
             commands::app_info::app_info,
             commands::app_info::is_packaged_app,
@@ -91,6 +98,7 @@ pub fn run() {
             commands::recent_projects::add_recent_project,
             commands::recent_projects::clear_recent_projects,
             commands::recent_projects::get_recent_projects,
+            commands::recent_projects::remove_recent_project,
             commands::startup::startup_document,
             project::open_project,
             templates::create_project,
@@ -104,11 +112,24 @@ pub fn run() {
             typst_engine::compile::typst_export_png,
             typst_engine::compile::typst_preview_page,
             typst_engine::outline::typst_outline,
+            typst_engine::sync::typst_sync_anchors,
             typst_engine::typst_run_raw,
             typst_engine::typst_version,
             watcher::unwatch_project,
             watcher::watch_project,
         ])
-        .run(tauri::generate_context!())
-        .expect("error al arrancar la aplicación DBV Typst Editor");
+        .build(tauri::generate_context!())
+        .expect("error al arrancar la aplicación DBV Typst Editor")
+        // `build` + bucle propio en vez de `run(context)` porque es la única
+        // forma de ver `RunEvent::Opened`: el evento con el que macOS —y solo
+        // macOS— entrega el fichero que el usuario ha abierto desde Finder
+        // (NATIVE_DESKTOP_APPS.md §8). Sin esto la app arranca sin documento.
+        .run(|_app, _event| {
+            #[cfg(target_os = "macos")]
+            if let tauri::RunEvent::Opened { urls } = _event {
+                if let Some(document) = commands::startup::first_document_url(urls) {
+                    commands::startup::deliver(_app, document);
+                }
+            }
+        });
 }

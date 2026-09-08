@@ -13,7 +13,7 @@
 // rutas ni ficheros concretos.
 
 import { getLanguage, t } from '../i18n/i18n.js';
-import { getRecentProjects, listTemplates } from '../services/backend.js';
+import { getRecentProjects, listTemplates, removeRecentProject } from '../services/backend.js';
 import { baseName } from '../app/workspace.js';
 
 /** Nombre y descripción de una plantilla en el idioma activo. */
@@ -93,21 +93,43 @@ export function createLauncher({ templatesEl, recentEl, onCreateFromTemplate, on
 
     const fragment = document.createDocumentFragment();
     for (const project of projects) {
-      const item = document.createElement('button');
-      item.type = 'button';
+      const item = document.createElement('div');
       item.className = 'recent-item';
+
+      const openButton = document.createElement('button');
+      openButton.type = 'button';
+      openButton.className = 'recent-item__open';
 
       const name = document.createElement('span');
       name.className = 'recent-item__name';
       name.textContent = project.name || baseName(project.path);
-      item.append(name);
+      openButton.append(name);
 
       const path = document.createElement('span');
       path.className = 'recent-item__path';
       path.textContent = project.path;
-      item.append(path);
+      openButton.append(path);
 
-      item.addEventListener('click', () => onOpenRecent(project.path));
+      openButton.addEventListener('click', () => onOpenRecent(project.path));
+      item.append(openButton);
+
+      const removeButton = document.createElement('button');
+      removeButton.type = 'button';
+      removeButton.className = 'recent-item__remove';
+      removeButton.title = t('recent.remove');
+      removeButton.setAttribute('aria-label', t('recent.remove'));
+      removeButton.innerHTML = `
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M3 3l10 10M13 3L3 13" />
+        </svg>
+      `;
+      removeButton.addEventListener('click', async (event) => {
+        event.stopPropagation();
+        await removeRecentProject(project.path);
+        await renderRecent();
+      });
+      item.append(removeButton);
+
       fragment.append(item);
     }
     recentEl.replaceChildren(fragment);

@@ -3,8 +3,8 @@
 **[🇪🇸 Español](./README.md) · 🇬🇧 English**
 
 [![Website](https://img.shields.io/badge/Website-davidbuenov.github.io%2Fdbv--typst--editor-2563eb?style=flat&logo=googlechrome&logoColor=white)](https://davidbuenov.github.io/dbv-typst-editor/en/)
-[![Releases](https://img.shields.io/badge/Releases-v0.3.1-brightgreen?logo=github)](https://github.com/davidbuenov/dbv-typst-editor/releases)
-![Status](https://img.shields.io/badge/status-stable%20%7C%20v0.3.1-success)
+[![Releases](https://img.shields.io/badge/Releases-v0.4.0-brightgreen?logo=github)](https://github.com/davidbuenov/dbv-typst-editor/releases)
+![Status](https://img.shields.io/badge/status-stable%20%7C%20v0.4.0-success)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
 ![Windows](https://img.shields.io/badge/Windows-10%20%2F%2011%20(.exe%20%2B%20Store)-0078D6?logo=windows&logoColor=white)
 ![macOS](https://img.shields.io/badge/macOS-Universal%20(.dmg)-000000?logo=apple&logoColor=white)
@@ -56,21 +56,24 @@ It follows the same philosophy as its sibling project [DBV Markdown Reader](http
 
 ## 🚦 Current status
 
-**Current version:** `v0.3.1` · **Status:** 🟢 Stable and production ready
+**Current version:** `v0.4.0` · **Status:** 🟢 Stable and production ready
 
 - 🌐 **Official Website:** [https://davidbuenov.github.io/dbv-typst-editor/en/](https://davidbuenov.github.io/dbv-typst-editor/en/) (featuring full-resolution interactive screenshot gallery and bilingual ES/EN switch).
-- 📦 **Installers available on Releases:** [GitHub Releases v0.3.1](https://github.com/davidbuenov/dbv-typst-editor/releases):
+- 📦 **Installers available on Releases:** [GitHub Releases v0.4.0](https://github.com/davidbuenov/dbv-typst-editor/releases):
   - 🪟 **Windows**: Standalone `.exe` installer (no external dependencies).
   - 🍎 **macOS**: Universal `.dmg` (compatible with Apple Silicon & Intel).
   - 🐧 **Linux**: `.AppImage` (portable) and `.deb` (Debian/Ubuntu/Mint) packages.
-- 🏬 **Microsoft Store:** published. ⚠️ **Store packages before `v0.3.1` shipped without the Typst compiler inside** and every compiler-dependent feature failed; fixed in this release (see [`CHANGELOG.md`](./dbv-specs-ops/CHANGELOG.md)). If you installed from the Store, update to `v0.3.1`.
-- 🧪 **Quality & Stability:** 223 automated tests passing at 100% (99 frontend tests + 124 Rust backend tests) and layout verification in real rendering engines.
+- 🏬 **Microsoft Store:** published. Make sure you get `v0.3.1` or later (earlier Store packages shipped without the Typst compiler; see [`CHANGELOG.en.md`](./dbv-specs-ops/CHANGELOG.en.md)).
+- 🧪 **Quality & Stability:** 313 automated tests passing at 100% (152 frontend tests + 161 Rust backend tests) and layout verification in real rendering engines.
 - 🚀 **Key Highlights:**
+  - Bidirectional editor ↔ preview synchronization (double-click on preview jumps to source code and pin button takes preview to cursor).
+  - Whole-document compilation (`main.typ`) preserving cross-references and chapters, with automatic/manual refresh control.
+  - Image insertion assistant with project images dropdown and universal drag-and-drop.
   - Full loop with real-time automatic PDF preview as you type.
   - Native Typst Universe integration (+1,500 community packages & templates).
   - 8 pre-configured academic templates with self-contained embedded fonts.
   - BibTeX citation assistant with live autocomplete.
-  - Drag-and-drop images, folders, and typefaces into `fonts/`.
+  - Remove recent projects easily from the launcher.
   - Self-contained project archives in `.dbvt` format.
   - 3 visual themes (Light, Dark, and warm Sepia) plus integrated Typst CLI terminal.
 
@@ -198,7 +201,9 @@ stop.cmd
 
 ## 📋 Changelog
 
-`v0.3.1` documented in [`dbv-specs-ops/CHANGELOG.md`](./dbv-specs-ops/CHANGELOG.md) — corrective release fixing the Microsoft Store MSIX packaging.
+`v0.4.0` documented in [`dbv-specs-ops/CHANGELOG.en.md`](./dbv-specs-ops/CHANGELOG.en.md) — editor ↔ preview synchronization, whole-document compilation, refresh control, image management enhancements, and removing recent projects.
+
+The changelog is maintained in both languages: [English](./dbv-specs-ops/CHANGELOG.en.md) · [Español](./dbv-specs-ops/CHANGELOG.md).
 
 ---
 
@@ -210,8 +215,27 @@ Copyright (c) 2026 David Bueno Vallejo
 
 ---
 
-## 👤 Author & Credits
+## ✍️ Author & Credits
 
-Created by **[David Bueno Vallejo](https://github.com/davidbuenov)**.
+### 👤 David Bueno Vallejo
 
-> 🛠️ Built with **[dbv-specs-ops](https://github.com/davidbuenov/dbv-specs-ops)** — the SDD framework for AI-assisted development.
+> Original idea, architecture, project direction and development.
+
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-davidbueno-0A66C2?logo=linkedin&logoColor=white)](https://www.linkedin.com/in/davidbueno/)
+[![Website](https://img.shields.io/badge/Web-davidbuenov.com-6366f1?logo=googlechrome&logoColor=white)](https://davidbuenov.com)
+[![GitHub](https://img.shields.io/badge/GitHub-davidbuenov-181717?logo=github&logoColor=white)](https://github.com/davidbuenov)
+
+### 👥 Collaborators
+
+- **Juan Falgueras Cano**
+- **Alberto Corbi**
+
+### 🤖 Built with AI
+
+| Tool | Role |
+| --- | --- |
+| **[Gemini](https://deepmind.google/technologies/gemini/)** · *Google DeepMind* | Development & pair programming: frontend, bidirectional editor ↔ preview sync, UI/UX, command integration, and optimizations. |
+| **[Claude Code](https://claude.com/claude-code)** · *Anthropic* | Development & pair programming: Rust/Tauri v2 architecture, Typst compiler engine & SVG/PNG/PDF rendering, testing, and application lifecycle. |
+| **[Microsoft Copilot](https://copilot.microsoft.com/)** · *Microsoft* | Initial planning, ideation, and project requirements structuring. |
+
+> 🛠️ Built with the **[dbv-specs-ops](https://github.com/davidbuenov/dbv-specs-ops)** framework — Spec-Driven Development, free and open.

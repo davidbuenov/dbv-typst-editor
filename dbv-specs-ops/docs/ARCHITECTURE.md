@@ -122,7 +122,7 @@ Este es el **hallazgo más valioso del análisis**: el patrón *watch(directorio
 
 - **No hay `tauri-plugin-store`**: preferencias de UI en `localStorage`; solo `recent_files.json` vive en `app_data_dir()` gestionado por Rust.
 - **Auto-actualizador** (`tauri-plugin-updater`): chequeo solo bajo demanda, deshabilitado en Android/MSIX (`is_packaged_app`), firmado con minisign. Config en `tauri.conf.json` `plugins.updater`.
-- **Asociación de fichero**: 100% declarativa en `bundle.fileAssociations` — sin código Rust adicional.
+- **Asociación de fichero**: declarativa en `bundle.fileAssociations` **más** el código Rust que recoge la ruta: `argv` en Windows/Linux y `RunEvent::Opened` en macOS (Apple Event `kAEOpenDocuments`, ver NATIVE_DESKTOP_APPS.md §8). Ambos caminos convergen en `commands/startup.rs`.
 - **Plantillas**: `templates/` en la raíz contiene 34 `.md` estáticos (ES/EN) **sin ninguna integración en la app** — ni comando Rust, ni selector UI, ni siquiera existe un "Guardar como". El sistema de plantillas de DBV Typst Editor es **trabajo nuevo al 100%** en cuanto a integración, aunque el Spec Addendum ya fija la organización por categorías a imitar (ver §7.6).
 - **CI/Build**: `release-linux.yml` y `release-macos.yml`. **Windows es 100% manual**. NSIS muy personalizado.
 - **Testing**: sin frameworks JS. Tests Rust inline en `lib.rs` (`#[cfg(test)]`, ~30 tests) sobre funciones puras extraídas de los comandos `#[tauri::command]`, más `tempfile`. Patrón directamente reutilizable.

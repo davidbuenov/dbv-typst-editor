@@ -16,6 +16,8 @@
 
 pub mod compile;
 pub mod outline;
+pub mod shadow;
+pub mod sync;
 
 use serde::Serialize;
 use tauri::AppHandle;

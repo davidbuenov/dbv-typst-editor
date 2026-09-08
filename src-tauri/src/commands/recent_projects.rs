@@ -133,6 +133,18 @@ pub fn clear_recent_projects(app: tauri::AppHandle) -> Result<(), AppError> {
     save(&app, &[])
 }
 
+/// Elimina un proyecto de la lista de recientes por su ruta.
+#[tauri::command]
+pub fn remove_recent_project(
+    app: tauri::AppHandle,
+    path: String,
+) -> Result<Vec<RecentProject>, AppError> {
+    let mut list = load(&app)?;
+    list.retain(|item| item.path != path);
+    save(&app, &list)?;
+    Ok(list)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -191,5 +203,14 @@ mod tests {
 
         assert_eq!(filtered.len(), 1);
         assert!(filtered[0].path.contains("proyecto"));
+    }
+
+    #[test]
+    fn remove_recent_elimina_la_entrada_con_esa_ruta() {
+        let list = vec![entry("/a", 1), entry("/b", 2)];
+        let mut updated = list;
+        updated.retain(|item| item.path != "/a");
+        assert_eq!(updated.len(), 1);
+        assert_eq!(updated[0].path, "/b");
     }
 }

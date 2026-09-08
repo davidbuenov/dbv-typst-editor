@@ -121,22 +121,36 @@ export const addRecentProject = ({ path, name, entrypoint, isSingleFile }) =>
     isSingleFile: Boolean(isSingleFile),
   });
 export const clearRecentProjects = () => call('clear_recent_projects');
+export const removeRecentProject = (path) => call('remove_recent_project', { path });
 
 // ─── Compilación (vista previa y exportación) ────────────────────────────────
 
-export const compilePreview = ({ document, root, content, firstPage, windowSize }) =>
+/**
+ * Objetivo de compilación (RF-14): qué documento se compila, sobre qué raíz, y
+ * qué fichero tiene cambios sin guardar. Lo construye el workspace una sola vez
+ * y lo comparten la vista previa, el outline y las exportaciones — si cada uno
+ * decidiera por su cuenta, el usuario exportaría algo distinto de lo que ve.
+ * @typedef {object} CompileTarget
+ * @property {string} document Documento objetivo: el entrypoint, o el fichero
+ *   abierto si el alcance es "solo este fichero".
+ * @property {string} root Raíz del proyecto.
+ * @property {boolean} singleFile El proyecto es un `.typ` suelto (RF-02b).
+ * @property {string|null} dirtyPath Fichero con cambios sin guardar, si lo hay.
+ * @property {string|null} dirtyContent Su contenido en el editor.
+ */
+
+export const compilePreview = ({ target, firstPage, windowSize }) =>
   call('typst_compile_preview', {
-    document,
-    root,
-    content: content ?? null,
+    target,
     firstPage: firstPage ?? 0,
     windowSize: windowSize ?? 2,
   });
 export const previewPage = (generation, index) =>
   call('typst_preview_page', { generation, index });
 export const cancelPreview = () => call('typst_cancel_preview');
-export const getOutline = ({ document, root, content }) =>
-  call('typst_outline', { document, root, content: content ?? null });
+export const getOutline = (target) => call('typst_outline', { target });
+/** Tabla de anclas para la sincronización editor↔vista previa (RF-16). */
+export const getSyncAnchors = (target) => call('typst_sync_anchors', { target });
 export const getBibliographyKeys = (root) => call('bibliography_keys', { root });
 
 // ─── Gestión de imágenes por arrastre (Beta, §7.10) ──────────────────────────
@@ -147,15 +161,18 @@ export const pickImageFile = () => call('pick_image_dialog');
 /** Arrastrar una fuente al proyecto (Beta, §7.10): copia a `fonts/`. */
 export const copyFontIntoProject = (projectRoot, sourcePath) =>
   call('copy_font_into_project', { projectRoot, sourcePath });
+/** Imágenes que ya tiene el proyecto, para el desplegable del botón "Fig" (RF-17). */
+export const getProjectImages = (root) => call('project_images', { root });
+/** Extensiones de imagen y fuente que acepta la app: única fuente de verdad en Rust (RF-18). */
+export const getSupportedAssetExtensions = () => call('supported_asset_extensions');
 
 // ─── Terminal avanzado (Beta, §7.14) ──────────────────────────────────────────
 
 /** `args` ya viene troceado — el frontend separa por espacios, sin más. */
 export const runTypstCommand = (args, root) => call('typst_run_raw', { args, root: root ?? null });
-export const exportPdf = ({ document, root, output, content }) =>
-  call('typst_export_pdf', { document, root, output, content: content ?? null });
-export const exportPng = ({ document, root, output, page, content }) =>
-  call('typst_export_png', { document, root, output, page, content: content ?? null });
+export const exportPdf = ({ target, output }) => call('typst_export_pdf', { target, output });
+export const exportPng = ({ target, output, page }) =>
+  call('typst_export_png', { target, output, page });
 
 // ─── Observador de cambios ───────────────────────────────────────────────────
 

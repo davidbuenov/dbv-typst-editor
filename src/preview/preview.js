@@ -23,10 +23,20 @@
 // inusable justo el escenario insignia del producto.
 
 import { t } from '../i18n/i18n.js';
-import { cancelPreview, compilePreview, previewPage } from '../services/backend.js';
+import { cancelPreview, compilePreview, getSyncAnchors, previewPage } from '../services/backend.js';
+import { anchorAtPoint, anchorForLine } from './syncAnchors.js';
 
-/** Pausa de escritura tras la que se recompila. */
+/** Pausa de escritura tras la que se recompila, en modo automático. */
 const DEBOUNCE_MS = 350;
+
+/**
+ * Modo de refresco (RF-15). No es una comodidad: desde RF-14 la vista previa
+ * compila el documento completo, y el Spike S-2 midió que eso cuesta ×9 lo que
+ * costaba el capítulo (828 ms frente a 91 ms en una tesis de 202 páginas), muy
+ * por encima de la pausa de escritura. En un documento grande, el modo
+ * automático tendría al compilador corriendo casi sin parar.
+ */
+const REFRESH_STORAGE_KEY = 'dbv-typst-preview-refresh';
 
 /** Páginas cuyo marcado viaja ya con la respuesta de la compilación. */
 const INITIAL_WINDOW = 2;
@@ -107,6 +117,14 @@ function readStoredZoom() {
   }
 }
 
+function readStoredRefreshMode() {
+  try {
+    return localStorage.getItem(REFRESH_STORAGE_KEY) === 'manual' ? 'manual' : 'auto';
+  } catch {
+    return 'auto';
+  }
+}
+
 function readStoredFitWidth() {
   try {
     return localStorage.getItem(FIT_WIDTH_STORAGE_KEY) === '1';
@@ -123,13 +141,41 @@ function readStoredFitWidth() {
  *   (Beta): se muestra/oculta junto con `bandEl`, nunca por su cuenta.
  * @param {HTMLElement} deps.statusEl Indicador de estado.
  * @param {HTMLElement} deps.zoomLabelEl Porcentaje de zoom.
+ * @param {() => (import('../services/backend.js').CompileTarget | null)} deps.getTarget
+ *   Objetivo de compilación vigente (RF-14). Se pide en cada compilación en vez
+ *   de guardarse aquí: así la vista previa no puede quedarse con un objetivo
+ *   viejo cuando el workspace cambia de documento o de alcance.
+ * @param {(stale: boolean) => void} [deps.onStaleChange] Aviso de que lo que se
+ *   ve ya no corresponde con lo escrito (RF-15).
  */
-export function createPreview({ pagesEl, bandEl, bandSplitterEl, statusEl, zoomLabelEl }) {
+export function createPreview({
+  pagesEl,
+  bandEl,
+  bandSplitterEl,
+  statusEl,
+  zoomLabelEl,
+  getTarget,
+  onStaleChange,
+}) {
   let debounceTimer = null;
   /** Último token de generación efectivamente pintado. */
   let renderedGeneration = 0;
-  /** Última petición conocida: documento, raíz y contenido en vivo. */
-  let request = null;
+  /** Hay algo compilado en pantalla (aunque sea de una versión anterior). */
+  let hasRendered = false;
+  /** 'auto' | 'manual' (RF-15). */
+  let refreshMode = readStoredRefreshMode();
+  /** Lo pintado ya no corresponde con lo escrito (RF-15). */
+  let stale = false;
+  /**
+   * Tabla de anclas de la generación pintada (RF-16), o `null` si aún no se ha
+   * pedido. Se calcula BAJO DEMANDA porque cuesta otra composición completa del
+   * documento (≈750 ms en 202 páginas); pedirla en cada pausa de escritura
+   * duplicaría el coste de escribir. Se descarta al recompilar: una tabla de una
+   * generación vieja mandaría al usuario a cualquier parte.
+   * @type {null | Array<object>}
+   */
+  let anchors = null;
+  let anchorsGeneration = 0;
   let zoom = readStoredZoom();
   /** "Ajustar al ancho" (petición explícita tras probar la Beta): en vez de un
    * porcentaje fijo, el zoom se recalcula para que la página ocupe todo el
@@ -279,7 +325,18 @@ export function createPreview({ pagesEl, bandEl, bandSplitterEl, statusEl, zoomL
       pageEl.style.setProperty('--page-ratio', String(size.heightPt / size.widthPt));
 
       const svg = loaded.get(index);
-      if (svg) fillPage(pageEl, svg);
+      if (svg) {
+        fillPage(pageEl, svg);
+      } else {
+        const placeholder = document.createElement('div');
+        placeholder.className = 'preview-page__placeholder';
+        const spinner = document.createElement('div');
+        spinner.className = 'preview-page__spinner';
+        const label = document.createElement('span');
+        label.textContent = `${t('preview.pageLoading')} ${index + 1}…`;
+        placeholder.append(spinner, label);
+        pageEl.append(placeholder);
+      }
       fragment.append(pageEl);
     });
 
@@ -295,30 +352,35 @@ export function createPreview({ pagesEl, bandEl, bandSplitterEl, statusEl, zoomL
   function firstVisiblePage() {
     const top = pagesEl.scrollTop;
     for (const pageEl of pagesEl.children) {
+      if (!pageEl.classList.contains('preview-page')) continue;
       if (pageEl.offsetTop + pageEl.offsetHeight >= top) return Number(pageEl.dataset.index);
     }
     return 0;
   }
 
-  /** Lanza una compilación inmediata con la petición actual. */
+  /** Marca (o desmarca) que lo pintado ya no corresponde con lo escrito. */
+  function setStale(value) {
+    if (stale === value) return;
+    stale = value;
+    onStaleChange?.(stale);
+  }
+
+  /** Lanza una compilación inmediata con el objetivo vigente. */
   async function compileNow() {
-    if (!request?.document || !request?.root) return;
+    const target = getTarget();
+    if (!target?.document || !target?.root) return;
 
     const scrollTop = pagesEl.scrollTop;
     setStatus('preview.compiling');
 
     const result = await compilePreview({
-      document: request.document,
-      root: request.root,
-      // Solo se manda el contenido en vivo si difiere del disco: mientras no
-      // haya cambios sin guardar no se escribe nada en la carpeta del usuario
-      // (importa para los proyectos ajenos de RF-02b).
-      content: request.dirty ? request.content : null,
+      target,
       firstPage: firstVisiblePage(),
       windowSize: INITIAL_WINDOW,
     });
 
     if (!result.ok) {
+      if (!hasRendered) pagesEl.replaceChildren();
       // Última vista buena: no se toca `pagesEl`.
       showBand(result.error.message || t('preview.error'));
       setStatus('preview.failed');
@@ -329,6 +391,10 @@ export function createPreview({ pagesEl, bandEl, bandSplitterEl, statusEl, zoomL
     if (outcome.stale || outcome.generation < renderedGeneration) return;
 
     renderedGeneration = outcome.generation;
+    hasRendered = true;
+    setStale(false);
+    // La tabla pertenece a una generación: al recompilar deja de valer.
+    if (anchorsGeneration !== outcome.generation) anchors = null;
     pageHeightsPt = outcome.geometry.map((page) => page.heightPt);
     renderSkeleton(outcome.generation, outcome.geometry, outcome.pages);
     applyZoom();
@@ -340,8 +406,18 @@ export function createPreview({ pagesEl, bandEl, bandSplitterEl, statusEl, zoomL
     setStatus('preview.pages', String(pageCount));
   }
 
-  /** Programa una compilación tras la pausa de escritura. */
+  /**
+   * Programa una compilación tras la pausa de escritura.
+   *
+   * En modo manual no se compila nada: se marca la vista como desactualizada,
+   * que es la contrapartida obligatoria de no recompilar sola — nunca se puede
+   * enseñar contenido viejo como si fuera el actual (RF-15b).
+   */
   function schedule() {
+    if (refreshMode === 'manual') {
+      if (hasRendered) setStale(true);
+      return;
+    }
     if (debounceTimer) clearTimeout(debounceTimer);
     debounceTimer = setTimeout(compileNow, DEBOUNCE_MS);
   }
@@ -357,45 +433,134 @@ export function createPreview({ pagesEl, bandEl, bandSplitterEl, statusEl, zoomL
     applyZoom();
   }
 
+  /**
+   * Lleva la vista a `yPt` dentro de `page` (1-indexada, como Typst).
+   * `offsetHeight` de la página ya es correcto aunque su SVG todavía no haya
+   * cargado — lo fija el `aspect-ratio` reservado en CSS.
+   */
+  function scrollToPage(page, yPt) {
+    const pageEl = pagesEl.children[page - 1];
+    if (!pageEl) return;
+    const heightPt = pageHeightsPt[page - 1] || pageEl.offsetHeight;
+    const ratio = pageEl.offsetHeight / heightPt;
+    const margin = 24;
+    pagesEl.scrollTo({ top: Math.max(0, pageEl.offsetTop + yPt * ratio - margin), behavior: 'smooth' });
+  }
+
+  /**
+   * Convierte un punto de pantalla en coordenadas del documento (RF-16).
+   * Inverso exacto de `scrollToPage`: la misma razón `offsetHeight / heightPt`.
+   */
+  function documentPointAt(clientX, clientY) {
+    for (const pageEl of pagesEl.children) {
+      if (!pageEl.classList.contains('preview-page')) continue;
+      const rect = pageEl.getBoundingClientRect();
+      const inside =
+        clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom;
+      if (!inside) continue;
+
+      const index = Number(pageEl.dataset.index);
+      const heightPt = pageHeightsPt[index] || rect.height;
+      const ratio = rect.height / heightPt;
+      return {
+        page: index + 1,
+        xPt: (clientX - rect.left) / ratio,
+        yPt: (clientY - rect.top) / ratio,
+      };
+    }
+    return null;
+  }
+
+  function showLoadingPlaceholder() {
+    const placeholder = document.createElement('div');
+    placeholder.className = 'preview__loading';
+    const spinner = document.createElement('div');
+    spinner.className = 'preview-page__spinner';
+    const label = document.createElement('span');
+    label.className = 'preview__loading-text';
+    label.textContent = t('preview.compiling');
+    placeholder.append(spinner, label);
+    pagesEl.replaceChildren(placeholder);
+  }
+
+  /** Tabla de anclas de la generación pintada, calculándola si hace falta. */
+  async function ensureAnchors() {
+    if (anchors && anchorsGeneration === renderedGeneration) return anchors;
+
+    const target = getTarget();
+    if (!target) return null;
+    const result = await getSyncAnchors(target);
+    if (!result.ok) return null;
+
+    anchors = result.value;
+    anchorsGeneration = renderedGeneration;
+    return anchors;
+  }
+
   applyZoom();
   setStatus('preview.idle');
 
   return {
-    /** Fija el documento a compilar y lanza una primera compilación. */
-    setDocument({ document, root, content }) {
-      request = { document, root, content, dirty: false };
+    /** Empieza de cero con el objetivo vigente (abrir documento o cambiar alcance). */
+    restart() {
       renderedGeneration = 0;
+      hasRendered = false;
+      setStale(false);
+      anchors = null;
       hideBand();
       pagesEl.scrollTop = 0;
+      showLoadingPlaceholder();
       compileNow();
     },
-    /** El usuario ha escrito: se recompila tras la pausa. */
-    onContentChanged(content) {
-      if (!request) return;
-      request.content = content;
-      request.dirty = true;
-      schedule();
-    },
-    /**
-     * El editor se ha ido a otro fichero (uno acompañante, como `refs.bib`).
-     * La vista previa sigue mostrando el mismo documento, pero deja de usar el
-     * contenido en vivo: a partir de aquí compila lo que hay en disco.
-     */
-    detachLiveContent() {
-      if (!request) return;
-      request.dirty = false;
-      request.content = null;
-    },
-    /** El documento se ha guardado: disco y editor vuelven a coincidir. */
-    onSaved() {
-      if (!request) return;
-      request.dirty = false;
+    /** El usuario ha escrito, o ha cambiado algo que afecta al render. */
+    onContentChanged() {
       schedule();
     },
     /** Algo cambió en disco fuera del editor (un capítulo, una imagen). */
     onExternalChange() {
-      if (!request) return;
       schedule();
+    },
+    /** Refresco explícito (RF-15): el botón, y el atajo. */
+    refreshNow() {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      compileNow();
+    },
+    getRefreshMode: () => refreshMode,
+    /** Alterna automático/manual, lo recuerda, y devuelve el modo nuevo. */
+    toggleRefreshMode() {
+      refreshMode = refreshMode === 'auto' ? 'manual' : 'auto';
+      try {
+        localStorage.setItem(REFRESH_STORAGE_KEY, refreshMode);
+      } catch {
+        // Sin almacenamiento el modo no se recuerda entre sesiones; no es
+        // motivo para impedir el cambio.
+      }
+      // Volver a automático con algo pendiente compila ya: dejar la vista
+      // desactualizada en un modo que promete actualizarse sola sería mentir.
+      if (refreshMode === 'auto' && stale) compileNow();
+      return refreshMode;
+    },
+    isStale: () => stale,
+    /**
+     * Punto del fuente que corresponde a un punto de la vista previa (RF-16),
+     * o `null` si ahí no hay nada que resolver. Lo usa el doble clic.
+     */
+    async sourceAt(clientX, clientY) {
+      const point = documentPointAt(clientX, clientY);
+      if (!point) return null;
+      const table = await ensureAnchors();
+      return anchorAtPoint(table, point);
+    },
+    /**
+     * Lleva la vista previa al punto que corresponde a una línea del fuente
+     * (RF-16, dirección editor → render). Devuelve si ha podido situarse.
+     */
+    async scrollToSource(file, line) {
+      const table = await ensureAnchors();
+      const anchor = anchorForLine(table, file, line);
+      if (!anchor) return false;
+      scrollToPage(anchor.page, anchor.yPt);
+      return true;
     },
     /** Página 1-indexada que se está leyendo ahora mismo (exportación PNG, Beta). */
     getCurrentPage: () => firstVisiblePage() + 1,
@@ -403,27 +568,16 @@ export function createPreview({ pagesEl, bandEl, bandSplitterEl, statusEl, zoomL
       if (debounceTimer) clearTimeout(debounceTimer);
       observer.disconnect();
       await cancelPreview();
-      request = null;
       renderedGeneration = 0;
+      hasRendered = false;
+      setStale(false);
       pageCount = 0;
       pagesEl.replaceChildren();
       hideBand();
       setStatus('preview.idle');
     },
-    /**
-     * Navegación del panel de navegación estructural (Beta, §7.8): `page` es
-     * 1-indexado (como lo devuelve Typst), `yPt` la coordenada vertical dentro
-     * de esa página. `offsetHeight` de la página ya es correcto aunque su SVG
-     * todavía no haya cargado — lo fija el `aspect-ratio` reservado en CSS.
-     */
-    scrollToPage(page, yPt) {
-      const pageEl = pagesEl.children[page - 1];
-      if (!pageEl) return;
-      const heightPt = pageHeightsPt[page - 1] || pageEl.offsetHeight;
-      const ratio = pageEl.offsetHeight / heightPt;
-      const margin = 24;
-      pagesEl.scrollTo({ top: Math.max(0, pageEl.offsetTop + yPt * ratio - margin), behavior: 'smooth' });
-    },
+    /** Navegación del outline (Beta, §7.8) y del sync (RF-16). */
+    scrollToPage,
     zoomIn: () => setZoomIndex(1),
     zoomOut: () => setZoomIndex(-1),
     zoomReset: () => {

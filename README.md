@@ -3,8 +3,8 @@
 **🇪🇸 Español · [🇬🇧 English](./README.en.md)**
 
 [![Sitio Web](https://img.shields.io/badge/Sitio%20Web-davidbuenov.github.io%2Fdbv--typst--editor-2563eb?style=flat&logo=googlechrome&logoColor=white)](https://davidbuenov.github.io/dbv-typst-editor/)
-[![Releases](https://img.shields.io/badge/Releases-v0.3.1-brightgreen?logo=github)](https://github.com/davidbuenov/dbv-typst-editor/releases)
-![Status](https://img.shields.io/badge/status-estable%20%7C%20v0.3.1-success)
+[![Releases](https://img.shields.io/badge/Releases-v0.4.0-brightgreen?logo=github)](https://github.com/davidbuenov/dbv-typst-editor/releases)
+![Status](https://img.shields.io/badge/status-estable%20%7C%20v0.4.0-success)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
 ![Windows](https://img.shields.io/badge/Windows-10%20%2F%2011%20(.exe%20%2B%20Store)-0078D6?logo=windows&logoColor=white)
 ![macOS](https://img.shields.io/badge/macOS-Universal%20(.dmg)-000000?logo=apple&logoColor=white)
@@ -58,21 +58,24 @@ Sigue la misma filosofía que su proyecto hermano [DBV Markdown Reader](https://
 
 ## 🚦 Estado actual
 
-**Versión actual:** `v0.3.1` · **Estado:** 🟢 Estable y listo para producción
+**Versión actual:** `v0.4.0` · **Estado:** 🟢 Estable y listo para producción
 
 - 🌐 **Sitio Web Oficial:** [https://davidbuenov.github.io/dbv-typst-editor/](https://davidbuenov.github.io/dbv-typst-editor/) (con galería interactiva de capturas en alta resolución y selector bilingüe ES/EN).
-- 📦 **Instaladores disponibles en Releases:** [GitHub Releases v0.3.1](https://github.com/davidbuenov/dbv-typst-editor/releases):
+- 📦 **Instaladores disponibles en Releases:** [GitHub Releases v0.4.0](https://github.com/davidbuenov/dbv-typst-editor/releases):
   - 🪟 **Windows**: Instalador `.exe` autónomo (sin dependencias externas).
   - 🍎 **macOS**: Archivo `.dmg` universal (compatible con Apple Silicon e Intel).
   - 🐧 **Linux**: Paquetes `.AppImage` (portable) y `.deb` (Debian/Ubuntu/Mint).
-- 🏬 **Microsoft Store:** publicada. ⚠️ **El paquete de la Store anterior a `v0.3.1` salía sin el compilador Typst dentro** y toda función que dependiera de él fallaba; corregido en esta versión (ver [`CHANGELOG.md`](./dbv-specs-ops/CHANGELOG.md)). Si instalaste desde la Store, actualiza a `v0.3.1`.
-- 🧪 **Calidad y estabilidad:** 223 pruebas automatizadas pasando al 100% (99 tests unitarios de frontend + 124 tests de backend en Rust) y validación de layout en motor Chromium/WebKit real.
+- 🏬 **Microsoft Store:** disponible. Si instalaste desde la Store, asegúrate de contar con `v0.3.1` o superior (ver [`CHANGELOG.md`](./dbv-specs-ops/CHANGELOG.md)).
+- 🧪 **Calidad y estabilidad:** 313 pruebas automatizadas pasando al 100% (152 tests unitarios de frontend + 161 tests de backend en Rust) y validación de layout en motor Chromium/WebKit real.
 - 🚀 **Funcionalidades destacadas incluidas:**
+  - Sincronización bidireccional editor ↔ vista previa (doble clic en render para saltar al código fuente y botón chincheta para llevar la vista previa al cursor).
+  - Compilación del documento completo (`main.typ`) con conservación de referencias cruzadas y capítulos, más control de refresco automático o manual.
+  - Asistente de imágenes con selector desplegable de imágenes del proyecto y arrastre universal de archivos.
   - Bucle completo de edición y previsualización PDF en tiempo real.
   - Integración nativa con Typst Universe (+1.500 paquetes y plantillas comunitarias).
   - 8 plantillas académicas oficiales preconfiguradas con fuentes incrustadas.
   - Asistente de citas bibliográficas BibTeX con autocompletado en vivo.
-  - Inserción y arrastre de imágenes, carpetas completas y tipografías a `fonts/`.
+  - Eliminación rápida de proyectos recientes desde el lanzador.
   - Empaquetado completo en un único archivo de proyecto `.dbvt`.
   - 3 temas visuales (Claro, Oscuro y Sepia cálido) y terminal Typst integrado.
 
@@ -294,7 +297,9 @@ Preparación para Microsoft Store documentada en [`dbv-specs-ops/docs/MICROSOFT_
 
 ## 📋 Changelog
 
-`v0.3.1` documentada en [`dbv-specs-ops/CHANGELOG.md`](./dbv-specs-ops/CHANGELOG.md) — entrega correctiva del empaquetado MSIX de Microsoft Store.
+`v0.4.0` documentada en [`dbv-specs-ops/CHANGELOG.md`](./dbv-specs-ops/CHANGELOG.md) — sincronización editor ↔ vista previa, compilación del documento completo, control de refresco, mejoras en gestión de imágenes y eliminación de recientes.
+
+El changelog se mantiene en los dos idiomas: [Español](./dbv-specs-ops/CHANGELOG.md) · [English](./dbv-specs-ops/CHANGELOG.en.md).
 
 ---
 
@@ -306,8 +311,27 @@ Copyright (c) 2026 David Bueno Vallejo
 
 ---
 
-## 👤 Autor y Créditos
+## ✍️ Autor y Créditos
 
-Creado por **[David Bueno Vallejo](https://github.com/davidbuenov)**.
+### 👤 David Bueno Vallejo
 
-> 🛠️ Built with **[dbv-specs-ops](https://github.com/davidbuenov/dbv-specs-ops)** — the SDD framework for AI-assisted development.
+> Idea original, arquitectura, dirección del proyecto y desarrollo.
+
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-davidbueno-0A66C2?logo=linkedin&logoColor=white)](https://www.linkedin.com/in/davidbueno/)
+[![Website](https://img.shields.io/badge/Web-davidbuenov.com-6366f1?logo=googlechrome&logoColor=white)](https://davidbuenov.com)
+[![GitHub](https://img.shields.io/badge/GitHub-davidbuenov-181717?logo=github&logoColor=white)](https://github.com/davidbuenov)
+
+### 👥 Colaboradores
+
+- **Juan Falgueras Cano**
+- **Alberto Corbi**
+
+### 🤖 Construido con IA
+
+| Herramienta | Rol |
+| --- | --- |
+| **[Gemini](https://deepmind.google/technologies/gemini/)** · *Google DeepMind* | Desarrollo y pair programming: frontend, sincronización bidireccional editor ↔ vista previa, interfaz/UX, integración de comandos y optimizaciones. |
+| **[Claude Code](https://claude.com/claude-code)** · *Anthropic* | Desarrollo y pair programming: arquitectura Rust/Tauri v2, motor de compilación Typst y renderizado SVG/PNG/PDF, testing y ciclo de vida de la aplicación. |
+| **[Microsoft Copilot](https://copilot.microsoft.com/)** · *Microsoft* | Planificación inicial, estructuración y definición de requerimientos del proyecto. |
+
+> 🛠️ Desarrollado con el framework **[dbv-specs-ops](https://github.com/davidbuenov/dbv-specs-ops)** — Spec-Driven Development, libre y gratuito.

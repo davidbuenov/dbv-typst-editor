@@ -37,19 +37,87 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Mutex;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
 use tauri_plugin_shell::process::{CommandChild, CommandEvent};
 use tauri_plugin_shell::ShellExt;
 use tempfile::TempDir;
 
+use super::shadow::{self, ShadowRoot};
 use super::{TypstError, SIDECAR};
 
-/// Nombre del fichero espejo que se compila cuando el documento tiene cambios
-/// sin guardar. Vive junto al documento real para que las rutas relativas
-/// (`#include "chapters/01.typ"`, `image("images/x.png")`) resuelvan igual, y se
-/// borra en cuanto termina la compilación. Ver el ADR del Slice 5 en memory.md.
-pub const MIRROR_FILE_NAME: &str = ".dbv-preview.typ";
+/// Qué compilar y con qué contenido, resuelto por el frontend (RF-14).
+///
+/// Sustituye al par `(document, content)` de antes de v0.4.0. Dos cambios de
+/// fondo: `document` ya no es forzosamente el fichero abierto —desde RF-14 la
+/// vista previa compila el documento raíz del proyecto—, y el contenido sin
+/// guardar viene con la ruta del fichero al que pertenece, porque ese fichero
+/// puede ser un capítulo distinto del documento que se compila.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CompileTarget {
+    /// Documento a compilar: el entrypoint del proyecto, o el fichero abierto
+    /// si el usuario ha elegido el alcance "solo este fichero".
+    pub document: String,
+    /// Raíz del proyecto, la que resuelve las rutas ancladas con `/`.
+    pub root: String,
+    /// El "proyecto" es un `.typ` suelto (RF-02b): su raíz es la carpeta que lo
+    /// contiene, que puede ser cualquier cosa, así que la réplica no desciende.
+    #[serde(default)]
+    pub single_file: bool,
+    /// Fichero con cambios sin guardar, si lo hay, y su contenido en el editor.
+    /// La aplicación garantiza que a lo sumo hay uno.
+    pub dirty_path: Option<String>,
+    pub dirty_content: Option<String>,
+}
+
+/// Entrada de compilación ya resuelta sobre la raíz sombra.
+///
+/// `_shadow` no se usa, pero debe seguir viva: al soltarla se borra el temporal
+/// con la réplica, y el compilador todavía la necesita.
+pub(crate) struct PreparedInput {
+    _shadow: ShadowRoot,
+    root: String,
+    input: String,
+}
+
+impl PreparedInput {
+    /// Raíz de la réplica, para `--root` y para buscar las fuentes del proyecto.
+    pub(crate) fn root(&self) -> &str {
+        &self.root
+    }
+
+    /// Documento objetivo dentro de la réplica.
+    pub(crate) fn input(&self) -> &str {
+        &self.input
+    }
+}
+
+/// Replica el proyecto y traduce el documento objetivo a su gemelo en la
+/// réplica. Reemplaza al espejo `.dbv-preview.typ`, que escribía dentro de la
+/// carpeta del usuario (ver `shadow.rs` para el porqué).
+pub(crate) fn prepare_input(target: &CompileTarget) -> Result<PreparedInput, TypstError> {
+    let project_root = Path::new(&target.root);
+    let dirty = match (&target.dirty_path, &target.dirty_content) {
+        (Some(path), Some(content)) => Some((Path::new(path.as_str()), content.as_str())),
+        _ => None,
+    };
+
+    // Las anclas de sincronización se siembran SIEMPRE, en la única sombra
+    // (obligación 3 del Adversarial Architect Review): el Spike S-2 midió que
+    // entre bloques dejan el SVG byte a byte idéntico y cuestan 0,007 ms cada
+    // una, así que render y tabla de anclas salen por construcción del mismo
+    // árbol. Con dos réplicas distintas, las posiciones podrían no casar.
+    let shadow = shadow::build(project_root, target.single_file, true, dirty)?;
+    let input = shadow.translate(project_root, Path::new(&target.document));
+    let root = shadow.root().to_string_lossy().to_string();
+
+    Ok(PreparedInput {
+        _shadow: shadow,
+        root,
+        input: input.to_string_lossy().to_string(),
+    })
+}
 
 /// Bytes de cabecera que se leen de cada SVG para sacar su tamaño. La etiqueta
 /// `<svg ... width="..pt" height="..pt">` cabe de sobra: leer el fichero entero
@@ -336,29 +404,12 @@ pub fn strip_download_progress(stderr: &str) -> String {
 /// `pub(crate)`: también la usa `typst_engine::outline` (Beta) para que el
 /// panel de navegación estructural vea los cambios sin guardar igual que la
 /// vista previa — mismo criterio, no duplicarlo.
-pub(crate) fn prepare_input(
-    document: &Path,
-    content: Option<&str>,
-) -> Result<(PathBuf, Option<PathBuf>), TypstError> {
-    let Some(content) = content else {
-        return Ok((document.to_path_buf(), None));
-    };
-    let parent = document.parent().ok_or_else(|| {
-        TypstError::ExecutionFailed(format!("{} no tiene carpeta", document.display()))
-    })?;
-    let mirror = parent.join(MIRROR_FILE_NAME);
-    fs::write(&mirror, content).map_err(|error| TypstError::ExecutionFailed(error.to_string()))?;
-    Ok((mirror.clone(), Some(mirror)))
-}
-
 /// Compila el documento a SVG multipágina para la vista previa en vivo.
 #[tauri::command]
 pub async fn typst_compile_preview(
     app: AppHandle,
     state: tauri::State<'_, EngineState>,
-    document: String,
-    root: String,
-    content: Option<String>,
+    target: CompileTarget,
     first_page: Option<usize>,
     window_size: Option<usize>,
 ) -> Result<PreviewOutcome, TypstError> {
@@ -370,27 +421,23 @@ pub async fn typst_compile_preview(
         tempfile::tempdir().map_err(|error| TypstError::ExecutionFailed(error.to_string()))?;
     let output_pattern = workdir.path().join("page-{0p}.svg");
 
-    let document_path = PathBuf::from(&document);
-    let (input, mirror) = prepare_input(&document_path, content.as_deref())?;
+    let prepared = prepare_input(&target)?;
 
     let mut args = vec![
         "compile".to_string(),
         "--root".to_string(),
-        root.clone(),
+        prepared.root.clone(),
         "--format".to_string(),
         "svg".to_string(),
     ];
     // Fuentes propias del proyecto (`fonts/`), si las trae: van antes de los
-    // argumentos posicionales de entrada y salida.
-    args.extend(super::font_path_args(Path::new(&root)));
-    args.push(input.to_string_lossy().to_string());
+    // argumentos posicionales de entrada y salida. Se buscan en la réplica, que
+    // es donde viven todas las rutas de esta compilación.
+    args.extend(super::font_path_args(Path::new(&prepared.root)));
+    args.push(prepared.input.clone());
     args.push(output_pattern.to_string_lossy().to_string());
 
-    let outcome = run_cancelable(&app, &state, generation, args).await;
-    if let Some(mirror) = mirror {
-        let _ = fs::remove_file(mirror);
-    }
-    let (code, _stdout, stderr) = outcome?;
+    let (code, _stdout, stderr) = run_cancelable(&app, &state, generation, args).await?;
 
     // Un resultado que ya no es el último no se pinta ni se convierte en error:
     // se devuelve marcado como obsoleto para que el frontend lo ignore.
@@ -469,31 +516,24 @@ pub fn typst_cancel_preview(state: tauri::State<'_, EngineState>) {
 pub async fn typst_export_pdf(
     app: AppHandle,
     state: tauri::State<'_, EngineState>,
-    document: String,
-    root: String,
+    target: CompileTarget,
     output: String,
-    content: Option<String>,
 ) -> Result<String, TypstError> {
     let generation = state.next_generation();
-    let document_path = PathBuf::from(&document);
-    let (input, mirror) = prepare_input(&document_path, content.as_deref())?;
+    let prepared = prepare_input(&target)?;
 
     let mut args = vec![
         "compile".to_string(),
         "--root".to_string(),
-        root.clone(),
+        prepared.root.clone(),
         "--format".to_string(),
         "pdf".to_string(),
     ];
-    args.extend(super::font_path_args(Path::new(&root)));
-    args.push(input.to_string_lossy().to_string());
+    args.extend(super::font_path_args(Path::new(&prepared.root)));
+    args.push(prepared.input.clone());
     args.push("-".to_string());
 
-    let outcome = run_cancelable(&app, &state, generation, args).await;
-    if let Some(mirror) = mirror {
-        let _ = fs::remove_file(mirror);
-    }
-    let (code, stdout, stderr) = outcome?;
+    let (code, stdout, stderr) = run_cancelable(&app, &state, generation, args).await?;
 
     if code != Some(0) {
         return Err(TypstError::CompilationFailed(stderr));
@@ -520,34 +560,27 @@ pub async fn typst_export_pdf(
 pub async fn typst_export_png(
     app: AppHandle,
     state: tauri::State<'_, EngineState>,
-    document: String,
-    root: String,
+    target: CompileTarget,
     output: String,
     page: usize,
-    content: Option<String>,
 ) -> Result<String, TypstError> {
     let generation = state.next_generation();
-    let document_path = PathBuf::from(&document);
-    let (input, mirror) = prepare_input(&document_path, content.as_deref())?;
+    let prepared = prepare_input(&target)?;
 
     let mut args = vec![
         "compile".to_string(),
         "--root".to_string(),
-        root.clone(),
+        prepared.root.clone(),
         "--format".to_string(),
         "png".to_string(),
         "--pages".to_string(),
         page.to_string(),
     ];
-    args.extend(super::font_path_args(Path::new(&root)));
-    args.push(input.to_string_lossy().to_string());
+    args.extend(super::font_path_args(Path::new(&prepared.root)));
+    args.push(prepared.input.clone());
     args.push(output.clone());
 
-    let outcome = run_cancelable(&app, &state, generation, args).await;
-    if let Some(mirror) = mirror {
-        let _ = fs::remove_file(mirror);
-    }
-    let (code, _stdout, stderr) = outcome?;
+    let (code, _stdout, stderr) = run_cancelable(&app, &state, generation, args).await?;
 
     if code != Some(0) {
         return Err(TypstError::CompilationFailed(stderr));
@@ -704,33 +737,76 @@ warning: unknown font family: flux\n\
         assert_eq!(strip_download_progress(solo_ruido), "");
     }
 
-    #[test]
-    fn prepare_input_sin_cambios_compila_el_fichero_real() {
-        let dir = tempfile::tempdir().unwrap();
-        let document = dir.path().join("main.typ");
-        fs::write(&document, "= Hola").unwrap();
-
-        let (input, mirror) = prepare_input(&document, None).unwrap();
-        assert_eq!(input, document);
-        assert!(mirror.is_none());
+    /// Objetivo de compilación de un proyecto de carpeta, para los tests.
+    fn target(root: &Path, document: &str) -> CompileTarget {
+        CompileTarget {
+            document: root.join(document).to_string_lossy().to_string(),
+            root: root.to_string_lossy().to_string(),
+            single_file: false,
+            dirty_path: None,
+            dirty_content: None,
+        }
     }
 
     #[test]
-    fn prepare_input_con_cambios_escribe_un_espejo_junto_al_documento() {
+    fn prepare_input_compila_desde_la_replica_no_desde_el_proyecto() {
+        // El cambio de fondo del Slice 29: la app deja de escribir en la
+        // carpeta del usuario y de compilar dentro de ella (RF-02b).
         let dir = tempfile::tempdir().unwrap();
-        let document = dir.path().join("main.typ");
-        fs::write(&document, "= Guardado").unwrap();
+        fs::write(dir.path().join("main.typ"), "= Hola").unwrap();
 
-        let (input, mirror) = prepare_input(&document, Some("= Sin guardar")).unwrap();
+        let prepared = prepare_input(&target(dir.path(), "main.typ")).unwrap();
 
-        // El espejo vive en la misma carpeta: es lo que hace que las rutas
-        // relativas del documento resuelvan igual que en el fichero real.
-        assert_eq!(input.parent(), document.parent());
-        assert_eq!(input.file_name().unwrap(), MIRROR_FILE_NAME);
-        assert_eq!(fs::read_to_string(&input).unwrap(), "= Sin guardar");
-        assert_eq!(mirror, Some(input));
-        // Y el documento real no se ha tocado.
-        assert_eq!(fs::read_to_string(&document).unwrap(), "= Guardado");
+        assert_ne!(prepared.root(), dir.path().to_string_lossy());
+        assert!(Path::new(prepared.input()).is_file());
+        // El contenido llega sembrado con anclas (RF-16): render y tabla de
+        // anclas salen del MISMO árbol, nunca de dos réplicas distintas.
+        let replicado = fs::read_to_string(prepared.input()).unwrap();
+        assert!(replicado.contains("= Hola"));
+        assert!(replicado.contains("<dbv-sync>"));
+    }
+
+    #[test]
+    fn prepare_input_no_deja_nada_en_la_carpeta_del_usuario() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("main.typ"), "= Hola").unwrap();
+        let mut objetivo = target(dir.path(), "main.typ");
+        objetivo.dirty_path = Some(dir.path().join("main.typ").to_string_lossy().to_string());
+        objetivo.dirty_content = Some("= Sin guardar".to_string());
+
+        let _prepared = prepare_input(&objetivo).unwrap();
+
+        let en_disco: Vec<String> = fs::read_dir(dir.path())
+            .unwrap()
+            .flatten()
+            .map(|entry| entry.file_name().to_string_lossy().to_string())
+            .collect();
+        assert_eq!(en_disco, vec!["main.typ".to_string()]);
+        assert_eq!(fs::read_to_string(dir.path().join("main.typ")).unwrap(), "= Hola");
+    }
+
+    #[test]
+    fn el_capitulo_sin_guardar_llega_al_documento_raiz_que_lo_incluye() {
+        // Lo que el espejo `.dbv-preview.typ` no podía hacer: `main.typ` incluye
+        // al capítulo REAL, nunca a un fichero con otro nombre.
+        let dir = tempfile::tempdir().unwrap();
+        fs::create_dir_all(dir.path().join("chapters")).unwrap();
+        fs::write(dir.path().join("main.typ"), "#include \"chapters/01.typ\"\n").unwrap();
+        let capitulo = dir.path().join("chapters/01.typ");
+        fs::write(&capitulo, "= Guardado\n").unwrap();
+
+        let mut objetivo = target(dir.path(), "main.typ");
+        objetivo.dirty_path = Some(capitulo.to_string_lossy().to_string());
+        objetivo.dirty_content = Some("= Sin guardar\n".to_string());
+        let prepared = prepare_input(&objetivo).unwrap();
+
+        let capitulo_replicado = Path::new(prepared.root()).join("chapters/01.typ");
+        let replicado = fs::read_to_string(capitulo_replicado).unwrap();
+        assert!(replicado.contains("= Sin guardar"));
+        assert!(!replicado.contains("= Guardado"));
+        // El ancla apunta al capítulo y a su primera línea REAL.
+        assert!(replicado.contains("f: \"chapters/01.typ\", l: 1"));
+        assert_eq!(fs::read_to_string(&capitulo).unwrap(), "= Guardado\n");
     }
 
     #[test]

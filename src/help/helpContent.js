@@ -33,12 +33,12 @@ export const HELP_SECTIONS = [
           es: [
             'Plantillas incluidas: proyecto en blanco, TFG, TFM, tesis doctoral, artículo académico, informe técnico, presentación y currículum.',
             'Al elegir una plantilla se abre un formulario (título, autor, institución, tutor, curso...) y esos datos se escriben ya dentro del documento: no hay que buscarlos luego en el código.',
-            'Los proyectos recientes aparecen en el lanzador para volver a ellos de un clic.',
+            'Los proyectos recientes aparecen en el lanzador para volver a ellos de un clic; al pasar el ratón por encima puedes eliminar de la lista con una cruz los que ya no necesites.',
           ],
           en: [
             'Bundled templates: blank project, bachelor thesis, master thesis, doctoral thesis, academic paper, technical report, presentation and CV.',
             'Choosing a template opens a form (title, author, institution, supervisor, academic year...) and those values are written into the document itself: no need to hunt for them in the code later.',
-            'Recent projects are listed in the launcher so you can reopen them with one click.',
+            'Recent projects are listed in the launcher so you can reopen them with one click; hovering over an entry lets you remove it with a cross if no longer needed.',
           ],
         },
       },
@@ -130,13 +130,13 @@ export const HELP_SECTIONS = [
             'Cita: despliega las claves reales del fichero .bib del proyecto, filtrables escribiendo. Al final de la lista, "Nueva entrada bibliográfica" abre un formulario (artículo, libro, actas, tesis, TFM u otro) que sugiere la clave a partir del autor y el año, avisa si ya existe, la añade a refs.bib e inserta la cita donde estaba el cursor.',
             'Σ (símbolos): galería de símbolos matemáticos con filtro de texto. Dentro de una ecuación inserta el nombre a secas; fuera, lo envuelve en $...$ automáticamente.',
             'Tabla: pregunta filas, columnas y si lleva cabecera. La cabecera usa la forma oficial table.header(...) y el cursor cae en la primera celda del cuerpo.',
-            'Figura: abre un selector de imagen; el fichero se copia a la carpeta images/ del proyecto (sin sobrescribir nada) y se inserta la figura con su pie. También puedes arrastrar una imagen desde el explorador del sistema directamente sobre el editor.',
+            'Figura: despliega las imágenes ya existentes en la carpeta images/ o permite examinar el equipo para añadir una nueva (se copia automáticamente a images/ sin sobrescribir). También puedes arrastrar archivos de imagen directamente sobre el editor.',
           ],
           en: [
             'Citation: drops down the actual keys from the project .bib file, filterable as you type. At the end of the list, "New bibliography entry" opens a form (article, book, proceedings, thesis, master thesis or other) that suggests a key from author and year, warns if it already exists, appends it to refs.bib and inserts the citation at the cursor.',
             'Σ (symbols): a gallery of maths symbols with a text filter. Inside an equation it inserts the bare name; outside, it wraps it in $...$ automatically.',
             'Table: asks for rows, columns and whether it has a header. The header uses the official table.header(...) form and the cursor lands in the first body cell.',
-            'Figure: opens an image picker; the file is copied into the project images/ folder (never overwriting anything) and the figure is inserted with its caption. You can also drag an image from your file manager straight onto the editor.',
+            'Figure: lists existing images in the project images/ folder or lets you browse your computer to add a new one (copied automatically to images/ without overwriting). You can also drag image files directly onto the editor.',
           ],
         },
       },
@@ -147,12 +147,16 @@ export const HELP_SECTIONS = [
     title: { es: 'Vista previa', en: 'Preview' },
     blocks: [
       {
-        es: 'La vista previa se actualiza sola mientras escribes, sin guardar. Muestra el documento compuesto de verdad, no una aproximación.',
-        en: 'The preview updates by itself as you type, without saving. It shows the actually typeset document, not an approximation.',
+        es: 'La vista previa muestra el documento compuesto de verdad, con sincronización interactiva con el editor y modos de compilación adaptables.',
+        en: 'The preview shows the actually typeset document, with interactive synchronization with the editor and adaptable compilation modes.',
       },
       {
         list: {
           es: [
+            'Ámbito de compilación (Doc / Fich): compila el documento raíz (main.typ) o únicamente el archivo abierto. Compilar el documento completo mantiene el contexto de capítulos, etiquetas y referencias bibliográficas mientras editas módulos sueltos.',
+            'Modo de refresco (Automático / Manual): el modo automático recompila mientras escribes; el modo manual (botón Refrescar) ahorra CPU y batería en documentos muy extensos.',
+            'Sincronización bidireccional: haz doble clic en cualquier punto de la vista previa para navegar de inmediato a ese archivo y línea en el editor. El botón con icono de chincheta (Llevar la vista previa al cursor) desplaza la vista previa a la página donde se encuentra el cursor de edición.',
+            'Indicador de carga: al abrir un proyecto o desplazarte velozmente por documentos extensos, un indicador animado señala que la página se está componiendo.',
             'Zoom: los botones − y + recorren pasos fijos; el porcentaje del centro vuelve al 100%.',
             'Ajustar al ancho (↔): calcula el zoom necesario para que la página ocupe todo el panel, y lo recalcula solo si cambias el tamaño de la ventana o muestras/ocultas paneles.',
             'Si el documento tiene un error de sintaxis, la vista previa NO se borra: se mantiene la última versión correcta y el problema aparece en la banda inferior.',
@@ -160,6 +164,10 @@ export const HELP_SECTIONS = [
             'Un clic en un encabezado del panel Esquema lleva la vista previa a esa página y posición.',
           ],
           en: [
+            'Compilation scope (Doc / File): compiles either the root document (main.typ) or only the currently open file. Compiling the full document preserves cross-references, chapters, and bibliography context while editing modular files.',
+            'Refresh mode (Automatic / Manual): automatic mode recompiles as you type; manual mode (Refresh button) saves CPU and battery on very long documents.',
+            'Bidirectional sync: double-click anywhere on the preview to jump straight to that file and line in the editor. The pin button (Take preview to cursor) scrolls the preview to the current cursor position.',
+            'Loading indicator: when opening a project or scrolling rapidly through long documents, an animated spinner indicates that pages are being rendered.',
             'Zoom: the − and + buttons step through fixed levels; the percentage in the middle resets to 100%.',
             'Fit width (↔): computes the zoom needed for the page to fill the panel, and recomputes it automatically if you resize the window or show/hide panels.',
             'If the document has a syntax error the preview is NOT cleared: the last good version stays on screen and the problem is shown in the bottom band.',

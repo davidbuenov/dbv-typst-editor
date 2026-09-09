@@ -92,6 +92,9 @@
           <button id="btn-theme-dark" class="segmented-control__btn" type="button" data-i18n-title="theme.dark" aria-label="Dark">🌙</button>
           <button id="btn-theme-sepia" class="segmented-control__btn" type="button" data-i18n-title="theme.sepia" aria-label="Sepia">📜</button>
         </div>
+        <button id="btn-always-on-top" class="icon-button" type="button" data-i18n-title="action.alwaysOnTop">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 17v5M8.5 12.5L5 14l7-7 7 7-3.5-1.5M8.5 12.5L7 6l5-2 5 2-1.5 6.5M8.5 12.5h7"/></svg>
+        </button>
         <button id="btn-terminal" class="icon-button" type="button" data-i18n-title="action.terminal">&gt;_</button>
         <button id="btn-python" class="icon-button" type="button" data-i18n-title="action.python">🐍</button>
         <button id="btn-universe" class="icon-button" type="button" disabled data-i18n-title="action.universe">✦</button>
@@ -326,6 +329,14 @@
         <div class="modal__actions template-gallery__footer">
           <button id="template-gallery-cancel" class="button" type="button" data-i18n="gallery.close"></button>
           <button id="template-gallery-use" class="button button--primary" type="button" data-i18n="gallery.useTemplate"></button>
+        </div>
+
+        <!-- RF-29: la página a 340 px basta para reconocer la estructura, no para
+             leerla. Esta capa la amplía sin sacar al usuario de la galería: al
+             cerrarla siguen intactas la plantilla elegida y la pestaña abierta. -->
+        <div class="template-gallery__zoom hidden" id="template-gallery-zoom" role="dialog" aria-modal="true">
+          <button id="template-gallery-zoom-close" class="icon-button template-gallery__zoom-close" type="button" data-i18n-title="gallery.zoomClose">✕</button>
+          <div class="template-gallery__zoom-page" id="template-gallery-zoom-content"></div>
         </div>
       </div>
     </div>

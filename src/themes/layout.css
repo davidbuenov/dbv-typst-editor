@@ -1145,7 +1145,63 @@
 }
 
 /* ─── Modal de Galería de Plantillas (RF-20) ──────────────────────────────── */
+/* ─── Vista ampliada de la página de plantilla (RF-29) ───────────────────────
+   La miniatura de 340 px sirve para reconocer la estructura, no para leerla.
+   Esta capa cubre el modal de la galería, no la ventana entera: al cerrarla, la
+   galería sigue exactamente como estaba, con su plantilla y su pestaña. */
+.template-gallery__zoom {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius);
+  z-index: 1;
+}
+
+.template-gallery__zoom-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+}
+
+/* La página crece hasta donde da el alto disponible conservando la proporción
+   del papel: el SVG ya trae su relación de aspecto, así que basta con soltarle
+   el alto y dejar que el ancho lo siga. */
+.template-gallery__zoom-page {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.template-gallery__zoom-page .template-gallery__page-canvas {
+  height: 100%;
+  width: auto;
+  box-shadow: 0 16px 48px var(--shadow);
+}
+
+.template-gallery__zoom-page svg {
+  height: 100%;
+  width: auto;
+  display: block;
+}
+
+/* Que se pueda pulsar tiene que verse: una ampliación que nadie encuentra no
+   existe (RF-29.5). */
+.template-gallery__preview .template-gallery__page-canvas {
+  cursor: zoom-in;
+  transition: box-shadow var(--transition), transform var(--transition);
+}
+
+.template-gallery__preview .template-gallery__page-canvas:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 28px var(--shadow);
+}
+
 .modal__card--gallery {
+  position: relative;
   width: min(1080px, calc(100vw - 32px));
   height: min(780px, calc(100vh - 48px));
   display: flex;

@@ -445,3 +445,132 @@ describe('galería unificada de tres pestañas (RF-26)', () => {
     expect(gallery.getVisibleTemplates()).toHaveLength(2);
   });
 });
+
+// ─── RF-29: ver la página a tamaño grande ───────────────────────────────────
+describe('vista ampliada de la previsualización (RF-29)', () => {
+  const catalogo = [
+    { id: '@local/dbv-tfg', name: 'dbv-tfg', version: '1.0.0', description: 'TFG' },
+  ];
+
+  function montarConZoom() {
+    const dialogEl = document.createElement('div');
+    dialogEl.className = 'modal hidden';
+
+    const listEl = document.createElement('div');
+    const previewEl = document.createElement('div');
+    const metaEl = document.createElement('div');
+    const searchWrap = document.createElement('div');
+    const searchEl = document.createElement('input');
+    searchWrap.append(searchEl);
+    const useBtnEl = document.createElement('button');
+    const cancelBtnEl = document.createElement('button');
+    const sidebarEl = document.createElement('aside');
+
+    const zoomEl = document.createElement('div');
+    zoomEl.className = 'hidden';
+    const zoomContentEl = document.createElement('div');
+    const zoomCloseEl = document.createElement('button');
+    zoomEl.append(zoomCloseEl, zoomContentEl);
+
+    sidebarEl.append(listEl);
+    dialogEl.append(searchWrap, sidebarEl, previewEl, metaEl, useBtnEl, cancelBtnEl, zoomEl);
+    document.body.append(dialogEl);
+
+    const gallery = createTemplateGalleryModal({
+      dialogEl,
+      listEl,
+      previewEl,
+      searchEl,
+      useBtnEl,
+      cancelBtnEl,
+      metaEl,
+      onSelectTemplate: vi.fn(),
+      sidebarEl,
+      zoomEl,
+      zoomContentEl,
+      zoomCloseEl,
+    });
+
+    return { gallery, dialogEl, previewEl, zoomEl, zoomContentEl, zoomCloseEl };
+  }
+
+  it('pulsar la página la amplía', () => {
+    const { gallery, previewEl, zoomEl, zoomContentEl } = montarConZoom();
+    gallery.open(null, catalogo);
+
+    previewEl.querySelector('.template-gallery__page-canvas').click();
+
+    expect(gallery.isZoomOpen()).toBe(true);
+    expect(zoomEl.classList.contains('hidden')).toBe(false);
+    // La página se CLONA: la galería de debajo sigue mostrando la suya.
+    expect(zoomContentEl.querySelector('svg')).not.toBeNull();
+    expect(previewEl.querySelector('svg')).not.toBeNull();
+  });
+
+  it('el control de cierre la cierra', () => {
+    const { gallery, zoomCloseEl } = montarConZoom();
+    gallery.open(null, catalogo);
+    gallery.openZoom();
+
+    zoomCloseEl.click();
+
+    expect(gallery.isZoomOpen()).toBe(false);
+  });
+
+  it('pulsar el fondo la cierra, pero pulsar la página no', () => {
+    const { gallery, zoomEl, zoomContentEl } = montarConZoom();
+    gallery.open(null, catalogo);
+    gallery.openZoom();
+
+    // Sobre la propia página no: ahí es donde se está mirando.
+    zoomContentEl.click();
+    expect(gallery.isZoomOpen()).toBe(true);
+
+    zoomEl.click();
+    expect(gallery.isZoomOpen()).toBe(false);
+  });
+
+  it('Escape cierra la ampliación y NO la galería', () => {
+    // Cerrarlo todo de golpe obligaría a rehacer la búsqueda y la selección.
+    const { gallery, dialogEl } = montarConZoom();
+    gallery.open(null, catalogo);
+    gallery.openZoom();
+
+    dialogEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+
+    expect(gallery.isZoomOpen()).toBe(false);
+    expect(gallery.isOpen()).toBe(true);
+  });
+
+  it('el segundo Escape ya sí cierra la galería', () => {
+    const { gallery, dialogEl } = montarConZoom();
+    gallery.open(null, catalogo);
+    gallery.openZoom();
+
+    dialogEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    dialogEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+
+    expect(gallery.isOpen()).toBe(false);
+  });
+
+  it('al cerrar la ampliación no se pierde la plantilla seleccionada', () => {
+    const { gallery } = montarConZoom();
+    gallery.open(null, catalogo);
+    const antes = gallery.getSelectedTemplate();
+
+    gallery.openZoom();
+    gallery.closeZoom();
+
+    expect(gallery.getSelectedTemplate()).toBe(antes);
+  });
+
+  it('cerrar la galería no deja la ampliación colgando', () => {
+    const { gallery } = montarConZoom();
+    gallery.open(null, catalogo);
+    gallery.openZoom();
+
+    gallery.close();
+
+    expect(gallery.isZoomOpen()).toBe(false);
+  });
+});

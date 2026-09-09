@@ -20,6 +20,7 @@ import { createHelp } from './help/help.js';
 import { createUniversePanel } from './universe/universePanel.js';
 import { getCuratedUniverseTemplatesCatalog } from './universe/universeThumbnails.js';
 import { importPackageAction } from './universe/universeSpec.js';
+import { createAlwaysOnTop } from './app/alwaysOnTop.js';
 import { createLauncher } from './launcher/launcher.js';
 import { createTemplateGalleryModal } from './launcher/templateGalleryModal.js';
 import { createOutline } from './outline/outline.js';
@@ -55,6 +56,7 @@ import { createSplitter } from './ui/splitter.js';
 import { createToast } from './ui/toast.js';
 import { cycleTheme, getTheme, initTheme, setTheme } from './themes/theme.js';
 import { getCurrentWebview } from '@tauri-apps/api/webview';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 
 const el = (id) => document.getElementById(id);
 
@@ -611,6 +613,9 @@ async function bootstrap() {
     specErrorEl: el('template-gallery-spec-error'),
     specPreviewBtnEl: el('template-gallery-spec-preview'),
     onPreviewSpec: (spec) => previewUniverseTemplate(spec),
+    zoomEl: el('template-gallery-zoom'),
+    zoomContentEl: el('template-gallery-zoom-content'),
+    zoomCloseEl: el('template-gallery-zoom-close'),
   });
 
   el('template-gallery-close-x')?.addEventListener('click', () => templateGallery.close());
@@ -855,6 +860,7 @@ async function bootstrap() {
     workspace.renderDocumentBar();
     preview.refreshStatus();
     refreshPreviewControls();
+    alwaysOnTop.refreshLanguage();
   });
 
   await Promise.all([renderAbout(), launcher.load()]);
@@ -863,6 +869,15 @@ async function bootstrap() {
   // RF-12): se abre ese documento en vez del lanzador.
   const startup = await getStartupDocument();
   if (startup.ok && startup.value) await openPath(startup.value);
+
+  // Chincheta de ventana encima (RF-28), portada de DBV Markdown Reader. La
+  // ventana se inyecta en vez de importarse dentro del módulo para que este se
+  // pueda probar sin Tauri.
+  const alwaysOnTop = createAlwaysOnTop({
+    buttonEl: el('btn-always-on-top'),
+    appWindow: getCurrentWindow(),
+    onError: (message) => toast.show(`${t('action.alwaysOnTop')}: ${message}`, 'error'),
+  });
 
   // Instancia única (Beta): un segundo lanzamiento (otro doble clic sobre un
   // `.typ` con la app ya abierta) no crea un proceso nuevo — el backend

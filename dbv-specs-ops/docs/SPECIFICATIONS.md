@@ -1,7 +1,7 @@
 # 📋 Especificaciones: DBV Typst Editor
 
 > **Fase:** `/spec` (Especificación) → **v0.5.0 especificada (reabierta y ampliada)**
-> **Estado:** 🔒 **CONGELADO v1.4 — 2026-09-09** (con una precisión añadida el mismo día y antes de construir nada: RF-26 criterio 10) (baseline de especificación v0.5.0, ampliada). v1.3 especificó el salto a productividad profesional y robustez (v0.5.0): Integración con Git y resolución visual de conflictos (RF-19), Galería visual de plantillas con previsualización (RF-20), Inteligencia de código con Tinymist LSP vendorizado (RF-21), Figuras y datos dinámicos con Python (RF-22), Asistente visual de diagramas CeTZ (RF-23), y Robustez de entorno y guardado atómico (RF-24). **v1.4 reabre ese `/spec`, a decisión del usuario y antes de entregar la versión, para consolidar el lanzador** (§5d): Lanzador de una sola vía (RF-25), Galería unificada de creación de documentos (RF-26) y Tokens semánticos de estado (RF-27). El motivo es que `/build` de v0.5.0 dejó **tres** superficies distintas para elegir plantilla; ver `ADR-LANZADOR-001` en `memory.md`.
+> **Estado:** 🔒 **CONGELADO v1.5 — 2026-09-09.** v1.4 consolidó el lanzador (§5d, RF-25 a RF-27, con la precisión de RF-26 criterio 10 añadida el mismo día). **v1.5 añade §5e** —RF-28 (chincheta de ventana encima, portada de DBV Markdown Reader) y RF-29 (ver la previsualización de plantilla a tamaño grande)— tras probar el usuario la aplicación construida, más **§5e.1, que documenta el alcance real de la integración con Git** y por qué NO es integración con GitHub. Ver `ADR-VENTANA-001` en `memory.md`. (baseline de especificación v0.5.0, ampliada). v1.3 especificó el salto a productividad profesional y robustez (v0.5.0): Integración con Git y resolución visual de conflictos (RF-19), Galería visual de plantillas con previsualización (RF-20), Inteligencia de código con Tinymist LSP vendorizado (RF-21), Figuras y datos dinámicos con Python (RF-22), Asistente visual de diagramas CeTZ (RF-23), y Robustez de entorno y guardado atómico (RF-24). **v1.4 reabre ese `/spec`, a decisión del usuario y antes de entregar la versión, para consolidar el lanzador** (§5d): Lanzador de una sola vía (RF-25), Galería unificada de creación de documentos (RF-26) y Tokens semánticos de estado (RF-27). El motivo es que `/build` de v0.5.0 dejó **tres** superficies distintas para elegir plantilla; ver `ADR-LANZADOR-001` en `memory.md`.
 > **Regla de congelación:** a partir de aquí, cualquier cambio de alcance o de requisito exige (1) registrarlo como ADR en `memory.md`, (2) actualizar este documento con nueva versión, y (3) revisar el impacto en `implementation_plan.md`. No se modifican requisitos "al vuelo" durante `/build`.
 > **Documento de diseño:** el sistema visual que rige §5d está en [`DESIGN.md`](./DESIGN.md), escrito el 2026-09-09 (deuda documental abierta desde el `/spec` original, saldada al abordar este rediseño).
 > **Última Revisión:** 2026-09-09
@@ -272,6 +272,67 @@ Toda la aplicación (lanzador, asistente de creación, explorador de ficheros, e
     3. *`--accent-subtle` declarado.* `layout.css:1148` lo usa con respaldo (`var(--accent-subtle, rgba(2, 132, 199, 0.15))`) pero nunca se declaró, así que **siempre gana el respaldo** y el anillo de foco del buscador de la galería es azul incluso en sepia. Se declara en los tres temas.
     4. *Verificación.* `npm run verify:layout` en verde tras el cambio, ejecutado donde pueda ejecutarse de verdad (CI o una máquina con Chrome utilizable).
 
+## ✨ 5e. Funcionalidades — v0.5.0 (Pulido de ventana y previsualización)
+
+> Alcance **añadido el 2026-09-09**, tercera y última ampliación del `/spec` de v0.5.0, a petición
+> explícita del usuario tras probar la aplicación construida. Dos peticiones pequeñas y contenidas que
+> entran antes de la entrega para no obligar a una segunda pasada manual.
+
+- [ ] **RF-28 Chincheta "mantener la ventana encima".**
+  El usuario lo describió como *"esencial en mis aplicaciones y todas la tienen, aquí se había pasado"*.
+  No es una funcionalidad nueva del ecosistema DBV: **existe ya en DBV Markdown Reader** y aquí solo se
+  porta, igual que se portaron el watcher, los temas, los paneles flotantes y el selector segmentado.
+  - **Criterios de aceptación:**
+    1. *Un control en la cabecera*, junto al resto de herramientas de ventana, con el mismo pictograma de chincheta que usa DBV Markdown Reader — la misma acción no debe tener dos dibujos distintos entre aplicaciones de la familia.
+    2. *Alterna y se ve*: al activarse queda marcado como activo, y su descripción cambia para decir cómo desactivarlo. Un control que no dice si está encendido obliga a probarlo para saberlo.
+    3. *Por ventana y sin persistencia*, replicando la decisión ya tomada en DBV Markdown Reader (su `ADR-023`): el estado no sobrevive al cierre de la aplicación. Fijar una ventana encima es una decisión del momento —"quiero verla mientras trabajo en otra cosa"—, no una preferencia permanente, y arrancar siempre por encima del resto sorprendería.
+    4. *Permisos mínimos*: `core:default` de Tauri **no** incluye las capacidades de ventana que mutan estado. Se añaden únicamente `core:window:allow-set-always-on-top` y `core:window:allow-is-always-on-top`, siguiendo la regla de menor privilegio que ya declara `capabilities/main.json` ("se añaden por slice, según se necesitan").
+    5. *Degrada limpiamente*: si la llamada falla, el control no se queda mintiendo sobre su estado.
+
+- [ ] **RF-29 Ver la previsualización de plantilla a tamaño grande.**
+  La vista previa maquetada de la galería (RF-20/RF-26) se pinta a unos 340 px de ancho: suficiente para
+  reconocer la estructura, insuficiente para leer nada. El usuario lo resumió como *"se ve bien, pero muy
+  pequeñita"*.
+  - **Criterios de aceptación:**
+    1. *Pulsar la página la amplía* a un tamaño en el que el texto simulado y la maquetación se distinguen de verdad, aprovechando la ventana disponible.
+    2. *Salir es obvio y barato*: se cierra con `Escape`, pulsando fuera, y con un control visible. No debe hacer falta adivinar cómo volver.
+    3. *No se pierde el contexto*: al cerrar la ampliación se vuelve a la galería con la misma plantilla seleccionada y la misma pestaña abierta.
+    4. *Se aplica a las tres pestañas*, incluida la previsualización descargada de un identificador libre: es la que más falta hace, porque es la única que el usuario no ha visto nunca antes de crear el proyecto.
+    5. *Es descubrible*: el cursor y una pista indican que la página se puede pulsar. Una ampliación que nadie encuentra no existe.
+
+### 5e.1. Alcance real de la integración con Git (RF-19) — aclaración, no cambio
+
+> Escrito el 2026-09-09 a petición del usuario, que preguntó *"lo que no sé cómo se hace o si se ha hecho
+> es la integración con GitHub"*. **No hay ningún cambio de alcance aquí**: esta sección documenta lo que
+> RF-19 hace hoy y, sobre todo, lo que **no** hace, porque la diferencia no era evidente desde la interfaz.
+
+**Lo que existe es integración con Git, no con GitHub.** La aplicación se apoya en la CLI de Git ya
+instalada en el sistema (`ADR` de RF-19: apoyarse en el binario del usuario, no vendorizar Git) y expone
+exactamente cuatro operaciones, en `commands/git.rs`:
+
+| Comando | Qué hace |
+| --- | --- |
+| `git_status` | Rama activa, adelanto/retraso respecto al remoto (`↑1 ↓0`), ficheros modificados y sin seguir |
+| `git_commit` | `git add` de lo indicado + `git commit -m` |
+| `git_push` | `git push` sobre el remoto ya configurado |
+| `git_pull` | `git pull` sobre el remoto ya configurado |
+
+**Nada de esto es específico de GitHub.** No hay inicio de sesión, ni clonado desde una URL, ni creación
+de repositorios, ni *pull requests*, ni *issues*, ni lectura de la API de GitHub. Funciona igual con
+GitLab, Codeberg, un remoto por SSH o un repositorio puramente local.
+
+**Cómo se resuelve entonces la autenticación, que es la parte que sorprende.** La aplicación **nunca pide
+credenciales**: lanza Git con `GIT_TERMINAL_PROMPT=0` y `GIT_ASKPASS` vacío, a propósito, porque un
+proceso hijo que se queda esperando una contraseña en una terminal que no existe colgaría la operación
+sin explicación. En consecuencia, `push` y `pull` contra un remoto privado funcionan **solo si el gestor
+de credenciales del sistema** (Git Credential Manager en Windows, el llavero en macOS, el *helper*
+configurado en Linux) ya puede resolverlas. Si no, la operación falla y el error de Git se muestra tal
+cual en el panel. Esto es una consecuencia deliberada del diseño, no una carencia de la implementación.
+
+**El hueco reconocido:** no se puede clonar un repositorio desde la aplicación. El texto del lanzador ya
+lo refleja con honestidad —habla de abrir "un repositorio clonado"—, dando por hecho que el usuario lo
+clonó por su cuenta. Cubrirlo es trabajo de v0.6.0 (ver §9).
+
 ## 🚀 6. Funcionalidades — Beta y v1.0 (detalle del Spec Addendum)
 
 Estas funcionalidades están **descritas y arquitectónicamente resueltas** (ver `ARCHITECTURE.md` §7.6–§7.14 y `TYPST_ECOSYSTEM_RESEARCH.md`) pero **fuera del MVP v0.1** por decisión explícita de alcance del usuario. Nota de encuadre: el **Universe Browser** (Package Explorer + Template Explorer, ver árbol de navegación en `ARCHITECTURE.md` §7.6.0.1) se posiciona como punto de entrada de primer nivel de la aplicación (§2), no como un add-on menor — esto afecta a su importancia de diseño y visibilidad en Beta, no reabre el acuerdo de fases ya cerrado con el usuario (el Lanzador de plantillas curadas, MVP, ya adelanta esta experiencia — ver `ARCHITECTURE.md` §7.6):
@@ -338,6 +399,15 @@ Estas funcionalidades están **descritas y arquitectónicamente resueltas** (ver
 - [x] ¿Cómo empaquetar Tinymist (v0.5.0)? → **Resuelto por decisión del usuario (2026-09-09): vendorizado como sidecar** por plataforma (igual que el compilador Typst), sin depender de que el usuario lo instale.
 - [x] ¿Cómo integrar el control de versiones Git (v0.5.0)? → **Resuelto por decisión del usuario (2026-09-09): apoyarse en la CLI nativa de Git instalada en el sistema del usuario**, con detección en PATH y degradación limpia si no está presente.
 - [x] ¿La pestaña de identificador libre de la galería (RF-26) debe previsualizar la plantilla antes de crear el documento? → **Resuelto por decisión del usuario (2026-09-09): previsualización solo bajo un control explícito** que declara que descarga y ejecuta la plantilla. Se descartaron las dos alternativas: no ofrecer previsualización (pierde el rasgo distintivo de la pantalla) y previsualizar automáticamente al validar el identificador (descargaría y ejecutaría código de terceros solo por teclear, en contra de `ARCHITECTURE.md` §6).
+
+- [ ] **¿Qué debe cubrir la integración con GitHub, y hasta dónde?** Planteada el 2026-09-09 por el usuario, que pidió expresamente **analizar todas las alternativas al inicio de v0.6.0** en vez de decidirlo sobre la marcha. Punto de partida: hoy hay integración con **Git**, no con GitHub (§5e.1) — cuatro operaciones sobre la CLI del sistema y ninguna funcionalidad específica de la plataforma. Alternativas a evaluar, de menor a mayor compromiso:
+  1. **No hacer nada específico de GitHub.** Documentar bien lo que hay y dejar que el usuario clone por fuera. Coste cero; el hueco (no se puede clonar desde la app) sigue abierto.
+  2. **Clonar desde una URL.** Pegar una URL en el lanzador, clonar con la CLI y abrir el proyecto. Es el hueco más evidente y el único que no necesita autenticación **si el repositorio es público**. Sobre uno privado vuelve a depender del gestor de credenciales del sistema, con el mismo límite de §5e.1.
+  3. **Publicar un proyecto local en GitHub.** `git init` + crear el repositorio remoto + primer *push*. Esto ya **no se puede hacer solo con la CLI**: crear el repositorio exige la API de GitHub y, por tanto, un token.
+  4. **Autenticación propia de la aplicación.** Que DBV gestione el acceso en vez de depender del gestor de credenciales del sistema. Aquí hay que elegir mecanismo (*device flow* de OAuth frente a token personal pegado a mano) y, sobre todo, **dónde se guarda el secreto**: un editor offline-first que empieza a custodiar credenciales cambia de categoría en cuanto a superficie de riesgo, y eso afecta a la ficha de privacidad de las tiendas.
+  5. **Usar la CLI `gh` si está instalada**, en lugar de hablar con la API. Reutiliza la autenticación que el usuario ya tenga hecha y evita custodiar nada — coherente con la decisión de RF-19 de apoyarse en el binario del sistema— a cambio de depender de una herramienta que la mayoría no tiene instalada.
+
+  **Preguntas que la evaluación debe responder, no solo listar:** ¿cuántos usuarios de este producto usan Git siquiera, siendo un editor pensado para quien "quiere escribir su TFG" y no para desarrolladores? ¿Justifica eso custodiar credenciales? ¿Y encaja atarse a **una** plataforma en un producto que hasta ahora funciona igual con GitLab, Codeberg o un remoto por SSH? La opción 2 es la única que aporta valor sin responder a ninguna de esas preguntas.
 
 ## 🧪 10. Criterios de Evaluación (No Deterministas)
 

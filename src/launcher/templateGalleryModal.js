@@ -67,6 +67,9 @@ export function countBySource(catalog) {
  * @param {HTMLElement} [deps.specErrorEl] Mensaje de error del identificador
  * @param {HTMLButtonElement} [deps.specPreviewBtnEl] Control que descarga y previsualiza
  * @param {((spec: string) => Promise<{ok: boolean, value?: string, error?: {kind: string}}>)|null} [deps.onPreviewSpec]
+ * @param {HTMLElement} [deps.zoomEl] Capa de vista ampliada (RF-29)
+ * @param {HTMLElement} [deps.zoomContentEl] Contenedor de la página ampliada
+ * @param {HTMLButtonElement} [deps.zoomCloseEl] Control de cierre de la ampliación
  */
 export function createTemplateGalleryModal({
   dialogEl,
@@ -84,6 +87,9 @@ export function createTemplateGalleryModal({
   specErrorEl,
   specPreviewBtnEl,
   onPreviewSpec,
+  zoomEl,
+  zoomContentEl,
+  zoomCloseEl,
 }) {
   /** @type {object[]} Catálogo completo de plantillas */
   let catalog = [];
@@ -322,6 +328,31 @@ export function createTemplateGalleryModal({
     if (key === 'gallery.specNotATemplate' && useBtnEl) useBtnEl.disabled = true;
   }
 
+  function isZoomOpen() {
+    return Boolean(zoomEl) && !zoomEl.classList.contains('hidden');
+  }
+
+  /**
+   * Amplía la página que haya ahora mismo en el panel de vista previa. Se clona
+   * en vez de moverse: al cerrar, la galería sigue mostrando exactamente lo
+   * mismo que antes, sin repintar ni perder la selección (RF-29.3).
+   */
+  function openZoom() {
+    if (!zoomEl || !zoomContentEl || !previewEl) return;
+    const pagina = previewEl.querySelector('.template-gallery__page-canvas');
+    if (!pagina) return;
+
+    zoomContentEl.replaceChildren(pagina.cloneNode(true));
+    zoomEl.classList.remove('hidden');
+    zoomCloseEl?.focus();
+  }
+
+  function closeZoom() {
+    if (!zoomEl) return;
+    zoomEl.classList.add('hidden');
+    zoomContentEl?.replaceChildren();
+  }
+
   function selectTemplate(template) {
     selectedTemplate = template;
     // Actualizar clases de selección en la lista
@@ -398,6 +429,12 @@ export function createTemplateGalleryModal({
 
     if (event.key === 'Escape') {
       event.preventDefault();
+      // Con la ampliación abierta, Escape la cierra a ella y NO la galería:
+      // cerrarlo todo de golpe obligaría a rehacer la búsqueda y la selección.
+      if (isZoomOpen()) {
+        closeZoom();
+        return;
+      }
       close();
       return;
     }
@@ -444,6 +481,18 @@ export function createTemplateGalleryModal({
   if (cancelBtnEl) {
     cancelBtnEl.addEventListener('click', close);
   }
+
+  // La página entera es la zona pulsable: es lo que el usuario mira, y darle
+  // un botón aparte añadiría un control donde ya hay un objetivo evidente.
+  previewEl?.addEventListener('click', (event) => {
+    if (event.target.closest('.template-gallery__page-canvas')) openZoom();
+  });
+
+  zoomCloseEl?.addEventListener('click', closeZoom);
+  // Pulsar el fondo cierra; pulsar la propia página, no — ahí se está mirando.
+  zoomEl?.addEventListener('click', (event) => {
+    if (event.target === zoomEl) closeZoom();
+  });
 
   if (tabsEl) {
     for (const button of tabsEl.querySelectorAll('[data-gallery-tab]')) {
@@ -502,6 +551,7 @@ export function createTemplateGalleryModal({
 
     // Abrir con un identificador de Universe debe dejar visible la pestaña
     // donde esa plantilla vive; si no, la selección quedaría en una lista oculta.
+    closeZoom();
     activeTab = selectedTemplate ? templateSource(selectedTemplate) : 'local';
     typedTemplate = null;
     setActiveTab(activeTab);
@@ -513,6 +563,7 @@ export function createTemplateGalleryModal({
   }
 
   function close() {
+    closeZoom();
     dialogEl.classList.add('hidden');
   }
 
@@ -523,6 +574,9 @@ export function createTemplateGalleryModal({
     selectTemplate,
     setActiveTab,
     getActiveTab: () => activeTab,
+    openZoom,
+    closeZoom,
+    isZoomOpen,
     getVisibleTemplates: () => filteredCatalog.slice(),
     getSelectedTemplate: () => selectedTemplate,
     setCatalog: (newCatalog) => {

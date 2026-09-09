@@ -405,6 +405,7 @@ async function bootstrap() {
       workspaceView: el('workspace-view'),
       emptyView: el('empty-view'),
       universeButton: el('btn-universe'),
+      projectMenuItems: [el('btn-export-archive'), el('btn-reveal'), el('btn-close-project')],
     },
   });
 
@@ -693,11 +694,23 @@ async function bootstrap() {
     await openPath(imported.value.root);
   };
 
+  // Menú Archivo (RF-30). `registerPanel` ya cierra al pulsar fuera y con
+  // Escape; aquí solo falta cerrarlo al elegir algo, porque si no el menú se
+  // queda abierto encima del diálogo del sistema que acaba de abrirse.
+  const fileMenu = registerPanel(el('file-menu'), {
+    trigger: el('btn-file-menu'),
+    toggle: true,
+  });
+  el('file-menu').addEventListener('click', (event) => {
+    if (event.target.closest('.menu-item')) fileMenu.close();
+  });
+
   el('btn-open-folder').addEventListener('click', openFolder);
   el('btn-empty-open-folder').addEventListener('click', openFolder);
   el('btn-open-file').addEventListener('click', openFile);
   el('btn-empty-open-file').addEventListener('click', openFile);
   el('btn-import-archive').addEventListener('click', importArchive);
+  el('btn-menu-import-archive').addEventListener('click', importArchive);
   el('btn-reveal').addEventListener('click', workspace.revealProject);
   el('btn-export-archive').addEventListener('click', async () => {
     const picked = await pickSaveTarget(workspace.suggestedArchiveName(), 'DBV Typst Archive', ['dbvt']);

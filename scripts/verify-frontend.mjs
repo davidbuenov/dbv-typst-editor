@@ -95,6 +95,26 @@ check('todos los elementos que busca el arranque existen en index.html', () => {
   return `${requested.size} elementos comprobados`;
 });
 
+// Un id repetido no lanza nada: `getElementById` devuelve el primero y el
+// segundo elemento queda muerto en pantalla, con su aspecto normal y sin
+// reaccionar. Es el riesgo directo de duplicar acciones en varios sitios —el
+// menú Archivo repite "Importar proyecto" que ya estaba en el lanzador, y por
+// eso lleva un id propio— y de copiar y pegar marcado, que es como se construye
+// media interfaz.
+check('ningún id repetido en index.html', () => {
+  const html = readFileSync(join(ROOT, 'src', 'index.html'), 'utf8');
+  const vistos = new Map();
+  for (const [, id] of html.matchAll(/\bid=["']([^"']+)["']/g)) {
+    vistos.set(id, (vistos.get(id) ?? 0) + 1);
+  }
+
+  const repetidos = [...vistos].filter(([, veces]) => veces > 1).map(([id, veces]) => `${id} (x${veces})`);
+  if (repetidos.length > 0) {
+    throw new Error(`ids repetidos: ${repetidos.join(', ')}`);
+  }
+  return `${vistos.size} ids únicos`;
+});
+
 check('no se usan los diálogos nativos del WebView', () => {
   // `window.confirm`, `alert` y `prompt` NO son gratis en un WebView de Tauri:
   // el plugin de diálogos los intercepta y exige permisos explícitos

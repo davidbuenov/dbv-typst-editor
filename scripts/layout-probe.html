@@ -39,12 +39,12 @@
             <button class="mode-switcher__button" type="button">E</button>
             <button class="mode-switcher__button" type="button">V</button>
           </div>
-          <button class="button button--ghost button--icon-label" type="button"><span>Explorador</span></button>
-          <button class="button button--ghost button--icon-label" type="button"><span>Exportar .dbvt</span></button>
-          <button class="button button--ghost button--icon-label" type="button"><span>Cerrar</span></button>
         </div>
-        <button class="button button--icon-label" type="button"><span>Carpeta</span></button>
-        <button class="button button--ghost button--icon-label" type="button"><span>Archivo</span></button>
+        <div class="header-menu">
+          <button id="btn-file-menu" class="button button--ghost button--icon-label" type="button">
+            <span>Archivo</span><span class="header-menu__caret">&#9662;</span>
+          </button>
+        </div>
         <div class="segmented-control">
           <button class="segmented-control__btn active" type="button">ES</button>
           <button class="segmented-control__btn" type="button">EN</button>
@@ -135,6 +135,17 @@
 
       // Y nada de la marca se monta encima de lo siguiente: al recortarse, cada
       // elemento debe empezar donde acaba el anterior, no solaparlo.
+      // La barra de acciones no encoge (`flex: 0 0 auto`), así que su ancho es el
+      // que decide cuánto le queda a la marca. Antes de RF-30 se llevaba 356 px
+      // solo en cinco botones de texto —medido en este mismo motor— y por eso la
+      // cabecera reventaba en cuanto el proyecto tenía nombre largo.
+      const anchoAcciones = document.querySelector('.app-header__actions').getBoundingClientRect().width;
+      add(
+        'la barra de acciones deja sitio a la marca',
+        anchoAcciones <= 640,
+        `${Math.round(anchoAcciones)}px de acciones`
+      );
+
       const marca = [...document.querySelector('.app-header__brand').children];
       const solapados = marca.filter((el, i) => {
         if (i === 0) return false;

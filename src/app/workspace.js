@@ -291,6 +291,12 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     elements.workspaceView.classList.toggle('hidden', !hasProject);
     elements.emptyView.classList.toggle('hidden', hasProject);
     elements.projectActions.classList.toggle('hidden', !hasProject);
+    // RF-30: dentro del menú Archivo, lo que necesita proyecto se deshabilita en
+    // vez de desaparecer. Un menú que cambia de tamaño según el contexto obliga
+    // a releerlo entero cada vez que se abre; uno estable se recorre de memoria.
+    for (const item of elements.projectMenuItems ?? []) {
+      item.disabled = !hasProject;
+    }
     // El aviso de "proyecto sin manifiesto DBV" es informativo, nunca una
     // degradación (RF-02b): se muestra como etiqueta neutra, no como error.
     elements.projectKind.textContent = !hasProject

@@ -64,27 +64,84 @@ pub fn augment_path() {
     };
 
     let sep = if cfg!(windows) { ";" } else { ":" };
-    let mut parts: Vec<String> = extra
-        .into_iter()
-        .filter(|p| p.is_dir())
+    let existentes: Vec<PathBuf> = extra.into_iter().filter(|p| p.is_dir()).collect();
+
+    if let Some(nuevo) = compose_path(&existentes, std::env::var("PATH").ok().as_deref(), sep) {
+        // SAFETY: Invocado al inicio del proceso antes de iniciar hilos de trabajo.
+        unsafe {
+            std::env::set_var("PATH", nuevo);
+        }
+    }
+}
+
+/// Decide el valor que tendrá el `PATH`, separado de la mutación global para
+/// poder comprobarlo: `augment_path` mezclaba lectura de entorno, filtrado por
+/// disco y escritura de una variable de proceso, y eso solo se podía probar
+/// afirmando que el resultado "no está vacío".
+///
+/// Las rutas inyectadas van DELANTE del `PATH` actual a propósito: el objetivo
+/// del módulo es que una herramienta recién instalada se reconozca aunque la
+/// aplicación se abriera desde un acceso directo que no heredó el entorno.
+///
+/// Devuelve `None` cuando no hay nada que escribir, para no pisar el `PATH` con
+/// una cadena vacía.
+fn compose_path(inyectadas: &[PathBuf], actual: Option<&str>, sep: &str) -> Option<String> {
+    let mut partes: Vec<String> = inyectadas
+        .iter()
         .map(|p| p.to_string_lossy().into_owned())
         .collect();
 
-    if let Ok(current) = std::env::var("PATH") {
-        parts.push(current);
+    if let Some(actual) = actual {
+        partes.push(actual.to_string());
     }
 
-    if !parts.is_empty() {
-        // SAFETY: Invocado al inicio del proceso antes de iniciar hilos de trabajo.
-        unsafe {
-            std::env::set_var("PATH", parts.join(sep));
-        }
+    if partes.is_empty() {
+        None
+    } else {
+        Some(partes.join(sep))
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn compose_path_pone_las_rutas_inyectadas_por_delante() {
+        // El orden es la razón de ser del módulo: una herramienta recién
+        // instalada tiene que ganar al PATH heredado, no ir detrás de él.
+        let inyectadas = vec![PathBuf::from("/a"), PathBuf::from("/b")];
+        let resultado = compose_path(&inyectadas, Some("/usr/bin"), ":").unwrap();
+        assert_eq!(resultado, "/a:/b:/usr/bin");
+    }
+
+    #[test]
+    fn compose_path_funciona_sin_path_previo() {
+        let inyectadas = vec![PathBuf::from("/a")];
+        assert_eq!(compose_path(&inyectadas, None, ":").unwrap(), "/a");
+    }
+
+    #[test]
+    fn compose_path_conserva_el_path_cuando_no_hay_nada_que_inyectar() {
+        // Ninguna de las rutas candidatas existe en esta máquina: el PATH del
+        // usuario debe sobrevivir intacto, no quedarse solo con lo añadido.
+        assert_eq!(compose_path(&[], Some("/usr/bin"), ":").unwrap(), "/usr/bin");
+    }
+
+    #[test]
+    fn compose_path_no_escribe_nada_si_no_hay_nada() {
+        // Sin rutas y sin PATH previo NO se devuelve cadena vacía: escribirla
+        // dejaría al proceso sin PATH ninguno.
+        assert!(compose_path(&[], None, ":").is_none());
+    }
+
+    #[test]
+    fn compose_path_usa_el_separador_de_windows_cuando_toca() {
+        let inyectadas = vec![PathBuf::from(r"C:\bin")];
+        let resultado = compose_path(&inyectadas, Some(r"C:\Windows"), ";").unwrap();
+        assert!(resultado.contains(';'));
+        assert!(resultado.starts_with(r"C:\bin"));
+    }
 
     #[test]
     fn augment_path_no_vacia_el_path() {

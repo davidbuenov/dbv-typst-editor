@@ -217,7 +217,29 @@
     - **`npm run verify:layout` en CI.** No ejecutable en esta máquina y el trabajo de hoy fue de layout: innegociable antes de `/ship` (R-28).
     - **`preview_universe_template` en su conjunto.** Solo están cubiertos su clasificador de errores y la reconstrucción del identificador: la función necesita un `AppHandle` y descarga de red, así que probarla entera exigiría una infraestructura de test que este proyecto no tiene. Se verificó a mano contra el binario real, con una plantilla y con un paquete que no lo es.
     - **`macos_menu.rs` (200 líneas, 0 tests) y `platform.rs`.** El primero sigue sin compilarse nunca en un Mac real —es la pieza menos fiable del proyecto— y el segundo muta el `PATH` del proceso: probarlo de verdad pide extraer una función pura, que es trabajo de `/code-simplify`, no de esta fase.
-  - [ ] **`/code-simplify` v0.5.0**: Pases de revisión de bugs, seguridad y cumplimiento.
+  - [x] **`/code-simplify` v0.5.0 COMPLETADO (2026-09-09) — 1 Crítico encontrado y resuelto, gate satisfecho.**
+
+    **Pase 1 — Bugs.**
+    - **[Crítico, RESUELTO] Bloqueo de tubería en `commands/python_runner.rs`.** El proceso hijo se lanzaba con `stdout`/`stderr` conectados, pero el padre no los leía hasta **después** de que terminara. El búfer de una tubería del sistema ronda los 64 KB: al llenarlo, Python se bloquea escribiendo y no termina nunca, así que el bucle de espera agotaba el timeout completo. El usuario veía "Tiempo de ejecución excedido" —y perdía toda la salida— en un script correcto. Un `print` de un DataFrame grande o una ejecución verbosa de Matplotlib alcanzan ese tamaño sin esfuerzo, que es justo el uso para el que existe RF-22. **Reproducido antes de tocar código:** el test de 300 KB fallaba tras consumir los 30 s del límite; con las tuberías vaciadas en hilos aparte termina en 1,27 s. Ninguna de las 5 pruebas que ya tenía el módulo lo cogía porque todas imprimen una línea corta.
+    - Se auditó el MISMO patrón en los otros tres `spawn()` del backend y **ninguno lo tiene**: `typst_engine/compile.rs` y `commands/tinymist.rs` consumen el flujo de eventos del shell de Tauri mientras el proceso corre, y `file_io::reveal_in_file_manager` no conecta tuberías. Los demás procesos usan `.output()`, que drena internamente.
+
+    **Pase 2 — Seguridad.** Sin hallazgos nuevos.
+    - `universe::preview_universe_template` (nuevo hoy): el identificador se reconstruye con `parse_universe_spec` + `to_spec()` antes de tocar el disco, nunca viaja crudo, y el `TempDir` se borra por cualquier camino de salida. Es código de terceros ejecutándose a propósito, tras un control explícito (RF-26.6).
+    - `commands/git.rs` mantiene `GIT_TERMINAL_PROMPT=0` y `GIT_ASKPASS` vacío; el `-c core.quotePath=false` añadido en `/test` no abre ninguna vía nueva.
+    - `archive.rs` conserva intacta su doble comprobación anti *zip-slip*.
+    - `python_runner` ejecuta código del usuario a petición suya, con timeout y `MPLBACKEND=Agg`; el fichero temporal del script se borra en todos los caminos.
+
+    **Pase 3 — Cumplimiento.** Sin hallazgos.
+    - Los 4 ficheros nuevos llevan la cabecera de `project.config.md`; comprobado en todo `src/`, `src-tauri/src/` y `scripts/`: **ninguno sin cabecera**.
+    - Ni `window.confirm` ni `alert` ni `prompt` fuera de un comentario que explica por qué no se usan.
+    - Sin dependencias nuevas: la única descarga de red del trabajo de hoy es la del propio `typst init`, que es la funcionalidad especificada.
+
+    **Simplificación (sin funcionalidad nueva).**
+    - **Código muerto retirado de `main.js`:** la poda de RF-25 dejó `openGalleryForSpec()` (20 líneas) sin ningún llamante —su único invocador era el `onUseTemplate` del panel de Universe, que desapareció— y con él la importación huérfana de `specName`. **No era duplicación de `syntheticTemplate()` de la galería: era la copia vieja de lo mismo, olvidada.**
+    - **`platform.rs`: extraída `compose_path()`**, la deuda que `/test` dejó explícitamente aquí. `augment_path()` mezclaba lectura de entorno, filtrado por disco y mutación global del `PATH`, y solo se podía probar afirmando que el resultado "no está vacío". La parte que decide el valor es ahora pura y tiene 5 tests, incluido el que fija que las rutas inyectadas van **delante** del `PATH` heredado (que es la razón de ser del módulo) y el que impide escribir una cadena vacía cuando no hay nada que añadir. **Comportamiento idéntico:** no se tocó el orden ni se añadió deduplicación, para no cambiar nada bajo una verificación de layout que hoy no se puede ejecutar.
+    - Actualizado el comentario del panel de Universe en `main.js`, que seguía describiendo las dos ramas que ya no tiene.
+
+    **Deliberadamente NO refactorizado**, por la regla de no tocar DOM ni CSS antes de una pasada manual que el usuario hará y con `verify:layout` inoperativo en esta máquina: `main.js` (893 líneas de cableado), `templateGalleryModal.js` (que creció hoy) y `preview.js` (605). Ninguno presenta un defecto: solo son grandes.
   - [ ] **`/ship` v0.5.0**: Bump de versión `0.4.0` → `0.5.0`, changelog bilingüe, actualización de documentación y release.
 
 ## 🔄 Context Snapshot / Snapshot de Contexto

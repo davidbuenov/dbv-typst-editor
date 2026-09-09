@@ -274,6 +274,33 @@ pub fn run_python_sync(
         AppError::Io(format!("Fallo al iniciar subproceso Python: {e}"))
     })?;
 
+    // Las tuberías se vacían en hilos aparte MIENTRAS el hijo corre, no después.
+    // Leerlas al final parecía equivalente y no lo era: el búfer de una tubería
+    // ronda los 64 KB, así que un script que imprime más que eso se bloqueaba al
+    // llenarlo, no terminaba nunca, y el bucle de abajo agotaba el timeout
+    // entero. El usuario veía "tiempo de ejecución excedido" en un script
+    // perfectamente correcto — un `print` de un DataFrame grande o una
+    // compilación verbosa llegan a ese tamaño sin esfuerzo.
+    //
+    // `read_to_string` termina solo cuando el hijo cierra su extremo, así que
+    // estos hilos acaban también si el proceso muere por el timeout.
+    let mut salida = child.stdout.take();
+    let mut errores = child.stderr.take();
+    let hilo_stdout = std::thread::spawn(move || {
+        let mut texto = String::new();
+        if let Some(pipe) = salida.as_mut() {
+            let _ = pipe.read_to_string(&mut texto);
+        }
+        texto
+    });
+    let hilo_stderr = std::thread::spawn(move || {
+        let mut texto = String::new();
+        if let Some(pipe) = errores.as_mut() {
+            let _ = pipe.read_to_string(&mut texto);
+        }
+        texto
+    });
+
     let start = Instant::now();
     let mut timed_out = false;
     let mut exit_code = None;
@@ -302,15 +329,10 @@ pub fn run_python_sync(
 
     let _ = fs::remove_file(&script_path);
 
-    let mut stdout = String::new();
-    let mut stderr = String::new();
-
-    if let Some(mut out) = child.stdout.take() {
-        let _ = out.read_to_string(&mut stdout);
-    }
-    if let Some(mut err) = child.stderr.take() {
-        let _ = err.read_to_string(&mut stderr);
-    }
+    // Recoger lo que los hilos hayan leído. Si uno entrase en pánico, se pierde
+    // ese flujo pero no la ejecución entera: el resultado sigue siendo útil.
+    let stdout = hilo_stdout.join().unwrap_or_default();
+    let stderr = hilo_stderr.join().unwrap_or_default();
 
     if timed_out {
         return Ok(PythonRunResult {
@@ -560,5 +582,39 @@ print("Imagen escrita")
 
         assert!(!result.success);
         assert!(result.stderr.contains("Tiempo de ejecución excedido"));
+    }
+
+    // Las tuberías del sistema operativo tienen un búfer de unos 64 KB. Si el
+    // padre no las vacía mientras el hijo escribe, el hijo se BLOQUEA al llenar
+    // ese búfer y nunca termina: la ejecución agota el timeout entero y el
+    // usuario ve "tiempo excedido" en un script que funcionaba. Un `print` de un
+    // DataFrame grande o una compilación verbosa lo alcanzan sin esfuerzo.
+    #[test]
+    fn run_python_sync_no_se_bloquea_con_una_salida_grande() {
+        if find_python_executable().is_none() {
+            return;
+        }
+        let temp = TempDir::new().unwrap();
+        let inicio = Instant::now();
+
+        let result = run_python_sync(
+            temp.path().to_path_buf(),
+            None,
+            "print('x' * 300000)".to_string(),
+            Duration::from_secs(30),
+        )
+        .unwrap();
+
+        assert!(result.success, "stderr: {}", result.stderr);
+        assert!(
+            result.stdout.len() >= 300_000,
+            "salida truncada: {} bytes",
+            result.stdout.len()
+        );
+        assert!(
+            inicio.elapsed() < Duration::from_secs(15),
+            "tardó {:?}: se está agotando el timeout en vez de terminar",
+            inicio.elapsed()
+        );
     }
 }

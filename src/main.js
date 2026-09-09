@@ -19,7 +19,7 @@ import { applyTranslations, getLanguage, setLanguage, t } from './i18n/i18n.js';
 import { createHelp } from './help/help.js';
 import { createUniversePanel } from './universe/universePanel.js';
 import { getCuratedUniverseTemplatesCatalog } from './universe/universeThumbnails.js';
-import { importPackageAction, specName } from './universe/universeSpec.js';
+import { importPackageAction } from './universe/universeSpec.js';
 import { createLauncher } from './launcher/launcher.js';
 import { createTemplateGalleryModal } from './launcher/templateGalleryModal.js';
 import { createOutline } from './outline/outline.js';
@@ -619,30 +619,10 @@ async function bootstrap() {
     templateGallery.open(null, getFullGalleryCatalog());
   });
 
-  const openGalleryForSpec = (spec) => {
-    const catalog = getFullGalleryCatalog();
-    const cleanSpec = spec.startsWith('@preview/') ? spec : `@preview/${spec}`;
-    const exists = catalog.some((t) => t.id === cleanSpec || t.universeSpec === cleanSpec);
-    if (!exists) {
-      catalog.push({
-        id: cleanSpec,
-        name: specName(cleanSpec),
-        description: cleanSpec,
-        version: cleanSpec.split(':')[1] || '0.1.0',
-        category: 'Typst Universe',
-        entrypoint: 'main.typ',
-        universeSpec: cleanSpec,
-        dbv: {
-          dbvCategory: 'Typst Universe',
-        },
-      });
-    }
-    templateGallery.open(cleanSpec, catalog);
-  };
-
-  // Typst Universe (Beta, §7.6): plantillas que crean proyecto y paquetes que
-  // se importan en el documento abierto. Las plantillas abren la previsualización
-  // maquetada de alta fidelidad en templateGallery; el paquete es una transacción del editor.
+  // Typst Universe (§7.6), solo paquetes desde RF-26: las plantillas viven en
+  // la galería, que es la única puerta de entrada a la creación de documentos.
+  // Un paquete es una transacción sobre el documento abierto, así que este panel
+  // pertenece al editor y su botón se apaga mientras no haya documento.
   const universePanel = registerPanel(el('universe-panel'), {
     trigger: el('btn-universe'),
     toggle: true,

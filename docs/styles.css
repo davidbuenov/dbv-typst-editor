@@ -83,6 +83,22 @@ section > *, .nav-inner, .footer-inner { max-width: var(--max-width); margin-inl
 .btn-lg { padding: 14px 26px; font-size: 16px; border-radius: 10px; }
 .btn-nav { display: none; }
 
+/* ─── Store Badge ─────────────────────────────────────────────────────────── */
+.store-badge {
+  display: inline-flex;
+  align-items: center;
+  line-height: 0;
+  transition: transform 0.15s ease;
+}
+.store-badge:hover {
+  transform: translateY(-1px);
+}
+.store-badge img {
+  height: 48px;
+  width: auto;
+  display: block;
+}
+
 /* ─── Nav ─────────────────────────────────────────────────────────────────── */
 .nav {
   position: sticky;

@@ -4,6 +4,7 @@
 
 [![Sitio Web](https://img.shields.io/badge/Sitio%20Web-davidbuenov.github.io%2Fdbv--typst--editor-2563eb?style=flat&logo=googlechrome&logoColor=white)](https://davidbuenov.github.io/dbv-typst-editor/)
 [![Releases](https://img.shields.io/badge/Releases-v0.4.0-brightgreen?logo=github)](https://github.com/davidbuenov/dbv-typst-editor/releases)
+[![Microsoft Store](https://img.shields.io/badge/Microsoft%20Store-9PCPSVTNJMP0-0078D6?logo=microsoft&logoColor=white)](https://apps.microsoft.com/store/detail/9PCPSVTNJMP0?cid=DevShareMCLPCB)
 ![Status](https://img.shields.io/badge/status-estable%20%7C%20v0.4.0-success)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
 ![Windows](https://img.shields.io/badge/Windows-10%20%2F%2011%20(.exe%20%2B%20Store)-0078D6?logo=windows&logoColor=white)
@@ -65,7 +66,7 @@ Sigue la misma filosofía que su proyecto hermano [DBV Markdown Reader](https://
   - 🪟 **Windows**: Instalador `.exe` autónomo (sin dependencias externas).
   - 🍎 **macOS**: Archivo `.dmg` universal (compatible con Apple Silicon e Intel).
   - 🐧 **Linux**: Paquetes `.AppImage` (portable) y `.deb` (Debian/Ubuntu/Mint).
-- 🏬 **Microsoft Store:** disponible. Si instalaste desde la Store, asegúrate de contar con `v0.3.1` o superior (ver [`CHANGELOG.md`](./dbv-specs-ops/CHANGELOG.md)).
+- 🏬 **Microsoft Store:** disponible en la tienda oficial. [🛒 Consíguelo en Microsoft Store (ID 9PCPSVTNJMP0)](https://apps.microsoft.com/store/detail/9PCPSVTNJMP0?cid=DevShareMCLPCB). Si instalaste una versión previa desde la Store, asegúrate de contar con `v0.3.1` o superior (ver [`CHANGELOG.md`](./dbv-specs-ops/CHANGELOG.md)).
 - 🧪 **Calidad y estabilidad:** 313 pruebas automatizadas pasando al 100% (152 tests unitarios de frontend + 161 tests de backend en Rust) y validación de layout en motor Chromium/WebKit real.
 - 🚀 **Funcionalidades destacadas incluidas:**
   - Sincronización bidireccional editor ↔ vista previa (doble clic en render para saltar al código fuente y botón chincheta para llevar la vista previa al cursor).
@@ -87,9 +88,15 @@ Sigue la misma filosofía que su proyecto hermano [DBV Markdown Reader](https://
 
 ### 🪟 Windows
 
-#### 🏬 Microsoft Store
+#### 🏬 Microsoft Store (recomendado en Windows 11)
 
-Disponible en la Microsoft Store (Store ID `9PCPSVTNJMP0`). **Asegúrate de tener `v0.3.1` o superior:** los paquetes anteriores se publicaron sin el compilador Typst dentro y fallaban al compilar (ver [`CHANGELOG.md`](./dbv-specs-ops/CHANGELOG.md)). El instalador `.exe` de abajo nunca estuvo afectado por ese problema.
+**[🛒 Consíguelo en Microsoft Store](https://apps.microsoft.com/store/detail/9PCPSVTNJMP0?cid=DevShareMCLPCB)**
+
+Es la vía más directa y cómoda para Windows: el paquete lo firma la propia Store (sin avisos de SmartScreen), se instala con un clic y se actualiza solo en segundo plano con cada nueva versión de la tienda.
+
+*(Nota: disponible con Store ID `9PCPSVTNJMP0`. Si descargaste una versión previa desde la Store, comprueba que tienes `v0.3.1` o superior —la versión actual es `v0.4.0` e incluye el compilador Typst embebido; ver [`CHANGELOG.md`](./dbv-specs-ops/CHANGELOG.md)). Si prefieres no usar la Store, usa el instalador `.exe` independiente de abajo.*
+
+#### 📦 Instalador independiente (.exe)
 
 #### 1️⃣ Descarga
 

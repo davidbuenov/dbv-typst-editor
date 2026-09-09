@@ -364,4 +364,57 @@ pub mod tests {
         assert_eq!(msgs[1]["id"], 2);
         assert!(buf.is_empty());
     }
+
+    // `Content-Length` se mide en BYTES, no en caracteres. En un editor que se
+    // usa en español, los cuerpos con acentos son el caso normal: una hover doc
+    // o un diagnóstico de Tinymist los lleva casi siempre. Si alguien
+    // "arreglara" `format_lsp_message` con `chars().count()`, la trama quedaría
+    // corta y el canal se desincronizaría en silencio — el peor fallo posible en
+    // un protocolo de longitud explícita, porque no lanza nada: simplemente deja
+    // de haber respuestas.
+    #[test]
+    fn la_longitud_se_mide_en_bytes_no_en_caracteres() {
+        let body = r#"{"result":"sección §7 — ñandú"}"#;
+        assert!(body.len() > body.chars().count(), "el cuerpo debe ser multibyte");
+
+        let mut buf = format_lsp_message(body);
+        let msgs = extract_lsp_messages(&mut buf);
+
+        assert_eq!(msgs.len(), 1);
+        assert_eq!(msgs[0]["result"], "sección §7 — ñandú");
+        assert!(buf.is_empty(), "el marco debe consumirse entero");
+    }
+
+    // Un cuerpo que no es JSON válido se descarta, pero el marco SÍ se consume:
+    // si no, el buffer se quedaría atascado en ese mensaje para siempre y el LSP
+    // dejaría de responder sin dar un solo error.
+    #[test]
+    fn un_cuerpo_ilegible_no_atasca_el_buffer() {
+        let mut buf = format_lsp_message("{esto no es json}");
+        buf.extend_from_slice(&format_lsp_message(r#"{"id":7}"#));
+
+        let msgs = extract_lsp_messages(&mut buf);
+
+        assert_eq!(msgs.len(), 1, "el mensaje siguiente tiene que llegar igual");
+        assert_eq!(msgs[0]["id"], 7);
+        assert!(buf.is_empty());
+    }
+
+    // La cabecera puede llegar partida entre dos lecturas del proceso hijo: hasta
+    // que no está el `\r\n\r\n` completo no se puede consumir nada.
+    #[test]
+    fn una_cabecera_partida_no_consume_nada_hasta_completarse() {
+        let completo = format_lsp_message(r#"{"id":9}"#);
+        let corte = 8;
+
+        let mut buf = completo[..corte].to_vec();
+        assert!(extract_lsp_messages(&mut buf).is_empty());
+        assert_eq!(buf.len(), corte, "no debe consumir una cabecera a medias");
+
+        buf.extend_from_slice(&completo[corte..]);
+        let msgs = extract_lsp_messages(&mut buf);
+        assert_eq!(msgs.len(), 1);
+        assert_eq!(msgs[0]["id"], 9);
+        assert!(buf.is_empty());
+    }
 }

@@ -50,6 +50,12 @@ pub fn is_git_available() -> bool {
 fn git_command<P: AsRef<Path>>(project_path: P) -> Command {
     let mut cmd = Command::new("git");
     cmd.current_dir(project_path.as_ref())
+        // `core.quotePath` viene activado de fábrica y escapa en octal todo lo
+        // que no sea ASCII: `sección.typ` llegaba como `"secci\303\263n.typ"`,
+        // comillas incluidas. Comprobado contra el git real. En un editor cuyos
+        // usuarios escriben en español, casi cualquier nombre de capítulo cae en
+        // ese caso, así que se desactiva y las rutas llegan en UTF-8 tal cual.
+        .args(["-c", "core.quotePath=false"])
         .env("GIT_TERMINAL_PROMPT", "0")
         .env("GIT_ASKPASS", "");
 
@@ -59,6 +65,36 @@ fn git_command<P: AsRef<Path>>(project_path: P) -> Command {
         cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
     }
     cmd
+}
+
+/// Ruta de una línea de entrada ordinaria (`1 `) o de renombrado (`2 `) de
+/// `git status --porcelain=v2`, cuyos formatos son:
+///
+/// ```text
+/// 1 <XY> <sub> <mH> <mI> <mW> <hH> <hI> <ruta>
+/// 2 <XY> <sub> <mH> <mI> <mW> <hH> <hI> <Xpuntuación> <ruta>\t<ruta original>
+/// ```
+///
+/// Existe porque el parser hacía `split_whitespace().last()`, y eso rompía dos
+/// casos comprobados contra el git real: un fichero llamado `mi documento.typ`
+/// aparecía como `documento.typ` (solo la última palabra), y un renombrado
+/// mostraba el nombre VIEJO, porque en las líneas `2 ` va después del tabulador.
+fn parse_entry_path(line: &str) -> Option<String> {
+    let campos_previos = if line.starts_with("2 ") { 9 } else { 8 };
+
+    let mut resto = line;
+    for _ in 0..campos_previos {
+        let (_, siguiente) = resto.split_once(' ')?;
+        resto = siguiente.trim_start_matches(' ');
+    }
+
+    // En un renombrado, la ruta nueva va ANTES del tabulador; la vieja, después.
+    let ruta = resto.split('\t').next()?.trim();
+    if ruta.is_empty() {
+        None
+    } else {
+        Some(ruta.to_string())
+    }
 }
 
 /// Parsea la salida de `git status --porcelain=v2 --branch`.
@@ -84,8 +120,8 @@ pub fn parse_git_status_output(output: &str) -> GitStatusResult {
                 }
             }
         } else if trimmed.starts_with("1 ") || trimmed.starts_with("2 ") {
-            if let Some(path) = trimmed.split_whitespace().last() {
-                modified_files.push(path.to_string());
+            if let Some(path) = parse_entry_path(trimmed) {
+                modified_files.push(path);
             }
         } else if trimmed.starts_with("? ") {
             let path = trimmed[2..].trim();
@@ -261,5 +297,83 @@ mod tests {
         assert_eq!(parsed.behind, 0);
         assert!(parsed.modified_files.is_empty());
         assert!(parsed.untracked_files.is_empty());
+    }
+
+    // Las tres líneas de abajo están COPIADAS de una ejecución real de
+    // `git status --porcelain=v2 --branch` sobre un repositorio de prueba con
+    // esos nombres exactos, no escritas de memoria. Es la disciplina que este
+    // proyecto ya aplicó al resolver el outline y el `typst init` de Universe:
+    // comprobar el formato contra la herramienta antes de escribir el parser.
+    #[test]
+    fn parse_conserva_los_espacios_de_una_ruta() {
+        // El parser hacía `split_whitespace().last()`, así que este fichero
+        // aparecía en la interfaz como "documento.typ": el usuario veía un
+        // fichero modificado que no existe con ese nombre.
+        let salida = "# branch.head master\n\
+1 .M N... 100644 100644 100644 587be6b4 587be6b4 mi documento.typ\n";
+
+        let estado = parse_git_status_output(salida);
+        assert_eq!(estado.modified_files, vec!["mi documento.typ"]);
+    }
+
+    #[test]
+    fn parse_de_un_renombrado_devuelve_el_nombre_nuevo_no_el_viejo() {
+        // En una línea `2 ` la ruta nueva va antes del tabulador y la vieja
+        // después, así que `.last()` devolvía justo la que ya no existe.
+        let salida = "# branch.head master\n\
+2 R. N... 100644 100644 100644 b6802534 b6802534 R100 renombrado con espacios.typ\tnormal.typ\n";
+
+        let estado = parse_git_status_output(salida);
+        assert_eq!(estado.modified_files, vec!["renombrado con espacios.typ"]);
+    }
+
+    #[test]
+    fn parse_acepta_una_ruta_con_acentos_sin_escapar() {
+        // Solo llega así porque `git_command` desactiva `core.quotePath`; con el
+        // valor de fábrica, git entrega `"secci\303\263n.typ"`, comillas
+        // incluidas. En un editor para escribir en español eso es el caso
+        // normal, no el raro.
+        let salida = "# branch.head master\n\
+1 .M N... 100644 100644 100644 975fbec8 975fbec8 sección.typ\n";
+
+        let estado = parse_git_status_output(salida);
+        assert_eq!(estado.modified_files, vec!["sección.typ"]);
+    }
+
+    #[test]
+    fn parse_distingue_modificados_de_no_seguidos_con_espacios() {
+        let salida = "# branch.head master\n\
+1 .M N... 100644 100644 100644 587be6b4 587be6b4 mi documento.typ\n\
+? otro fichero.typ\n";
+
+        let estado = parse_git_status_output(salida);
+        assert_eq!(estado.modified_files, vec!["mi documento.typ"]);
+        assert_eq!(estado.untracked_files, vec!["otro fichero.typ"]);
+    }
+
+    #[test]
+    fn parse_lee_el_adelanto_y_el_retraso_respecto_al_remoto() {
+        let salida = "# branch.head main\n# branch.ab +3 -2\n";
+
+        let estado = parse_git_status_output(salida);
+        assert_eq!(estado.branch, "main");
+        assert_eq!(estado.ahead, 3);
+        assert_eq!(estado.behind, 2);
+    }
+
+    #[test]
+    fn parse_degrada_a_head_cuando_no_hay_rama() {
+        // `git status` en un HEAD desacoplado no emite `# branch.head` con un
+        // nombre utilizable; la interfaz no debe quedarse con la etiqueta vacía.
+        let estado = parse_git_status_output("# branch.oid 6e662644\n");
+        assert_eq!(estado.branch, "HEAD");
+    }
+
+    #[test]
+    fn parse_ignora_una_linea_truncada_en_vez_de_inventarse_una_ruta() {
+        // Una línea a medias (proceso interrumpido, salida cortada) no debe
+        // producir una entrada con una ruta falsa en la lista de modificados.
+        let estado = parse_git_status_output("# branch.head master\n1 .M N... 100644\n");
+        assert!(estado.modified_files.is_empty());
     }
 }

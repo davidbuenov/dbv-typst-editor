@@ -182,3 +182,36 @@ export const PROJECT_CHANGE_EVENT = 'project-file-changed';
 export const watchProject = (root, activeDocument) =>
   call('watch_project', { root, activeDocument: activeDocument ?? null });
 export const unwatchProject = () => call('unwatch_project');
+
+// ─── Runner de scripts Python (RF-22) ────────────────────────────────────────
+
+export const executePythonScript = ({ projectPath, code, timeoutSeconds }) =>
+  call('execute_python_script', {
+    projectPath,
+    code,
+    timeoutSeconds: timeoutSeconds ?? null,
+  });
+export const checkPythonStatus = (projectRoot) =>
+  call('check_python_status', { projectRoot: projectRoot ?? null });
+export const setupSharedPythonEnv = () => call('setup_shared_python_env');
+
+// ─── Control de versiones Git (RF-19) ────────────────────────────────────────
+
+export const gitStatus = (projectPath) => call('git_status', { projectPath });
+export const gitCommit = ({ projectPath, message }) =>
+  call('git_commit', { projectPath, message });
+export const gitPush = (projectPath) => call('git_push', { projectPath });
+export const gitPull = (projectPath) => call('git_pull', { projectPath });
+
+// ─── Language Server Tinymist (RF-21) ────────────────────────────────────────
+
+export const tinymistStart = (rootPath) => call('tinymist_start', { rootPath: rootPath ?? null });
+export const tinymistStop = () => call('tinymist_stop');
+export const tinymistSendRequest = (method, params) =>
+  call('tinymist_send_request', { method, params });
+export const tinymistSendNotification = (method, params) =>
+  call('tinymist_send_notification', { method, params });
+export const tinymistStatus = () => call('tinymist_status');
+
+
+

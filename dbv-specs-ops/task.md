@@ -4,9 +4,13 @@
 
 * **Objetivo**: Construir "el entorno de escritorio más accesible para el ecosistema Typst" (posicionamiento oficial) — no un editor de código con soporte Typst — orientado a documento/proyecto ("para Typst lo que Obsidian es para Markdown"), ligero, offline-first y multiplataforma, reutilizando al máximo la arquitectura de [DBV Markdown Reader](https://github.com/davidbuenov/dbv-md-reader).
 * **Ubicación**: `d:/Programacion/github-davidbuenov/dbv-typst-editor`.
-* **Estado actual**: **`/ship` v0.4.0 COMPLETADO (2026-09-08)**. Slices 28 (imágenes y arrastre), 29 (compilación documento completo y refresco) y 30 (sincronización bidireccional editor ↔ vista previa) cerrados y verificados. 313 tests pasando (152 Vitest + 161 Rust), ayuda bilingüe actualizada y créditos de colaboradores e IA completados.
-* **Última decisión técnica**: Ver `memory.md` y `ADR-SYNC-001`. Inyección de anclas `#metadata` en raíz sombra para navegación bidireccional sin tocar el código original del usuario; ámbito de compilación compartido con outline y exportación; eliminación de recientes en el lanzador.
-* **Próximo paso**: Validar la publicación de la release v0.4.0 en GitHub y reenvío de la actualización a Microsoft Store si procede.
+* **Estado actual**: **/build v0.5.0 — Previsualizaciones Typst Universe de Alta Fidelidad en Modal Completo y Hover Enriquecido COMPLETADOS (2026-09-09)**.
+  1. **Previsualización de Alta Fidelidad en Modal Completo para Typst Universe (`templateGalleryModal.js`, `templateThumbnails.js`)**: Las plantillas de Typst Universe (`charged-ieee`, `faithful-acmart`, `springer-spaniel`, `ilm`, `modern-cv`, `appreciated-letter`) y cualquier plantilla comunitaria cuentan ahora con la misma previsualización maquetada completa que las plantillas locales: lienzo A4 renderizado a alta resolución en SVG con tipografía realista, fondos nítidos, sombreado de papel, fichas de metadatos (`📄 main.typ`, `🏷️ @preview/...`, `⚖️ licencia`) y botón de acción directa "Usar plantilla".
+  2. **Hover Enriquecido en CodeMirror 6 (`universeHover.js`)**: Detección interactiva de `@preview/nombre:version` con renderizado de tarjeta tooltip (`cm-universe-hover-tooltip`), miniaturas maquetadas de plantillas, icono temático para librerías/paquetes, metadatos y botón a `typst.app/universe`.
+  3. **Catálogo de Typst Universe con Miniaturas (`universePanel.js`, `base.css`)**: Tarjetas enriquecidas con vista previa visual de la maquetación del documento con carga lazy, sombras realistas y apertura directa del modal de galería completa.
+  4. **Tinymist LSP y Python Runner**: LSP en segundo plano con diagnósticos `@codemirror/lint` en vivo, atajos de autocompletado y entorno Python compartido multiplataforma.
+* **Última decisión técnica**: Mapeo estricto de rutas y mockups vectoriales completos en `templateThumbnails.js` y `universeThumbnails.js` con fallback SVG elegante offline; 414 tests en verde (176 Rust + 238 Vitest) + 48 verificaciones de frontend y plantillas (8/8 verify:frontend, 40/40 verify:templates).
+* **Próximo paso al retomar**: Consolidación y empaquetado final de release v0.5.0 (`/test`, `/code-simplify`, `/ship`).
 
 ## Checklist de Tareas
 
@@ -160,6 +164,26 @@
     - Colaboradores y créditos de IA en `README.md` y `README.en.md`.
     - Bump de versión `0.3.1` → `0.4.0` en `package.json`, `Cargo.toml` y `tauri.conf.json`.
     - 313 pruebas pasando al 100% (152 Vitest + 161 Rust).
+
+- [ ] **Fase 12: v0.5.0 — Productividad Profesional y Robustez**
+  - [x] **`/spec` v0.5.0 CERRADA (2026-09-09)**. Congelados RF-19 a RF-24 en `SPECIFICATIONS.md` v1.3.
+    - RF-19: Integración con Git y resolución visual de diferencias (diff side-by-side).
+    - RF-20: Galería visual de plantillas con previsualización renderizada.
+    - RF-21: Inteligencia de código con Language Server `tinymist` (vendorizado como sidecar).
+    - RF-22: Generación de figuras y datos dinámicos con Python.
+    - RF-23: Asistente visual de diagramas nativos CeTZ.
+    - RF-24: Robustez de plataforma en Windows (`augment_path`, `write_atomic`, last-good-preview).
+  - [x] **`/plan` v0.5.0 CERRADO (2026-09-09)**: Modo Orquestador, Adversarial Architect Review de 4 objeciones resueltas, plan en `implementation_plan.md` aprobado por el usuario.
+  - [x] **`/build` v0.5.0**: Implementación slice a slice con pruebas — **COMPLETADO (2026-09-09)**.
+    - [x] **Slice 31 — Robustez de Plataforma en Windows y Guardado Atómico (RF-24) — COMPLETADO (2026-09-09).** `platform::augment_path()` inyecta en caliente rutas de WinGet, Cargo, Scoop, Python y Git; `file_io::write_atomic()` con fichero temporal oculto `.dbv-tmp`, renombrado atómico y reintentos ante bloqueos de antivirus en Windows; `watcher.rs` filtra temporales; `preview.js` preserva Last Good Render marcando como desactualizado en fallos de sintaxis. 316 tests pasando (164 Rust + 152 Vitest).
+    - [x] **Slice 32 — Galería Visual de Plantillas con Previsualización (RF-20) — COMPLETADO (2026-09-09).** Miniaturas vectoriales SVG de alta fidelidad para las 8 plantillas en `templateThumbnails.js`, integradas en las tarjetas del lanzador con sombras suaves, escalado interactivo y soporte de teclado. 324 tests pasando (164 Rust + 160 Vitest).
+    - [x] **Slice 33 — Asistente Visual de Diagramas CeTZ (RF-23) — COMPLETADO (2026-09-09).** Panel flotante en editor con botón `⬡`, 4 tipos de diagramas CeTZ (flujo, bloques, gráficas 2D, lienzo) e inyección automática de `#import` deduplicada. 339 tests pasando (164 Rust + 175 Vitest).
+    - [x] **Slice 34 — Runner de Figuras y Datos Dinámicos con Python (RF-22) — COMPLETADO (2026-09-09).** `python_runner::execute_python_script` con `MPLBACKEND=Agg`, timeout de seguridad, descubrimiento de imágenes en `images/`, panel interactivo con plantillas e inserción directa en Typst. 348 tests pasando (169 Rust + 179 Vitest).
+    - [x] **Slice 35 — Integración con Git CLI y Diff Side-by-Side (RF-19) — COMPLETADO (2026-09-09).** Módulo `commands::git` no bloqueante con `GIT_TERMINAL_PROMPT=0`, indicador de rama en cabecera con popover para commit/push/pull, y modal comparador Side-by-Side (`diffModal.js`) en colisiones de guardado. 355 tests pasando (171 Rust + 184 Vitest).
+    - [x] **Slice 36 — Sidecar Tinymist LSP e Inteligencia de Código (RF-21) — COMPLETADO (2026-09-09).** Binario `tinymist` v0.15.8 vendorizado offline en `externalBin`, actor Rust con encuadre `Content-Length` y JSON-RPC asíncrono, cliente CodeMirror 6 con autocompletado semántico Typst, hover docs enriquecido y formateo Typstyle con `Shift-Alt-f`. 368 tests pasando (175 Rust + 193 Vitest).
+  - [ ] **`/test` v0.5.0**: Verificación automatizada completa (Rust, Vitest, verificadores de frontend y scripts).
+  - [ ] **`/code-simplify` v0.5.0**: Pases de revisión de bugs, seguridad y cumplimiento.
+  - [ ] **`/ship` v0.5.0**: Bump de versión `0.4.0` → `0.5.0`, changelog bilingüe, actualización de documentación y release.
 
 ## 🔄 Context Snapshot / Snapshot de Contexto
 

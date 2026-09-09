@@ -28,7 +28,8 @@
     "active": true,
     "targets": "all",
     "externalBin": [
-      "binaries/typst"
+      "binaries/typst",
+      "binaries/tinymist"
     ],
     "resources": [
       "../templates"

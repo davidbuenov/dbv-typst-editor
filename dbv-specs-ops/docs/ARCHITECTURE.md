@@ -597,9 +597,37 @@ Justificación de conservar el overlay en vez de borrar la alternativa: el caso 
 | Sincronización editor↔preview por posición real (Beta) | 🔴 Alta | Sin precedente reutilizable; depende de `tinymist` (LSP separado); pospuesto a Beta |
 | Terminal avanzado (Beta) | 🟢 Baja | Reutiliza literalmente la infraestructura de sidecar del MVP; solo añade una vista de salida cruda |
 | Gestión de imágenes por arrastre (Beta) | 🟡 Media-Baja | Un comando Rust nuevo + reutilizar el asistente "Insertar figura" |
-| Bibliografía visual (Beta) | 🟠 Media | Depende de elegir crate de parseo BibTeX (pregunta abierta) |
-| Empaquetado Windows/Linux (CI, NSIS, AppImage/deb) | 🟢 Baja | Config casi copiable de dbv-md-reader |
-| Auto-actualizador | 🟢 Baja | Reutilizable sin cambios funcionales |
+### 7.15. Arquitectura v0.5.0: Tinymist Sidecar, Git CLI, Runner de Python y Robustez de Plataforma
+
+Para la versión v0.5.0 se incorporan cuatro pilares arquitectónicos que amplían el núcleo del sistema sin romper las abstracciones existentes:
+
+1. **Tinymist LSP Sidecar (`tinymist`):**
+   - **Distribución:** Se vendoriza como binario sidecar de Tauri junto al compilador `typst` en `src-tauri/binaries/` (gestionado por `scripts/vendor-typst.mjs` ampliado para vendorizar ambos binarios).
+   - **Comunicación:** El backend en Rust levanta un subproceso de `tinymist lsp` canalizando mensajes JSON-RPC sobre stdio o exponiendo un puente IPC/WebSocket local, conectando con las extensiones de LSP de CodeMirror 6 en el frontend para autocompletado semántico, hover docs y diagnósticos.
+   - **Formateo:** Soporta la llamada a `typstyle` integrada en Tinymist para formatear el buffer completo.
+
+2. **Integración con Git CLI (`git` wrapper en Rust):**
+   - **Invocación:** El backend ejecuta comandos `git` (`git status --porcelain=v2 --branch`, `git pull`, `git push`, `git commit -m`) con `current_dir` fijado en la raíz del proyecto activo.
+   - **Detección y degradación:** Comprueba si `git` está presente en el `PATH` enriquecido. Si no existe o la carpeta no es un repo Git, el panel/indicador se oculta sin emitir errores invasivos.
+   - **Detección de cambios y Diff:** Aprovecha el watcher de ficheros existente. Si un archivo cambia en disco y hay modificaciones en memoria, se presenta un modal de comparación lado a lado (Side-by-Side Diff con CodeMirror MergeView) para resolver el conflicto sin pérdida de datos.
+
+3. **Runner de Gráficas y Datos con Python:**
+   - **Ejecución Asíncrona:** Invocación de `python` o launcher `py` en subproceso con timeout (30s) y límite de captura de salida.
+   - **Entorno del Proyecto:** Se ejecuta con `cwd` en la carpeta del proyecto. Si produce archivos en `images/`, el frontend detecta la nueva imagen y ofrece la inserción del bloque `#figure(image(...))` en la posición del cursor.
+
+4. **Robustez de Plataforma en Windows (Lecciones de Hilbert):**
+   - **`augment_path()`:** Inyección en el arranque de rutas estándar de Windows (`WinGet\Links`, `cargo\bin`, `Python\Launcher`, etc.) usando el separador `;` para asegurar la localización de `git`, `python` y herramientas locales.
+   - **`write_atomic()`:** Sustitución de escrituras directas por escritura en fichero temporal `.nombre.tmp` + renombrado atómico (`fs::rename`), evitando lecturas a medio escribir por parte del compilador o watchers.
+   - **Preservación de "Last Good Render":** Si una compilación devuelve error de sintaxis, la UI conserva el último SVG/PDF renderizado válido y muestra el mensaje de error en la barra de problemas.
+
+| Componente v0.5.0 | Complejidad | Dependencias Clave |
+| --- | :---: | :--- |
+| Sidecar `tinymist` + integración CodeMirror LSP | 🔴 Alta | Binario vendorizado `tinymist`, CodeMirror LSP extensions |
+| Integración Git CLI + Diff Side-by-Side | 🟠 Media | Git local del usuario, CodeMirror MergeView |
+| Runner Python de figuras | 🟢 Baja | Intérprete Python del sistema |
+| Galería visual de plantillas (thumbnails) | 🟢 Baja | Assets pre-renderizados en `templates/` |
+| Asistente Diagramas CeTZ | 🟢 Baja | Plantillas de código de `@preview/cetz` |
+| Robustez de plataforma (`augment_path`, `write_atomic`) | 🟢 Baja | APIs nativas de Rust (`std::env`, `std::fs`) |
 
 ---
 

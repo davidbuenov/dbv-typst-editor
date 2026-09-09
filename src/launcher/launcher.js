@@ -15,6 +15,7 @@
 import { getLanguage, t } from '../i18n/i18n.js';
 import { getRecentProjects, listTemplates, removeRecentProject } from '../services/backend.js';
 import { baseName } from '../app/workspace.js';
+import { getTemplateThumbnailSvg } from './templateThumbnails.js';
 
 /** Nombre y descripción de una plantilla en el idioma activo. */
 export function localizeTemplate(template, language) {
@@ -31,8 +32,9 @@ export function localizeTemplate(template, language) {
  * @param {HTMLElement} deps.recentEl Lista de proyectos recientes.
  * @param {(template: object) => void} deps.onCreateFromTemplate
  * @param {(path: string) => void} deps.onOpenRecent
+ * @param {((template: object) => void)|null} [deps.onOpenGallery]
  */
-export function createLauncher({ templatesEl, recentEl, onCreateFromTemplate, onOpenRecent }) {
+export function createLauncher({ templatesEl, recentEl, onCreateFromTemplate, onOpenRecent, onOpenGallery }) {
   /** @type {object[]} Catálogo cacheado: no cambia mientras la app vive. */
   let catalog = [];
 
@@ -54,15 +56,23 @@ export function createLauncher({ templatesEl, recentEl, onCreateFromTemplate, on
       card.type = 'button';
       card.className = 'template-card';
 
+      const thumb = document.createElement('div');
+      thumb.className = 'template-card__thumbnail';
+      thumb.innerHTML = getTemplateThumbnailSvg(template.id || template.name);
+      card.append(thumb);
+
+      const content = document.createElement('div');
+      content.className = 'template-card__content';
+
       const title = document.createElement('span');
       title.className = 'template-card__name';
       title.textContent = name;
-      card.append(title);
+      content.append(title);
 
       const text = document.createElement('span');
       text.className = 'template-card__description';
       text.textContent = description;
-      card.append(text);
+      content.append(text);
 
       const meta = document.createElement('span');
       meta.className = 'template-card__meta';
@@ -71,9 +81,17 @@ export function createLauncher({ templatesEl, recentEl, onCreateFromTemplate, on
       meta.textContent = [template.dbv?.dbvCategory, `v${template.version}`]
         .filter(Boolean)
         .join(' · ');
-      card.append(meta);
+      content.append(meta);
 
-      card.addEventListener('click', () => onCreateFromTemplate(template));
+      card.append(content);
+
+      card.addEventListener('click', () => {
+        if (onOpenGallery) {
+          onOpenGallery(template);
+        } else {
+          onCreateFromTemplate(template);
+        }
+      });
       fragment.append(card);
     }
     templatesEl.replaceChildren(fragment);

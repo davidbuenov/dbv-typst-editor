@@ -20,6 +20,7 @@ tauri-plugin-shell = "2"
 tauri-plugin-dialog = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+tokio = { version = "1", features = ["sync", "time"] }
 # Slice 3: observador de cambios en disco sobre la raíz del proyecto (watcher.rs).
 notify = "8"
 # Slice 3: manifiesto propio de proyecto `settings/dbv-project.toml` (project.rs).

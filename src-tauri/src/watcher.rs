@@ -52,6 +52,7 @@ pub fn is_relevant_change(path: &Path) -> bool {
     };
     let is_temp = name.ends_with('~')
         || name.ends_with(".tmp")
+        || name.contains(".dbv-tmp")
         || name.starts_with(".goutputstream")
         // Espejo de la vista previa (typst_engine::compile): si disparase el
         // watcher, cada compilación provocaría otra compilación — un bucle.
@@ -170,6 +171,11 @@ mod tests {
         // Si este fichero disparase el watcher, cada compilación provocaría la
         // siguiente y la vista previa entraría en bucle.
         assert!(!is_relevant_change(Path::new("/proyecto/.dbv-preview.typ")));
+    }
+
+    #[test]
+    fn is_relevant_change_descarta_temporales_de_guardado_atomico_dbv() {
+        assert!(!is_relevant_change(Path::new("/proyecto/.main.typ.1.dbv-tmp")));
     }
 
     #[test]

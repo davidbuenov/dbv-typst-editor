@@ -514,6 +514,57 @@ body {
   font-family: inherit;
 }
 
+/* Asistente de diagramas CeTZ (RF-23). */
+.floating-panel--cetz {
+  top: 0;
+  left: 0;
+  right: auto;
+  width: min(320px, calc(100vw - 32px));
+}
+
+.cetz-dialog__grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.cetz-dialog__option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  padding: 8px 10px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--transition), background var(--transition), transform var(--transition);
+}
+
+.cetz-dialog__option:hover,
+.cetz-dialog__option:focus-visible {
+  border-color: var(--accent);
+  background: var(--bg-secondary);
+  transform: translateX(2px);
+  outline: none;
+}
+
+.cetz-dialog__option-title {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.cetz-dialog__option-desc {
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.35;
+}
+
 /* Typst Universe (Beta, §7.6): panel ancho con rejilla de tarjetas, misma
    familia visual que la ayuda — es contenido para leer y elegir, no un
    formulario. */
@@ -874,3 +925,493 @@ body {
   font-size: 11px;
   white-space: nowrap;
 }
+
+/* Python Runner (RF-22): panel centrado flotante */
+.floating-panel--python {
+  top: 8vh;
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+  width: min(640px, calc(100vw - 48px));
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: auto;
+}
+
+.python-panel__env-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius);
+  font-size: 11px;
+}
+
+.python-panel__env-badge {
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+}
+
+.python-panel__env-badge[data-tone="success"] {
+  color: #10b981;
+}
+
+.python-panel__env-badge[data-tone="warning"] {
+  color: #f59e0b;
+}
+
+.python-panel__env-badge[data-tone="error"] {
+  color: #ef4444;
+}
+
+.python-panel__notice {
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  font-size: 11px;
+  line-height: 1.4;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: var(--text-primary);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.python-panel__notice a {
+  color: #3b82f6;
+  text-decoration: underline;
+}
+
+.python-panel__presets {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+}
+
+.python-panel__presets-label {
+  color: var(--text-muted);
+}
+
+.python-panel__code {
+  width: 100%;
+  height: 140px;
+  padding: 8px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.python-panel__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.python-panel__status {
+  font-size: 12px;
+}
+
+.python-panel__status--running {
+  color: var(--accent);
+}
+
+.python-panel__status--success {
+  color: #10b981;
+}
+
+.python-panel__status--error {
+  color: #ef4444;
+}
+
+.python-panel__output {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px;
+}
+
+.python-panel__output-header {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.python-panel__console {
+  margin: 0;
+  padding: 6px;
+  background: var(--bg-primary);
+  border-radius: var(--radius);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  max-height: 120px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.python-panel__images {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.python-panel__image-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.python-panel__image-path {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--accent);
+}
+
+/* Popover de Git (RF-19) */
+.floating-panel--git {
+  top: 48px;
+  left: 240px;
+  right: auto;
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.git-popover__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: 12px;
+}
+
+.git-popover__title {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.git-popover__ab {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.git-popover__files {
+  max-height: 160px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.git-popover__empty {
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 4px 0;
+}
+
+.git-popover__file-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  padding: 2px 4px;
+  border-radius: 2px;
+  background: var(--bg-primary);
+}
+
+.git-popover__badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 2px;
+}
+
+.git-popover__badge--M {
+  background: rgba(234, 179, 8, 0.2);
+  color: #ca8a04;
+}
+
+.git-popover__badge--\? {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+}
+
+.git-popover__file-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-secondary);
+}
+
+.git-popover__commit {
+  display: flex;
+  gap: 6px;
+}
+
+.git-popover__input {
+  flex: 1;
+  padding: 4px 8px;
+  font-size: 11px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+}
+
+.git-popover__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+/* Modal de diferencias lado a lado (RF-19) */
+.modal__card--diff {
+  width: min(900px, 92vw);
+  max-height: 85vh;
+}
+
+.diff-container {
+  display: flex;
+  gap: 12px;
+  margin: 12px 0;
+  flex: 1;
+  min-height: 280px;
+}
+
+.diff-pane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.diff-pane__title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.diff-pane__content {
+  flex: 1;
+  margin: 0;
+  padding: 8px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.4;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* Tooltip de Hover docs Tinymist LSP (RF-21) */
+.cm-lsp-hover-tooltip {
+  padding: 6px 10px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  max-width: 480px;
+  max-height: 300px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  line-height: 1.45;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+/* Tooltip de Hover enriquecido para Typst Universe */
+.cm-universe-hover-tooltip {
+  width: 280px;
+  padding: 10px 12px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  font-family: var(--font-sans);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 100;
+}
+
+.cm-universe-hover__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.cm-universe-hover__title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cm-universe-hover__badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--bg-tertiary);
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-weight: 600;
+}
+
+.cm-universe-hover__preview {
+  width: 100%;
+  height: 130px;
+  border-radius: 4px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+
+.cm-universe-hover__img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #ffffff;
+  padding: 4px;
+}
+
+.cm-universe-hover__icon-fallback {
+  width: 48px;
+  height: 48px;
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cm-universe-hover__icon-fallback svg {
+  width: 100%;
+  height: 100%;
+}
+
+.cm-universe-hover__desc {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.cm-universe-hover__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.cm-universe-hover__license {
+  font-family: var(--font-mono);
+}
+
+.cm-universe-hover__link-btn {
+  background: none;
+  border: none;
+  padding: 2px 6px;
+  border-radius: 3px;
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition);
+}
+
+.cm-universe-hover__link-btn:hover {
+  background: var(--bg-tertiary);
+}
+
+/* Tarjetas con thumbnail en el catálogo de Universe */
+.universe-card__body {
+  flex-direction: row !important;
+  gap: 12px !important;
+  align-items: stretch !important;
+}
+
+.universe-card__visual {
+  flex: 0 0 70px;
+  height: 85px;
+  border-radius: 4px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.universe-card__thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #ffffff;
+}
+
+.universe-card__icon-fallback {
+  width: 32px;
+  height: 32px;
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.universe-card__icon-fallback svg {
+  width: 100%;
+  height: 100%;
+}
+
+.universe-card__content {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+
+
+

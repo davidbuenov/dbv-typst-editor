@@ -16,6 +16,7 @@ pub mod commands;
 pub mod error;
 #[cfg(target_os = "macos")]
 pub mod macos_menu;
+pub mod platform;
 pub mod project;
 pub mod templates;
 pub mod typst_engine;
@@ -28,6 +29,7 @@ use tauri::{Emitter, Manager};
 /// Arranca la aplicación. Invocado desde `main.rs`.
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    platform::augment_path();
     let builder = tauri::Builder::default();
 
     // Instancia única (Beta) — mismo patrón que DBV Markdown Reader
@@ -66,6 +68,7 @@ pub fn run() {
         .manage(watcher::WatcherState::default())
         .manage(typst_engine::compile::EngineState::default())
         .manage(commands::startup::PendingDocument::default())
+        .manage(commands::tinymist::TinymistState::default())
         .setup(|_app| {
             // Menú nativo de macOS (Beta): Tauri v2 no trae uno por defecto en
             // esta plataforma, y sin él no hay Cmd+Q, Cmd+H ni el Edit del
@@ -95,11 +98,23 @@ pub fn run() {
             commands::file_io::reveal_in_file_manager,
             commands::file_io::save_file_dialog,
             commands::file_io::write_file,
+            commands::git::git_commit,
+            commands::git::git_pull,
+            commands::git::git_push,
+            commands::git::git_status,
+            commands::python_runner::check_python_status,
+            commands::python_runner::execute_python_script,
+            commands::python_runner::setup_shared_python_env,
             commands::recent_projects::add_recent_project,
             commands::recent_projects::clear_recent_projects,
             commands::recent_projects::get_recent_projects,
             commands::recent_projects::remove_recent_project,
             commands::startup::startup_document,
+            commands::tinymist::tinymist_send_notification,
+            commands::tinymist::tinymist_send_request,
+            commands::tinymist::tinymist_start,
+            commands::tinymist::tinymist_status,
+            commands::tinymist::tinymist_stop,
             project::open_project,
             templates::create_project,
             templates::list_templates,

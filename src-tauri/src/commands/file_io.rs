@@ -203,8 +203,55 @@ pub fn read_file(path: String) -> Result<FilePayload, AppError> {
     Ok(payload)
 }
 
-/// Escribe `content` en `path` y devuelve la nueva marca de modificación, para
-/// que el frontend pueda actualizar su referencia de conflicto sin releer.
+use std::sync::atomic::{AtomicU64, Ordering};
+
+static TMP_SEQ: AtomicU64 = AtomicU64::new(0);
+
+/// Escribe el contenido en un archivo de forma atómica:
+/// 1. Escribe en un fichero temporal oculto en la misma carpeta (`.nombre.seq.dbv-tmp`).
+/// 2. Lo renombra al destino (`fs::rename`).
+/// 3. Si el renombrado falla (por antivirus o bloqueo transitorio en Windows), reintenta
+///    hasta 3 veces espaciando 15ms.
+/// 4. Como salvaguarda final para nunca perder el trabajo del usuario, escribe directamente al destino.
+pub fn write_atomic(path: &Path, content: &str) -> Result<(), std::io::Error> {
+    let parent = path.parent().unwrap_or_else(|| Path::new("."));
+    let name = path
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_else(|| "file".to_string());
+    let seq = TMP_SEQ.fetch_add(1, Ordering::Relaxed);
+    let tmp_path = parent.join(format!(".{name}.{seq}.dbv-tmp"));
+
+    if let Err(e) = fs::write(&tmp_path, content) {
+        // Si no se pudo crear el archivo temporal, escribir directamente al destino.
+        return fs::write(path, content).map_err(|_| e);
+    }
+
+    let mut last_err = None;
+    for attempt in 0..3 {
+        match fs::rename(&tmp_path, path) {
+            Ok(()) => return Ok(()),
+            Err(e) => {
+                last_err = Some(e);
+                if attempt < 2 {
+                    std::thread::sleep(std::time::Duration::from_millis(15));
+                }
+            }
+        }
+    }
+
+    let _ = fs::remove_file(&tmp_path);
+
+    // Fallback de seguridad: escribir directamente al destino si rename no tuvo éxito.
+    if let Err(direct_err) = fs::write(path, content) {
+        Err(last_err.unwrap_or(direct_err))
+    } else {
+        Ok(())
+    }
+}
+
+/// Escribe `content` en `path` de forma atómica y devuelve la nueva marca de modificación,
+/// para que el frontend pueda actualizar su referencia de conflicto sin releer.
 #[tauri::command]
 pub fn write_file(path: String, content: String) -> Result<u64, AppError> {
     let path_buf = PathBuf::from(&path);
@@ -216,7 +263,7 @@ pub fn write_file(path: String, content: String) -> Result<u64, AppError> {
         return Err(AppError::InvalidPath(path));
     }
 
-    fs::write(&path_buf, content).map_err(|e| AppError::Io(e.to_string()))?;
+    write_atomic(&path_buf, &content).map_err(|e| AppError::Io(e.to_string()))?;
     Ok(modified_ms(&path_buf))
 }
 
@@ -427,5 +474,24 @@ mod tests {
     fn reveal_command_abre_la_carpeta_directamente() {
         let (_, args) = reveal_command("/tmp/proyecto", true);
         assert_eq!(args, vec!["/tmp/proyecto".to_string()]);
+    }
+
+    #[test]
+    fn write_atomic_crea_y_sobrescribe_sin_dejar_temporales() {
+        let dir = tempfile::tempdir().unwrap();
+        let target = dir.path().join("documento.typ");
+
+        write_atomic(&target, "primera versión").unwrap();
+        assert_eq!(fs::read_to_string(&target).unwrap(), "primera versión");
+
+        write_atomic(&target, "segunda versión actualizada").unwrap();
+        assert_eq!(fs::read_to_string(&target).unwrap(), "segunda versión actualizada");
+
+        // Comprobar que no quedan ficheros temporales huérfanos
+        let entries: Vec<_> = fs::read_dir(dir.path())
+            .unwrap()
+            .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+            .collect();
+        assert_eq!(entries, vec!["documento.typ".to_string()]);
     }
 }

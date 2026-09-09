@@ -760,6 +760,7 @@ dependencies = [
  "tauri-plugin-single-instance",
  "tauri-plugin-updater",
  "tempfile",
+ "tokio",
  "toml 0.8.2",
  "zip 2.4.2",
 ]

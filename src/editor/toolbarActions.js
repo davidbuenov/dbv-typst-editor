@@ -313,6 +313,13 @@ export const TOOLBAR_ACTIONS = [
     }),
   },
   {
+    id: 'cetz',
+    group: 'content',
+    glyph: '⬡',
+    i18nKey: 'toolbar.cetz',
+    buildTransaction: cetzAction('flowchart'),
+  },
+  {
     id: 'hr',
     group: 'content',
     glyph: '—',
@@ -425,3 +432,131 @@ export function buildToolbarKeymap() {
   }));
   return keymap.of(bindings);
 }
+
+/**
+ * Comprueba si el documento ya importa la biblioteca CeTZ.
+ * @param {string} docText
+ * @returns {boolean}
+ */
+export function hasCetzImport(docText) {
+  return /#import\s+["']@preview\/cetz[:0-9.]*["']/.test(docText);
+}
+
+/**
+ * Devuelve el código Typst con CeTZ para el tipo de diagrama pedido.
+ * @param {'flowchart'|'block'|'plot'|'canvas'} type
+ * @returns {string}
+ */
+export function getCetzSnippet(type) {
+  switch (type) {
+    case 'block':
+      return `#figure(
+  cetz.canvas({
+    import cetz.draw: *
+    rect((0, 0), (2.5, 1.5), name: "client", fill: rgb("eff6ff"))
+    content("client", [*Cliente*])
+
+    rect((4, 0), (6.5, 1.5), name: "server", fill: rgb("f5f3ff"))
+    content("server", [*Servidor*])
+
+    rect((8, 0), (10.5, 1.5), name: "db", fill: rgb("fdf4ff"))
+    content("db", [*Base de Datos*])
+
+    line("client.east", "server.west", mark: (end: ">"))
+    line("server.east", "db.west", mark: (end: ">"))
+  }),
+  caption: [Diagrama de bloques de arquitectura],
+)`;
+
+    case 'plot':
+      return `#figure(
+  cetz.canvas({
+    import cetz.plot
+    plot.plot(size: (8, 5), x-tick-step: 1, y-tick-step: 1, {
+      plot.add(
+        domain: (-3, 3),
+        calc.sin,
+        label: [$sin(x)$],
+        style: (stroke: blue + 1.5pt)
+      )
+      plot.add(
+        domain: (-3, 3),
+        calc.cos,
+        label: [$cos(x)$],
+        style: (stroke: red + 1.5pt)
+      )
+    })
+  }),
+  caption: [Gráfica de funciones 2D con CeTZ],
+)`;
+
+    case 'canvas':
+      return `#cetz.canvas({
+  import cetz.draw: *
+  circle((0, 0), radius: 1, fill: blue.lighten(80%), stroke: blue)
+  rect((2, -1), (4, 1), fill: green.lighten(80%), stroke: green)
+  line((1, 0), (2, 0), mark: (end: ">"))
+})`;
+
+    case 'flowchart':
+    default:
+      return `#figure(
+  cetz.canvas({
+    import cetz.draw: *
+    rect((0, 2), (3, 3), name: "start", radius: 0.2, fill: rgb("e0f2fe"))
+    content("start", [Inicio])
+
+    rect((0, 0), (3, 1), name: "process", fill: rgb("f0fdf4"))
+    content("process", [Procesar])
+
+    rect((0, -2), (3, -1), name: "end", radius: 0.2, fill: rgb("fee2e2"))
+    content("end", [Fin])
+
+    line("start.south", "process.north", mark: (end: ">"))
+    line("process.south", "end.north", mark: (end: ">"))
+  }),
+  caption: [Diagrama de flujo],
+)`;
+  }
+}
+
+/**
+ * Genera la transacción para insertar un diagrama CeTZ, inyectando el
+ * #import "@preview/cetz:0.3.1" en la cabecera si el documento no lo tiene ya.
+ * @param {'flowchart'|'block'|'plot'|'canvas'} type
+ */
+export function cetzAction(type = 'flowchart') {
+  return function buildTransaction(state) {
+    const docText = state.doc.toString();
+    const needsImport = !hasCetzImport(docText);
+    const importText = '#import "@preview/cetz:0.3.1"\n\n';
+    const snippet = getCetzSnippet(type);
+    const { from, to } = state.selection.main;
+
+    if (from === 0) {
+      const fullText = (needsImport ? importText : '') + snippet + '\n\n';
+      return {
+        changes: { from: 0, to, insert: fullText },
+        selection: { anchor: fullText.length },
+      };
+    }
+
+    const before = docText[from - 1] === '\n' ? '\n' : '\n\n';
+    const body = before + snippet + '\n';
+    const changes = [];
+    let offset = 0;
+
+    if (needsImport) {
+      changes.push({ from: 0, to: 0, insert: importText });
+      offset = importText.length;
+    }
+    changes.push({ from, to, insert: body });
+
+    const newPos = from + offset + body.length;
+    return {
+      changes,
+      selection: { anchor: newPos },
+    };
+  };
+}
+

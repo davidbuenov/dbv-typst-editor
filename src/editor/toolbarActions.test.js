@@ -18,7 +18,10 @@ import { describe, expect, it } from 'vitest';
 import {
   TOOLBAR_ACTIONS,
   buildToolbarKeymap,
+  cetzAction,
   figureActionForPath,
+  getCetzSnippet,
+  hasCetzImport,
   insertSymbolAction,
   isInsideMath,
   tableAction,
@@ -277,3 +280,47 @@ describe('buildToolbarKeymap', () => {
     expect(new Set(shortcuts).size).toBe(shortcuts.length);
   });
 });
+
+describe('cetzAction', () => {
+  it('detecta correctamente si cetz ya está importado', () => {
+    expect(hasCetzImport('#import "@preview/cetz:0.3.1"')).toBe(true);
+    expect(hasCetzImport("#import '@preview/cetz:0.3.0'")).toBe(true);
+    expect(hasCetzImport('#import "@preview/cetz"')).toBe(true);
+    expect(hasCetzImport('= Mi Documento\n\nTexto normal')).toBe(false);
+  });
+
+  it('devuelve código válido para todos los tipos de diagrama', () => {
+    for (const type of ['flowchart', 'block', 'plot', 'canvas']) {
+      const snippet = getCetzSnippet(type);
+      expect(snippet).toContain('cetz.canvas');
+    }
+  });
+
+  it('inyecta #import "@preview/cetz:0.3.1" en la cabecera si no existe', () => {
+    const state = stateWithSelection('= Documento\n\n', 13);
+    const spec = cetzAction('flowchart')(state);
+    const next = state.update(spec).state;
+    const doc = next.doc.toString();
+    expect(doc.startsWith('#import "@preview/cetz:0.3.1"')).toBe(true);
+    expect(doc).toContain('cetz.canvas');
+    expect(doc).toContain('Diagrama de flujo');
+  });
+
+  it('no duplica el #import si ya está presente en el documento', () => {
+    const initial = '#import "@preview/cetz:0.3.1"\n\n= Documento\n';
+    const state = stateWithSelection(initial, initial.length);
+    const spec = cetzAction('plot')(state);
+    const next = state.update(spec).state;
+    const doc = next.doc.toString();
+    const matches = doc.match(/#import\s+"@preview\/cetz/g);
+    expect(matches?.length).toBe(1);
+    expect(doc).toContain('plot.plot');
+  });
+
+  it('la acción cetz en TOOLBAR_ACTIONS funciona como fallback por defecto', () => {
+    const res = apply('cetz', '', 0);
+    expect(res.doc).toContain('#import "@preview/cetz:0.3.1"');
+    expect(res.doc).toContain('cetz.canvas');
+  });
+});
+

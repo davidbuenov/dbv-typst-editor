@@ -1,9 +1,9 @@
 # 📋 Especificaciones: DBV Typst Editor
 
-> **Fase:** `/spec` (Especificación) → **cerrada**
-> **Estado:** 🔒 **CONGELADO v1.2 — 2026-09-05** (baseline de especificación). v1.2 recoloca la barra de herramientas de inserción del editor de Beta a **v0.2** como requisito propio **RF-13** (ADR-EDITOR-002 en `memory.md`), a petición explícita del usuario: sin ella el producto contradice su propio principio nº2 ("el usuario no debe ver código si no quiere") y es una regresión frente a DBV Markdown Reader. v1.1 aplicó los ajustes de alcance aprobados por el usuario al autorizar `/build`: MVP reducido al bucle de valor completo, plantilla "Proyecto en blanco", apertura de proyectos existentes como flujo de primer nivel y operaciones de proyecto explícitas. Incorpora Spec Addendum, Additional Specification Clarification, TYPST CLI INTEGRATION, el research phase dedicado y el feedback de posicionamiento de producto; ver [`ARCHITECTURE.md`](./ARCHITECTURE.md) y [`TYPST_ECOSYSTEM_RESEARCH.md`](./TYPST_ECOSYSTEM_RESEARCH.md).
+> **Fase:** `/spec` (Especificación) → **v0.5.0 especificada**
+> **Estado:** 🔒 **CONGELADO v1.3 — 2026-09-09** (baseline de especificación v0.5.0). v1.3 especifica el salto a productividad profesional y robustez (v0.5.0): Integración con Git y resolución visual de conflictos (RF-19), Galería visual de plantillas con previsualización (RF-20), Inteligencia de código con Tinymist LSP vendorizado (RF-21), Figuras y datos dinámicos con Python (RF-22), Asistente visual de diagramas CeTZ (RF-23), y Robustez de entorno y guardado atómico (RF-24).
 > **Regla de congelación:** a partir de aquí, cualquier cambio de alcance o de requisito exige (1) registrarlo como ADR en `memory.md`, (2) actualizar este documento con nueva versión, y (3) revisar el impacto en `implementation_plan.md`. No se modifican requisitos "al vuelo" durante `/build`.
-> **Última Revisión:** 2026-09-05
+> **Última Revisión:** 2026-09-09
 
 ---
 
@@ -167,6 +167,57 @@ Toda la aplicación (lanzador, asistente de creación, explorador de ficheros, e
     deduplicación por contenido ya existente (`find_existing_copy`, Slice 27) — soltar dos veces la
     misma imagen no crea `foto-1.png`; (d) sin proyecto abierto, no se copia nada y se explica por qué.
 
+## ✨ 5c. Funcionalidades — v0.5.0 (Productividad Profesional y Robustez)
+
+> Alcance acordado con el usuario el 2026-09-09. Incorpora capacidades avanzadas de productividad,
+> integración de herramientas del ecosistema e ingeniería de robustez inspiradas en el análisis
+> de *Hilbert Editor*: Git/Diffs, previsualización de plantillas, LSP `tinymist` vendorizado,
+> automatización de figuras Python, diagramas CeTZ y mitigación de problemas de plataforma en Windows.
+
+- [ ] **RF-19 Integración con Git y Resolución Visual de Conflictos.**
+  Soporte de Git nativo aprovechando la CLI instalada en el sistema del usuario (con comprobación previa de disponibilidad en el `PATH`):
+  - **Criterios de aceptación:**
+    1. *Indicador de estado en la barra de estado/proyecto:* Si la carpeta del proyecto es un repositorio Git, muestra la rama activa (`main`), conteo de ficheros modificados/sin seguimiento, y estado respecto al remoto (`↑1 ↓0`). Si Git no está instalado o el proyecto no es un repositorio, degrada limpiamente sin mostrar errores ruidosos.
+    2. *Acciones rápidas de sincronización:* Menú o botón accesible con acciones básicas: *Pull* (traer cambios), *Push* (enviar commits), y *Commit* con mensaje directo para trabajo local ágil.
+    3. *Detección de cambios externos y Diff Side-by-Side:* Si un archivo se modifica en disco (por un `git pull` o editor externo) mientras el usuario tiene modificaciones sin guardar en el editor, **nunca se sobrescribe silenciosamente**. Se abre un visor de diferencias dividido (Diff side-by-side) para inspeccionar y elegir si conservar la versión en memoria o recargar la del disco.
+
+- [ ] **RF-20 Galería Visual de Plantillas con Previsualización (Template Preview).**
+  Las plantillas dejan de ser solo un nombre en un desplegable y se presentan en una interfaz visual con capturas reales pre-renderizadas:
+  - **Criterios de aceptación:**
+    1. *Miniaturas en alta resolución:* Cada una de las 8 plantillas curadas de DBV (y las comunitarias integradas) cuenta con una miniatura fiel de su primera página maquetada.
+    2. *Ficha informativa de plantilla:* Al seleccionar una plantilla se muestra: título, descripción clara de uso (TFG, Informe, Artículo, etc.), autor, etiquetas y selector de idioma cuando aplique (ES/EN).
+    3. *Creación asistida:* Acción principal "Usar plantilla" que transiciona al formulario de metadatos (RF-03) con los campos ya adaptados al tipo de documento seleccionado.
+
+- [ ] **RF-21 Inteligencia de Código con Tinymist (LSP vendorizado).**
+  Integración del Language Server oficial de Typst (`tinymist`) para ofrecer autocompletado semántico, hover docs y diagnósticos en tiempo real:
+  - **Criterios de aceptación:**
+    1. *Vendorizado como sidecar:* `tinymist` se descarga y vendoriza como binario sidecar por plataforma (igual que el CLI de `typst`), garantizando que funciona de fábrica sin depender de que el usuario lo instale manualmente.
+    2. *Autocompletado semántico:* Sugerencias contextuales de funciones de la biblioteca estándar de Typst, argumentos con nombre (ej. `margin: (top: ...)`), variables locales y referencias a etiquetas (`<sec:...>`).
+    3. *Hover Docs:* Al colocar el cursor sobre un identificador o función, se despliega una ventana flotante con su signatura de tipos y documentación oficial.
+    4. *Diagnósticos en línea:* Subrayado ondulado de avisos y errores tipográficos y sintácticos en el propio CodeMirror 6 antes de guardar o compilar.
+    5. *Formateo con typstyle:* Integración de formateo automático de documento completo con el atajo estándar `Shift + Alt + F` o botón de menú.
+
+- [ ] **RF-22 Generador de Figuras y Datos Dinámicos con Python.**
+  Capacidad de ejecutar scripts de Python para generar figuras (Matplotlib, Seaborn) o procesar datos sin salir del editor:
+  - **Criterios de aceptación:**
+    1. *Asistente / Runner de Python:* Panel o modal donde pegar o escribir un script de generación de gráficas o datos.
+    2. *Detección de intérprete local:* Detección transparente de `python` o launcher `py` en Windows utilizando el PATH enriquecido.
+    3. *Guardado automático en `images/`:* Si el script produce un archivo de imagen (PNG/SVG/PDF), se deposita en la carpeta `images/` del proyecto y se ofrece la inserción automática del bloque `#figure(image("images/..."), caption: [...])` en la posición actual del cursor.
+    4. *Ejecución asíncrona y segura:* Timeout configurable (por defecto 30s) para evitar que un script bloqueante congele la aplicación, capturando `stdout` y `stderr` para depuración.
+
+- [ ] **RF-23 Asistente Visual de Diagramas CeTZ.**
+  Inserción guiada de diagramas vectoriales nativos para Typst basados en el paquete estándar CeTZ:
+  - **Criterios de aceptación:**
+    1. *Galería de tipos de diagramas:* Opciones de diagramas frecuentes: Diagramas de flujo (bloques de proceso, decisiones, conexiones etiquetadas), diagramas de arquitectura/componentes y gráficas de funciones matemáticas 2D.
+    2. *Emisión de código CeTZ limpio:* Inserta el bloque `#import "@preview/cetz:0.3.1"` (si no existe ya en el documento) y la estructura `cetz.canvas({ ... })` comentada y lista para personalizar.
+
+- [ ] **RF-24 Robustez de Plataforma en Windows y Guardado Atómico.**
+  Solución de problemas reales de entorno identificados en la trinchera del desarrollo de escritorio:
+  - **Criterios de aceptación:**
+    1. *`augment_path()`:* Inyección dinámica en el arranque de rutas críticas de Windows (`WinGet\Links`, `cargo\bin`, `Python\Launcher`, `scoop\shims`, `chocolatey\bin`) con el separador `;` correcto para que cualquier herramienta instalada recientemente se reconozca de inmediato sin reiniciar sesión.
+    2. *`write_atomic()`:* Guardado en fichero temporal oculto y renombrado atómico para prevenir que el observador de cambios compile ficheros a medio escribir.
+    3. *Preservación de "Last Good Render":* Si una edición introduce un error sintáctico, la vista previa conserva el último documento PDF/SVG renderizado con éxito, indicando el fallo en la barra de problemas sin dejar el visor en blanco.
+
 ## 🚀 6. Funcionalidades — Beta y v1.0 (detalle del Spec Addendum)
 
 Estas funcionalidades están **descritas y arquitectónicamente resueltas** (ver `ARCHITECTURE.md` §7.6–§7.14 y `TYPST_ECOSYSTEM_RESEARCH.md`) pero **fuera del MVP v0.1** por decisión explícita de alcance del usuario. Nota de encuadre: el **Universe Browser** (Package Explorer + Template Explorer, ver árbol de navegación en `ARCHITECTURE.md` §7.6.0.1) se posiciona como punto de entrada de primer nivel de la aplicación (§2), no como un add-on menor — esto afecta a su importancia de diseño y visibilidad en Beta, no reabre el acuerdo de fases ya cerrado con el usuario (el Lanzador de plantillas curadas, MVP, ya adelanta esta experiencia — ver `ARCHITECTURE.md` §7.6):
@@ -230,6 +281,8 @@ Estas funcionalidades están **descritas y arquitectónicamente resueltas** (ver
 - [x] ¿Cómo enriquecer plantillas *comunitarias* con la Capa DBV (`dbv-template.toml`) sin crear problemas de mantenimiento por desajuste de versión? → Resuelto a nivel de diseño: overlay propio de DBV indexado por `(namespace/nombre, versión)`, nunca co-ubicado en la caché de paquetes de Typst; degrada limpiamente a "sin formulario" si no hay overlay para la versión instalada — ver `ARCHITECTURE.md` §7.6.3 y riesgo en §6.
 
 - [x] Spike técnico (S-2, 2026-09-08): ¿se puede sincronizar editor y vista previa con el compilador vendorizado como sidecar? → **Resuelto, con matices.** No por posición real de fuente: Typst **no** expone el `span` de origen (`heading.span` no existe) ni anota el SVG (sin un solo `data-*`). Sí con **anclas `#metadata` + `query`**, que devuelven payload y posición de una pasada y dejan el SVG byte a byte idéntico. Informe y mediciones en `spikes/preview-sync/README.md`; consecuencias en RF-14 a RF-16 (§5b).
+- [x] ¿Cómo empaquetar Tinymist (v0.5.0)? → **Resuelto por decisión del usuario (2026-09-09): vendorizado como sidecar** por plataforma (igual que el compilador Typst), sin depender de que el usuario lo instale.
+- [x] ¿Cómo integrar el control de versiones Git (v0.5.0)? → **Resuelto por decisión del usuario (2026-09-09): apoyarse en la CLI nativa de Git instalada en el sistema del usuario**, con detección en PATH y degradación limpia si no está presente.
 
 ## 🧪 10. Criterios de Evaluación (No Deterministas)
 
@@ -249,10 +302,11 @@ Orden de prioridad para toda decisión de diseño/arquitectura (fijado explícit
 
 | Fase | Alcance | Estado |
 | --- | --- | --- |
-| **MVP (v0.1)** — alcance reducido aprobado | Bucle de valor completo: lanzador, proyectos (incl. apertura de proyectos existentes y operaciones Abrir/Mostrar/Recientes), asistente de creación, **4 plantillas** (Proyecto en blanco, TFG, Artículo académico, CV), editor CodeMirror 6, preview SVG en tiempo real, guardado con detección de conflicto, temas, configuración, exportación PDF, empaquetado Windows + Linux. | 🔨 En construcción |
+| **MVP (v0.1)** — alcance reducido aprobado | Bucle de valor completo: lanzador, proyectos (incl. apertura de proyectos existentes y operaciones Abrir/Mostrar/Recientes), asistente de creación, **4 plantillas** (Proyecto en blanco, TFG, Artículo académico, CV), editor CodeMirror 6, preview SVG en tiempo real, guardado con detección de conflicto, temas, configuración, exportación PDF, empaquetado Windows + Linux. | ✅ Completado (2026-09-05) |
 | **v0.2** | **Barra de herramientas de inserción del editor (RF-13)** + Project Archive `.dbvt` (export/import) + 4 plantillas restantes (TFM, Tesis doctoral, Informe técnico, Presentación). | ✅ Completado (2026-09-05) |
-| **v0.4.0** | Vista previa del **documento completo** conmutable (RF-14), **control de refresco** automático/manual (RF-15), **sincronización editor↔vista previa** por anclas (RF-16), **selector de imágenes del proyecto** en el botón Fig (RF-17) y **arrastre de imágenes** coherente con el de fuentes (RF-18). Especificado el 2026-09-08 sobre el Spike S-2. | 📋 Especificado |
-| **Beta (v0.2–v0.4)** | **Universe Browser** (Package Explorer + Template Explorer, separados a nivel de UX, sobre el `index.json` oficial de Typst Universe), navegación estructural, asistentes de inserción con formulario (la barra en sí es v0.2, RF-13), gestión de imágenes por arrastre, bibliografía visual, modos de escritura, exportación PNG, terminal avanzado, LSP `tinymist`, macOS, auto-actualizador. | Futuro |
+| **v0.4.0** | Vista previa del **documento completo** conmutable (RF-14), **control de refresco** automático/manual (RF-15), **sincronización editor↔vista previa** por anclas (RF-16), **selector de imágenes del proyecto** en el botón Fig (RF-17) y **arrastre de imágenes** coherente con el de fuentes (RF-18). | ✅ Completado (2026-09-08) |
+| **v0.5.0** | **Integración con Git y diffs side-by-side (RF-19)**, **Galería visual de plantillas con preview (RF-20)**, **LSP Tinymist vendorizado (RF-21)**, **Figuras y datos dinámicos con Python (RF-22)**, **Asistente visual de diagramas CeTZ (RF-23)**, **Robustez de entorno Windows y guardado atómico (RF-24)**. Especificado el 2026-09-09. | 📋 Especificado |
+| **Beta (v0.2–v0.4)** | **Universe Browser** (Package Explorer + Template Explorer, separados a nivel de UX, sobre el `index.json` oficial de Typst Universe), navegación estructural, asistentes de inserción con formulario (la barra en sí es v0.2, RF-13), gestión de imágenes por arrastre, bibliografía visual, modos de escritura, exportación PNG, terminal avanzado, LSP `tinymist`, macOS, auto-actualizador. | En evolución |
 | **v1.0** | Ecosistema completo de plantillas, exportación SVG, asistentes avanzados, Paquete Docente, publicación en stores, accesibilidad WCAG AA. | Futuro |
 | **Futuro (post-1.0)** | IA, repositorio comunitario, sincronización, colaboración en tiempo real, integración Zotero/Mendeley, asistentes de redacción académica. | Exploratorio |
 

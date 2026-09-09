@@ -11,5 +11,8 @@
 
 pub mod app_info;
 pub mod file_io;
+pub mod git;
+pub mod python_runner;
 pub mod recent_projects;
 pub mod startup;
+pub mod tinymist;

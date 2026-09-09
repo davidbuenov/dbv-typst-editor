@@ -17,7 +17,13 @@
 // funciones y símbolos integrados. El plan B (gramática propia mínima) queda
 // descartado: habría sido estrictamente peor.
 
-import { autocompletion, closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete';
+import {
+  autocompletion,
+  closeBrackets,
+  closeBracketsKeymap,
+  completionKeymap,
+} from '@codemirror/autocomplete';
+import { lintGutter, setDiagnostics } from '@codemirror/lint';
 import {
   defaultKeymap,
   history,
@@ -48,6 +54,8 @@ import {
   typst_lezer,
 } from 'codemirror-lang-typst/lezer';
 import { buildToolbarKeymap } from './toolbarActions.js';
+import { createLspCompletionSource, createLspHover } from './lspClient.js';
+import { createUniverseHover } from './universeHover.js';
 
 /**
  * Tema del editor construido sobre los tokens CSS de la aplicación
@@ -135,6 +143,7 @@ function buildTheme(isDark) {
  * @param {import('@codemirror/state').Extension} deps.saveKeymap
  * @param {import('@codemirror/state').Extension} deps.updateListener
  * @param {boolean} deps.isDark
+ * @param {ReturnType<import('./lspClient.js').createLspClient>} [deps.lspClient]
  */
 export function buildExtensions({
   themeCompartment,
@@ -143,8 +152,29 @@ export function buildExtensions({
   saveKeymap,
   updateListener,
   isDark,
+  lspClient,
 }) {
   const toolbarKeymap = buildToolbarKeymap();
+  const extraExtensions = [createUniverseHover()];
+  let autocompleteExt;
+  if (lspClient) {
+    autocompleteExt = autocompletion({ override: [createLspCompletionSource(lspClient)] });
+    extraExtensions.push(createLspHover(lspClient));
+    extraExtensions.push(
+      keymap.of([
+        {
+          key: 'Shift-Alt-f',
+          run: (v) => {
+            lspClient.formatDocument(v);
+            return true;
+          },
+        },
+      ])
+    );
+  } else {
+    autocompleteExt = autocompletion();
+  }
+
   return [
     lineNumbers(),
     highlightActiveLineGutter(),
@@ -158,7 +188,8 @@ export function buildExtensions({
     closeBrackets(),
     highlightSelectionMatches(),
     search({ top: true }),
-    autocompletion(),
+    autocompleteExt,
+    lintGutter(),
     EditorView.lineWrapping,
     typst_lezer(),
     syntaxHighlighting(TypstHighlightSytle),
@@ -173,11 +204,13 @@ export function buildExtensions({
     // binding por defecto que pudiera capturar la misma combinación.
     saveKeymap,
     toolbarKeymap,
+    ...extraExtensions,
     keymap.of([
       ...closeBracketsKeymap,
       ...searchKeymap,
       ...historyKeymap,
       ...foldKeymap,
+      ...completionKeymap,
       ...defaultKeymap,
       indentWithTab,
     ]),
@@ -196,8 +229,12 @@ export function buildExtensions({
  *   selección movidos — lo usa la barra de herramientas (RF-13) para refrescar
  *   la sensibilidad al contexto (dentro/fuera de una ecuación, §7.7.3.3).
  * @param {'dark'|'light'|'sepia'} [options.theme] Tema inicial.
+ * @param {ReturnType<import('./lspClient.js').createLspClient>} [options.lspClient]
  */
-export function createEditor(hostEl, { onChange, onSave, onSelectionChange, theme = 'dark' } = {}) {
+export function createEditor(
+  hostEl,
+  { onChange, onSave, onSelectionChange, theme = 'dark', lspClient } = {}
+) {
   if (!(hostEl instanceof HTMLElement)) {
     throw new TypeError('createEditor: hostEl debe ser un HTMLElement');
   }
@@ -236,9 +273,14 @@ export function createEditor(hostEl, { onChange, onSave, onSelectionChange, them
         historyCompartment,
         saveKeymap,
         isDark: theme === 'dark',
+        lspClient,
         updateListener: EditorView.updateListener.of((update) => {
           if (loading) return;
-          if (update.docChanged) onChange?.(update.state.doc.toString());
+          if (update.docChanged) {
+            const text = update.state.doc.toString();
+            lspClient?.changeDocument(text);
+            onChange?.(text);
+          }
           if (update.docChanged || update.selectionSet) onSelectionChange?.(update.view);
         }),
       }),
@@ -259,7 +301,12 @@ export function createEditor(hostEl, { onChange, onSave, onSelectionChange, them
       view.dispatch({ effects: historyCompartment.reconfigure([]) });
       view.dispatch({ effects: historyCompartment.reconfigure(history()) });
       currentPath = path ?? null;
+      lspClient?.openDocument(currentPath, content);
       loading = false;
+    },
+    formatDocument: () => lspClient?.formatDocument(view),
+    setDiagnostics(diagnostics) {
+      view.dispatch(setDiagnostics(view.state, diagnostics));
     },
     getContent: () => view.state.doc.toString(),
     getPath: () => currentPath,

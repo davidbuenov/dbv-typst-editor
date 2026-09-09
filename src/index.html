@@ -44,6 +44,13 @@
         <span class="app-header__title">DBV Typst Editor</span>
         <span class="app-header__project" id="project-name">—</span>
         <span class="app-header__badge" id="project-kind"></span>
+        <div id="git-indicator" class="git-indicator hidden">
+          <button id="git-btn" class="git-btn" type="button" title="Git Status">
+            <span class="git-icon">⎇</span>
+            <span id="git-branch" class="git-branch">master</span>
+            <span id="git-status-summary" class="git-status-summary"></span>
+          </button>
+        </div>
       </div>
       <div class="app-header__actions">
         <div class="app-header__group hidden" id="project-actions">
@@ -86,6 +93,7 @@
           <button id="btn-theme-sepia" class="segmented-control__btn" type="button" data-i18n-title="theme.sepia" aria-label="Sepia">📜</button>
         </div>
         <button id="btn-terminal" class="icon-button" type="button" data-i18n-title="action.terminal">&gt;_</button>
+        <button id="btn-python" class="icon-button" type="button" data-i18n-title="action.python">🐍</button>
         <button id="btn-universe" class="icon-button" type="button" data-i18n-title="action.universe">✦</button>
         <button id="btn-help" class="icon-button" type="button" data-i18n-title="action.help">?</button>
         <button id="btn-about" class="icon-button" type="button" data-i18n-title="action.about">ⓘ</button>
@@ -101,7 +109,10 @@
 
           <h2 class="launcher__subheading" data-i18n="launcher.templates"></h2>
           <div class="template-grid" id="template-grid"></div>
-          <button id="btn-launcher-universe" class="button button--ghost" type="button" data-i18n="launcher.universe"></button>
+          <div class="launcher__template-actions">
+            <button id="btn-launcher-gallery" class="button button--ghost" type="button" data-i18n="launcher.browseGallery"></button>
+            <button id="btn-launcher-universe" class="button button--ghost" type="button" data-i18n="launcher.universe"></button>
+          </div>
 
           <h2 class="launcher__subheading" data-i18n="launcher.open"></h2>
           <div class="launcher__actions">
@@ -157,11 +168,16 @@
               <svg class="button__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6.3 2.5h5l3.4 3.4V16a1 1 0 0 1-1 1H6.3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1Z"/><path d="M11.3 2.5V6h3.4"/><path d="M10 9.3v5.4M7.6 12l2.4 2.4L12.4 12"/></svg>
               <span data-i18n="action.exportPdfShort"></span>
             </button>
+            <button id="btn-format-doc" class="button button--compact button--ghost button--icon-label" type="button" title="Formatear documento con Typstyle / Tinymist (Shift+Alt+F)">
+              <svg class="button__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 5h13M3.5 10h9M3.5 15h13"/></svg>
+              <span>Formatear</span>
+            </button>
             <button id="btn-export-png" class="button button--compact button--ghost button--icon-label" type="button" data-i18n-title="action.exportPng">
               <svg class="button__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="2.8" y="4" width="14.4" height="12" rx="1.4"/><circle cx="6.8" cy="7.8" r="1.15"/><path d="M3.6 14.2 7.2 10.4l2.8 2.8 2-2.3 3.9 3.8"/></svg>
               <span data-i18n="action.exportPngShort"></span>
             </button>
             <span class="document__path" id="document-path"></span>
+            <span class="document__lsp-badge hidden" id="lsp-status" title="Language Server Tinymist">● Tinymist</span>
           </div>
           <div class="toolbar" id="editor-toolbar"></div>
           <div class="editor" id="editor-host"></div>
@@ -215,12 +231,92 @@
       </div>
     </div>
 
+    <!-- Modal de Galería y Previsualización de Plantillas (RF-20) -->
+    <div class="modal hidden" id="template-gallery-dialog" role="dialog" aria-modal="true">
+      <div class="modal__card modal__card--gallery">
+        <div class="template-gallery__header">
+          <div class="template-gallery__titles">
+            <h2 class="modal__title" data-i18n="gallery.title"></h2>
+            <p class="modal__text" data-i18n="gallery.subtitle"></p>
+          </div>
+          <button id="template-gallery-close-x" class="icon-button icon-button--small" type="button" data-i18n-title="action.close">✕</button>
+        </div>
+
+        <div class="template-gallery__search-bar">
+          <svg class="template-gallery__search-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m13 13 4 4"/></svg>
+          <input
+            id="template-gallery-search"
+            class="template-gallery__search-input"
+            type="search"
+            autocomplete="off"
+            spellcheck="false"
+            data-i18n-placeholder="gallery.searchPlaceholder"
+          />
+        </div>
+
+        <div class="template-gallery__body">
+          <aside class="template-gallery__sidebar">
+            <div class="template-gallery__list" id="template-gallery-list"></div>
+          </aside>
+
+          <section class="template-gallery__preview-pane">
+            <div class="template-gallery__preview" id="template-gallery-preview"></div>
+            <div class="template-gallery__meta" id="template-gallery-meta"></div>
+          </section>
+        </div>
+
+        <div class="modal__actions template-gallery__footer">
+          <button id="template-gallery-cancel" class="button" type="button" data-i18n="gallery.close"></button>
+          <button id="template-gallery-use" class="button button--primary" type="button" data-i18n="gallery.useTemplate"></button>
+        </div>
+      </div>
+    </div>
+
     <!-- Modal de elección: solo para decisiones que pueden destruir trabajo. -->
     <div class="modal hidden" id="choice-dialog" role="dialog" aria-modal="true">
       <div class="modal__card">
         <h2 class="modal__title" id="choice-title"></h2>
         <p class="modal__text" id="choice-text"></p>
         <div class="modal__actions" id="choice-actions"></div>
+      </div>
+    </div>
+
+    <!-- Modal de diferencias Side-by-Side (RF-19) -->
+    <div class="modal hidden" id="diff-dialog" role="dialog" aria-modal="true">
+      <div class="modal__card modal__card--wide modal__card--diff">
+        <h2 class="modal__title" data-i18n="diff.title"></h2>
+        <div class="diff-container">
+          <div class="diff-pane">
+            <h3 class="diff-pane__title" data-i18n="diff.local"></h3>
+            <pre id="diff-local" class="diff-pane__content"></pre>
+          </div>
+          <div class="diff-pane">
+            <h3 class="diff-pane__title" data-i18n="diff.disk"></h3>
+            <pre id="diff-disk" class="diff-pane__content"></pre>
+          </div>
+        </div>
+        <div class="modal__actions">
+          <button id="diff-cancel" class="button" type="button" data-i18n="action.cancel"></button>
+          <button id="diff-reload-disk" class="button button--danger" type="button" data-i18n="diff.reloadDisk"></button>
+          <button id="diff-keep-mine" class="button button--primary" type="button" data-i18n="diff.keepMine"></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Popover de Git (RF-19) -->
+    <div id="git-popover" class="floating-panel floating-panel--git hidden" role="dialog" aria-modal="false">
+      <div class="git-popover__header">
+        <span class="git-popover__title" id="git-popover-branch">master</span>
+        <span class="git-popover__ab" id="git-popover-ab"></span>
+      </div>
+      <div class="git-popover__files" id="git-popover-files"></div>
+      <div class="git-popover__commit">
+        <input type="text" id="git-commit-msg" class="git-popover__input" data-i18n-placeholder="git.commitPlaceholder" />
+        <button type="button" id="git-commit-btn" class="button button--compact button--primary" data-i18n="git.commit"></button>
+      </div>
+      <div class="git-popover__actions">
+        <button type="button" id="git-pull-btn" class="button button--compact" data-i18n="git.pull"></button>
+        <button type="button" id="git-push-btn" class="button button--compact" data-i18n="git.push"></button>
       </div>
     </div>
 
@@ -244,6 +340,39 @@
         spellcheck="false"
         data-i18n-placeholder="terminal.placeholder"
       />
+    </div>
+
+    <!-- Panel Python Runner (RF-22) -->
+    <div id="python-panel" class="floating-panel floating-panel--python hidden" role="dialog" aria-modal="false">
+      <div class="terminal__header" id="python-header">
+        <h2 class="floating-panel__title" data-i18n="python.title"></h2>
+        <span class="terminal__hint" data-i18n="python.hint"></span>
+        <div class="terminal__header-actions">
+          <button id="python-close" class="icon-button icon-button--small" type="button" data-i18n-title="action.close">✕</button>
+        </div>
+      </div>
+      <div class="python-panel__env-bar">
+        <span class="python-panel__env-badge" id="python-env-badge"></span>
+        <button type="button" class="button button--compact button--ghost hidden" id="python-setup-env"></button>
+      </div>
+      <div class="python-panel__notice hidden" id="python-notice"></div>
+      <div class="python-panel__presets">
+        <span class="python-panel__presets-label" data-i18n="python.presets"></span>
+        <button type="button" class="button button--compact button--ghost" id="python-preset-plot" data-i18n="python.presetPlot"></button>
+        <button type="button" class="button button--compact button--ghost" id="python-preset-data" data-i18n="python.presetData"></button>
+      </div>
+      <textarea id="python-code" class="python-panel__code" spellcheck="false" data-i18n-placeholder="python.codePlaceholder"></textarea>
+      <div class="python-panel__actions">
+        <button id="python-run" class="button button--primary" type="button" data-i18n="python.run"></button>
+        <span id="python-status" class="python-panel__status"></span>
+      </div>
+      <div class="python-panel__output hidden" id="python-output-container">
+        <div class="python-panel__output-header">
+          <span data-i18n="python.output"></span>
+        </div>
+        <pre id="python-stdout" class="python-panel__console"></pre>
+        <div id="python-images" class="python-panel__images"></div>
+      </div>
     </div>
 
     <!-- Galería de símbolos (Beta, ARCHITECTURE.md §7.7.4). -->
@@ -273,6 +402,30 @@
         <input id="table-header" type="checkbox" />
       </div>
       <button id="table-insert" class="button button--primary" type="button" data-i18n="table.insert"></button>
+    </div>
+
+    <!-- Asistente de diagramas CeTZ (RF-23). -->
+    <div id="cetz-panel" class="floating-panel floating-panel--cetz hidden" role="dialog" aria-modal="false">
+      <h2 class="floating-panel__title" data-i18n="cetz.title"></h2>
+      <p class="floating-panel__text" data-i18n="cetz.desc"></p>
+      <div class="cetz-dialog__grid">
+        <button type="button" class="cetz-dialog__option" data-cetz-type="flowchart">
+          <span class="cetz-dialog__option-title" data-i18n="cetz.flowchart"></span>
+          <span class="cetz-dialog__option-desc" data-i18n="cetz.flowchartDesc"></span>
+        </button>
+        <button type="button" class="cetz-dialog__option" data-cetz-type="block">
+          <span class="cetz-dialog__option-title" data-i18n="cetz.block"></span>
+          <span class="cetz-dialog__option-desc" data-i18n="cetz.blockDesc"></span>
+        </button>
+        <button type="button" class="cetz-dialog__option" data-cetz-type="plot">
+          <span class="cetz-dialog__option-title" data-i18n="cetz.plot"></span>
+          <span class="cetz-dialog__option-desc" data-i18n="cetz.plotDesc"></span>
+        </button>
+        <button type="button" class="cetz-dialog__option" data-cetz-type="canvas">
+          <span class="cetz-dialog__option-title" data-i18n="cetz.canvas"></span>
+          <span class="cetz-dialog__option-desc" data-i18n="cetz.canvasDesc"></span>
+        </button>
+      </div>
     </div>
 
     <!-- Desplegable de citas (Beta, ARCHITECTURE.md §7.7.4). -->

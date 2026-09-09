@@ -18,13 +18,19 @@ import { decideImageDrop, pathsWithExtension } from './app/dropTarget.js';
 import { applyTranslations, getLanguage, setLanguage, t } from './i18n/i18n.js';
 import { createHelp } from './help/help.js';
 import { createUniversePanel } from './universe/universePanel.js';
+import { getCuratedUniverseTemplatesCatalog } from './universe/universeThumbnails.js';
 import { importPackageAction, specName } from './universe/universeSpec.js';
 import { createLauncher } from './launcher/launcher.js';
+import { createTemplateGalleryModal } from './launcher/templateGalleryModal.js';
 import { createOutline } from './outline/outline.js';
 import { makeDraggable } from './panels/draggablePanel.js';
 import { closeAllPanels, registerPanel } from './panels/registerPanel.js';
 import { createPreview } from './preview/preview.js';
 import { createTerminal } from './terminal/terminal.js';
+import { createPythonRunnerPanel } from './panels/pythonRunnerPanel.js';
+import { createDiffModal } from './editor/diffModal.js';
+import { createGitManager } from './app/gitManager.js';
+import { createLspClient } from './editor/lspClient.js';
 import { createProjectTree } from './project-explorer/projectTree.js';
 import { createWizard } from './project-wizard/wizard.js';
 import {
@@ -303,6 +309,53 @@ async function bootstrap() {
     actionsEl: el('choice-actions'),
   });
 
+  const diffModal = createDiffModal({
+    dialogEl: el('diff-dialog'),
+    localEl: el('diff-local'),
+    diskEl: el('diff-disk'),
+    keepMineBtn: el('diff-keep-mine'),
+    reloadDiskBtn: el('diff-reload-disk'),
+    cancelBtn: el('diff-cancel'),
+  });
+
+  const lspStatusEl = el('lsp-status');
+  let currentLspStatus = 'offline';
+  const updateLspStatus = (status) => {
+    if (!lspStatusEl) return;
+    currentLspStatus = status;
+    if (status === 'offline') {
+      lspStatusEl.classList.add('hidden');
+    } else {
+      lspStatusEl.classList.remove('hidden');
+      lspStatusEl.setAttribute('data-status', status);
+      if (status === 'ready') {
+        lspStatusEl.textContent = '● Tinymist LSP';
+        lspStatusEl.title = 'Language Server Tinymist activo';
+      } else if (status === 'starting') {
+        lspStatusEl.textContent = '○ Conectando LSP...';
+        lspStatusEl.title = 'Iniciando Language Server Tinymist...';
+      } else if (status === 'error') {
+        lspStatusEl.textContent = '⚠ LSP error';
+        lspStatusEl.title = 'Tinymist no disponible';
+      }
+    }
+  };
+
+  lspStatusEl?.addEventListener('click', () => {
+    if (currentLspStatus === 'ready') {
+      toast.show('Tinymist LSP activo: autocompletado en vivo (#, @, <), hover con documentación y formateo con Typstyle (Shift+Alt+F)');
+    } else if (currentLspStatus === 'starting') {
+      toast.show('Tinymist LSP está iniciando...', 'info');
+    } else if (currentLspStatus === 'error') {
+      toast.show('Tinymist LSP no disponible. Revisa la consola o reinicia la app.', 'error');
+    }
+  });
+
+  const lspClient = createLspClient({
+    notify: toast.show,
+    onStatusChange: updateLspStatus,
+  });
+
   const tree = createProjectTree(el('project-tree'), {
     onOpenFile: (path) => workspace.openDocument(path),
   });
@@ -310,6 +363,8 @@ async function bootstrap() {
   const workspace = createWorkspace({
     tree,
     dialog,
+    diffModal,
+    lspClient,
     notify: toast.show,
     elements: {
       editorHost: el('editor-host'),
@@ -337,6 +392,7 @@ async function bootstrap() {
       tableCols: el('table-cols'),
       tableHeader: el('table-header'),
       tableInsert: el('table-insert'),
+      cetzPanel: el('cetz-panel'),
       documentName: el('document-name'),
       documentDirty: el('document-dirty'),
       documentPath: el('document-path'),
@@ -346,6 +402,24 @@ async function bootstrap() {
       workspaceView: el('workspace-view'),
       emptyView: el('empty-view'),
     },
+  });
+
+  // Gestor de control de versiones Git (RF-19)
+  const gitManager = createGitManager({
+    indicatorEl: el('git-indicator'),
+    triggerBtn: el('git-btn'),
+    branchEl: el('git-branch'),
+    summaryEl: el('git-status-summary'),
+    panelEl: el('git-popover'),
+    popoverBranchEl: el('git-popover-branch'),
+    popoverAbEl: el('git-popover-ab'),
+    filesEl: el('git-popover-files'),
+    commitInputEl: el('git-commit-msg'),
+    commitBtn: el('git-commit-btn'),
+    pushBtn: el('git-push-btn'),
+    pullBtn: el('git-pull-btn'),
+    getProjectPath: () => workspace.state.project?.root ?? null,
+    notify: toast.show,
   });
 
   // El editor (CodeMirror) necesita reconfigurar su tema, no solo heredar CSS.
@@ -424,6 +498,7 @@ async function bootstrap() {
   });
   workspace.setListener('externalChange', (change) => {
     if (!change.isActiveDocument) preview.onExternalChange();
+    gitManager.refresh();
   });
 
   const sidebarTabs = wireSidebarTabs(el('workspace-view'));
@@ -452,10 +527,112 @@ async function bootstrap() {
   el('terminal-clear').addEventListener('click', terminal.clear);
   makeDraggable(el('terminal-panel'), el('terminal-header'));
 
+  // Python Runner (RF-22): ejecución de scripts locales y figuras dinámicas.
+  const pythonRunner = createPythonRunnerPanel({
+    panelEl: el('python-panel'),
+    codeEl: el('python-code'),
+    runBtn: el('python-run'),
+    statusEl: el('python-status'),
+    outputContainerEl: el('python-output-container'),
+    stdoutEl: el('python-stdout'),
+    imagesContainerEl: el('python-images'),
+    closeBtn: el('python-close'),
+    presetPlotBtn: el('python-preset-plot'),
+    presetDataBtn: el('python-preset-data'),
+    getProjectPath: () => workspace.state.project?.root ?? null,
+    onInsertFigure: (imagePath) => {
+      workspace.insertFigureForPath(imagePath);
+      toast.show(t('python.insertFigure'));
+    },
+    notify: toast.show,
+  });
+  const pythonPanel = registerPanel(el('python-panel'), {
+    trigger: el('btn-python'),
+    toggle: true,
+    onOpen: () => {
+      const hint = workspace.state.project
+        ? workspace.state.project.root
+        : t('python.hint');
+      el('python-panel').querySelector('.terminal__hint').textContent = hint;
+      pythonRunner.refreshStatus();
+      pythonRunner.focus();
+    },
+  });
+  el('python-close').addEventListener('click', pythonPanel.close);
+  makeDraggable(el('python-panel'), el('python-header'));
+
   // Typst Universe (Beta, §7.6): plantillas que crean proyecto y paquetes que
   // se importan en el documento abierto. La plantilla reutiliza el asistente
   // normal (solo pedirá nombre y ubicación: las de Universe no traen
   // formulario); el paquete es una transacción del editor.
+  const openPath = async (path) => {
+    const opened = await workspace.openProjectAt(path);
+    if (opened) {
+      await launcher.refreshRecent();
+      await gitManager.refresh();
+    }
+  };
+
+  const wizard = createWizard({
+    dialogEl: el('wizard-dialog'),
+    titleEl: el('wizard-title'),
+    descriptionEl: el('wizard-description'),
+    formEl: el('wizard-form'),
+    locationEl: el('wizard-location'),
+    browseButton: el('wizard-browse'),
+    createButton: el('wizard-create'),
+    cancelButton: el('wizard-cancel'),
+    errorEl: el('wizard-error'),
+    notify: toast.show,
+    onCreated: (project) => openPath(project.root),
+  });
+
+  const getFullGalleryCatalog = () => {
+    const local = launcher ? launcher.getCatalog() : [];
+    const universe = getCuratedUniverseTemplatesCatalog();
+    return [...local, ...universe];
+  };
+
+  const templateGallery = createTemplateGalleryModal({
+    dialogEl: el('template-gallery-dialog'),
+    listEl: el('template-gallery-list'),
+    previewEl: el('template-gallery-preview'),
+    searchEl: el('template-gallery-search'),
+    useBtnEl: el('template-gallery-use'),
+    cancelBtnEl: el('template-gallery-cancel'),
+    metaEl: el('template-gallery-meta'),
+    onSelectTemplate: (template) => wizard.open(template),
+  });
+
+  el('template-gallery-close-x')?.addEventListener('click', () => templateGallery.close());
+  el('btn-launcher-gallery')?.addEventListener('click', () => {
+    templateGallery.open(null, getFullGalleryCatalog());
+  });
+
+  const openGalleryForSpec = (spec) => {
+    const catalog = getFullGalleryCatalog();
+    const cleanSpec = spec.startsWith('@preview/') ? spec : `@preview/${spec}`;
+    const exists = catalog.some((t) => t.id === cleanSpec || t.universeSpec === cleanSpec);
+    if (!exists) {
+      catalog.push({
+        id: cleanSpec,
+        name: specName(cleanSpec),
+        description: cleanSpec,
+        version: cleanSpec.split(':')[1] || '0.1.0',
+        category: 'Typst Universe',
+        entrypoint: 'main.typ',
+        universeSpec: cleanSpec,
+        dbv: {
+          dbvCategory: 'Typst Universe',
+        },
+      });
+    }
+    templateGallery.open(cleanSpec, catalog);
+  };
+
+  // Typst Universe (Beta, §7.6): plantillas que crean proyecto y paquetes que
+  // se importan en el documento abierto. Las plantillas abren la previsualización
+  // maquetada de alta fidelidad en templateGallery; el paquete es una transacción del editor.
   const universePanel = registerPanel(el('universe-panel'), {
     trigger: [el('btn-universe'), el('btn-launcher-universe')],
     toggle: true,
@@ -471,7 +648,7 @@ async function bootstrap() {
     tabPackagesEl: el('tab-universe-packages'),
     onUseTemplate: (spec) => {
       universePanel.close();
-      wizard.open({ name: specName(spec), version: '', description: spec, universeSpec: spec });
+      openGalleryForSpec(spec);
     },
     onUsePackage: (spec) => {
       const view = workspace.editor.getView();
@@ -495,30 +672,12 @@ async function bootstrap() {
     },
   });
 
-  const openPath = async (path) => {
-    const opened = await workspace.openProjectAt(path);
-    if (opened) await launcher.refreshRecent();
-  };
-
   const launcher = createLauncher({
     templatesEl: el('template-grid'),
     recentEl: el('recent-list'),
     onCreateFromTemplate: (template) => wizard.open(template),
     onOpenRecent: openPath,
-  });
-
-  const wizard = createWizard({
-    dialogEl: el('wizard-dialog'),
-    titleEl: el('wizard-title'),
-    descriptionEl: el('wizard-description'),
-    formEl: el('wizard-form'),
-    locationEl: el('wizard-location'),
-    browseButton: el('wizard-browse'),
-    createButton: el('wizard-create'),
-    cancelButton: el('wizard-cancel'),
-    errorEl: el('wizard-error'),
-    notify: toast.show,
-    onCreated: (project) => openPath(project.root),
+    onOpenGallery: (template) => templateGallery.open(template.id || template.name, getFullGalleryCatalog()),
   });
 
   const openFolder = async () => {
@@ -566,6 +725,7 @@ async function bootstrap() {
     await preview.clear();
     outline.clear();
     await launcher.refreshRecent();
+    await gitManager.refresh();
   };
   el('btn-close-project').addEventListener('click', closeProject);
 
@@ -574,6 +734,7 @@ async function bootstrap() {
   workspace.setListener('saved', () => {
     preview.onContentChanged();
     outline.onContentChanged();
+    gitManager.refresh();
   });
   el('btn-save').addEventListener('click', () => workspace.save());
   el('btn-save-as').addEventListener('click', () => workspace.saveAs());
@@ -582,6 +743,28 @@ async function bootstrap() {
   el('btn-export-pdf').addEventListener('click', async () => {
     const picked = await pickSaveTarget(workspace.suggestedPdfName(), 'PDF', ['pdf']);
     if (picked.ok && picked.value) await workspace.exportPdf(picked.value);
+  });
+
+  // Formateo de documento con Typstyle / Tinymist (RF-21)
+  el('btn-format-doc')?.addEventListener('click', () => workspace.formatDocument());
+
+  // Actualización de estado de diagnósticos en la barra de documento
+  workspace.setListener('diagnosticsUpdated', (diagnostics) => {
+    if (!lspStatusEl || currentLspStatus !== 'ready') return;
+    if (diagnostics.length === 0) {
+      lspStatusEl.textContent = '● Tinymist LSP';
+      lspStatusEl.title = 'Language Server Tinymist activo (documento correcto)';
+      lspStatusEl.setAttribute('data-status', 'ready');
+    } else {
+      const errCount = diagnostics.filter((d) => d.severity === 'error').length;
+      const warnCount = diagnostics.length - errCount;
+      const parts = [];
+      if (errCount > 0) parts.push(`${errCount} err`);
+      if (warnCount > 0) parts.push(`${warnCount} aviso`);
+      lspStatusEl.textContent = `● Tinymist (${parts.join(', ')})`;
+      lspStatusEl.title = `Tinymist activo — ${diagnostics.length} problema(s) detectado(s) en el documento`;
+      lspStatusEl.setAttribute('data-status', errCount > 0 ? 'error' : 'starting');
+    }
   });
 
   // Exportación PNG (Beta, §7.12) — alcance de este slice: solo la página que
@@ -688,6 +871,7 @@ async function bootstrap() {
   document.addEventListener('dbv-lang-changed', () => {
     launcher.refreshLanguage();
     launcher.refreshRecent();
+    templateGallery.refreshLanguage();
     workspace.renderDocumentBar();
     preview.refreshStatus();
     refreshPreviewControls();

@@ -20,8 +20,10 @@ import { createImagePicker } from '../editor/imagePicker.js';
 import { createEditor } from '../editor/editor.js';
 import { createSymbolPicker } from '../editor/symbolPicker.js';
 import { createTableDialog } from '../editor/tableDialog.js';
+import { createCetzAssistant } from '../editor/cetzAssistant.js';
 import { createToolbar } from '../editor/toolbar.js';
 import { figureActionForPath } from '../editor/toolbarActions.js';
+import { posFromLsp } from '../editor/lspClient.js';
 import { t } from '../i18n/i18n.js';
 import { getTheme } from '../themes/theme.js';
 import { isTypstPath, joinPath, relativeToRoot } from './paths.js';
@@ -65,8 +67,10 @@ export { baseName, isTypstPath, joinPath, relativeToRoot } from './paths.js';
  * @param {Record<string, HTMLElement>} deps.elements
  * @param {(message: string, tone?: 'info'|'error') => void} deps.notify
  * @param {ReturnType<import('../ui/choiceDialog.js').createChoiceDialog>} deps.dialog
+ * @param {ReturnType<import('../editor/diffModal.js').createDiffModal>} [deps.diffModal]
+ * @param {ReturnType<import('../editor/lspClient.js').createLspClient>} [deps.lspClient]
  */
-export function createWorkspace({ tree, elements, notify, dialog }) {
+export function createWorkspace({ tree, elements, notify, dialog, diffModal, lspClient }) {
   // Declarado antes del editor a propósito: `onSelectionChange` se dispara en
   // tiempo de ejecución, no al construir el objeto, así que el cierre puede
   // referenciar `toolbar` aunque todavía no se le haya asignado nada.
@@ -75,8 +79,10 @@ export function createWorkspace({ tree, elements, notify, dialog }) {
   let imagePicker;
   let symbolPicker;
   let tableDialog;
+  let cetzAssistant;
   const editor = createEditor(elements.editorHost, {
     theme: getTheme(),
+    lspClient,
     onChange: (content) => {
       state.dirty = true;
       renderDocumentBar();
@@ -90,6 +96,25 @@ export function createWorkspace({ tree, elements, notify, dialog }) {
     onSave: () => listeners.saveRequested?.(),
     onSelectionChange: () => toolbar?.refresh(),
   });
+
+  lspClient?.setDiagnosticsHandler?.((diagnostics) => {
+    const view = editor.getView();
+    if (!view) return;
+    const cmDiagnostics = diagnostics.map((d) => {
+      const from = posFromLsp(view.state.doc, d.range.start);
+      const to = posFromLsp(view.state.doc, d.range.end);
+      const severity = d.severity === 1 ? 'error' : d.severity === 2 ? 'warning' : 'info';
+      return {
+        from,
+        to: Math.max(from, to),
+        severity,
+        message: d.message,
+        source: d.source || 'Tinymist',
+      };
+    });
+    editor.setDiagnostics(cmDiagnostics);
+    listeners.diagnosticsUpdated?.(cmDiagnostics);
+  });
   // RF-13: la barra de herramientas de inserción vive junto al editor que
   // controla, igual que en DBV Markdown Reader (ARCHITECTURE.md §3 fila 19).
   toolbar = createToolbar({
@@ -101,6 +126,7 @@ export function createWorkspace({ tree, elements, notify, dialog }) {
       citation: (button) => citationPicker?.openNear(button),
       symbols: (button) => symbolPicker?.openNear(button),
       table: (button) => tableDialog?.openNear(button),
+      cetz: (button) => cetzAssistant?.openNear(button),
       // RF-17: el botón ya no salta al explorador de ficheros, sino que
       // ofrece primero las imágenes que el proyecto ya tiene —coherencia con
       // "Cite"—, dejando el selector nativo como última opción del desplegable.
@@ -216,6 +242,11 @@ export function createWorkspace({ tree, elements, notify, dialog }) {
     getView: editor.getView,
   });
 
+  cetzAssistant = createCetzAssistant({
+    panelEl: elements.cetzPanel,
+    getView: editor.getView,
+  });
+
   /** Ganchos que rellenan los slices posteriores (vista previa, guardado). */
   const listeners = {
     /** @type {null | ((content: string) => void)} */
@@ -232,6 +263,8 @@ export function createWorkspace({ tree, elements, notify, dialog }) {
     saveRequested: null,
     /** @type {null | (() => void)} */
     saved: null,
+    /** @type {null | ((diagnostics: any[]) => void)} */
+    diagnosticsUpdated: null,
   };
 
   function renderDocumentBar() {
@@ -353,6 +386,7 @@ export function createWorkspace({ tree, elements, notify, dialog }) {
         ? joinPath(state.project.root, state.project.entrypoint)
         : state.project.root,
     });
+    lspClient?.start(state.project.root).catch(console.error);
     listeners.projectOpened?.(state.project);
 
     if (state.project.entrypoint) {
@@ -367,6 +401,7 @@ export function createWorkspace({ tree, elements, notify, dialog }) {
   async function closeProject() {
     if (!(await confirmDiscardChanges())) return false;
     await unwatchProject();
+    lspClient?.stop();
     state.project = null;
     state.document = null;
     state.dirty = false;
@@ -501,15 +536,29 @@ export function createWorkspace({ tree, elements, notify, dialog }) {
       return;
     }
 
-    const choice = await dialog.ask({
+    const choices = [
+      { key: 'keep', labelKey: 'conflict.keepMine', tone: 'primary' },
+    ];
+    if (diffModal) {
+      choices.push({ key: 'diff', labelKey: 'conflict.viewDiff' });
+    }
+    choices.push({ key: 'reload', labelKey: 'conflict.reload', tone: 'danger' });
+
+    let choice = await dialog.ask({
       titleKey: 'conflict.title',
       textKey: 'conflict.text',
       text: state.document.path,
-      choices: [
-        { key: 'keep', labelKey: 'conflict.keepMine', tone: 'primary' },
-        { key: 'reload', labelKey: 'conflict.reload', tone: 'danger' },
-      ],
+      choices,
     });
+
+    if (choice === 'diff' && diffModal) {
+      const diskRead = await readFile(state.document.path);
+      const diskContent = diskRead.ok ? diskRead.value : '';
+      choice = await diffModal.open({
+        localContent: editor.getContent(),
+        diskContent,
+      });
+    }
 
     if (choice === 'reload') {
       await openDocument(state.document.path, { force: true });
@@ -542,16 +591,33 @@ export function createWorkspace({ tree, elements, notify, dialog }) {
     const stamp = await fileModifiedMs(state.document.path);
     const changedOnDisk = stamp.ok && stamp.value !== state.document.modifiedMs;
     if (changedOnDisk) {
-      const choice = await dialog.ask({
+      const choices = [
+        { key: 'cancel', labelKey: 'action.cancel' },
+      ];
+      if (diffModal) {
+        choices.push({ key: 'diff', labelKey: 'conflict.viewDiff' });
+      }
+      choices.push(
+        { key: 'reload', labelKey: 'conflict.reload' },
+        { key: 'overwrite', labelKey: 'conflict.overwrite', tone: 'danger' },
+      );
+      let choice = await dialog.ask({
         titleKey: 'conflict.title',
         textKey: 'conflict.saveText',
         text: state.document.path,
-        choices: [
-          { key: 'cancel', labelKey: 'action.cancel' },
-          { key: 'reload', labelKey: 'conflict.reload' },
-          { key: 'overwrite', labelKey: 'conflict.overwrite', tone: 'danger' },
-        ],
+        choices,
       });
+      if (choice === 'diff' && diffModal) {
+        const diskRead = await readFile(state.document.path);
+        const diskContent = diskRead.ok ? diskRead.value : '';
+        const diffChoice = await diffModal.open({
+          localContent: editor.getContent(),
+          diskContent,
+        });
+        if (diffChoice === 'keep') choice = 'overwrite';
+        else if (diffChoice === 'reload') choice = 'reload';
+        else choice = 'cancel';
+      }
       if (choice === 'cancel') return false;
       if (choice === 'reload') {
         await openDocument(state.document.path, { force: true });
@@ -693,5 +759,12 @@ export function createWorkspace({ tree, elements, notify, dialog }) {
       listeners[name] = handler;
     },
     renderDocumentBar,
+    formatDocument: () => editor.formatDocument?.(),
+    insertFigureForPath(path) {
+      const view = editor.getView();
+      if (!view) return;
+      view.dispatch(figureActionForPath(path)(view.state));
+      view.focus();
+    },
   };
 }

@@ -380,8 +380,12 @@ export function createPreview({
     });
 
     if (!result.ok) {
-      if (!hasRendered) pagesEl.replaceChildren();
-      // Última vista buena: no se toca `pagesEl`.
+      if (!hasRendered) {
+        pagesEl.replaceChildren();
+      } else {
+        // Última vista buena (Last Good Render): conserva las páginas visibles y marca desactualizado
+        setStale(true);
+      }
       showBand(result.error.message || t('preview.error'));
       setStatus('preview.failed');
       return;

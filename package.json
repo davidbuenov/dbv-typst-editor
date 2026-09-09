@@ -15,6 +15,7 @@
     "preview:vite": "vite preview",
     "tauri": "tauri",
     "vendor:typst": "node scripts/vendor-typst.mjs",
+    "vendor:tinymist": "node scripts/vendor-tinymist.mjs",
     "verify:typst": "node scripts/verify-typst-sidecar.mjs",
     "verify:templates": "node scripts/verify-templates.mjs",
     "verify:frontend": "node scripts/verify-frontend.mjs",

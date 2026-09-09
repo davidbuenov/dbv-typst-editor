@@ -17,8 +17,13 @@
 // `@preview/nombre:version` (para quien sabe lo que busca).
 
 import { getLanguage, t } from '../i18n/i18n.js';
+import { getTemplateThumbnailSvg } from '../launcher/templateThumbnails.js';
 import { CURATED_PACKAGES, CURATED_TEMPLATES } from './curatedCatalog.js';
 import { parseUniverseSpec } from './universeSpec.js';
+import {
+  getUniversePackageIcon,
+  getUniverseThumbnailUrl,
+} from './universeThumbnails.js';
 
 /**
  * @param {object} deps
@@ -74,6 +79,38 @@ export function createUniversePanel({
       body.type = 'button';
       body.className = 'universe-card__body';
 
+      // Thumbnail de documento o Icono temático de paquete
+      const visualEl = document.createElement('div');
+      visualEl.className = 'universe-card__visual';
+
+      const isTemplate = entry.spec && CURATED_TEMPLATES.some((t) => t.spec === entry.spec);
+      const thumbnailUrl = isTemplate ? getUniverseThumbnailUrl(entry.spec) : null;
+
+      if (thumbnailUrl) {
+        const img = document.createElement('img');
+        img.className = 'universe-card__thumb-img';
+        img.src = thumbnailUrl;
+        img.alt = language === 'en' ? entry.titleEn : entry.title;
+        img.loading = 'lazy';
+        img.onerror = () => {
+          visualEl.replaceChildren();
+          const icon = document.createElement('div');
+          icon.className = 'universe-card__icon-fallback';
+          icon.innerHTML = getTemplateThumbnailSvg(entry.spec);
+          visualEl.append(icon);
+        };
+        visualEl.append(img);
+      } else {
+        const icon = document.createElement('div');
+        icon.className = 'universe-card__icon-fallback';
+        const pkgName = entry.spec?.split('/')?.[1]?.split(':')?.[0] || 'default';
+        icon.innerHTML = getUniversePackageIcon(pkgName);
+        visualEl.append(icon);
+      }
+
+      const content = document.createElement('div');
+      content.className = 'universe-card__content';
+
       const title = document.createElement('span');
       title.className = 'universe-card__title';
       title.textContent = language === 'en' ? entry.titleEn : entry.title;
@@ -88,7 +125,11 @@ export function createUniversePanel({
       meta.className = 'universe-card__meta';
       meta.textContent = `${entry.spec} · ${entry.license}`;
 
-      body.append(title, description, meta);
+      content.append(title, description, meta);
+      body.append(visualEl, content);
+      if (isTemplate) {
+        body.title = t('launcher.browseGallery');
+      }
       body.addEventListener('click', () => onUse(entry.spec));
 
       const link = document.createElement('button');

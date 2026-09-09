@@ -53,15 +53,26 @@ body {
   flex: 0 0 auto;
 }
 
+/* `align-items: baseline` alineaba por la línea base elementos de tamaños muy
+   distintos —título, nombre del proyecto, distintivo y un botón de Git—, lo que
+   los dejaba escalonados. Y `overflow: hidden` es lo que impide que, cuando la
+   ventana se estrecha, los de la derecha se salgan por encima de los de al lado
+   en vez de recortarse. */
 .app-header__brand {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 10px;
   min-width: 0;
+  overflow: hidden;
 }
 
+/* El nombre del producto NUNCA se parte. Sin esto se troceaba en tres líneas
+   ("DBV / Typst / Editor") en cuanto la barra de acciones —que no encoge— se
+   quedaba con casi todo el ancho, y de paso estiraba la cabecera a tres alturas. */
 .app-header__title {
   font-weight: 600;
+  white-space: nowrap;
+  flex: none;
 }
 
 .app-header__tagline {

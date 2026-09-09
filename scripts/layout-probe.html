@@ -19,14 +19,65 @@
     <link rel="stylesheet" href="../src/themes/layout.css" />
   </head>
   <body>
-    <header class="app-header"><span>cabecera</span></header>
+    <header class="app-header">
+      <div class="app-header__brand">
+        <span class="app-header__title">DBV Typst Editor</span>
+        <span class="app-header__project" id="project-name">D:\proyectos\un-nombre-de-proyecto-largo</span>
+        <span class="app-header__badge" id="project-kind">proyecto externo</span>
+        <div id="git-indicator" class="git-indicator">
+          <button id="git-btn" class="git-btn" type="button">
+            <span class="git-icon">&#8631;</span>
+            <span class="git-branch">master</span>
+            <span class="git-status-summary">12 modificados</span>
+          </button>
+        </div>
+      </div>
+      <div class="app-header__actions">
+        <div class="app-header__group" id="project-actions">
+          <div class="mode-switcher" role="group">
+            <button class="mode-switcher__button" type="button">P</button>
+            <button class="mode-switcher__button" type="button">E</button>
+            <button class="mode-switcher__button" type="button">V</button>
+          </div>
+          <button class="button button--ghost button--icon-label" type="button"><span>Explorador</span></button>
+          <button class="button button--ghost button--icon-label" type="button"><span>Exportar .dbvt</span></button>
+          <button class="button button--ghost button--icon-label" type="button"><span>Cerrar</span></button>
+        </div>
+        <button class="button button--icon-label" type="button"><span>Carpeta</span></button>
+        <button class="button button--ghost button--icon-label" type="button"><span>Archivo</span></button>
+        <div class="segmented-control">
+          <button class="segmented-control__btn active" type="button">ES</button>
+          <button class="segmented-control__btn" type="button">EN</button>
+        </div>
+        <div class="segmented-control">
+          <button class="segmented-control__btn" type="button">A</button>
+          <button class="segmented-control__btn active" type="button">B</button>
+          <button class="segmented-control__btn" type="button">C</button>
+        </div>
+        <button class="icon-button" type="button">T</button>
+        <button class="icon-button" type="button">P</button>
+        <button class="icon-button" type="button">U</button>
+        <button class="icon-button" type="button">?</button>
+        <button class="icon-button" type="button">i</button>
+      </div>
+    </header>
     <main class="app-body">
       <section class="launcher" id="empty-view">
         <div class="launcher__inner">
           <h1 class="launcher__heading">Titulo</h1>
-          <div class="template-grid">
-            <button class="template-card"><span class="template-card__name">Uno</span></button>
-            <button class="template-card"><span class="template-card__name">Dos</span></button>
+          <div class="launcher__start">
+            <button class="launcher__primary">
+              <span class="launcher__primary-icon"></span>
+              <span class="launcher__primary-text">
+                <span class="launcher__primary-label">Nuevo documento</span>
+                <span class="launcher__primary-hint">Plantillas locales y del Typst Universe</span>
+              </span>
+            </button>
+            <div class="launcher__actions">
+              <button class="button button--ghost button--icon-label"><span>Abrir carpeta de proyecto</span></button>
+              <button class="button button--ghost button--icon-label"><span>Abrir documento</span></button>
+              <button class="button button--ghost button--icon-label"><span>Importar proyecto</span></button>
+            </div>
           </div>
         </div>
       </section>
@@ -57,7 +108,66 @@
       //    Chromium implementó `justify-items` para cajas de bloque, y encogía
       //    al contenido todo hijo del cuerpo.
       add('.app-body ocupa todo el ancho de la ventana', w('.app-body') === viewport, `${w('.app-body')}/${viewport}`);
+
+      // 1a. La cabecera aguanta en UNA fila con un proyecto abierto y la ventana
+      //     estrecha. Se mide a 830 px porque es el ancho al que un usuario la
+      //     vio partida en tres líneas, con el nombre del producto troceado
+      //     ("DBV / Typst / Editor") y los distintivos montándose unos sobre
+      //     otros: `.app-header__actions` no encoge, así que toda la presión cae
+      //     sobre la marca, y el título no llevaba `nowrap`.
+      const header = document.querySelector('.app-header');
+      const titulo = document.querySelector('.app-header__title');
+      const anchoOriginal = document.body.style.width;
+      document.body.style.width = '830px';
+
+      const alturaCabecera = header.getBoundingClientRect().height;
+      const alturaTitulo = titulo.getBoundingClientRect().height;
+      add(
+        'la cabecera se mantiene en una sola fila con la ventana estrecha',
+        alturaCabecera < 56,
+        `${Math.round(alturaCabecera)}px de alto a 830px de ancho`
+      );
+      add(
+        'el nombre del producto no se parte en varias líneas',
+        alturaTitulo < 26,
+        `${Math.round(alturaTitulo)}px de alto`
+      );
+
+      // Y nada de la marca se monta encima de lo siguiente: al recortarse, cada
+      // elemento debe empezar donde acaba el anterior, no solaparlo.
+      const marca = [...document.querySelector('.app-header__brand').children];
+      const solapados = marca.filter((el, i) => {
+        if (i === 0) return false;
+        return el.getBoundingClientRect().left < marca[i - 1].getBoundingClientRect().right - 1;
+      });
+      add(
+        'los elementos de la marca no se solapan entre sí',
+        solapados.length === 0,
+        `${marca.length} elementos, ${solapados.length} solapados`
+      );
+
+      document.body.style.width = anchoOriginal;
       add('el lanzador ocupa todo el ancho de la ventana', w('#empty-view') === viewport, `${w('#empty-view')}/${viewport}`);
+
+      // 1b. El bloque de arranque (RF-25) no desborda a su contenedor: dos
+      //     columnas, y en la derecha tres botones con icono que crecieron al
+      //     añadirles el pictograma. jsdom no calcula cajas, así que este es el
+      //     único sitio del proyecto donde ese desbordamiento se puede ver.
+      const inner = document.querySelector('.launcher__inner');
+      const start = document.querySelector('.launcher__start');
+      add(
+        'el bloque de arranque cabe en el lanzador',
+        start.getBoundingClientRect().width <= inner.getBoundingClientRect().width + 1,
+        `${Math.round(start.getBoundingClientRect().width)}/${Math.round(inner.getBoundingClientRect().width)}`
+      );
+
+      const acciones = document.querySelector('.launcher__actions');
+      const botones = [...acciones.children];
+      add(
+        'las tres acciones secundarias caben en una sola línea',
+        botones.every((b) => b.getBoundingClientRect().top === botones[0].getBoundingClientRect().top),
+        `${botones.length} botones`
+      );
 
       // 2. Cada combinación de paneles reparte el ancho completo, sin huecos
       //    muertos ni desbordamiento (§7.9, `app/workspacePanels.js`).

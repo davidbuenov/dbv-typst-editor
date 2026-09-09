@@ -10,6 +10,10 @@
    ============================================================================= */
 
 /* ─── Cabecera: proyecto activo ───────────────────────────────────────────── */
+/* De todo lo que hay en la cabecera, el nombre del proyecto es lo único que
+   puede encoger: ya se recorta con puntos suspensivos, y es el único dato cuya
+   versión abreviada sigue sirviendo. El resto se declara `flex: none` para que
+   la presión caiga aquí y no los deforme. */
 .app-header__project {
   font-size: 13px;
   color: var(--text-secondary);
@@ -17,9 +21,12 @@
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 40vw;
+  flex: 0 1 auto;
+  min-width: 0;
 }
 
 .app-header__badge {
+  flex: none;
   font-size: 11px;
   color: var(--text-muted);
   border: 1px solid var(--border);
@@ -35,6 +42,7 @@
 .git-indicator {
   display: flex;
   align-items: center;
+  flex: none;
 }
 
 .git-btn {

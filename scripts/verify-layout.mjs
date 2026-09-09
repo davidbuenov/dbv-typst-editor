@@ -48,51 +48,77 @@ const CANDIDATES = [
   '/usr/bin/chromium-browser',
 ].filter(Boolean);
 
-function findBrowser() {
-  return CANDIDATES.find((candidate) => existsSync(candidate)) ?? null;
+/**
+ * Lanza la sonda en un navegador concreto y devuelve el DOM que escupa.
+ *
+ * Devuelve cadena vacía si ese navegador no sirve aquí, en vez de lanzar: eso es
+ * lo que permite seguir probando con el siguiente candidato.
+ */
+function dumpDom(browser) {
+  const profile = mkdtempSync(join(tmpdir(), 'dbv-layout-'));
+  try {
+    return execFileSync(
+      browser,
+      [
+        '--headless=new',
+        '--disable-gpu',
+        '--no-sandbox',
+        `--user-data-dir=${profile}`,
+        '--window-size=1366,768',
+        '--virtual-time-budget=4000',
+        '--dump-dom',
+        `file://${PROBE.replaceAll('\\', '/')}`,
+      ],
+      { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 60_000 }
+    );
+  } catch {
+    return '';
+  } finally {
+    // En Windows el proceso del navegador todavía mantiene abiertos ficheros del
+    // perfil cuando volvemos aquí, y el borrado revienta con ENOTEMPTY: la
+    // comprobación moría en la limpieza, no por el layout. Se reintenta un poco
+    // y, si aun así no se puede, se deja el temporal en paz — es basura en
+    // %TEMP%, no un motivo para tumbar la verificación.
+    try {
+      rmSync(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+    } catch {
+      /* perfil temporal huérfano: irrelevante para lo que se está verificando */
+    }
+  }
 }
 
 console.log('Verificación de layout en un motor real\n');
 
-const browser = findBrowser();
-if (!browser) {
+// Se prueban los candidatos hasta dar con uno que RESPONDA, no con el primero
+// que exista. La diferencia no es teórica: en la máquina de desarrollo estaban
+// instalados Edge y Chrome, se elegía Edge por ir antes en la lista, y su
+// `--dump-dom` devuelve stdout vacío (también con una página trivial, así que no
+// es cosa de esta sonda). Resultado: la única comprobación de geometría del
+// proyecto se omitía en silencio teniendo al lado un Chrome que funciona.
+const instalados = CANDIDATES.filter((candidate) => existsSync(candidate));
+if (instalados.length === 0) {
   console.log('  OMITIDA  no se ha encontrado Edge ni Chrome en el sistema');
   console.log('           (define CHROME_PATH para ejecutarla)\n');
   process.exit(0);
 }
 
-const profile = mkdtempSync(join(tmpdir(), 'dbv-layout-'));
 let dom = '';
-try {
-  dom = execFileSync(
-    browser,
-    [
-      '--headless=new',
-      '--disable-gpu',
-      '--no-sandbox',
-      `--user-data-dir=${profile}`,
-      '--window-size=1366,768',
-      '--virtual-time-budget=4000',
-      '--dump-dom',
-      `file://${PROBE.replaceAll('\\', '/')}`,
-    ],
-    { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 60_000 }
-  );
-} catch (error) {
-  console.error(`  FALLO  no se ha podido ejecutar el navegador — ${error.message}\n`);
-  process.exit(1);
-} finally {
-  // En Windows el proceso del navegador todavia mantiene abiertos ficheros del
-  // perfil cuando volvemos aquí, y el borrado revienta con ENOTEMPTY: la
-  // comprobación moría en la limpieza, no por el layout. Se reintenta un poco y,
-  // si aun así no se puede, se deja el directorio temporal en paz — es basura en
-  // %TEMP%, no un motivo para tumbar la verificación.
-  try {
-    rmSync(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
-  } catch {
-    /* perfil temporal huérfano: irrelevante para lo que se está verificando */
+let usado = null;
+for (const candidato of instalados) {
+  dom = dumpDom(candidato);
+  if (dom.trim() !== '') {
+    usado = candidato;
+    break;
   }
 }
+
+if (usado === null) {
+  console.log('  OMITIDA  ningún navegador instalado ha devuelto un DOM con --dump-dom');
+  console.log(`           (probados: ${instalados.length}; define CHROME_PATH para otro)\n`);
+  process.exit(0);
+}
+
+console.log(`  motor: ${usado}\n`);
 
 // Un navegador que sale con código 0 y NO escribe nada en stdout no ha llegado
 // a ejecutar la sonda: es el propio `--dump-dom` el que no funciona en esa

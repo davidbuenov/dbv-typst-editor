@@ -166,7 +166,7 @@
     - Bump de versión `0.3.1` → `0.4.0` en `package.json`, `Cargo.toml` y `tauri.conf.json`.
     - 313 pruebas pasando al 100% (152 Vitest + 161 Rust).
 
-- [ ] **Fase 12: v0.5.0 — Productividad Profesional y Robustez**
+- [x] **Fase 12: v0.5.0 — Productividad Profesional, Robustez y Consolidación de la Interfaz — ENTREGADA EN LOCAL el 2026-09-09.** Ciclo completo: `/spec` (reabierta tres veces a petición del usuario), `/plan`, `/build`, `/test`, `/code-simplify` y `/ship`. **Falta solo `git push origin master --tags`.**
   - [x] **`/spec` v0.5.0 CERRADA (2026-09-09)**. Congelados RF-19 a RF-24 en `SPECIFICATIONS.md` v1.3.
     - RF-19: Integración con Git y resolución visual de diferencias (diff side-by-side).
     - RF-20: Galería visual de plantillas con previsualización renderizada.
@@ -251,54 +251,66 @@
   - [x] **[Crítico visual, RESUELTO] La cabecera se partía en tres filas** con un proyecto abierto y la ventana estrecha, reportado por el usuario con captura. `.app-header__actions` está declarada `flex: 0 0 auto` —nunca encoge—, así que toda la presión caía sobre la marca, y `.app-header__title` no llevaba `nowrap`: el nombre del producto se troceaba en "DBV / Typst / Editor" y estiraba la cabecera a 88 px. El botón de la chincheta (RF-28) lo agravó. Corregido y **validado a la contra**: con el CSS anterior, las dos comprobaciones nuevas fallan con 88 px de cabecera y 63 px de título.
   - [ ] **Sigue pendiente la pasada del usuario en la ventana real.** `verify:layout` mide geometría del shell —cabecera, lanzador y las 7 combinaciones de paneles—, **no** la galería, ni sus tres pestañas, ni la vista ampliada, ni la chincheta funcionando de verdad. Eso solo lo ve un humano abriendo la aplicación.
   - [x] **RF-30 — La cabecera agrupa sus acciones de fichero en un menú "Archivo" (2026-09-09).** Propuesto por el usuario y medido en el motor real antes de discutirlo: los cinco botones de texto ocupaban **356 px** y el menú ocupa **71**. Usa las etiquetas completas que ya existían (las abreviadas se retiran) y suma "Importar proyecto", que solo estaba en el lanzador. Lo que necesita proyecto se **deshabilita**, no se oculta (mismo criterio de RF-26.10). **Cierra una historia vieja:** `.button--icon-label` nació en la Beta porque "la cabecera dejaba de caber solo con texto", y acortar etiquetas alivió el síntoma sin tocar la causa — por eso volvió a romperse al añadirle el indicador de Git y la chincheta. Verificado por el usuario en la ventana real, con proyecto abierto y sin él.
-  - [ ] **`/ship` v0.5.0**: Bump de versión `0.4.0` → `0.5.0`, changelog bilingüe, actualización de documentación y release.
+  - [x] **`/ship` v0.5.0 COMPLETADO (2026-09-09).** Versión Minor: funcionalidad nueva sin roturas. Bump `0.4.0` → `0.5.0` en los **cuatro** sitios (`package.json`, `tauri.conf.json`, `Cargo.toml` y la entrada del propio paquete en `Cargo.lock`); sección `[0.5.0] - 2026-09-09` cerrada en los DOS changelogs con 43 entradas simétricas, dejando `[Sin publicar]`/`[Unreleased]` vacías; `README.md` y `README.en.md` actualizados (insignias, versión actual y resumen de la entrega); `walkthrough.md` reescrito para v0.5.0; Snapshot de Contexto actualizado; tag `v0.5.0` creado. **`latest.json` se deja a propósito en `0.4.0`:** lo genera `npm run updater:manifest` a partir de un build firmado, y la clave de firma la genera el usuario en su terminal, nunca la IA — editarlo a mano dejaría un manifiesto con una firma que no corresponde.
+  - [ ] **PENDIENTE (acción del usuario): `git push origin master --tags`.** Al empujar el tag arrancan los releases de Linux y macOS, y es la primera vez que corren con el arreglo del sidecar de Tinymist: conviene vigilar las dos ejecuciones en vez de darlas por buenas.
 
 ## 🔄 Context Snapshot / Snapshot de Contexto
 
-> ### 👉 CÓMO RETOMAR ESTE PROYECTO (leer esto primero) — actualizado 2026-09-06, `/ship` v0.3.0 cerrado
+> ### 👉 CÓMO RETOMAR ESTE PROYECTO (leer esto primero) — actualizado 2026-09-09, `/ship` v0.5.0 cerrado
 >
-> **`v0.2.0` se empujó** (el usuario confirmó "Adelante") **y los tres GitHub Actions fallaron** — no por
-> el contenido de esa entrega, sino por un test preexistente (`is_packaged_path...`) que nunca se había
-> ejecutado en Linux/macOS hasta ese primer `/ship` real. Ya corregido en esta sesión (§8 de
-> `walkthrough.md`). Todo commiteado y en verde: **99 Vitest · 124 Rust · frontend 8/8 (111 elementos) ·
-> build:vite.**
+> **v0.5.0 está entregada en local: versiones subidas, changelog cerrado en los dos idiomas, tag creado.
+> Lo único que falta es `git push origin master --tags`, y NO se ha hecho.**
 >
-> **Trabajo de esta sesión:** el usuario puso en marcha la plantilla nativa TFG-ETSI-UMA-Typst (proyecto
-> externo, fuera de este repositorio) y encontró en uso real 3 bugs de raíz de la aplicación —
-> `"[object Object]"` en errores de compilación, rutas de imagen rotas en capítulos de subcarpetas, y
-> copias duplicadas al arrastrar la misma imagen varias veces — más 2 mejoras de UX pedidas
-> explícitamente (tema Sepia + selectores segmentados, copiados de DBV Markdown Reader; distinción de
-> color entre la pista de la app y el error real del compilador en la banda de vista previa) y la
-> preparación de páginas de privacidad para tiendas de aplicaciones. Detalle completo en
-> `walkthrough.md` de esta sesión.
+> Al empujar el tag arrancan los workflows de release de Linux y macOS. **Es la primera vez que corren
+> con el arreglo del sidecar de Tinymist** —los tres declaraban dos sidecars y solo vendorizaban
+> `typst`, así que antes de esta versión habrían fallado al empaquetar con el tag ya empujado—, así que
+> hay que vigilar las dos ejecuciones en vez de darlas por buenas.
 >
-> **Nada de lo construido en ESTA sesión se ha visto en la ventana real salvo lo que el propio usuario
-> reportó en vivo** (los 3 bugs de raíz, confirmados por él mismo): el tema Sepia, los selectores
-> segmentados y la separación de color en la banda de errores se verificaron con build + tests +
-> `verify:frontend`, no con una captura ni con el usuario delante.
+> **Qué trae v0.5.0:** productividad profesional (LSP Tinymist vendorizado, runner de Python, asistente
+> CeTZ, integración con Git y diff lado a lado, robustez de plataforma en Windows) y una revisión a
+> fondo de la interfaz de entrada — el lanzador y la galería se consolidan en **una sola puerta de
+> entrada** con tres vías, la cabecera agrupa sus acciones de fichero en un menú, y llegan la chincheta
+> de ventana encima y la vista ampliada de plantillas. Detalle completo en `walkthrough.md`.
+>
+> **Verificación al cerrar:** 280 Vitest · 195 Rust · `verify:frontend` 11/11 · `verify:layout` 15/15 ·
+> `verify:typst` 8/8 · `verify:templates` 40/40 · `build:vite`. Y el usuario validó en la ventana real
+> el lanzador, la cabecera con y sin proyecto, el menú Archivo, las tres pestañas, la vista ampliada y
+> la chincheta.
+>
+> **Dos cosas que se arreglaron solas al mirarlas, y conviene no perder de vista:**
+> 1. `verify:layout` llevaba toda la sesión omitiéndose en silencio: elegía el primer navegador
+>    instalado (Edge, cuyo `--dump-dom` no devuelve nada aquí) sin comprobar si respondía, **teniendo
+>    Chrome al lado**. Ahora prueba hasta dar con uno que conteste.
+> 2. La sonda de esa verificación montaba una cabecera de mentira de una línea y un lanzador con la
+>    rejilla que RF-25 ya había retirado: medía una pantalla que no se envía. Ahora monta las reales.
 >
 > **Acciones que dependen del usuario, no de código:**
-> 1. **Decidir si se hace `git push origin master --tags`.** El tag `v0.3.0` está creado localmente
->    pero no empujado — esta vez la causa real del fallo anterior de CI ya está corregida.
-> 2. **Vigilar de nuevo la ejecución de macOS** si se empuja el tag: sigue siendo la plataforma menos
->    verificada (`macos_menu.rs`, Slice 24, nunca compilado en un Mac real).
-> 3. **Compilar Windows con las variables `TAURI_SIGNING_*`** y ejecutar `npm run updater:manifest` —
->    sigue pendiente de sesiones anteriores, sin cambios esta vez.
-> 4. **Decidir si se usan ya `docs/privacidad.html`/`docs/privacy.html`** en el formulario de alguna
->    tienda de aplicaciones — la URL pública (`https://davidbuenov.github.io/dbv-typst-editor/`) solo
->    existe en cuanto se empuje este commit (GitHub Pages ya está activado, pero sin contenido servido
->    todavía).
+> 1. **`git push origin master --tags`** — siete commits y el tag `v0.5.0` esperando.
+> 2. **Compilar Windows con las variables `TAURI_SIGNING_*` y ejecutar `npm run updater:manifest`.**
+>    `latest.json` sigue apuntando a `0.4.0` **a propósito**: lo genera ese script a partir de un build
+>    firmado, y la clave de firma la genera el usuario en su terminal, nunca la IA (regla ya registrada).
+>    Editarlo a mano dejaría un manifiesto con una firma que no corresponde.
+> 3. **Microsoft Store:** `task.md` arrastra desde v0.3.1 que hay que reenviar el `.msix` corregido a
+>    Partner Center, pero un commit posterior anuncia disponibilidad oficial en la Store. **Contrastar
+>    si sigue pendiente o quedó resuelto**, y recordar que el paquete crece ~64 MB con el sidecar de
+>    Tinymist: el checklist de `docs/MICROSOFT_STORE.md` §6 ya está actualizado a ~95 MB y a los dos
+>    `.exe` en la raíz del paquete.
+> 4. **Vigilar la ejecución de macOS** si se empuja el tag: `macos_menu.rs` sigue sin haberse compilado
+>    nunca en un Mac real y es la pieza menos fiable del proyecto.
 >
-> **Trabajo técnico pendiente, por orden de valor:**
-> - Bug reportado sin reproducir (arrastrado desde hace sesiones): al escribir dentro de una ecuación,
->   el estado de la vista previa alterna "Compilando…"/"Página 1" de forma continua. Sin causa de bucle
->   encontrada en `editor.js`/`watcher.rs`; falta confirmar con el usuario si persiste sin tocar teclas.
-> - Sigue fuera: LSP `tinymist` (sin research phase), sincronización editor↔preview por posición real,
->   bibliografía visual de LECTURA, y `docs/DESIGN.md` (deuda documental desde el `/spec` original).
-> - Segundo issue de Tylax reportado en la sesión anterior ([#45](https://github.com/scipenai/tylax/issues/45))
->   sin seguimiento comprometido — no bloquea nada, es buena vecindad, no trabajo de producto.
+> **Trabajo pendiente para v0.6.0, por orden:**
+> - **Decidir la integración con GitHub AL INICIO de la versión**, con las cinco alternativas ya
+>   enumeradas en `SPECIFICATIONS.md` §9 (no hacer nada · clonar desde una URL · publicar un proyecto ·
+>   autenticación propia · apoyarse en la CLI `gh`). Petición explícita del usuario. La pregunta de
+>   fondo no es técnica: si el producto es para quien "quiere escribir su TFG" y no para
+>   desarrolladores, ¿cuántos de sus usuarios usan Git siquiera, y justifica eso custodiar credenciales
+>   y atarse a una plataforma?
+> - Bug reportado sin reproducir, arrastrado desde hace sesiones: al escribir dentro de una ecuación, el
+>   estado de la vista previa alterna "Compilando…"/"Página 1".
+> - Bibliografía visual de **lectura** — sigue abierta la pregunta de qué crate BibTeX usar (§9).
+> - `macos_menu.rs` sin cobertura y sin compilar jamás en un Mac.
 >
-> **Última sesión:** 2026-09-06 · **Rama:** `master` · remoto `origin` = `github.com/davidbuenov/dbv-typst-editor` (público) · tag `v0.3.0` creado localmente, **push pendiente de confirmación**.
+> **Última sesión:** 2026-09-09 · **Rama:** `master` · remoto `origin` = `github.com/davidbuenov/dbv-typst-editor` (público) · **7 commits + tag `v0.5.0` sin empujar**.
 
 ### ✅ Qué funciona hoy (MVP v0.1 completo)
 

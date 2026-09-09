@@ -3,9 +3,9 @@
 **[🇪🇸 Español](./README.md) · 🇬🇧 English**
 
 [![Website](https://img.shields.io/badge/Website-davidbuenov.github.io%2Fdbv--typst--editor-2563eb?style=flat&logo=googlechrome&logoColor=white)](https://davidbuenov.github.io/dbv-typst-editor/en/)
-[![Releases](https://img.shields.io/badge/Releases-v0.4.0-brightgreen?logo=github)](https://github.com/davidbuenov/dbv-typst-editor/releases)
+[![Releases](https://img.shields.io/badge/Releases-v0.5.0-brightgreen?logo=github)](https://github.com/davidbuenov/dbv-typst-editor/releases)
 [![Microsoft Store](https://img.shields.io/badge/Microsoft%20Store-9PCPSVTNJMP0-0078D6?logo=microsoft&logoColor=white)](https://apps.microsoft.com/store/detail/9PCPSVTNJMP0?cid=DevShareMCLPCB)
-![Status](https://img.shields.io/badge/status-stable%20%7C%20v0.4.0-success)
+![Status](https://img.shields.io/badge/status-stable%20%7C%20v0.5.0-success)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
 ![Windows](https://img.shields.io/badge/Windows-10%20%2F%2011%20(.exe%20%2B%20Store)-0078D6?logo=windows&logoColor=white)
 ![macOS](https://img.shields.io/badge/macOS-Universal%20(.dmg)-000000?logo=apple&logoColor=white)
@@ -57,10 +57,10 @@ It follows the same philosophy as its sibling project [DBV Markdown Reader](http
 
 ## 🚦 Current status
 
-**Current version:** `v0.4.0` · **Status:** 🟢 Stable and production ready
+**Current version:** `v0.5.0` · **Status:** 🟢 Stable and production ready
 
 - 🌐 **Official Website:** [https://davidbuenov.github.io/dbv-typst-editor/en/](https://davidbuenov.github.io/dbv-typst-editor/en/) (featuring full-resolution interactive screenshot gallery and bilingual ES/EN switch).
-- 📦 **Installers available on Releases:** [GitHub Releases v0.4.0](https://github.com/davidbuenov/dbv-typst-editor/releases):
+- 📦 **Installers available on Releases:** [GitHub Releases v0.5.0](https://github.com/davidbuenov/dbv-typst-editor/releases):
   - 🪟 **Windows**: Standalone `.exe` installer (no external dependencies).
   - 🍎 **macOS**: Universal `.dmg` (compatible with Apple Silicon & Intel).
   - 🐧 **Linux**: `.AppImage` (portable) and `.deb` (Debian/Ubuntu/Mint) packages.
@@ -92,7 +92,7 @@ It follows the same philosophy as its sibling project [DBV Markdown Reader](http
 
 The most seamless experience on Windows 10 and 11: packaged and signed directly by Microsoft Store (no SmartScreen warnings), one-click installation, and automatic background updates.
 
-*(Note: available with Store ID `9PCPSVTNJMP0`. If you previously installed an earlier build from the Store, ensure you update to `v0.3.1` or newer; the current Store version is `v0.4.0` with full embedded Typst compiler; see [`CHANGELOG.en.md`](./dbv-specs-ops/CHANGELOG.en.md)). If you prefer not to use the Store, use the standalone `.exe` installer below.*
+*(Note: available with Store ID `9PCPSVTNJMP0`. If you previously installed an earlier build from the Store, ensure you update to `v0.3.1` or newer; the current Store version is `v0.5.0` with full embedded Typst compiler; see [`CHANGELOG.en.md`](./dbv-specs-ops/CHANGELOG.en.md)). If you prefer not to use the Store, use the standalone `.exe` installer below.*
 
 #### 📦 Standalone Installer (.exe)
 
@@ -212,7 +212,7 @@ stop.cmd
 
 ## 📋 Changelog
 
-`v0.4.0` documented in [`dbv-specs-ops/CHANGELOG.en.md`](./dbv-specs-ops/CHANGELOG.en.md) — editor ↔ preview synchronization, whole-document compilation, refresh control, image management enhancements, and removing recent projects.
+`v0.5.0` documented in [`dbv-specs-ops/CHANGELOG.en.md`](./dbv-specs-ops/CHANGELOG.en.md) — code intelligence through the Tinymist LSP, figure generation with Python, a CeTZ diagram assistant, Git integration with side-by-side diff, and a thorough interface overhaul: launcher and gallery consolidate into a single entry point with three routes (local templates, Typst Universe and a free identifier), the header groups its file actions into one menu, and the keep-on-top pin and enlarged template preview arrive.
 
 The changelog is maintained in both languages: [English](./dbv-specs-ops/CHANGELOG.en.md) · [Español](./dbv-specs-ops/CHANGELOG.md).
 

@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-09-09
+
 ### Added
 - **Two more automated checks** (`verify:frontend` 10→11, `verify:layout` 14→15). *No repeated id in `index.html`*: a duplicate id throws nothing — `getElementById` returns the first one and the second element sits dead on screen, looking normal and reacting to nothing — and it is the direct risk of repeating an action in two places, as the File menu does with "Import project". And *the action bar leaves room for the brand*, pinning in the real engine the width RF-30 has just freed.
 - **The `verify:layout` probe now builds the REAL header and launcher** (`scripts/layout-probe.html`), going from 9 to 14 checks. The header used to be a one-line stand-in — `<header><span>cabecera</span></header>` — that could not reveal anything, and the launcher still carried the template grid RF-25 removed: the probe was measuring a screen that no longer ships. It now checks that the header **stays on a single row at 830 px** (the width at which the user saw it broken), that the product name does not wrap, that the brand items do not overlap, that the start block fits its container, and that the three secondary actions stay on one line. Validated against the bug, as this project does: with the previous CSS two of them fail, at 88 px of header and 63 px of title.

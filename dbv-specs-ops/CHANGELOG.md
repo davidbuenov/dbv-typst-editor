@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Sin publicar] / [Unreleased]
 
+## [0.5.0] - 2026-09-09
+
 ### Added
 - **Dos comprobaciones más en las verificaciones automáticas** (`verify:frontend` 10→11, `verify:layout` 14→15). *Ningún id repetido en `index.html`*: un id duplicado no lanza nada — `getElementById` devuelve el primero y el segundo elemento queda muerto en pantalla, con su aspecto normal y sin reaccionar—, y es el riesgo directo de repetir una acción en dos sitios, como hace el menú Archivo con "Importar proyecto". Y *la barra de acciones deja sitio a la marca*, que fija en el motor real el ancho que RF-30 acaba de liberar.
 - **La sonda de `verify:layout` pasa a montar la cabecera y el lanzador REALES** (`scripts/layout-probe.html`), de 9 a 14 comprobaciones. Antes la cabecera era un sustituto de una línea —`<header><span>cabecera</span></header>`— que no podía enseñar nada, y el lanzador seguía llevando la rejilla de plantillas que RF-25 retiró: la sonda medía una pantalla que ya no se envía. Ahora comprueba que la cabecera **aguanta en una sola fila a 830 px** (el ancho al que el usuario la vio rota), que el nombre del producto no se parte, que los elementos de la marca no se solapan, que el bloque de arranque cabe en su contenedor y que las tres acciones secundarias siguen en una línea. Validadas a la contra, con la disciplina habitual del proyecto: con el CSS anterior fallan dos, con 88 px de cabecera y 63 px de título.

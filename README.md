@@ -3,9 +3,9 @@
 **🇪🇸 Español · [🇬🇧 English](./README.en.md)**
 
 [![Sitio Web](https://img.shields.io/badge/Sitio%20Web-davidbuenov.github.io%2Fdbv--typst--editor-2563eb?style=flat&logo=googlechrome&logoColor=white)](https://davidbuenov.github.io/dbv-typst-editor/)
-[![Releases](https://img.shields.io/badge/Releases-v0.4.0-brightgreen?logo=github)](https://github.com/davidbuenov/dbv-typst-editor/releases)
+[![Releases](https://img.shields.io/badge/Releases-v0.5.0-brightgreen?logo=github)](https://github.com/davidbuenov/dbv-typst-editor/releases)
 [![Microsoft Store](https://img.shields.io/badge/Microsoft%20Store-9PCPSVTNJMP0-0078D6?logo=microsoft&logoColor=white)](https://apps.microsoft.com/store/detail/9PCPSVTNJMP0?cid=DevShareMCLPCB)
-![Status](https://img.shields.io/badge/status-estable%20%7C%20v0.4.0-success)
+![Status](https://img.shields.io/badge/status-estable%20%7C%20v0.5.0-success)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
 ![Windows](https://img.shields.io/badge/Windows-10%20%2F%2011%20(.exe%20%2B%20Store)-0078D6?logo=windows&logoColor=white)
 ![macOS](https://img.shields.io/badge/macOS-Universal%20(.dmg)-000000?logo=apple&logoColor=white)
@@ -59,10 +59,10 @@ Sigue la misma filosofía que su proyecto hermano [DBV Markdown Reader](https://
 
 ## 🚦 Estado actual
 
-**Versión actual:** `v0.4.0` · **Estado:** 🟢 Estable y listo para producción
+**Versión actual:** `v0.5.0` · **Estado:** 🟢 Estable y listo para producción
 
 - 🌐 **Sitio Web Oficial:** [https://davidbuenov.github.io/dbv-typst-editor/](https://davidbuenov.github.io/dbv-typst-editor/) (con galería interactiva de capturas en alta resolución y selector bilingüe ES/EN).
-- 📦 **Instaladores disponibles en Releases:** [GitHub Releases v0.4.0](https://github.com/davidbuenov/dbv-typst-editor/releases):
+- 📦 **Instaladores disponibles en Releases:** [GitHub Releases v0.5.0](https://github.com/davidbuenov/dbv-typst-editor/releases):
   - 🪟 **Windows**: Instalador `.exe` autónomo (sin dependencias externas).
   - 🍎 **macOS**: Archivo `.dmg` universal (compatible con Apple Silicon e Intel).
   - 🐧 **Linux**: Paquetes `.AppImage` (portable) y `.deb` (Debian/Ubuntu/Mint).
@@ -94,7 +94,7 @@ Sigue la misma filosofía que su proyecto hermano [DBV Markdown Reader](https://
 
 Es la vía más directa y cómoda para Windows: el paquete lo firma la propia Store (sin avisos de SmartScreen), se instala con un clic y se actualiza solo en segundo plano con cada nueva versión de la tienda.
 
-*(Nota: disponible con Store ID `9PCPSVTNJMP0`. Si descargaste una versión previa desde la Store, comprueba que tienes `v0.3.1` o superior —la versión actual es `v0.4.0` e incluye el compilador Typst embebido; ver [`CHANGELOG.md`](./dbv-specs-ops/CHANGELOG.md)). Si prefieres no usar la Store, usa el instalador `.exe` independiente de abajo.*
+*(Nota: disponible con Store ID `9PCPSVTNJMP0`. Si descargaste una versión previa desde la Store, comprueba que tienes `v0.3.1` o superior —la versión actual es `v0.5.0` e incluye el compilador Typst embebido; ver [`CHANGELOG.md`](./dbv-specs-ops/CHANGELOG.md)). Si prefieres no usar la Store, usa el instalador `.exe` independiente de abajo.*
 
 #### 📦 Instalador independiente (.exe)
 
@@ -304,7 +304,7 @@ Preparación para Microsoft Store documentada en [`dbv-specs-ops/docs/MICROSOFT_
 
 ## 📋 Changelog
 
-`v0.4.0` documentada en [`dbv-specs-ops/CHANGELOG.md`](./dbv-specs-ops/CHANGELOG.md) — sincronización editor ↔ vista previa, compilación del documento completo, control de refresco, mejoras en gestión de imágenes y eliminación de recientes.
+`v0.5.0` documentada en [`dbv-specs-ops/CHANGELOG.md`](./dbv-specs-ops/CHANGELOG.md) — inteligencia de código con el LSP Tinymist, generación de figuras con Python, asistente de diagramas CeTZ, integración con Git y diff lado a lado, y una revisión a fondo de la interfaz: el lanzador y la galería se consolidan en una sola puerta de entrada con tres vías (plantillas locales, Typst Universe e identificador libre), la cabecera agrupa sus acciones de fichero en un menú, y llegan la chincheta de ventana encima y la vista ampliada de plantillas.
 
 El changelog se mantiene en los dos idiomas: [Español](./dbv-specs-ops/CHANGELOG.md) · [English](./dbv-specs-ops/CHANGELOG.en.md).
 

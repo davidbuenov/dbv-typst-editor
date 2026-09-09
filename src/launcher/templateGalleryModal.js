@@ -12,8 +12,41 @@
 //   completa con sombras realistas, tipografía nítida y botón de acción directa.
 
 import { getLanguage, t } from '../i18n/i18n.js';
+import { parseUniverseSpec } from '../universe/universeSpec.js';
 import { localizeTemplate } from './launcher.js';
 import { getTemplateFullPreviewSvg, getTemplateThumbnailSvg } from './templateThumbnails.js';
+
+/**
+ * De dónde viene una plantilla del catálogo unificado (RF-26).
+ *
+ * El catálogo que llega aquí ya venía fusionado desde antes de este rediseño
+ * (`getFullGalleryCatalog()` en `main.js`), pero nada distinguía una plantilla
+ * local de una de Universe. La marca no se inventa: una entrada de Universe
+ * lleva `universeSpec`, o un `id` con el prefijo del registro público.
+ *
+ * @param {object} template
+ * @returns {'local'|'universe'}
+ */
+export function templateSource(template) {
+  if (!template) return 'local';
+  if (template.universeSpec) return 'universe';
+  const id = String(template.id || '');
+  return id.startsWith('@preview/') ? 'universe' : 'local';
+}
+
+/**
+ * Cuántas plantillas tiene cada pestaña. Se calcula sobre el catálogo COMPLETO,
+ * no sobre el filtrado: el contador dice cuántas hay, no cuántas quedan tras
+ * escribir en el buscador.
+ *
+ * @param {object[]} catalog
+ * @returns {{local: number, universe: number}}
+ */
+export function countBySource(catalog) {
+  const counts = { local: 0, universe: 0 };
+  for (const template of catalog || []) counts[templateSource(template)] += 1;
+  return counts;
+}
 
 /**
  * Crea el controlador del diálogo modal de la galería de plantillas.
@@ -27,6 +60,13 @@ import { getTemplateFullPreviewSvg, getTemplateThumbnailSvg } from './templateTh
  * @param {HTMLElement} deps.cancelBtnEl Botón de cancelación / cierre
  * @param {HTMLElement} [deps.metaEl] Contenedor de metadatos de la plantilla activa
  * @param {(template: object) => void} deps.onSelectTemplate Callback al confirmar una plantilla
+ * @param {HTMLElement} [deps.tabsEl] Barra de las tres pestañas (RF-26)
+ * @param {HTMLElement} [deps.sidebarEl] Columna de la lista, que la pestaña "Dirección" sustituye
+ * @param {HTMLElement} [deps.specPanelEl] Panel del identificador libre
+ * @param {HTMLInputElement} [deps.specInputEl] Campo del identificador libre
+ * @param {HTMLElement} [deps.specErrorEl] Mensaje de error del identificador
+ * @param {HTMLButtonElement} [deps.specPreviewBtnEl] Control que descarga y previsualiza
+ * @param {((spec: string) => Promise<{ok: boolean, value?: string, error?: {kind: string}}>)|null} [deps.onPreviewSpec]
  */
 export function createTemplateGalleryModal({
   dialogEl,
@@ -37,6 +77,13 @@ export function createTemplateGalleryModal({
   cancelBtnEl,
   metaEl,
   onSelectTemplate,
+  tabsEl,
+  sidebarEl,
+  specPanelEl,
+  specInputEl,
+  specErrorEl,
+  specPreviewBtnEl,
+  onPreviewSpec,
 }) {
   /** @type {object[]} Catálogo completo de plantillas */
   let catalog = [];
@@ -44,6 +91,10 @@ export function createTemplateGalleryModal({
   let filteredCatalog = [];
   /** @type {object|null} Plantilla actualmente seleccionada */
   let selectedTemplate = null;
+  /** @type {'local'|'universe'|'spec'} Pestaña activa (RF-26). */
+  let activeTab = 'local';
+  /** @type {object|null} Entrada sintética de la pestaña "Dirección", si ya se validó. */
+  let typedTemplate = null;
 
   function isOpen() {
     return !dialogEl.classList.contains('hidden');
@@ -166,6 +217,111 @@ export function createTemplateGalleryModal({
     }
   }
 
+  function renderTabs() {
+    if (!tabsEl) return;
+    const counts = countBySource(catalog);
+    for (const button of tabsEl.querySelectorAll('[data-gallery-tab]')) {
+      const tab = button.getAttribute('data-gallery-tab');
+      const isActive = tab === activeTab;
+      button.classList.toggle('is-active', isActive);
+      button.setAttribute('aria-selected', String(isActive));
+      // El contador solo tiene sentido donde hay una lista que contar.
+      const counter = button.querySelector('[data-gallery-tab-count]');
+      if (counter && tab !== 'spec') counter.textContent = String(counts[tab] ?? 0);
+    }
+  }
+
+  function setActiveTab(tab) {
+    activeTab = tab;
+    const isSpec = tab === 'spec';
+
+    // La pestaña "Dirección" sustituye la columna de la lista por su formulario:
+    // el panel de vista previa NO se mueve, que es lo que impide que las tres
+    // vías vuelvan a divergir en tres interfaces distintas.
+    sidebarEl?.classList.toggle('hidden', isSpec);
+    specPanelEl?.classList.toggle('hidden', !isSpec);
+    if (searchEl) searchEl.parentElement?.classList.toggle('hidden', isSpec);
+
+    renderTabs();
+    if (searchEl) searchEl.value = '';
+    if (isSpec) {
+      renderSpecState();
+    } else {
+      applyFilter('');
+    }
+  }
+
+  /** Estado del formulario de identificador libre: validez, error y acciones. */
+  function renderSpecState() {
+    if (!specInputEl) return;
+    const raw = specInputEl.value.trim();
+    const parsed = raw ? parseUniverseSpec(raw) : { ok: false, reason: 'empty' };
+
+    if (specErrorEl) {
+      const showError = raw.length > 0 && !parsed.ok;
+      specErrorEl.textContent = showError ? t('gallery.specErrorFormat') : '';
+      specErrorEl.classList.toggle('hidden', !showError);
+    }
+
+    if (specPreviewBtnEl) specPreviewBtnEl.disabled = !parsed.ok;
+    // La acción principal solo se habilita con un identificador válido; la
+    // previsualización es opcional, no un peaje obligatorio.
+    if (useBtnEl) useBtnEl.disabled = !parsed.ok;
+
+    typedTemplate = parsed.ok ? syntheticTemplate(parsed.spec) : null;
+    selectedTemplate = typedTemplate;
+  }
+
+  /** Entrada de catálogo mínima para un identificador escrito a mano. */
+  function syntheticTemplate(spec) {
+    return {
+      id: spec,
+      name: spec,
+      description: spec,
+      version: spec.split(':')[1] || '',
+      category: 'Typst Universe',
+      entrypoint: 'main.typ',
+      universeSpec: spec,
+      dbv: { dbvCategory: 'Typst Universe' },
+    };
+  }
+
+  /**
+   * Descarga y compila la plantilla escrita a mano para enseñar su maquetación
+   * real. Es el ÚNICO punto de esta pestaña que toca la red, y solo se llega
+   * aquí desde un control que dice que va a hacerlo (RF-26.6).
+   */
+  async function previewTypedSpec() {
+    if (!onPreviewSpec || !typedTemplate || !previewEl) return;
+    const spec = typedTemplate.universeSpec;
+
+    previewEl.innerHTML = `<div class="template-gallery__spec-status">${t('gallery.specDownloading')}</div>`;
+    if (specPreviewBtnEl) specPreviewBtnEl.disabled = true;
+
+    const result = await onPreviewSpec(spec);
+
+    // Mientras se descargaba, el usuario ha podido cambiar de pestaña o de
+    // identificador: una respuesta que ya no corresponde no se pinta.
+    if (activeTab !== 'spec' || typedTemplate?.universeSpec !== spec) return;
+    if (specPreviewBtnEl) specPreviewBtnEl.disabled = false;
+
+    if (result?.ok) {
+      previewEl.innerHTML = `
+        <div class="template-gallery__preview-wrapper">
+          <div class="template-gallery__page-canvas">${result.value}</div>
+        </div>
+      `;
+      return;
+    }
+
+    // "No es una plantilla" tiene su propio discriminante desde Rust: es el
+    // fallo que de verdad se encuentra quien escribe un identificador a mano.
+    const key =
+      result?.error?.kind === 'notATemplate' ? 'gallery.specNotATemplate' : 'gallery.specPreviewFailed';
+    previewEl.innerHTML = `<div class="template-gallery__spec-status is-error">${t(key)}</div>`;
+    if (key === 'gallery.specNotATemplate' && useBtnEl) useBtnEl.disabled = true;
+  }
+
   function selectTemplate(template) {
     selectedTemplate = template;
     // Actualizar clases de selección en la lista
@@ -184,13 +340,20 @@ export function createTemplateGalleryModal({
     renderPreview();
   }
 
+  /** Las plantillas de la pestaña abierta, antes de aplicar el buscador. */
+  function tabCatalog() {
+    if (activeTab === 'spec') return typedTemplate ? [typedTemplate] : [];
+    return catalog.filter((template) => templateSource(template) === activeTab);
+  }
+
   function applyFilter(query = '') {
     const q = query.trim().toLowerCase();
+    const base = tabCatalog();
     if (!q) {
-      filteredCatalog = catalog.slice();
+      filteredCatalog = base.slice();
     } else {
       const language = getLanguage();
-      filteredCatalog = catalog.filter((tpl) => {
+      filteredCatalog = base.filter((tpl) => {
         const { name, description } = localizeTemplate(tpl, language);
         const category = (tpl.dbv?.dbvCategory || tpl.category || '').toLowerCase();
         const id = (tpl.id || tpl.name || '').toLowerCase();
@@ -282,6 +445,28 @@ export function createTemplateGalleryModal({
     cancelBtnEl.addEventListener('click', close);
   }
 
+  if (tabsEl) {
+    for (const button of tabsEl.querySelectorAll('[data-gallery-tab]')) {
+      button.addEventListener('click', () => setActiveTab(button.getAttribute('data-gallery-tab')));
+    }
+  }
+
+  if (specInputEl) {
+    specInputEl.addEventListener('input', renderSpecState);
+    specInputEl.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter') return;
+      event.preventDefault();
+      // Enter previsualiza en lugar de crear: en esta pestaña la tecla más
+      // fácil de pulsar por inercia no debe ser la que descarga y genera un
+      // proyecto de una vez.
+      if (!specPreviewBtnEl?.disabled) previewTypedSpec();
+    });
+  }
+
+  if (specPreviewBtnEl) {
+    specPreviewBtnEl.addEventListener('click', previewTypedSpec);
+  }
+
   // Cerrar al pulsar sobre el fondo oscuro del modal
   dialogEl?.addEventListener('click', (event) => {
     if (event.target === dialogEl) {
@@ -315,8 +500,12 @@ export function createTemplateGalleryModal({
       selectedTemplate = null;
     }
 
-    renderList();
-    renderPreview();
+    // Abrir con un identificador de Universe debe dejar visible la pestaña
+    // donde esa plantilla vive; si no, la selección quedaría en una lista oculta.
+    activeTab = selectedTemplate ? templateSource(selectedTemplate) : 'local';
+    typedTemplate = null;
+    setActiveTab(activeTab);
+    if (selectedTemplate) selectTemplate(selectedTemplate);
 
     dialogEl.classList.remove('hidden');
     // Foco en el buscador para escribir o navegar con flechas inmediatamente
@@ -332,6 +521,9 @@ export function createTemplateGalleryModal({
     close,
     isOpen,
     selectTemplate,
+    setActiveTab,
+    getActiveTab: () => activeTab,
+    getVisibleTemplates: () => filteredCatalog.slice(),
     getSelectedTemplate: () => selectedTemplate,
     setCatalog: (newCatalog) => {
       catalog = newCatalog ? newCatalog.slice() : [];

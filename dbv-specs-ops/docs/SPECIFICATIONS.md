@@ -1,8 +1,9 @@
 # 📋 Especificaciones: DBV Typst Editor
 
-> **Fase:** `/spec` (Especificación) → **v0.5.0 especificada**
-> **Estado:** 🔒 **CONGELADO v1.3 — 2026-09-09** (baseline de especificación v0.5.0). v1.3 especifica el salto a productividad profesional y robustez (v0.5.0): Integración con Git y resolución visual de conflictos (RF-19), Galería visual de plantillas con previsualización (RF-20), Inteligencia de código con Tinymist LSP vendorizado (RF-21), Figuras y datos dinámicos con Python (RF-22), Asistente visual de diagramas CeTZ (RF-23), y Robustez de entorno y guardado atómico (RF-24).
+> **Fase:** `/spec` (Especificación) → **v0.5.0 especificada (reabierta y ampliada)**
+> **Estado:** 🔒 **CONGELADO v1.4 — 2026-09-09** (con una precisión añadida el mismo día y antes de construir nada: RF-26 criterio 10) (baseline de especificación v0.5.0, ampliada). v1.3 especificó el salto a productividad profesional y robustez (v0.5.0): Integración con Git y resolución visual de conflictos (RF-19), Galería visual de plantillas con previsualización (RF-20), Inteligencia de código con Tinymist LSP vendorizado (RF-21), Figuras y datos dinámicos con Python (RF-22), Asistente visual de diagramas CeTZ (RF-23), y Robustez de entorno y guardado atómico (RF-24). **v1.4 reabre ese `/spec`, a decisión del usuario y antes de entregar la versión, para consolidar el lanzador** (§5d): Lanzador de una sola vía (RF-25), Galería unificada de creación de documentos (RF-26) y Tokens semánticos de estado (RF-27). El motivo es que `/build` de v0.5.0 dejó **tres** superficies distintas para elegir plantilla; ver `ADR-LANZADOR-001` en `memory.md`.
 > **Regla de congelación:** a partir de aquí, cualquier cambio de alcance o de requisito exige (1) registrarlo como ADR en `memory.md`, (2) actualizar este documento con nueva versión, y (3) revisar el impacto en `implementation_plan.md`. No se modifican requisitos "al vuelo" durante `/build`.
+> **Documento de diseño:** el sistema visual que rige §5d está en [`DESIGN.md`](./DESIGN.md), escrito el 2026-09-09 (deuda documental abierta desde el `/spec` original, saldada al abordar este rediseño).
 > **Última Revisión:** 2026-09-09
 
 ---
@@ -182,6 +183,8 @@ Toda la aplicación (lanzador, asistente de creación, explorador de ficheros, e
     3. *Detección de cambios externos y Diff Side-by-Side:* Si un archivo se modifica en disco (por un `git pull` o editor externo) mientras el usuario tiene modificaciones sin guardar en el editor, **nunca se sobrescribe silenciosamente**. Se abre un visor de diferencias dividido (Diff side-by-side) para inspeccionar y elegir si conservar la versión en memoria o recargar la del disco.
 
 - [ ] **RF-20 Galería Visual de Plantillas con Previsualización (Template Preview).**
+  > ⚠️ **Ampliado por RF-26 (§5d, v1.4).** Los tres criterios de abajo siguen vigentes tal cual; lo que cambia es que la galería deja de ser *una superficie más* para convertirse en la **única** puerta de entrada a la creación de documentos, absorbiendo el catálogo de Typst Universe y el identificador libre. Leer los dos requisitos juntos.
+
   Las plantillas dejan de ser solo un nombre en un desplegable y se presentan en una interfaz visual con capturas reales pre-renderizadas:
   - **Criterios de aceptación:**
     1. *Miniaturas en alta resolución:* Cada una de las 8 plantillas curadas de DBV (y las comunitarias integradas) cuenta con una miniatura fiel de su primera página maquetada.
@@ -217,6 +220,57 @@ Toda la aplicación (lanzador, asistente de creación, explorador de ficheros, e
     1. *`augment_path()`:* Inyección dinámica en el arranque de rutas críticas de Windows (`WinGet\Links`, `cargo\bin`, `Python\Launcher`, `scoop\shims`, `chocolatey\bin`) con el separador `;` correcto para que cualquier herramienta instalada recientemente se reconozca de inmediato sin reiniciar sesión.
     2. *`write_atomic()`:* Guardado en fichero temporal oculto y renombrado atómico para prevenir que el observador de cambios compile ficheros a medio escribir.
     3. *Preservación de "Last Good Render":* Si una edición introduce un error sintáctico, la vista previa conserva el último documento PDF/SVG renderizado con éxito, indicando el fallo en la barra de problemas sin dejar el visor en blanco.
+
+## ✨ 5d. Funcionalidades — v0.5.0 (Consolidación del Lanzador)
+
+> Alcance **añadido el 2026-09-09 reabriendo el `/spec` de v0.5.0**, a decisión explícita del usuario y
+> antes de la entrega de esa versión. No sustituye a §5c: se construye y se entrega en la misma v0.5.0.
+> El rediseño se validó visualmente antes de especificarlo, en un lienzo de seis artboards cuyas fuentes
+> viven en `spikes/launcher-redesign/` (home, las tres pestañas de la galería y las dos variantes en tema
+> sepia). Las restricciones de diseño están congeladas en [`DESIGN.md`](./DESIGN.md) §10.
+>
+> **Motivo.** Al cerrar `/build` de v0.5.0 la aplicación había acumulado **tres superficies distintas para
+> el mismo trabajo** — elegir una plantilla:
+> 1. La rejilla de 8 tarjetas del lanzador (`launcher.js`), cuyo `click` **solo abre la galería**
+>    (`launcher.js:87-93`): un menú cuyo único trabajo es abrir otro menú con más información.
+> 2. El modal de galería (`templateGalleryModal.js`), incorporado en esta misma v0.5.0 por RF-20.
+> 3. El panel de Typst Universe (`universePanel.js`), de la Beta (§7.6 de `ARCHITECTURE.md`), anterior a la
+>    galería y con otra estética, cuya pestaña "Plantillas" ofrece un tercer catálogo.
+>
+> Más dos botones en el home ("Explorar catálogo con vista previa…" y "Plantillas del Typst Universe") que
+> llevan a **dos ventanas diferentes**. El coste no es estético: obliga al usuario a decidir dos veces y a
+> aprender dos interfaces para una sola tarea, justo en la pantalla de entrada del producto.
+
+- [ ] **RF-25 Lanzador de una sola vía.**
+  El lanzador deja de ser un catálogo y pasa a ser una pantalla de arranque: no elige plantilla, abre la galería.
+  - **Criterios de aceptación:**
+    1. *La rejilla desaparece.* El home no contiene ninguna rejilla de plantillas (`.template-grid`) ni ningún botón que abra un catálogo alternativo: se retiran `#btn-launcher-gallery` y `#btn-launcher-universe`.
+    2. *Una acción dominante.* Un único control "Nuevo documento", visualmente destacado respecto al resto, abre la galería unificada de RF-26. Es la **única** vía de creación desde plantilla que ofrece el lanzador.
+    3. *Tres acciones secundarias, subordinadas.* Abrir carpeta de proyecto, abrir documento `.typ` e importar proyecto `.dbvt`, agrupadas y con menos peso visual que la acción dominante.
+    4. *Los proyectos recientes heredan el espacio.* La lista de recientes ocupa el sitio que dejan las tarjetas y pasa a ser la sección de mayor peso por debajo de las acciones, conservando abrir y eliminar por entrada. Es lo que el usuario recurrente busca de verdad al abrir la aplicación, y hoy queda por debajo de un muro que solo abre otra ventana.
+    5. *Sin pérdida de funcionalidad.* Todo lo que hoy se puede hacer desde el home se sigue pudiendo hacer: lo que hacía la rejilla lo hace la galería, con más información.
+
+- [ ] **RF-26 Galería unificada de creación de documentos.**
+  La galería pasa de ser una superficie más a ser **la única puerta de entrada** a la creación de documentos, absorbiendo el catálogo de plantillas de Typst Universe y el identificador libre.
+  - **Criterios de aceptación:**
+    1. *Punto de entrada único.* Existe una sola ventana de elección de plantilla en toda la aplicación.
+    2. *Tres pestañas sobre el mismo esqueleto.* "Plantillas locales", "Typst Universe" y "Dirección" comparten la misma columna de lista, el mismo buscador y el mismo panel de vista previa: entre pestañas **solo cambia la fuente de la lista**, nunca la disposición. Es lo que impide que vuelvan a divergir en tres estéticas.
+    3. *Plantillas locales.* Las 8 plantillas curadas de DBV, con la ficha informativa y la transición al formulario de metadatos de RF-03 — RF-20 se mantiene íntegro, solo cambia dónde vive.
+    4. *Typst Universe.* El catálogo revisado (`CURATED_TEMPLATES`), con el identificador `@preview/nombre:version` visible, su licencia, y el aviso de que es código de terceros que se descarga y ejecuta en el equipo.
+    5. *Dirección (identificador libre).* Campo donde escribir cualquier `@preview/nombre:version`, validado con `parseUniverseSpec`. Un identificador incompleto o mal formado produce un **mensaje que explica qué falta** (p. ej. la versión), y la acción principal permanece **deshabilitada** mientras no sea válido. El aviso de código de terceros es más prominente que en la pestaña anterior, porque aquí no hay lista revisada detrás.
+    6. *Vista previa del identificador libre, solo bajo petición explícita.* En la pestaña "Dirección" **no** se descarga ni se ejecuta nada al teclear ni al validar. La vista previa se genera únicamente al pulsar un control cuyo texto declara que descargará y ejecutará la plantilla. Decisión del usuario, 2026-09-09: es el punto medio entre no ofrecer previsualización y contradecir la postura editorial de `ARCHITECTURE.md` §6 descargando código ajeno solo por escribir en un campo.
+    7. *Los paquetes NO se absorben.* La pestaña "Paquetes" del panel de Universe permanece donde está: se importan en el documento **ya abierto**, es trabajo del editor y sigue detrás del botón ✦ de la cabecera. Elegir plantilla (crea un proyecto) y añadir un paquete (modifica un documento) son trabajos distintos; fusionarlos recrearía exactamente el problema que este requisito resuelve.
+    8. *Se conservan las dos vías.* Lista revisada **y** campo libre siguen existiendo para plantillas, tal como fija `ADR-UNIVERSE-001`. La consolidación cambia dónde viven, nunca la política.
+    9. *Accesible y consistente.* Las pestañas se recorren con teclado y exponen su estado (`role="tab"`/`aria-selected`), y la ventana es correcta en los tres temas — sepia incluido, que es el que más rompe las suposiciones de contraste.
+    10. *Los paquetes no se ofrecen cuando no se pueden usar.* Añadido el 2026-09-09, dentro de la misma congelación, a observación del usuario: "elegir paquetes si no se ha seleccionado un proyecto no tiene sentido". El botón ✦ de la cabecera **se deshabilita mientras no haya un documento abierto**, con una explicación al pasar el cursor, en lugar de abrir un panel cuya única acción posible termina en un aviso de error. Es el corolario natural del criterio 7: si añadir un paquete es trabajo del editor sobre el documento abierto, ofrecerlo desde el lanzador es ofrecer algo que no puede funcionar. Hoy `main.js` ya contempla el caso (`universe.needDocument`), pero **después** de que el usuario haya abierto el panel y elegido un paquete.
+
+- [ ] **RF-27 Tokens semánticos de estado (deuda de `DESIGN.md` §9).**
+  Se salda al mismo tiempo, porque el estado de error de RF-26 lo necesita y sería el siguiente color literal en entrar.
+  - **Criterios de aceptación:**
+    1. *Cuatro tokens nuevos en los tres temas:* `--status-ok`, `--status-warn`, `--status-error` y `--status-info` en `tokens.css`, con valor propio para claro, oscuro y sepia.
+    2. *Ningún color de estado literal.* La paleta escrita a mano que entró con las funciones de v0.5.0 (`#10b981`, `#ef4444`, `#f59e0b`, `#3b82f6`, y sus variantes translúcidas) desaparece de `base.css` y `layout.css` en favor de esos tokens. Hoy no cambian con el tema: en sepia son colores fríos y saturados sobre una paleta cálida — el mismo defecto que `--band-hint` ya corrigió una vez tras el aviso de un usuario real.
+    3. *`--accent-subtle` declarado.* `layout.css:1148` lo usa con respaldo (`var(--accent-subtle, rgba(2, 132, 199, 0.15))`) pero nunca se declaró, así que **siempre gana el respaldo** y el anillo de foco del buscador de la galería es azul incluso en sepia. Se declara en los tres temas.
+    4. *Verificación.* `npm run verify:layout` en verde tras el cambio, ejecutado donde pueda ejecutarse de verdad (CI o una máquina con Chrome utilizable).
 
 ## 🚀 6. Funcionalidades — Beta y v1.0 (detalle del Spec Addendum)
 
@@ -283,6 +337,7 @@ Estas funcionalidades están **descritas y arquitectónicamente resueltas** (ver
 - [x] Spike técnico (S-2, 2026-09-08): ¿se puede sincronizar editor y vista previa con el compilador vendorizado como sidecar? → **Resuelto, con matices.** No por posición real de fuente: Typst **no** expone el `span` de origen (`heading.span` no existe) ni anota el SVG (sin un solo `data-*`). Sí con **anclas `#metadata` + `query`**, que devuelven payload y posición de una pasada y dejan el SVG byte a byte idéntico. Informe y mediciones en `spikes/preview-sync/README.md`; consecuencias en RF-14 a RF-16 (§5b).
 - [x] ¿Cómo empaquetar Tinymist (v0.5.0)? → **Resuelto por decisión del usuario (2026-09-09): vendorizado como sidecar** por plataforma (igual que el compilador Typst), sin depender de que el usuario lo instale.
 - [x] ¿Cómo integrar el control de versiones Git (v0.5.0)? → **Resuelto por decisión del usuario (2026-09-09): apoyarse en la CLI nativa de Git instalada en el sistema del usuario**, con detección en PATH y degradación limpia si no está presente.
+- [x] ¿La pestaña de identificador libre de la galería (RF-26) debe previsualizar la plantilla antes de crear el documento? → **Resuelto por decisión del usuario (2026-09-09): previsualización solo bajo un control explícito** que declara que descarga y ejecuta la plantilla. Se descartaron las dos alternativas: no ofrecer previsualización (pierde el rasgo distintivo de la pantalla) y previsualizar automáticamente al validar el identificador (descargaría y ejecutaría código de terceros solo por teclear, en contra de `ARCHITECTURE.md` §6).
 
 ## 🧪 10. Criterios de Evaluación (No Deterministas)
 

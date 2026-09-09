@@ -1,0 +1,41 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 1280, "h": 860, "title": "Home simplificado" },
+    { "file": "GaleriaLocales.dc.html", "x": 1360, "y": 0, "w": 1280, "h": 860, "title": "Galería · Plantillas locales" },
+    { "file": "GaleriaUniverse.dc.html", "x": 2720, "y": 0, "w": 1280, "h": 860, "title": "Galería · Typst Universe" },
+    { "file": "GaleriaDireccion.dc.html", "x": 4080, "y": 0, "w": 1280, "h": 860, "title": "Galería · Dirección @preview (error)" },
+    { "file": "HomeSepia.dc.html", "x": 0, "y": 1100, "w": 1280, "h": 860, "title": "Home · tema Sepia" },
+    { "file": "GaleriaSepia.dc.html", "x": 1360, "y": 1100, "w": 1280, "h": 860, "title": "Galería · tema Sepia" }
+  ],
+  "annotations": [
+    {
+      "id": "note-flujo",
+      "x": 0,
+      "y": -170,
+      "w": 620,
+      "text": "Un solo camino: el home ya no elige plantilla, solo abre la galería.\nLos 8 cuadros y los 2 botones de plantillas desaparecen; el sitio que ocupaban se lo quedan los proyectos recientes, que es lo que de verdad se usa al volver."
+    },
+    {
+      "id": "note-galeria",
+      "x": 1360,
+      "y": -170,
+      "w": 620,
+      "text": "Las tres vías conviven en una sola ventana, como pestañas.\nLa columna izquierda y la vista previa no cambian de sitio entre pestañas: lo único que cambia es la fuente de la lista."
+    },
+    {
+      "id": "note-direccion",
+      "x": 4080,
+      "y": -170,
+      "w": 620,
+      "text": "Pestaña Dirección, en estado de error: falta la versión.\nEl aviso de código de terceros es más fuerte aquí que en la pestaña de Universe, porque detrás no hay lista revisada. La acción principal queda deshabilitada hasta que la dirección sea válida."
+    },
+    {
+      "id": "note-sepia",
+      "x": 0,
+      "y": 970,
+      "w": 620,
+      "text": "Comprobación en sepia (paleta cálida, la que más rompe las suposiciones).\nÚnico ajuste que ha hecho falta: el papel del documento lleva un borde de 1px, porque #f7f6f2 sobre el fondo #faf3e0 del tema casi no se distingue solo con la sombra."
+    }
+  ],
+  "launch": { "view": "canvas" }
+}

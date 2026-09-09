@@ -1,0 +1,472 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    :root {
+      --bg-primary: #0d1117;
+      --bg-secondary: #161b22;
+      --bg-tertiary: #21262d;
+      --text-primary: #e6edf3;
+      --text-secondary: #8b949e;
+      --text-muted: #6e7681;
+      --accent: #58a6ff;
+      --accent-hover: #79c0ff;
+      --border: #30363d;
+      --shadow: rgba(0, 0, 0, 0.4);
+      --font-ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Cascadia Code', Consolas, 'SF Mono', Menlo, monospace;
+      --radius: 8px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      width: 1280px;
+      height: 860px;
+      overflow: hidden;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: var(--font-ui);
+      font-size: 13px;
+    }
+    a { color: var(--accent); }
+    a:hover { color: var(--accent-hover); }
+
+    .modal {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: rgba(0, 0, 0, 0.45);
+    }
+    .modal__card {
+      width: 1080px;
+      height: 780px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding: 24px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: 0 20px 48px var(--shadow);
+    }
+
+    .gallery__header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+    .gallery__title { margin: 0 0 4px; font-size: 18px; font-weight: 700; }
+    .gallery__subtitle { margin: 0; font-size: 13px; color: var(--text-secondary); }
+    .gallery__close {
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: transparent;
+      color: var(--text-secondary);
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    /* ── Las tres vías, en un solo sitio ───────────────────────────── */
+    .gallery__tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); }
+    .gallery__tab {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      margin-bottom: -1px;
+      border: 1px solid transparent;
+      border-bottom-color: transparent;
+      border-radius: var(--radius) var(--radius) 0 0;
+      background: transparent;
+      color: var(--text-muted);
+      font-family: inherit;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .gallery__tab.is-active {
+      background: var(--bg-primary);
+      border-color: var(--border);
+      border-bottom-color: var(--bg-primary);
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+    .gallery__tab-count {
+      padding: 1px 6px;
+      border-radius: 999px;
+      background: var(--bg-tertiary);
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      font-size: 10px;
+    }
+
+    .gallery__search { position: relative; display: flex; align-items: center; }
+    .gallery__search-icon { position: absolute; left: 12px; width: 16px; height: 16px; color: var(--text-muted); }
+    .gallery__search-input {
+      width: 100%;
+      padding: 8px 12px 8px 36px;
+      border: 1px solid var(--accent);
+      border-radius: var(--radius);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 13px;
+    }
+
+    .gallery__body { display: grid; grid-template-columns: 340px 1fr; gap: 18px; flex: 1; min-height: 0; }
+    .gallery__sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 8px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .gallery__item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      background: transparent;
+      color: inherit;
+      font-family: inherit;
+      text-align: left;
+      cursor: pointer;
+    }
+    .gallery__item.is-selected { background: var(--bg-tertiary); border-color: var(--accent); }
+    .gallery__item-thumb {
+      width: 34px;
+      height: 46px;
+      flex: none;
+      border-radius: 2px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+    }
+    .gallery__item-body { min-width: 0; flex: 1; }
+    .gallery__item-title {
+      display: block; font-size: 14px; font-weight: 600; }
+    .gallery__item-desc {
+      display: block;
+      font-size: 12px;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .gallery__item-version { font-size: 11px; font-family: var(--font-mono); color: var(--text-muted); }
+
+    /* ── Vista previa maquetada: el rasgo distintivo de la pantalla ── */
+    .gallery__preview {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      padding: 20px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      min-height: 0;
+    }
+    .gallery__paper {
+      width: 340px;
+      height: 481px;
+      flex: none;
+      border-radius: 2px;
+      overflow: hidden;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+    .gallery__meta { width: 100%; }
+    .gallery__meta-title {
+      display: block; font-size: 14px; font-weight: 600; margin-bottom: 3px; }
+    .gallery__meta-desc {
+      display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 10px; }
+    .gallery__chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 8px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: var(--bg-tertiary);
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+
+    .modal__actions { display: flex; justify-content: flex-end; gap: 8px; }
+    .button {
+      padding: 6px 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .button--ghost { background: transparent; }
+    .button--primary { background: var(--accent); border-color: var(--accent); color: #0d1117; font-weight: 600; }
+  </style>
+</helmet>
+
+<div class="modal">
+  <div class="modal__card">
+    <div class="gallery__header">
+      <div>
+        <h2 class="gallery__title">Nuevo documento</h2>
+        <p class="gallery__subtitle">Elige una plantilla. La vista previa muestra la maquetación real, no una captura.</p>
+      </div>
+      <button class="gallery__close" type="button">✕</button>
+    </div>
+
+    <div class="gallery__tabs">
+      <button class="gallery__tab is-active" type="button">
+        Plantillas locales <span class="gallery__tab-count">8</span>
+      </button>
+      <button class="gallery__tab" type="button">
+        Typst Universe <span class="gallery__tab-count">6</span>
+      </button>
+      <button class="gallery__tab" type="button">
+        Dirección <span class="gallery__tab-count">@preview</span>
+      </button>
+    </div>
+
+    <div class="gallery__search">
+      <svg class="gallery__search-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="9" r="5.5"/><path d="m13 13 3.5 3.5"/></svg>
+      <input class="gallery__search-input" type="text" value="" placeholder="Buscar plantilla por nombre o temática…">
+    </div>
+
+    <div class="gallery__body">
+      <div class="gallery__sidebar">
+        <button class="gallery__item is-selected" type="button">
+          <span class="gallery__item-thumb">
+            <svg viewBox="0 0 34 46" width="34" height="46" aria-hidden="true">
+              <rect width="34" height="46" fill="#f7f6f2"/>
+              <rect x="7" y="5" width="20" height="2" rx="1" fill="#3a3a3a"/>
+              <rect x="10" y="9" width="14" height="1.4" rx="0.7" fill="#9a9a9a"/>
+              <rect x="4" y="14" width="12" height="1" fill="#b8b8b8"/><rect x="4" y="17" width="12" height="1" fill="#b8b8b8"/><rect x="4" y="20" width="12" height="1" fill="#b8b8b8"/><rect x="4" y="23" width="9" height="1" fill="#b8b8b8"/>
+              <rect x="18" y="14" width="12" height="1" fill="#b8b8b8"/><rect x="18" y="17" width="12" height="1" fill="#b8b8b8"/><rect x="18" y="20" width="12" height="6" fill="#dbe7f5"/><rect x="18" y="28" width="12" height="1" fill="#b8b8b8"/>
+              <rect x="4" y="27" width="12" height="1" fill="#b8b8b8"/><rect x="4" y="30" width="12" height="1" fill="#b8b8b8"/><rect x="4" y="33" width="12" height="1" fill="#b8b8b8"/>
+              <rect x="18" y="31" width="12" height="1" fill="#b8b8b8"/><rect x="18" y="34" width="8" height="1" fill="#b8b8b8"/>
+            </svg>
+          </span>
+          <span class="gallery__item-body">
+            <span class="gallery__item-title">Artículo académico</span>
+            <span class="gallery__item-desc">Paper corto a dos columnas, con resumen y bibliografía</span>
+          </span>
+          <span class="gallery__item-version">v1.0.0</span>
+        </button>
+
+        <button class="gallery__item" type="button">
+          <span class="gallery__item-thumb">
+            <svg viewBox="0 0 34 46" width="34" height="46" aria-hidden="true">
+              <rect width="34" height="46" fill="#f7f6f2"/>
+              <circle cx="17" cy="23" r="6" fill="none" stroke="#c9c9c9" stroke-width="1.2"/>
+              <path d="M17 20v6M14 23h6" stroke="#c9c9c9" stroke-width="1.2" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <span class="gallery__item-body">
+            <span class="gallery__item-title">Proyecto en blanco</span>
+            <span class="gallery__item-desc">Un documento Typst mínimo y válido. Empiezas tú</span>
+          </span>
+          <span class="gallery__item-version">v0.1.0</span>
+        </button>
+
+        <button class="gallery__item" type="button">
+          <span class="gallery__item-thumb">
+            <svg viewBox="0 0 34 46" width="34" height="46" aria-hidden="true">
+              <rect width="34" height="46" fill="#f7f6f2"/>
+              <rect width="11" height="46" fill="#e6e6e6"/>
+              <circle cx="5.5" cy="8" r="3" fill="#c2c2c2"/>
+              <rect x="2" y="14" width="7" height="1" fill="#b0b0b0"/><rect x="2" y="17" width="7" height="1" fill="#b0b0b0"/><rect x="2" y="20" width="5" height="1" fill="#b0b0b0"/>
+              <rect x="14" y="6" width="15" height="2" rx="1" fill="#3a3a3a"/>
+              <rect x="14" y="12" width="16" height="1" fill="#b8b8b8"/><rect x="14" y="15" width="16" height="1" fill="#b8b8b8"/><rect x="14" y="18" width="11" height="1" fill="#b8b8b8"/>
+              <rect x="14" y="24" width="8" height="1.4" rx="0.7" fill="#8a8a8a"/>
+              <rect x="14" y="29" width="16" height="1" fill="#b8b8b8"/><rect x="14" y="32" width="16" height="1" fill="#b8b8b8"/><rect x="14" y="35" width="13" height="1" fill="#b8b8b8"/>
+            </svg>
+          </span>
+          <span class="gallery__item-body">
+            <span class="gallery__item-title">Currículum vítae</span>
+            <span class="gallery__item-desc">Una página, sobria y legible: contacto, experiencia…</span>
+          </span>
+          <span class="gallery__item-version">v1.0.0</span>
+        </button>
+
+        <button class="gallery__item" type="button">
+          <span class="gallery__item-thumb">
+            <svg viewBox="0 0 34 46" width="34" height="46" aria-hidden="true">
+              <rect width="34" height="46" fill="#f7f6f2"/>
+              <rect x="4" y="5" width="26" height="7" fill="#dbe7f5"/>
+              <rect x="4" y="16" width="4" height="1.4" rx="0.7" fill="#5a5a5a"/><rect x="10" y="16" width="14" height="1.4" rx="0.7" fill="#8a8a8a"/>
+              <rect x="4" y="21" width="26" height="1" fill="#b8b8b8"/><rect x="4" y="24" width="26" height="1" fill="#b8b8b8"/><rect x="4" y="27" width="18" height="1" fill="#b8b8b8"/>
+              <rect x="4" y="32" width="4" height="1.4" rx="0.7" fill="#5a5a5a"/><rect x="10" y="32" width="12" height="1.4" rx="0.7" fill="#8a8a8a"/>
+              <rect x="4" y="37" width="26" height="1" fill="#b8b8b8"/><rect x="4" y="40" width="20" height="1" fill="#b8b8b8"/>
+            </svg>
+          </span>
+          <span class="gallery__item-body">
+            <span class="gallery__item-title">Informe técnico</span>
+            <span class="gallery__item-desc">Portada, resumen ejecutivo y secciones numeradas</span>
+          </span>
+          <span class="gallery__item-version">v1.0.0</span>
+        </button>
+
+        <button class="gallery__item" type="button">
+          <span class="gallery__item-thumb">
+            <svg viewBox="0 0 34 46" width="34" height="46" aria-hidden="true">
+              <rect width="34" height="46" fill="#f7f6f2"/>
+              <rect x="2" y="12" width="30" height="17" fill="#eaeaea" stroke="#d0d0d0" stroke-width="0.8"/>
+              <rect x="6" y="17" width="16" height="2" rx="1" fill="#5a5a5a"/>
+              <rect x="6" y="22" width="22" height="1" fill="#b0b0b0"/><rect x="6" y="25" width="18" height="1" fill="#b0b0b0"/>
+              <rect x="14" y="33" width="6" height="1" fill="#c9c9c9"/>
+            </svg>
+          </span>
+          <span class="gallery__item-body">
+            <span class="gallery__item-title">Presentación</span>
+            <span class="gallery__item-desc">Diapositivas 16:9, sin depender de ningún paquete</span>
+          </span>
+          <span class="gallery__item-version">v1.0.0</span>
+        </button>
+
+        <button class="gallery__item" type="button">
+          <span class="gallery__item-thumb">
+            <svg viewBox="0 0 34 46" width="34" height="46" aria-hidden="true">
+              <rect width="34" height="46" fill="#f7f6f2"/>
+              <circle cx="17" cy="9" r="4" fill="none" stroke="#c2c2c2" stroke-width="1.2"/>
+              <rect x="6" y="17" width="22" height="2.4" rx="1.2" fill="#3a3a3a"/>
+              <rect x="9" y="22" width="16" height="1.4" rx="0.7" fill="#8a8a8a"/>
+              <rect x="9" y="26" width="16" height="1" fill="#c2c2c2"/>
+              <rect x="6" y="36" width="22" height="1" fill="#b8b8b8"/><rect x="6" y="39" width="22" height="1" fill="#b8b8b8"/>
+            </svg>
+          </span>
+          <span class="gallery__item-body">
+            <span class="gallery__item-title">Tesis doctoral</span>
+            <span class="gallery__item-desc">Dedicatoria, resumen bilingüe, capítulos y apéndice</span>
+          </span>
+          <span class="gallery__item-version">v1.0.0</span>
+        </button>
+
+        <button class="gallery__item" type="button">
+          <span class="gallery__item-thumb">
+            <svg viewBox="0 0 34 46" width="34" height="46" aria-hidden="true">
+              <rect width="34" height="46" fill="#f7f6f2"/>
+              <path d="M17 5.5 21 12h-8l4-6.5Z" fill="#dbe7f5" stroke="#9fc0e6" stroke-width="0.8"/>
+              <rect x="6" y="17" width="22" height="2.4" rx="1.2" fill="#3a3a3a"/>
+              <rect x="10" y="22" width="14" height="1.4" rx="0.7" fill="#8a8a8a"/>
+              <rect x="6" y="30" width="14" height="5" fill="#e6e6e6"/>
+              <rect x="6" y="38" width="22" height="1" fill="#b8b8b8"/><rect x="6" y="41" width="18" height="1" fill="#b8b8b8"/>
+            </svg>
+          </span>
+          <span class="gallery__item-body">
+            <span class="gallery__item-title">Trabajo de Fin de Grado</span>
+            <span class="gallery__item-desc">Portada institucional, índice, capítulos separados</span>
+          </span>
+          <span class="gallery__item-version">v1.0.0</span>
+        </button>
+
+        <button class="gallery__item" type="button">
+          <span class="gallery__item-thumb">
+            <svg viewBox="0 0 34 46" width="34" height="46" aria-hidden="true">
+              <rect width="34" height="46" fill="#f7f6f2"/>
+              <path d="M17 5.5 21 12h-8l4-6.5Z" fill="#dbe7f5" stroke="#9fc0e6" stroke-width="0.8"/>
+              <rect x="6" y="17" width="22" height="2.4" rx="1.2" fill="#3a3a3a"/>
+              <rect x="8" y="22" width="18" height="1.4" rx="0.7" fill="#8a8a8a"/>
+              <rect x="6" y="30" width="22" height="1" fill="#b8b8b8"/><rect x="6" y="33" width="22" height="1" fill="#b8b8b8"/>
+              <rect x="6" y="38" width="14" height="5" fill="#e6e6e6"/>
+            </svg>
+          </span>
+          <span class="gallery__item-body">
+            <span class="gallery__item-title">Trabajo de Fin de Máster</span>
+            <span class="gallery__item-desc">Portada institucional, índice, capítulos separados</span>
+          </span>
+          <span class="gallery__item-version">v1.0.0</span>
+        </button>
+      </div>
+
+      <div class="gallery__preview">
+        <span class="gallery__paper">
+          <svg viewBox="0 0 340 481" width="340" height="481" aria-hidden="true">
+            <rect width="340" height="481" fill="#f7f6f2"/>
+            <rect x="46" y="34" width="248" height="9" rx="2" fill="#2f2f2f"/>
+            <rect x="76" y="49" width="188" height="9" rx="2" fill="#2f2f2f"/>
+            <rect x="96" y="70" width="148" height="4" rx="2" fill="#8f8f8f"/>
+            <rect x="116" y="80" width="108" height="4" rx="2" fill="#a9a9a9"/>
+
+            <rect x="46" y="104" width="52" height="5" rx="2" fill="#5a5a5a"/>
+            <rect x="46" y="116" width="112" height="3" fill="#bdbdbd"/><rect x="46" y="124" width="112" height="3" fill="#bdbdbd"/>
+            <rect x="46" y="132" width="112" height="3" fill="#bdbdbd"/><rect x="46" y="140" width="112" height="3" fill="#bdbdbd"/>
+            <rect x="46" y="148" width="88" height="3" fill="#bdbdbd"/>
+
+            <rect x="182" y="104" width="52" height="5" rx="2" fill="#5a5a5a"/>
+            <rect x="182" y="116" width="112" height="3" fill="#bdbdbd"/><rect x="182" y="124" width="112" height="3" fill="#bdbdbd"/>
+            <rect x="182" y="132" width="112" height="3" fill="#bdbdbd"/><rect x="182" y="140" width="76" height="3" fill="#bdbdbd"/>
+
+            <rect x="46" y="166" width="112" height="3" fill="#bdbdbd"/><rect x="46" y="174" width="112" height="3" fill="#bdbdbd"/>
+            <rect x="46" y="182" width="112" height="3" fill="#bdbdbd"/><rect x="46" y="190" width="112" height="3" fill="#bdbdbd"/>
+            <rect x="46" y="198" width="112" height="3" fill="#bdbdbd"/><rect x="46" y="206" width="94" height="3" fill="#bdbdbd"/>
+
+            <rect x="182" y="158" width="112" height="62" fill="#e4edf8" stroke="#c6d8ec" stroke-width="1"/>
+            <path d="M192 208 L214 186 L232 196 L256 168 L284 176" fill="none" stroke="#7ba7d4" stroke-width="1.6"/>
+            <rect x="182" y="226" width="82" height="3" fill="#c9c9c9"/>
+
+            <rect x="46" y="224" width="112" height="3" fill="#bdbdbd"/><rect x="46" y="232" width="112" height="3" fill="#bdbdbd"/>
+            <rect x="46" y="240" width="70" height="3" fill="#bdbdbd"/>
+            <rect x="182" y="240" width="112" height="3" fill="#bdbdbd"/><rect x="182" y="248" width="112" height="3" fill="#bdbdbd"/>
+            <rect x="182" y="256" width="98" height="3" fill="#bdbdbd"/>
+
+            <rect x="46" y="262" width="52" height="5" rx="2" fill="#5a5a5a"/>
+            <rect x="46" y="274" width="112" height="3" fill="#bdbdbd"/><rect x="46" y="282" width="112" height="3" fill="#bdbdbd"/>
+            <rect x="46" y="290" width="112" height="3" fill="#bdbdbd"/><rect x="46" y="298" width="86" height="3" fill="#bdbdbd"/>
+            <rect x="182" y="274" width="112" height="3" fill="#bdbdbd"/><rect x="182" y="282" width="112" height="3" fill="#bdbdbd"/>
+            <rect x="182" y="290" width="112" height="3" fill="#bdbdbd"/><rect x="182" y="298" width="112" height="3" fill="#bdbdbd"/>
+            <rect x="182" y="306" width="64" height="3" fill="#bdbdbd"/>
+
+            <rect x="46" y="318" width="112" height="3" fill="#bdbdbd"/><rect x="46" y="326" width="112" height="3" fill="#bdbdbd"/>
+            <rect x="46" y="334" width="112" height="3" fill="#bdbdbd"/>
+            <rect x="182" y="318" width="112" height="3" fill="#bdbdbd"/><rect x="182" y="326" width="90" height="3" fill="#bdbdbd"/>
+
+            <rect x="46" y="356" width="70" height="5" rx="2" fill="#5a5a5a"/>
+            <rect x="46" y="368" width="112" height="3" fill="#cfcfcf"/><rect x="46" y="376" width="112" height="3" fill="#cfcfcf"/>
+            <rect x="46" y="384" width="96" height="3" fill="#cfcfcf"/>
+            <rect x="182" y="368" width="112" height="3" fill="#cfcfcf"/><rect x="182" y="376" width="112" height="3" fill="#cfcfcf"/>
+            <rect x="182" y="384" width="72" height="3" fill="#cfcfcf"/>
+
+            <rect x="160" y="452" width="20" height="3" rx="1.5" fill="#d4d4d4"/>
+          </svg>
+        </span>
+
+        <span class="gallery__meta">
+          <span class="gallery__meta-title">Artículo académico</span>
+          <span class="gallery__meta-desc">Paper corto a dos columnas, con resumen, palabras clave y bibliografía.</span>
+          <span class="gallery__chips">
+            <span class="chip">📄 main.typ</span>
+            <span class="chip">📚 refs.bib</span>
+            <span class="chip">🏷️ dbv-articulo</span>
+            <span class="chip">v1.0.0</span>
+          </span>
+        </span>
+      </div>
+    </div>
+
+    <div class="modal__actions">
+      <button class="button button--ghost" type="button">Cerrar</button>
+      <button class="button button--primary" type="button">Crear documento</button>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":1280,"height":860}}'>
+class Component extends DCLogic {}
+</script>
+</body>
+</html>

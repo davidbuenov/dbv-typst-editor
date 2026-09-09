@@ -1,0 +1,324 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    :root {
+      --bg-primary: #0d1117;
+      --bg-secondary: #161b22;
+      --bg-tertiary: #21262d;
+      --text-primary: #e6edf3;
+      --text-secondary: #8b949e;
+      --text-muted: #6e7681;
+      --accent: #58a6ff;
+      --accent-hover: #79c0ff;
+      --border: #30363d;
+      --shadow: rgba(0, 0, 0, 0.4);
+      --font-ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Cascadia Code', Consolas, 'SF Mono', Menlo, monospace;
+      --radius: 8px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      width: 1280px;
+      height: 860px;
+      overflow: hidden;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: var(--font-ui);
+      font-size: 13px;
+      display: flex;
+      flex-direction: column;
+    }
+    a { color: var(--accent); }
+    a:hover { color: var(--accent-hover); }
+
+    /* ── Cabecera real de la aplicación ─────────────────────────────── */
+    .app-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      flex: none;
+    }
+    .app-header__title { font-size: 13px; font-weight: 600; }
+    .app-header__tagline { font-size: 11px; color: var(--text-muted); }
+    .app-header__spacer { flex: 1; }
+    .segmented-control {
+      display: flex;
+      align-items: center;
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2px;
+      gap: 1px;
+    }
+    .segmented-control__btn {
+      padding: 3px 8px;
+      border: none;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--text-muted);
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 500;
+      line-height: 1.4;
+      cursor: pointer;
+    }
+    .segmented-control__btn.active {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+    .icon-button {
+      width: 32px;
+      height: 32px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    /* ── Lanzador ───────────────────────────────────────────────────── */
+    .launcher { flex: 1; overflow: hidden; padding: 32px 24px 24px; }
+    .launcher__inner {
+      width: min(1400px, 100%);
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+    .launcher__heading { margin: 0 0 8px; font-size: 24px; font-weight: 600; }
+    .launcher__text { margin: 0 0 28px; color: var(--text-secondary); max-width: 70ch; }
+    .launcher__subheading {
+      margin: 0 0 12px;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+    }
+
+    /* Bloque de arranque: una acción dominante + tres secundarias. */
+    .start {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+    .start__primary {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px;
+      text-align: left;
+      background: var(--accent);
+      border: 1px solid var(--accent);
+      border-radius: var(--radius);
+      color: #0d1117;
+      font-family: inherit;
+      cursor: pointer;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+    }
+    .start__primary-icon {
+      width: 40px;
+      height: 40px;
+      flex: none;
+      display: grid;
+      place-items: center;
+      background: rgba(13, 17, 23, 0.12);
+      border-radius: var(--radius);
+    }
+    .start__primary-label {
+      display: block; font-size: 14px; font-weight: 600; margin-bottom: 3px; }
+    .start__primary-hint {
+      display: block; font-size: 12px; opacity: 0.75; }
+
+    .start__secondary { display: flex; flex-direction: column; gap: 8px; justify-content: center; }
+    .button {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 14px;
+      cursor: pointer;
+      text-align: left;
+    }
+    .button--ghost { background: transparent; }
+    .button__icon { width: 16px; height: 16px; flex: none; color: var(--text-secondary); }
+    .button__hint { margin-left: auto; font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); }
+
+    /* ── Proyectos recientes: lo que de verdad se usa al volver ─────── */
+    .recent-list { display: flex; flex-direction: column; gap: 6px; overflow: hidden; }
+    .recent-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      cursor: pointer;
+    }
+    .recent-item__mark {
+      width: 28px;
+      height: 28px;
+      flex: none;
+      display: grid;
+      place-items: center;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--accent);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .recent-item__body { min-width: 0; flex: 1; }
+    .recent-item__name {
+      display: block; font-size: 14px; font-weight: 600; }
+    .recent-item__path {
+      display: block;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .recent-item__meta { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); }
+    .recent-item__remove {
+      width: 22px;
+      height: 22px;
+      display: grid;
+      place-items: center;
+      border: none;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--text-muted);
+      font-family: inherit;
+      cursor: pointer;
+    }
+  </style>
+</helmet>
+
+<div class="app-header">
+  <span class="app-header__title">DBV Typst Editor</span>
+  <span class="app-header__tagline">Escribe. Compila. Publica.</span>
+  <span class="app-header__spacer"></span>
+  <div class="segmented-control">
+    <button class="segmented-control__btn active" type="button">ES</button>
+    <button class="segmented-control__btn" type="button">EN</button>
+  </div>
+  <div class="segmented-control">
+    <button class="segmented-control__btn" type="button">☀</button>
+    <button class="segmented-control__btn active" type="button">🌙</button>
+    <button class="segmented-control__btn" type="button">📜</button>
+  </div>
+  <button class="icon-button" type="button">?</button>
+  <button class="icon-button" type="button">ⓘ</button>
+</div>
+
+<div class="launcher">
+  <div class="launcher__inner">
+    <h1 class="launcher__heading">¿Qué quieres escribir hoy?</h1>
+    <p class="launcher__text">Crea un documento desde una plantilla, o abre algo que ya tengas: una carpeta de proyecto, un repositorio clonado o un documento <code style="font-family: var(--font-mono); font-size: 12px;">.typ</code> suelto.</p>
+
+    <h2 class="launcher__subheading">Empezar</h2>
+    <div class="start">
+      <button class="start__primary" type="button">
+        <span class="start__primary-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M7 3h7l4.5 4.5V20a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/>
+            <path d="M14 3v5h4.5"/>
+            <path d="M12 11.5v6M9 14.5h6"/>
+          </svg>
+        </span>
+        <span>
+          <span class="start__primary-label">Nuevo documento</span>
+          <span class="start__primary-hint">Plantillas locales y del Typst Universe, con vista previa</span>
+        </span>
+      </button>
+
+      <div class="start__secondary">
+        <button class="button button--ghost" type="button">
+          <svg class="button__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 6.2c0-.7.6-1.3 1.3-1.3h3.5l1.5 1.8h7.2c.7 0 1.3.6 1.2 1.3l-.9 6.2c-.1.7-.7 1.2-1.3 1.2H4.1c-.7 0-1.2-.5-1.3-1.2L2.5 6.2Z"/></svg>
+          Abrir carpeta de proyecto
+        </button>
+        <button class="button button--ghost" type="button">
+          <svg class="button__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.3 2.5h5l3.4 3.4V16a1 1 0 0 1-1 1H6.3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1Z"/><path d="M11.3 2.5V6h3.4"/><path d="M7.3 10h5.4M7.3 12.6h5.4"/></svg>
+          Abrir documento
+          <span class="button__hint">.typ</span>
+        </button>
+        <button class="button button--ghost" type="button">
+          <svg class="button__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6.3 4.1 3h11.8l1.1 3.3"/><rect x="3" y="6.3" width="14" height="9.7" rx="1"/><path d="M8 10h4"/></svg>
+          Importar proyecto
+          <span class="button__hint">.dbvt</span>
+        </button>
+      </div>
+    </div>
+
+    <h2 class="launcher__subheading">Proyectos recientes</h2>
+    <div class="recent-list">
+      <div class="recent-item">
+        <span class="recent-item__mark">TD</span>
+        <span class="recent-item__body">
+          <span class="recent-item__name">Tesis doctoral — Renderizado incremental</span>
+          <span class="recent-item__path">D:\Documentos\tesis-renderizado\main.typ</span>
+        </span>
+        <span class="recent-item__meta">hace 2 h</span>
+        <button class="recent-item__remove" type="button">✕</button>
+      </div>
+      <div class="recent-item">
+        <span class="recent-item__mark">TF</span>
+        <span class="recent-item__body">
+          <span class="recent-item__name">TFG-ETSI-UMA-Typst</span>
+          <span class="recent-item__path">D:\Programacion\plantillas\TFG-ETSI-UMA-Typst\main.typ</span>
+        </span>
+        <span class="recent-item__meta">ayer</span>
+        <button class="recent-item__remove" type="button">✕</button>
+      </div>
+      <div class="recent-item">
+        <span class="recent-item__mark">AI</span>
+        <span class="recent-item__body">
+          <span class="recent-item__name">Articulo — congreso ICML</span>
+          <span class="recent-item__path">D:\Documentos\papers\icml-2026\main.typ</span>
+        </span>
+        <span class="recent-item__meta">hace 3 días</span>
+        <button class="recent-item__remove" type="button">✕</button>
+      </div>
+      <div class="recent-item">
+        <span class="recent-item__mark">IT</span>
+        <span class="recent-item__body">
+          <span class="recent-item__name">Informe técnico Q3</span>
+          <span class="recent-item__path">D:\Trabajo\informes\q3-2026\informe.typ</span>
+        </span>
+        <span class="recent-item__meta">hace 1 semana</span>
+        <button class="recent-item__remove" type="button">✕</button>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":1280,"height":860}}'>
+class Component extends DCLogic {}
+</script>
+</body>
+</html>

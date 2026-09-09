@@ -29,7 +29,12 @@ export function registerPanel(panelEl, opts = {}) {
     throw new TypeError('registerPanel: panelEl debe ser un HTMLElement');
   }
 
-  const triggers = opts.trigger ? [].concat(opts.trigger) : [];
+  // `.filter(Boolean)` no es cosmético: `el('x')` devuelve `null` cuando el
+  // botón ya no existe en el HTML, y sin filtrar el `addEventListener` de abajo
+  // lanzaría durante el cableado inicial — no degradando este panel, sino
+  // impidiendo que arranque la aplicación entera. Pasó a un paso de ocurrir al
+  // retirar `#btn-launcher-universe` en RF-25.
+  const triggers = opts.trigger ? [].concat(opts.trigger).filter(Boolean) : [];
 
   const close = () => {
     panelEl.classList.add('hidden');

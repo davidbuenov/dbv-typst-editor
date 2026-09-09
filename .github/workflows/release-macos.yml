@@ -83,27 +83,38 @@ jobs:
       - name: Instalar dependencias de Node
         run: npm ci
 
-      - name: Vendorizar el compilador Typst (las dos arquitecturas)
+      # Desde v0.5.0 `bundle.externalBin` declara DOS sidecars (typst y tinymist).
+      # Los dos necesitan el mismo tratamiento: descargar las dos arquitecturas y
+      # fundirlas, porque `--target universal-apple-darwin` exige que el fichero
+      # exista con el sufijo `-universal-apple-darwin`.
+      - name: Vendorizar los sidecars (las dos arquitecturas)
         run: |
           npm run vendor:typst -- --target aarch64-apple-darwin
           npm run vendor:typst -- --target x86_64-apple-darwin
+          npm run vendor:tinymist -- --target aarch64-apple-darwin
+          npm run vendor:tinymist -- --target x86_64-apple-darwin
 
-      - name: Fundir el sidecar en un binario universal
+      - name: Fundir cada sidecar en un binario universal
         run: |
-          lipo -create \
-            -output src-tauri/binaries/typst-universal-apple-darwin \
-            src-tauri/binaries/typst-aarch64-apple-darwin \
-            src-tauri/binaries/typst-x86_64-apple-darwin
-          chmod +x src-tauri/binaries/typst-universal-apple-darwin
+          for sidecar in typst tinymist; do
+            lipo -create \
+              -output "src-tauri/binaries/${sidecar}-universal-apple-darwin" \
+              "src-tauri/binaries/${sidecar}-aarch64-apple-darwin" \
+              "src-tauri/binaries/${sidecar}-x86_64-apple-darwin"
+            chmod +x "src-tauri/binaries/${sidecar}-universal-apple-darwin"
+          done
 
-      - name: Verificar que el sidecar universal es correcto
+      - name: Verificar que los sidecars universales son correctos
         run: |
-          if ! lipo -info src-tauri/binaries/typst-universal-apple-darwin | grep -q "x86_64 arm64"; then
-            echo "::error::El sidecar no contiene las dos arquitecturas; un Mac Intel no podría usarlo."
-            lipo -info src-tauri/binaries/typst-universal-apple-darwin
-            exit 1
-          fi
-          ./src-tauri/binaries/typst-universal-apple-darwin --version
+          for sidecar in typst tinymist; do
+            binary="src-tauri/binaries/${sidecar}-universal-apple-darwin"
+            if ! lipo -info "$binary" | grep -q "x86_64 arm64"; then
+              echo "::error::El sidecar $sidecar no contiene las dos arquitecturas; un Mac Intel no podría usarlo."
+              lipo -info "$binary"
+              exit 1
+            fi
+            "$binary" --version
+          done
 
       - name: Verificar el catálogo de plantillas contra el compilador real
         run: npm run verify:templates

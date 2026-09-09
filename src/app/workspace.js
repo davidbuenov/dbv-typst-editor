@@ -272,6 +272,17 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     elements.documentName.textContent = hasDocument ? state.document.fileName : '—';
     elements.documentDirty.classList.toggle('hidden', !state.dirty);
     elements.documentPath.textContent = hasDocument ? state.document.path : '';
+
+    // RF-26.10, a observación del usuario: un paquete se importa EN el documento
+    // abierto, así que sin documento la única acción posible del panel acaba en
+    // un aviso de error. Ofrecerlo igualmente es ofrecer algo que no puede
+    // funcionar; el botón se apaga y dice por qué.
+    if (elements.universeButton) {
+      elements.universeButton.disabled = !hasDocument;
+      elements.universeButton.title = hasDocument
+        ? t('action.universe')
+        : t('universe.needDocument');
+    }
   }
 
   function renderProjectBar() {

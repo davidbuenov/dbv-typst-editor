@@ -154,12 +154,20 @@ Un segundo fallo, independiente: `bundle.resources` en forma de array y con pref
 
 No basta con que el build termine sin error. Comprobar las tres cosas:
 
+> ⚠️ **Desde v0.5.0 hay DOS sidecars, no uno.** `bundle.externalBin` declara `binaries/typst` y
+> `binaries/tinymist`, así que antes de empaquetar hay que haber ejecutado **`npm run vendor:typst`
+> y `npm run vendor:tinymist`**, y las cifras de abajo cambian. Un paquete al que le falte
+> `tinymist.exe` arranca y escribe igual que siempre: lo que se cae en silencio es el
+> autocompletado semántico, los diagnósticos en vivo y el formateo — el mismo modo de fallo que
+> la incidencia de esta sección, solo que menos visible.
+
 ```powershell
-# 1. La raíz del paquete debe contener typst.exe Y templates\
+# 1. La raíz del paquete debe contener typst.exe, tinymist.exe Y templates\
 Get-ChildItem src-tauri\target\appx\x64
 
-# 2. El .msix debe pesar ~30 MB, no ~6 MB.
-#    A 6 MB NO cabe dentro un compilador de 51 MB: es la señal de alarma más rápida.
+# 2. El .msix debe pesar ~95 MB, no ~30 MB (y desde luego no ~6 MB).
+#    typst son ~51 MB y tinymist otros ~64 MB: si el número cae al tamaño de la
+#    versión anterior, es que uno de los dos se ha quedado fuera.
 Get-ChildItem src-tauri\target\msix\*.msix | Select-Object Name, @{n='MB';e={[int]($_.Length/1MB)}}
 ```
 

@@ -33,3 +33,7 @@ latest.json
 # Clave privada de firma del actualizador, por si alguna vez se deja caer aquí
 # por error: NUNCA se versiona (ADR-ACTUALIZADOR-001).
 *.key
+
+# Lienzo de diseño empaquetado (~2 MB del editor embebido): las fuentes son
+# los .dc.html y canvas.json de al lado, que sí se versionan.
+spikes/launcher-redesign/lanzador-unificado.html

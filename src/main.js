@@ -44,6 +44,7 @@ import {
   importProjectArchive,
   on,
   openUniversePackagePage,
+  previewUniverseTemplate,
   pickArchiveFile,
   pickProjectFolder,
   pickSaveTarget,
@@ -401,6 +402,7 @@ async function bootstrap() {
       projectActions: el('project-actions'),
       workspaceView: el('workspace-view'),
       emptyView: el('empty-view'),
+      universeButton: el('btn-universe'),
     },
   });
 
@@ -602,10 +604,18 @@ async function bootstrap() {
     cancelBtnEl: el('template-gallery-cancel'),
     metaEl: el('template-gallery-meta'),
     onSelectTemplate: (template) => wizard.open(template),
+    tabsEl: el('template-gallery-tabs'),
+    sidebarEl: el('template-gallery-sidebar'),
+    specPanelEl: el('template-gallery-spec'),
+    specInputEl: el('template-gallery-spec-input'),
+    specErrorEl: el('template-gallery-spec-error'),
+    specPreviewBtnEl: el('template-gallery-spec-preview'),
+    onPreviewSpec: (spec) => previewUniverseTemplate(spec),
   });
 
   el('template-gallery-close-x')?.addEventListener('click', () => templateGallery.close());
-  el('btn-launcher-gallery')?.addEventListener('click', () => {
+  // Única vía de creación desde plantilla del lanzador (RF-25).
+  el('btn-launcher-new')?.addEventListener('click', () => {
     templateGallery.open(null, getFullGalleryCatalog());
   });
 
@@ -634,22 +644,15 @@ async function bootstrap() {
   // se importan en el documento abierto. Las plantillas abren la previsualización
   // maquetada de alta fidelidad en templateGallery; el paquete es una transacción del editor.
   const universePanel = registerPanel(el('universe-panel'), {
-    trigger: [el('btn-universe'), el('btn-launcher-universe')],
+    trigger: el('btn-universe'),
     toggle: true,
   });
   el('btn-universe-close').addEventListener('click', universePanel.close);
   createUniversePanel({
-    templatesEl: el('universe-templates'),
     packagesEl: el('universe-packages'),
     specInputEl: el('universe-spec'),
     specButtonEl: el('universe-spec-apply'),
     errorEl: el('universe-error'),
-    tabTemplatesEl: el('tab-universe-templates'),
-    tabPackagesEl: el('tab-universe-packages'),
-    onUseTemplate: (spec) => {
-      universePanel.close();
-      openGalleryForSpec(spec);
-    },
     onUsePackage: (spec) => {
       const view = workspace.editor.getView();
       if (!workspace.state.document || !view) {
@@ -673,11 +676,8 @@ async function bootstrap() {
   });
 
   const launcher = createLauncher({
-    templatesEl: el('template-grid'),
     recentEl: el('recent-list'),
-    onCreateFromTemplate: (template) => wizard.open(template),
     onOpenRecent: openPath,
-    onOpenGallery: (template) => templateGallery.open(template.id || template.name, getFullGalleryCatalog()),
   });
 
   const openFolder = async () => {

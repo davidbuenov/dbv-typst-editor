@@ -119,6 +119,7 @@ pub fn run() {
             templates::create_project,
             templates::list_templates,
             universe::create_project_from_universe,
+            universe::preview_universe_template,
             universe::open_universe_package_page,
             project::read_project_manifest,
             typst_engine::compile::typst_cancel_preview,

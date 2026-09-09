@@ -27,6 +27,12 @@ pub enum AppError {
     Parse(String),
     /// Operación rechazada por una regla de la aplicación.
     Denied(String),
+    /// El identificador de Typst Universe existe y es válido, pero apunta a un
+    /// paquete que no es una plantilla (`@preview/cetz:0.3.1`, por ejemplo).
+    /// Tiene su propio discriminante porque es el fallo que un usuario se va a
+    /// encontrar de verdad al escribir un identificador a mano, y el frontend
+    /// puede explicarlo sin parsear el texto del compilador.
+    NotATemplate(String),
 }
 
 impl std::fmt::Display for AppError {
@@ -36,7 +42,8 @@ impl std::fmt::Display for AppError {
             | AppError::InvalidPath(m)
             | AppError::Io(m)
             | AppError::Parse(m)
-            | AppError::Denied(m) => m,
+            | AppError::Denied(m)
+            | AppError::NotATemplate(m) => m,
         };
         write!(f, "{message}")
     }

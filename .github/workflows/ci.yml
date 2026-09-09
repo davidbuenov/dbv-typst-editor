@@ -52,6 +52,15 @@ jobs:
       - name: Vendorizar el compilador Typst (sidecar)
         run: npm run vendor:typst
 
+      # Aquí no se empaqueta nada, así que este sidecar no hace falta para que los
+      # tests pasen. Se vendoriza igualmente porque es la única ocasión de
+      # comprobar en Linux que el asset oficial de Tinymist sigue existiendo y se
+      # extrae bien. Si se dejara solo para los workflows de release, el fallo
+      # aparecería con el tag ya empujado — que es como se rompió el paquete de la
+      # Store en v0.3.1.
+      - name: Vendorizar el servidor de lenguaje Tinymist (sidecar)
+        run: npm run vendor:tinymist
+
       - name: Tests (frontend Vitest + backend Rust)
         run: npm test
 

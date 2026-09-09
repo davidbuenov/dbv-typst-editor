@@ -169,20 +169,91 @@
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+  align-items: center;
 }
 
-/* Rejilla de plantillas: es, en pequeño, el Template Explorer que en Beta se
-   abre al catálogo comunitario (ARCHITECTURE.md §7.6.3). */
-.template-grid {
+/* Las tres secundarias comparten fila con la acción principal. Con el icono
+   delante crecen lo justo para no caber en ventanas estrechas, así que se les
+   permite encoger el texto antes que saltar de línea: `flex-wrap` sigue ahí
+   como último recurso, no como comportamiento habitual. */
+.launcher__actions .button {
+  min-width: 0;
+  flex: 0 1 auto;
+}
+
+.launcher__actions .button span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ─── Arranque del lanzador (RF-25) ──────────────────────────────────────────
+   Una acción dominante y tres subordinadas. Aquí había una rejilla de tarjetas
+   que solo servía para abrir la galería; el espacio que deja se lo quedan los
+   proyectos recientes, más abajo. */
+.launcher__start {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 12px;
+  grid-template-columns: minmax(280px, 380px) 1fr;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 32px;
 }
 
-/* Atajo al mismo panel que abre la estrella de la cabecera (§7.6), pero desde
-   donde de verdad se busca al empezar: el listado inicial de plantillas. */
-#btn-launcher-universe {
-  margin-top: 12px;
+.launcher__primary {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  text-align: left;
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  /* Sobre el acento, el texto va en el fondo del lienzo: el acento es un azul
+     saturado en claro y oscuro, y un marrón oscuro en sepia. Usar
+     `--bg-primary` da el contraste correcto en los tres sin escribir ni un
+     color literal. */
+  color: var(--bg-primary);
+  font-family: inherit;
+  cursor: pointer;
+  transition: background var(--transition), box-shadow var(--transition);
+}
+
+.launcher__primary:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  box-shadow: 0 6px 16px var(--shadow);
+}
+
+.launcher__primary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.launcher__primary-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: var(--radius);
+  background: var(--quote-bg);
+}
+
+.launcher__primary-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.launcher__primary-label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.launcher__primary-hint {
+  font-size: 12px;
+  opacity: 0.8;
 }
 
 .template-card {
@@ -632,18 +703,18 @@
 }
 
 .document__lsp-badge[data-status="ready"] {
-  color: #10b981;
-  background: rgba(16, 185, 129, 0.12);
+  color: var(--status-ok);
+  background: var(--status-ok-bg);
 }
 
 .document__lsp-badge[data-status="starting"] {
-  color: #f59e0b;
-  background: rgba(245, 158, 11, 0.12);
+  color: var(--status-warn);
+  background: var(--status-warn-bg);
 }
 
 .document__lsp-badge[data-status="error"] {
-  color: #ef4444;
-  background: rgba(239, 68, 68, 0.12);
+  color: var(--status-error);
+  background: var(--status-error-bg);
 }
 
 /* ─── Barra de herramientas de inserción del editor (RF-13) ─────────────────── */
@@ -879,7 +950,7 @@
   gap: 12px;
   width: 100%;
   height: 100%;
-  color: #64748b;
+  color: var(--text-muted);
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 13px;
   font-weight: 500;
@@ -1073,15 +1144,6 @@
   color: var(--code-tag);
 }
 
-/* ─── Acciones de plantillas en el lanzador ───────────────────────────────── */
-.launcher__template-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  align-items: center;
-  margin-top: 12px;
-}
-
 /* ─── Modal de Galería de Plantillas (RF-20) ──────────────────────────────── */
 .modal__card--gallery {
   width: min(1080px, calc(100vw - 32px));
@@ -1139,13 +1201,146 @@
   color: var(--text-primary);
   font-family: inherit;
   font-size: 13px;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: border-color var(--transition), box-shadow var(--transition);
 }
 
 .template-gallery__search-input:focus-visible {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--accent-subtle, rgba(2, 132, 199, 0.15));
+  box-shadow: 0 0 0 2px var(--accent-subtle);
+}
+
+/* ─── Galería: las tres vías (RF-26) ────────────────────────────────────────
+   Las pestañas comparten la columna y el panel de vista previa; lo único que
+   cambia entre ellas es la fuente de la lista. Que no se muevan las cajas es
+   deliberado: es lo que impide que las tres vías vuelvan a divergir en tres
+   interfaces, que es como se llegó a tener tres sitios para elegir plantilla. */
+.template-gallery__tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.template-gallery__tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  margin-bottom: -1px;
+  border: 1px solid transparent;
+  border-radius: var(--radius) var(--radius) 0 0;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+}
+
+.template-gallery__tab:hover {
+  color: var(--text-primary);
+}
+
+.template-gallery__tab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.template-gallery__tab.is-active {
+  background: var(--bg-primary);
+  border-color: var(--border);
+  border-bottom-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.template-gallery__tab-count {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+/* Panel del identificador libre: ocupa el sitio de la lista, no el de la vista
+   previa. El aviso va arriba y no al lado del botón porque aquí no hay lista
+   revisada detrás y conviene leerlo antes de escribir, no después. */
+.template-gallery__spec {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-primary);
+  overflow: auto;
+}
+
+.template-gallery__spec-notice {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--status-error-border);
+  border-radius: var(--radius);
+  background: var(--status-error-bg);
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.template-gallery__spec-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.template-gallery__spec-input {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.template-gallery__spec-input:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-subtle);
+}
+
+.template-gallery__spec-error {
+  margin: 0;
+  color: var(--status-error);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.template-gallery__spec-help {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* Estado de la vista previa mientras se descarga, o cuando no se ha podido. */
+.template-gallery__spec-status {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  padding: 24px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  text-align: center;
+}
+
+.template-gallery__spec-status.is-error {
+  color: var(--status-error);
 }
 
 .template-gallery__body {
@@ -1187,7 +1382,7 @@
   text-align: left;
   cursor: pointer;
   color: inherit;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  transition: background var(--transition), border-color var(--transition);
 }
 
 .template-gallery__item:hover {

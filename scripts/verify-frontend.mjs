@@ -181,6 +181,73 @@ check('el modo de solo lectura se puede activar', () => {
   if (!state.readOnly) throw new Error('readOnly no se aplicó');
 });
 
+// RF-27. La regla del sistema de diseño es "ningún color literal fuera de
+// `tokens.css`" (DESIGN.md §2). No es estética: un color escrito a mano no
+// cambia con el tema, y en sepia —paleta cálida— los azules y verdes de tipo
+// Tailwind que se colaron con las funciones de v0.5.0 desentonaban. Sin esta
+// comprobación, el siguiente se cuela igual y nadie lo ve hasta que un usuario
+// abre el tema sepia.
+check('ningún color literal fuera de tokens.css', () => {
+  const EXCEPCIONES = [
+    // Se ve cuando el arranque ha reventado: no puede depender de un tema que
+    // quizá no se ha cargado. Documentada también en `base.css`.
+    '#b3261e',
+    // Blancos y negros puros sobre un fondo de acento, donde el contraste no
+    // depende del tema.
+    '#fff',
+    '#ffffff',
+    '#000',
+    '#000000',
+  ];
+
+  const encontrados = [];
+  for (const hoja of ['base.css', 'layout.css']) {
+    const css = readFileSync(join(ROOT, 'src', 'themes', hoja), 'utf8');
+    for (const linea of css.split('\n')) {
+      // Los comentarios documentan valores antiguos a propósito.
+      const limpia = linea.trim();
+      if (limpia.startsWith('*') || limpia.startsWith('/*') || limpia.startsWith('//')) continue;
+      for (const [literal] of limpia.matchAll(/#[0-9a-fA-F]{3,8}\b/g)) {
+        if (!EXCEPCIONES.includes(literal.toLowerCase())) {
+          encontrados.push(`${hoja}: ${literal}`);
+        }
+      }
+    }
+  }
+
+  if (encontrados.length > 0) {
+    throw new Error(`colores literales fuera de tokens.css: ${encontrados.join(', ')}`);
+  }
+  return 'base.css y layout.css solo usan tokens';
+});
+
+// El respaldo de `var(--token, respaldo)` gana SIEMPRE si el token no existe, y
+// lo hace en silencio: así es como `--accent-subtle` pintó un anillo de foco
+// azul fijo —también en sepia— durante toda la v0.5.0 sin que nadie lo notara.
+//
+// Solo se miran los usos SIN respaldo. Con respaldo el uso es deliberado: son
+// variables que fija el JavaScript en tiempo de ejecución (`--preview-zoom`,
+// `--sidebar-width`, `--page-ratio`...) y que por definición no viven en
+// `tokens.css`. Sin respaldo, un token inexistente no pinta NADA: así estaba
+// `font-family: var(--font-sans)` en el tooltip de Universe, heredando la
+// fuente por accidente porque ese token no ha existido nunca (es `--font-ui`).
+check('todo token de tema usado sin respaldo está declarado', () => {
+  const tokens = readFileSync(join(ROOT, 'src', 'themes', 'tokens.css'), 'utf8');
+  const declarados = new Set([...tokens.matchAll(/^\s*(--[\w-]+)\s*:/gm)].map((m) => m[1]));
+
+  const usados = new Set();
+  for (const hoja of ['base.css', 'layout.css']) {
+    const css = readFileSync(join(ROOT, 'src', 'themes', hoja), 'utf8');
+    for (const match of css.matchAll(/var\(\s*(--[\w-]+)\s*\)/g)) usados.add(match[1]);
+  }
+
+  const ausentes = [...usados].filter((token) => !declarados.has(token));
+  if (ausentes.length > 0) {
+    throw new Error(`tokens usados pero nunca declarados: ${ausentes.join(', ')}`);
+  }
+  return `${usados.size} tokens usados sin respaldo, todos declarados`;
+});
+
 const failed = results.filter((entry) => !entry.ok).length;
 console.log(`\n${results.length - failed}/${results.length} comprobaciones en verde`);
 process.exit(failed === 0 ? 0 : 1);

@@ -6,7 +6,11 @@
 // =============================================================================
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createTemplateGalleryModal } from './templateGalleryModal.js';
+import {
+  countBySource,
+  createTemplateGalleryModal,
+  templateSource,
+} from './templateGalleryModal.js';
 
 describe('templateGalleryModal', () => {
   let dialogEl;
@@ -242,3 +246,202 @@ describe('templateGalleryModal', () => {
   });
 });
 
+// ─── RF-26: la galería como única puerta de entrada ─────────────────────────
+describe('galería unificada de tres pestañas (RF-26)', () => {
+  const catalogoMixto = [
+    { id: '@local/dbv-tfg', name: 'dbv-tfg', version: '1.0.0', description: 'TFG' },
+    { id: '@local/dbv-articulo', name: 'dbv-articulo', version: '1.0.0', description: 'Artículo' },
+    {
+      id: '@preview/charged-ieee:0.1.4',
+      name: 'charged-ieee',
+      version: '0.1.4',
+      description: 'IEEE',
+      universeSpec: '@preview/charged-ieee:0.1.4',
+    },
+  ];
+
+  function montar({ onPreviewSpec } = {}) {
+    const dialogEl = document.createElement('div');
+    dialogEl.className = 'modal hidden';
+
+    const listEl = document.createElement('div');
+    const previewEl = document.createElement('div');
+    const metaEl = document.createElement('div');
+    const searchWrap = document.createElement('div');
+    const searchEl = document.createElement('input');
+    searchWrap.append(searchEl);
+    const useBtnEl = document.createElement('button');
+    const cancelBtnEl = document.createElement('button');
+    const sidebarEl = document.createElement('aside');
+    const specPanelEl = document.createElement('aside');
+    specPanelEl.className = 'hidden';
+    const specInputEl = document.createElement('input');
+    const specErrorEl = document.createElement('p');
+    specErrorEl.className = 'hidden';
+    const specPreviewBtnEl = document.createElement('button');
+
+    const tabsEl = document.createElement('div');
+    for (const tab of ['local', 'universe', 'spec']) {
+      const button = document.createElement('button');
+      button.setAttribute('data-gallery-tab', tab);
+      const count = document.createElement('span');
+      count.setAttribute('data-gallery-tab-count', '');
+      button.append(count);
+      tabsEl.append(button);
+    }
+
+    sidebarEl.append(listEl);
+    specPanelEl.append(specInputEl, specErrorEl, specPreviewBtnEl);
+    dialogEl.append(tabsEl, searchWrap, sidebarEl, specPanelEl, previewEl, metaEl, useBtnEl, cancelBtnEl);
+    document.body.append(dialogEl);
+
+    const gallery = createTemplateGalleryModal({
+      dialogEl,
+      listEl,
+      previewEl,
+      searchEl,
+      useBtnEl,
+      cancelBtnEl,
+      metaEl,
+      onSelectTemplate: vi.fn(),
+      tabsEl,
+      sidebarEl,
+      specPanelEl,
+      specInputEl,
+      specErrorEl,
+      specPreviewBtnEl,
+      onPreviewSpec,
+    });
+
+    return {
+      gallery,
+      tabsEl,
+      searchEl,
+      specInputEl,
+      specErrorEl,
+      specPreviewBtnEl,
+      useBtnEl,
+      previewEl,
+      sidebarEl,
+      specPanelEl,
+    };
+  }
+
+  it('separa el catálogo por origen sin necesitar que nadie lo etiquete', () => {
+    expect(templateSource(catalogoMixto[0])).toBe('local');
+    expect(templateSource(catalogoMixto[2])).toBe('universe');
+    // Una entrada de Universe puede llegar sin `universeSpec` si viene del
+    // catálogo curado: el prefijo del registro público basta para reconocerla.
+    expect(templateSource({ id: '@preview/ilm:1.4.1' })).toBe('universe');
+    expect(countBySource(catalogoMixto)).toEqual({ local: 2, universe: 1 });
+  });
+
+  it('cada pestaña muestra solo las plantillas de su origen', () => {
+    const { gallery } = montar();
+    gallery.open(null, catalogoMixto);
+
+    expect(gallery.getActiveTab()).toBe('local');
+    expect(gallery.getVisibleTemplates().map((t) => t.name)).toEqual(['dbv-tfg', 'dbv-articulo']);
+
+    gallery.setActiveTab('universe');
+    expect(gallery.getVisibleTemplates().map((t) => t.name)).toEqual(['charged-ieee']);
+  });
+
+  it('abrir con un identificador de Universe deja visible su pestaña', () => {
+    // Si no, la plantilla quedaría seleccionada dentro de una lista oculta.
+    const { gallery } = montar();
+    gallery.open('@preview/charged-ieee:0.1.4', catalogoMixto);
+    expect(gallery.getActiveTab()).toBe('universe');
+    expect(gallery.getSelectedTemplate().name).toBe('charged-ieee');
+  });
+
+  it('la pestaña Dirección sustituye la lista, no la vista previa', () => {
+    const { gallery, sidebarEl, specPanelEl } = montar();
+    gallery.open(null, catalogoMixto);
+
+    gallery.setActiveTab('spec');
+    expect(sidebarEl.classList.contains('hidden')).toBe(true);
+    expect(specPanelEl.classList.contains('hidden')).toBe(false);
+
+    gallery.setActiveTab('local');
+    expect(sidebarEl.classList.contains('hidden')).toBe(false);
+    expect(specPanelEl.classList.contains('hidden')).toBe(true);
+  });
+
+  it('un identificador incompleto explica qué falta y bloquea la acción principal', () => {
+    const { gallery, specInputEl, specErrorEl, specPreviewBtnEl, useBtnEl } = montar();
+    gallery.open(null, catalogoMixto);
+    gallery.setActiveTab('spec');
+
+    specInputEl.value = '@preview/charged-ieee';
+    specInputEl.dispatchEvent(new Event('input'));
+
+    expect(specErrorEl.classList.contains('hidden')).toBe(false);
+    expect(specPreviewBtnEl.disabled).toBe(true);
+    expect(useBtnEl.disabled).toBe(true);
+  });
+
+  it('un identificador válido habilita crear y previsualizar', () => {
+    const { gallery, specInputEl, specErrorEl, specPreviewBtnEl, useBtnEl } = montar();
+    gallery.open(null, catalogoMixto);
+    gallery.setActiveTab('spec');
+
+    specInputEl.value = '@preview/charged-ieee:0.1.4';
+    specInputEl.dispatchEvent(new Event('input'));
+
+    expect(specErrorEl.classList.contains('hidden')).toBe(true);
+    expect(specPreviewBtnEl.disabled).toBe(false);
+    expect(useBtnEl.disabled).toBe(false);
+    expect(gallery.getSelectedTemplate().universeSpec).toBe('@preview/charged-ieee:0.1.4');
+  });
+
+  it('no toca la red hasta que se pulsa el control que lo anuncia (RF-26.6)', async () => {
+    const onPreviewSpec = vi.fn().mockResolvedValue({ ok: true, value: '<svg></svg>' });
+    const { gallery, specInputEl, specPreviewBtnEl, previewEl } = montar({ onPreviewSpec });
+    gallery.open(null, catalogoMixto);
+    gallery.setActiveTab('spec');
+
+    specInputEl.value = '@preview/charged-ieee:0.1.4';
+    specInputEl.dispatchEvent(new Event('input'));
+    // Validar NO descarga: escribir un identificador correcto no puede disparar
+    // la descarga y ejecución de código de terceros.
+    expect(onPreviewSpec).not.toHaveBeenCalled();
+
+    specPreviewBtnEl.click();
+    await vi.waitFor(() => expect(onPreviewSpec).toHaveBeenCalledWith('@preview/charged-ieee:0.1.4'));
+    await vi.waitFor(() => expect(previewEl.innerHTML).toContain('<svg>'));
+  });
+
+  it('un paquete que no es plantilla se explica y no deja crear el documento', async () => {
+    const onPreviewSpec = vi.fn().mockResolvedValue({ ok: false, error: { kind: 'notATemplate' } });
+    const { gallery, specInputEl, specPreviewBtnEl, useBtnEl } = montar({ onPreviewSpec });
+    gallery.open(null, catalogoMixto);
+    gallery.setActiveTab('spec');
+
+    specInputEl.value = '@preview/cetz:0.3.1';
+    specInputEl.dispatchEvent(new Event('input'));
+    expect(useBtnEl.disabled).toBe(false);
+
+    specPreviewBtnEl.click();
+    await vi.waitFor(() => expect(useBtnEl.disabled).toBe(true));
+  });
+
+  it('el buscador filtra dentro de la pestaña abierta, no en todo el catálogo', () => {
+    const { gallery, searchEl } = montar();
+    gallery.open(null, catalogoMixto);
+    gallery.setActiveTab('universe');
+
+    // "dbv" solo aparece en las plantillas locales. Desde la pestaña de
+    // Universe no debe devolver ninguna: encontrar un resultado que vive en una
+    // pestaña que no ves es peor que no encontrarlo.
+    searchEl.value = 'dbv';
+    searchEl.dispatchEvent(new Event('input'));
+    expect(gallery.getVisibleTemplates()).toHaveLength(0);
+
+    // Y el mismo texto desde la pestaña local sí encuentra las dos.
+    gallery.setActiveTab('local');
+    searchEl.value = 'dbv';
+    searchEl.dispatchEvent(new Event('input'));
+    expect(gallery.getVisibleTemplates()).toHaveLength(2);
+  });
+});

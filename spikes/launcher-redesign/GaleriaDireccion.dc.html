@@ -1,0 +1,301 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    :root {
+      --bg-primary: #0d1117;
+      --bg-secondary: #161b22;
+      --bg-tertiary: #21262d;
+      --text-primary: #e6edf3;
+      --text-secondary: #8b949e;
+      --text-muted: #6e7681;
+      --accent: #58a6ff;
+      --accent-hover: #79c0ff;
+      --border: #30363d;
+      --shadow: rgba(0, 0, 0, 0.4);
+      /* Token propuesto en DESIGN.md §9: hoy este rojo está escrito a mano y
+         no cambia con el tema. Aquí ya entra como token semántico. */
+      --status-error: #ef6a6a;
+      --status-error-bg: rgba(239, 106, 106, 0.10);
+      --font-ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Cascadia Code', Consolas, 'SF Mono', Menlo, monospace;
+      --radius: 8px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      width: 1280px;
+      height: 860px;
+      overflow: hidden;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: var(--font-ui);
+      font-size: 13px;
+    }
+    a { color: var(--accent); }
+    a:hover { color: var(--accent-hover); }
+
+    .modal { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(0, 0, 0, 0.45); }
+    .modal__card {
+      width: 1080px;
+      height: 780px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding: 24px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: 0 20px 48px var(--shadow);
+    }
+
+    .gallery__header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+    .gallery__title { margin: 0 0 4px; font-size: 18px; font-weight: 700; }
+    .gallery__subtitle { margin: 0; font-size: 13px; color: var(--text-secondary); }
+    .gallery__close {
+      width: 28px; height: 28px;
+      display: grid; place-items: center;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: transparent;
+      color: var(--text-secondary);
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    .gallery__tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); }
+    .gallery__tab {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 8px 14px; margin-bottom: -1px;
+      border: 1px solid transparent;
+      border-radius: var(--radius) var(--radius) 0 0;
+      background: transparent;
+      color: var(--text-muted);
+      font-family: inherit;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .gallery__tab.is-active {
+      background: var(--bg-primary);
+      border-color: var(--border);
+      border-bottom-color: var(--bg-primary);
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+    .gallery__tab-count {
+      padding: 1px 6px;
+      border-radius: 999px;
+      background: var(--bg-tertiary);
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      font-size: 10px;
+    }
+
+    .gallery__body { display: grid; grid-template-columns: 340px 1fr; gap: 18px; flex: 1; min-height: 0; }
+
+    .spec {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 16px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .spec__label {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+    }
+    .spec__field {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid var(--status-error);
+      border-radius: var(--radius);
+      background: var(--status-error-bg);
+      color: var(--text-primary);
+      font-family: var(--font-mono);
+      font-size: 13px;
+    }
+    .spec__error {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--status-error);
+    }
+    .spec__error-icon { width: 15px; height: 15px; flex: none; margin-top: 1px; }
+    .spec__help { font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
+    .spec__help code {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 1px 5px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+    }
+    .spec__divider { height: 1px; background: var(--border); }
+    .spec__recent { display: flex; flex-direction: column; gap: 6px; }
+    .spec__recent-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 7px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: transparent;
+      color: var(--text-secondary);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      cursor: pointer;
+    }
+
+    /* Aviso de código de terceros, más fuerte aquí: no hay lista revisada detrás. */
+    .notice {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 12px;
+      background: var(--status-error-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+    .notice__icon { width: 16px; height: 16px; flex: none; color: var(--status-error); margin-top: 1px; }
+
+    .gallery__preview {
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      min-height: 0;
+    }
+    .empty { text-align: center; max-width: 42ch; }
+    .empty__frame {
+      width: 200px;
+      height: 283px;
+      margin: 0 auto 18px;
+      border: 1px dashed var(--border);
+      border-radius: 2px;
+      display: grid;
+      place-items: center;
+      color: var(--text-muted);
+    }
+    .empty__title { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+    .empty__text { font-size: 12px; color: var(--text-secondary); line-height: 1.55; }
+
+    .modal__actions { display: flex; justify-content: flex-end; gap: 8px; }
+    .button {
+      padding: 6px 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .button--ghost { background: transparent; }
+    .button--primary { background: var(--accent); border-color: var(--accent); color: #0d1117; font-weight: 600; }
+    .button--disabled { opacity: 0.45; cursor: not-allowed; }
+  </style>
+</helmet>
+
+<div class="modal">
+  <div class="modal__card">
+    <div class="gallery__header">
+      <div>
+        <h2 class="gallery__title">Nuevo documento</h2>
+        <p class="gallery__subtitle">Cualquier plantilla del Typst Universe, escribiendo su dirección. Sin lista revisada detrás.</p>
+      </div>
+      <button class="gallery__close" type="button">✕</button>
+    </div>
+
+    <div class="gallery__tabs">
+      <button class="gallery__tab" type="button">
+        Plantillas locales <span class="gallery__tab-count">8</span>
+      </button>
+      <button class="gallery__tab" type="button">
+        Typst Universe <span class="gallery__tab-count">6</span>
+      </button>
+      <button class="gallery__tab is-active" type="button">
+        Dirección <span class="gallery__tab-count">@preview</span>
+      </button>
+    </div>
+
+    <div class="notice">
+      <svg class="notice__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M10 3.2 17.5 16.8h-15L10 3.2Z"/><path d="M10 8.4v3.4M10 14.2v.2"/></svg>
+      <span>Lo que escribas aquí se descarga y <strong>se ejecuta en tu equipo</strong> sin pasar por la lista revisada. Úsalo solo con plantillas que conozcas.</span>
+    </div>
+
+    <div class="gallery__body">
+      <div class="spec">
+        <span class="spec__label">Dirección de la plantilla</span>
+        <input class="spec__field" type="text" value="@preview/charged-ieee" spellcheck="false">
+
+        <span class="spec__error">
+          <svg class="spec__error-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="M10 6.2v4.6M10 13.5v.2"/></svg>
+          <span>Falta la versión. Una dirección completa lleva siempre <strong>nombre y versión</strong>.</span>
+        </span>
+
+        <span class="spec__help">
+          Formato: <code>@preview/nombre:version</code><br>
+          Ejemplo: <code>@preview/charged-ieee:0.1.4</code>
+        </span>
+
+        <span class="spec__divider"></span>
+
+        <span class="spec__label">Usadas recientemente</span>
+        <span class="spec__recent">
+          <button class="spec__recent-item" type="button">
+            <span>@preview/cetz:0.3.1</span>
+            <span>↩</span>
+          </button>
+          <button class="spec__recent-item" type="button">
+            <span>@preview/ilm:1.4.1</span>
+            <span>↩</span>
+          </button>
+        </span>
+      </div>
+
+      <div class="gallery__preview">
+        <div class="empty">
+          <div class="empty__frame">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M7 3h7l4.5 4.5V20a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/>
+              <path d="M14 3v5h4.5"/>
+              <path d="M9.5 14.5h5M9.5 17.5h3"/>
+            </svg>
+          </div>
+          <div class="empty__title">Sin vista previa todavía</div>
+          <p class="empty__text">Escribe una dirección válida y la plantilla se descargará para mostrar aquí su maquetación real, igual que las de la lista revisada.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal__actions">
+      <button class="button button--ghost" type="button">Cerrar</button>
+      <button class="button button--primary button--disabled" type="button">Crear documento</button>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":1280,"height":860}}'>
+class Component extends DCLogic {}
+</script>
+</body>
+</html>

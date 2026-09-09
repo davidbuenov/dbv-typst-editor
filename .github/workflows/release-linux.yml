@@ -88,13 +88,21 @@ jobs:
       - name: Vendorizar el compilador Typst (sidecar)
         run: npm run vendor:typst
 
-      - name: Verificar que el sidecar está en su sitio
+      # `bundle.externalBin` declara DOS sidecars desde v0.5.0. Tauri aborta el
+      # empaquetado si falta cualquiera de los dos para el target que se compila.
+      - name: Vendorizar el servidor de lenguaje Tinymist (sidecar)
+        run: npm run vendor:tinymist
+
+      - name: Verificar que los dos sidecars están en su sitio
         run: |
-          if ! ls src-tauri/binaries/typst-x86_64-unknown-linux-gnu >/dev/null 2>&1; then
-            echo "::error::Falta el sidecar typst; el instalador saldría sin compilador dentro."
-            exit 1
-          fi
-          ./src-tauri/binaries/typst-x86_64-unknown-linux-gnu --version
+          for sidecar in typst tinymist; do
+            binary="src-tauri/binaries/${sidecar}-x86_64-unknown-linux-gnu"
+            if ! ls "$binary" >/dev/null 2>&1; then
+              echo "::error::Falta el sidecar $sidecar; el instalador saldría incompleto."
+              exit 1
+            fi
+            "$binary" --version
+          done
 
       - name: Verificar el catálogo de plantillas contra el compilador real
         run: npm run verify:templates

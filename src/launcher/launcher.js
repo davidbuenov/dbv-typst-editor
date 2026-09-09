@@ -12,10 +12,9 @@
 // comunitario sin rehacer esta vista: consume `TemplateInfo` (R-MVP-1), no
 // rutas ni ficheros concretos.
 
-import { getLanguage, t } from '../i18n/i18n.js';
+import { t } from '../i18n/i18n.js';
 import { getRecentProjects, listTemplates, removeRecentProject } from '../services/backend.js';
 import { baseName } from '../app/workspace.js';
-import { getTemplateThumbnailSvg } from './templateThumbnails.js';
 
 /** Nombre y descripción de una plantilla en el idioma activo. */
 export function localizeTemplate(template, language) {
@@ -27,75 +26,19 @@ export function localizeTemplate(template, language) {
 }
 
 /**
+ * Desde RF-25 el lanzador NO pinta plantillas: la única vía de creación es la
+ * galería. Sigue cargando el catálogo porque es el único sitio que lo pide al
+ * backend, y de `getCatalog()` come la pestaña "Plantillas locales" de esa
+ * galería — quitar la carga junto con la rejilla la habría dejado vacía sin
+ * ningún error visible.
+ *
  * @param {object} deps
- * @param {HTMLElement} deps.templatesEl Rejilla de plantillas.
  * @param {HTMLElement} deps.recentEl Lista de proyectos recientes.
- * @param {(template: object) => void} deps.onCreateFromTemplate
  * @param {(path: string) => void} deps.onOpenRecent
- * @param {((template: object) => void)|null} [deps.onOpenGallery]
  */
-export function createLauncher({ templatesEl, recentEl, onCreateFromTemplate, onOpenRecent, onOpenGallery }) {
+export function createLauncher({ recentEl, onOpenRecent }) {
   /** @type {object[]} Catálogo cacheado: no cambia mientras la app vive. */
   let catalog = [];
-
-  function renderTemplates() {
-    if (catalog.length === 0) {
-      const empty = document.createElement('p');
-      empty.className = 'recent-list__empty';
-      empty.textContent = t('launcher.noTemplates');
-      templatesEl.replaceChildren(empty);
-      return;
-    }
-
-    const language = getLanguage();
-    const fragment = document.createDocumentFragment();
-    for (const template of catalog) {
-      const { name, description } = localizeTemplate(template, language);
-
-      const card = document.createElement('button');
-      card.type = 'button';
-      card.className = 'template-card';
-
-      const thumb = document.createElement('div');
-      thumb.className = 'template-card__thumbnail';
-      thumb.innerHTML = getTemplateThumbnailSvg(template.id || template.name);
-      card.append(thumb);
-
-      const content = document.createElement('div');
-      content.className = 'template-card__content';
-
-      const title = document.createElement('span');
-      title.className = 'template-card__name';
-      title.textContent = name;
-      content.append(title);
-
-      const text = document.createElement('span');
-      text.className = 'template-card__description';
-      text.textContent = description;
-      content.append(text);
-
-      const meta = document.createElement('span');
-      meta.className = 'template-card__meta';
-      // La categoría propia de DBV es más específica que las oficiales de Typst
-      // Universe (TFG/TFM no existen allí), así que manda cuando está.
-      meta.textContent = [template.dbv?.dbvCategory, `v${template.version}`]
-        .filter(Boolean)
-        .join(' · ');
-      content.append(meta);
-
-      card.append(content);
-
-      card.addEventListener('click', () => {
-        if (onOpenGallery) {
-          onOpenGallery(template);
-        } else {
-          onCreateFromTemplate(template);
-        }
-      });
-      fragment.append(card);
-    }
-    templatesEl.replaceChildren(fragment);
-  }
 
   async function renderRecent() {
     const result = await getRecentProjects();
@@ -154,18 +97,18 @@ export function createLauncher({ templatesEl, recentEl, onCreateFromTemplate, on
   }
 
   return {
-    /** Carga el catálogo (una sola vez) y pinta el lanzador entero. */
+    /** Carga el catálogo (una sola vez) y pinta los proyectos recientes. */
     async load() {
       if (catalog.length === 0) {
         const result = await listTemplates();
         catalog = result.ok ? result.value : [];
       }
-      renderTemplates();
       await renderRecent();
     },
     refreshRecent: renderRecent,
-    /** Repinta al cambiar de idioma (los textos vienen del catálogo, no del DOM). */
-    refreshLanguage: renderTemplates,
+    /** Repinta al cambiar de idioma: los recientes llevan textos traducidos. */
+    refreshLanguage: renderRecent,
+    /** Lo consume la pestaña "Plantillas locales" de la galería (RF-26). */
     getCatalog: () => catalog.slice(),
   };
 }

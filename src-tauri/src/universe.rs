@@ -157,6 +157,92 @@ pub async fn create_project_from_universe(
     project::describe(&target)
 }
 
+/// `typst init` sobre un paquete que no es plantilla falla con un mensaje
+/// estable, comprobado contra el binario vendorizado antes de escribir esto:
+///
+/// ```text
+/// error: package @preview/cetz:0.3.1 is not a template
+/// ```
+///
+/// Se traduce a su propio `kind` en vez de dejar pasar el error crudo, porque es
+/// el caso que el usuario va a encontrarse de verdad: `parse_universe_spec`
+/// valida la FORMA del identificador, no que sea una plantilla, así que
+/// `@preview/cetz:0.3.1` pasa la validación entera y solo falla aquí.
+fn classify_init_error(spec: &str, error: &typst_engine::TypstError) -> AppError {
+    let message = describe(error);
+    if message.contains("is not a template") {
+        AppError::NotATemplate(spec.to_string())
+    } else {
+        AppError::Io(message)
+    }
+}
+
+/// Previsualiza una plantilla de Typst Universe sin dejar nada en el disco del
+/// usuario ni crear proyecto alguno.
+///
+/// Existe por una decisión de producto explícita (RF-26.6, `SPECIFICATIONS.md`
+/// §5d): en la pestaña de identificador libre de la galería **no se descarga ni
+/// se ejecuta nada al teclear**, solo cuando el usuario pulsa un control que
+/// declara que va a hacerlo. Descargar y ejecutar código de terceros por el mero
+/// hecho de escribir en un campo contradiría la política editorial de
+/// `ARCHITECTURE.md` §6.
+///
+/// El beneficio que no era el objetivo pero acaba siendo el principal: convierte
+/// el fallo de "esto no es una plantilla" en un mensaje dentro de la galería,
+/// junto al campo, en lugar de aparecer tres pasos después con el usuario ya
+/// eligiendo carpeta y nombre en el asistente.
+#[tauri::command]
+pub async fn preview_universe_template(app: AppHandle, spec: String) -> Result<String, AppError> {
+    // El identificador NO viaja crudo hasta el disco: se reconstruye desde sus
+    // partes ya validadas, igual que en `open_universe_package_page` y por el
+    // mismo motivo — lo que no pasa la validación tampoco puede colarse aquí
+    // como fragmento de ruta.
+    let parsed = parse_universe_spec(&spec)?;
+    let canonical = parsed.to_spec();
+
+    // `TempDir` borra el árbol entero al soltarse, salga esta función por donde
+    // salga: no hay ningún camino de error que deje basura en `%TEMP%`, y no
+    // hace falta repetir la limpieza en cada `?`.
+    let workdir = tempfile::tempdir().map_err(|error| AppError::Io(error.to_string()))?;
+    // `typst init` crea el directorio destino, así que se le da uno que todavía
+    // no existe dentro del temporal.
+    let target = workdir.path().join("preview");
+    let target_str = crate::commands::file_io::path_to_string(&target);
+
+    typst_engine::run(&app, &["init", &canonical, &target_str])
+        .await
+        .map_err(|error| classify_init_error(&canonical, &error))?;
+
+    // Una plantilla de Universe no trae manifiesto de DBV; `describe` cae a su
+    // heurística de entrypoint, que es justo lo que hace `create_project_from_universe`.
+    let entrypoint = project::describe(&target)?
+        .entrypoint
+        .unwrap_or_else(|| "main.typ".to_string());
+
+    let output = workdir.path().join("preview.svg");
+    let mut args: Vec<String> = vec![
+        "compile".to_string(),
+        "--root".to_string(),
+        target_str.clone(),
+        "--format".to_string(),
+        "svg".to_string(),
+        // Solo la primera página: es una previsualización de la maquetación, no
+        // el documento. Una plantilla de artículo puede traer varias.
+        "--pages".to_string(),
+        "1".to_string(),
+    ];
+    args.extend(typst_engine::font_path_args(&target));
+    args.push(crate::commands::file_io::path_to_string(&target.join(&entrypoint)));
+    args.push(crate::commands::file_io::path_to_string(&output));
+
+    let borrowed: Vec<&str> = args.iter().map(String::as_str).collect();
+    typst_engine::run(&app, &borrowed)
+        .await
+        .map_err(|error| AppError::Io(describe(&error)))?;
+
+    fs::read_to_string(&output).map_err(|error| AppError::Io(error.to_string()))
+}
+
 /// Abre la ficha de un paquete/plantilla en typst.app/universe con el
 /// navegador del sistema, para quien quiera leer su documentación o revisar
 /// el código antes de fiarse — sin que ese clic dispare también la
@@ -239,5 +325,41 @@ mod tests {
                 "debería rechazarse: {entrada}"
             );
         }
+    }
+
+    // El mensaje contra el que se compara está copiado de una ejecución real del
+    // binario vendorizado (`typst init @preview/cetz:0.3.1`), no inventado: si
+    // Typst lo cambia, este test es el que avisa antes que el usuario.
+    #[test]
+    fn classify_reconoce_el_paquete_que_no_es_una_plantilla() {
+        let error = typst_engine::TypstError::CompilationFailed(
+            "error: package @preview/cetz:0.3.1 is not a template\n".to_string(),
+        );
+        let clasificado = classify_init_error("@preview/cetz:0.3.1", &error);
+        assert_eq!(
+            clasificado,
+            AppError::NotATemplate("@preview/cetz:0.3.1".to_string())
+        );
+    }
+
+    // Un fallo de red no debe disfrazarse de "no es una plantilla": el usuario
+    // que está sin conexión necesita saber que el problema es la descarga, no su
+    // identificador.
+    #[test]
+    fn classify_no_confunde_otros_fallos_con_una_plantilla_ausente() {
+        let error = typst_engine::TypstError::CompilationFailed(
+            "error: failed to download package (network unreachable)".to_string(),
+        );
+        let clasificado = classify_init_error("@preview/charged-ieee:0.1.4", &error);
+        assert!(matches!(clasificado, AppError::Io(_)));
+    }
+
+    // Lo que llega al disco es la forma canónica reconstruida desde las partes
+    // validadas, nunca la cadena que escribió el usuario. Es la misma garantía
+    // que protege a `open_universe_package_page`.
+    #[test]
+    fn la_previsualizacion_usa_el_identificador_reconstruido_no_el_crudo() {
+        let parsed = parse_universe_spec("  @preview/charged-ieee:0.1.4  ").unwrap();
+        assert_eq!(parsed.to_spec(), "@preview/charged-ieee:0.1.4");
     }
 }

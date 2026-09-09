@@ -5,53 +5,46 @@
 // Built with dbv-specs-ops · https://github.com/davidbuenov/dbv-specs-ops
 // =============================================================================
 //
-// Dos ramas de igual peso, como fija §7.6.0.1 — Plantillas (crean un proyecto)
-// y Paquetes (se importan en el documento abierto) — resueltas aquí como dos
-// pestañas del mismo panel en vez de dos vistas separadas: comparten el mismo
-// catálogo curado, el mismo campo de identificador libre y el mismo aviso de
-// que es código de terceros. Separarlas en dos paneles habría triplicado la
-// interfaz sin añadir nada.
+// Este panel tenía dos pestañas —Plantillas y Paquetes— hasta RF-26 (v0.5.0).
+// La de Plantillas se absorbió en la galería, que es ahora la única puerta de
+// entrada a la creación de documentos, y aquí queda solo la rama de Paquetes.
 //
-// Cada pestaña ofrece las dos vías acordadas con el usuario: la lista revisada
-// (para quien quiere fiarse) y un campo donde pegar cualquier
-// `@preview/nombre:version` (para quien sabe lo que busca).
+// No se dejó una barra de pestañas con una sola llena a propósito: una pestaña
+// que nunca cambia de sitio es una pregunta que la interfaz le hace al usuario
+// sin necesidad, y esa acumulación es justo lo que llevó a tener tres formas de
+// elegir plantilla.
+//
+// La separación no es organizativa, es de trabajo: una plantilla CREA un
+// proyecto y pertenece al lanzador; un paquete se importa en el documento YA
+// abierto y pertenece al editor. Por eso este panel vive detrás del botón ✦ de
+// la cabecera y no del lanzador.
+//
+// Se conservan las dos vías acordadas con el usuario (ADR-UNIVERSE-001): la
+// lista revisada, para quien quiere fiarse, y un campo donde pegar cualquier
+// `@preview/nombre:version`, para quien sabe lo que busca.
 
 import { getLanguage, t } from '../i18n/i18n.js';
-import { getTemplateThumbnailSvg } from '../launcher/templateThumbnails.js';
-import { CURATED_PACKAGES, CURATED_TEMPLATES } from './curatedCatalog.js';
+import { CURATED_PACKAGES } from './curatedCatalog.js';
 import { parseUniverseSpec } from './universeSpec.js';
-import {
-  getUniversePackageIcon,
-  getUniverseThumbnailUrl,
-} from './universeThumbnails.js';
+import { getUniversePackageIcon } from './universeThumbnails.js';
 
 /**
  * @param {object} deps
- * @param {HTMLElement} deps.templatesEl Rejilla de plantillas curadas.
  * @param {HTMLElement} deps.packagesEl Rejilla de paquetes curados.
  * @param {HTMLInputElement} deps.specInputEl Campo del identificador libre.
  * @param {HTMLButtonElement} deps.specButtonEl Botón que lo aplica.
  * @param {HTMLElement} deps.errorEl Mensaje de error del campo.
- * @param {HTMLButtonElement} deps.tabTemplatesEl
- * @param {HTMLButtonElement} deps.tabPackagesEl
- * @param {(spec: string) => void} deps.onUseTemplate
  * @param {(spec: string) => void} deps.onUsePackage
  * @param {(spec: string) => void} deps.onViewPackage Abre la ficha en typst.app, sin instalar nada.
  */
 export function createUniversePanel({
-  templatesEl,
   packagesEl,
   specInputEl,
   specButtonEl,
   errorEl,
-  tabTemplatesEl,
-  tabPackagesEl,
-  onUseTemplate,
   onUsePackage,
   onViewPackage,
 }) {
-  /** @type {'templates'|'packages'} */
-  let activeTab = 'templates';
 
   function showError(key) {
     errorEl.textContent = t(key);
@@ -83,30 +76,13 @@ export function createUniversePanel({
       const visualEl = document.createElement('div');
       visualEl.className = 'universe-card__visual';
 
-      const isTemplate = entry.spec && CURATED_TEMPLATES.some((t) => t.spec === entry.spec);
-      const thumbnailUrl = isTemplate ? getUniverseThumbnailUrl(entry.spec) : null;
-
-      if (thumbnailUrl) {
-        const img = document.createElement('img');
-        img.className = 'universe-card__thumb-img';
-        img.src = thumbnailUrl;
-        img.alt = language === 'en' ? entry.titleEn : entry.title;
-        img.loading = 'lazy';
-        img.onerror = () => {
-          visualEl.replaceChildren();
-          const icon = document.createElement('div');
-          icon.className = 'universe-card__icon-fallback';
-          icon.innerHTML = getTemplateThumbnailSvg(entry.spec);
-          visualEl.append(icon);
-        };
-        visualEl.append(img);
-      } else {
-        const icon = document.createElement('div');
-        icon.className = 'universe-card__icon-fallback';
-        const pkgName = entry.spec?.split('/')?.[1]?.split(':')?.[0] || 'default';
-        icon.innerHTML = getUniversePackageIcon(pkgName);
-        visualEl.append(icon);
-      }
+      // Aquí ya solo hay paquetes, así que siempre toca el icono temático: las
+      // miniaturas de documento se fueron con la pestaña de plantillas.
+      const icon = document.createElement('div');
+      icon.className = 'universe-card__icon-fallback';
+      const pkgName = entry.spec?.split('/')?.[1]?.split(':')?.[0] || 'default';
+      icon.innerHTML = getUniversePackageIcon(pkgName);
+      visualEl.append(icon);
 
       const content = document.createElement('div');
       content.className = 'universe-card__content';
@@ -127,9 +103,6 @@ export function createUniversePanel({
 
       content.append(title, description, meta);
       body.append(visualEl, content);
-      if (isTemplate) {
-        body.title = t('launcher.browseGallery');
-      }
       body.addEventListener('click', () => onUse(entry.spec));
 
       const link = document.createElement('button');
@@ -154,19 +127,7 @@ export function createUniversePanel({
   }
 
   function render() {
-    renderGrid(templatesEl, CURATED_TEMPLATES, onUseTemplate);
     renderGrid(packagesEl, CURATED_PACKAGES, onUsePackage);
-  }
-
-  function setActiveTab(tab) {
-    activeTab = tab;
-    const isTemplates = tab === 'templates';
-    tabTemplatesEl.classList.toggle('active', isTemplates);
-    tabPackagesEl.classList.toggle('active', !isTemplates);
-    templatesEl.classList.toggle('hidden', !isTemplates);
-    packagesEl.classList.toggle('hidden', isTemplates);
-    specInputEl.placeholder = isTemplates ? '@preview/charged-ieee:0.1.4' : '@preview/quick-maths:0.2.1';
-    hideError();
   }
 
   function applyTypedSpec() {
@@ -177,12 +138,10 @@ export function createUniversePanel({
     }
     hideError();
     specInputEl.value = '';
-    if (activeTab === 'templates') onUseTemplate(parsed.spec);
-    else onUsePackage(parsed.spec);
+    onUsePackage(parsed.spec);
   }
 
-  tabTemplatesEl.addEventListener('click', () => setActiveTab('templates'));
-  tabPackagesEl.addEventListener('click', () => setActiveTab('packages'));
+  specInputEl.placeholder = '@preview/quick-maths:0.2.1';
   specButtonEl.addEventListener('click', applyTypedSpec);
   specInputEl.addEventListener('keydown', (event) => {
     if (event.key === 'Enter') applyTypedSpec();
@@ -190,7 +149,6 @@ export function createUniversePanel({
   specInputEl.addEventListener('input', hideError);
 
   render();
-  setActiveTab('templates');
   document.addEventListener('dbv-lang-changed', render);
 
   return { render, showError, hideError };

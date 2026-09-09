@@ -66,6 +66,13 @@ export const isPackagedApp = () => call('is_packaged_app');
 /** Beta, §7.6.3: crea un proyecto desde una plantilla de Typst Universe. */
 export const createProjectFromUniverse = ({ spec, parentDir, projectName }) =>
   call('create_project_from_universe', { spec, parentDir, projectName });
+/**
+ * RF-26.6: descarga y compila una plantilla de Universe en un temporal para
+ * enseñar su maquetación real, sin crear proyecto ni dejar nada en disco. Es el
+ * único punto de la pestaña "Dirección" que toca la red, y solo se llama desde
+ * un control que declara que va a hacerlo.
+ */
+export const previewUniverseTemplate = (spec) => call("preview_universe_template", { spec });
 /** Abre la ficha de un paquete/plantilla en typst.app/universe, sin instalarlo. */
 export const openUniversePackagePage = (spec) => call('open_universe_package_page', { spec });
 /** Documento con el que el SO ha arrancado la app (asociación de fichero `.typ`). */

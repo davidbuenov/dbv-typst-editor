@@ -82,12 +82,34 @@ try {
   console.error(`  FALLO  no se ha podido ejecutar el navegador — ${error.message}\n`);
   process.exit(1);
 } finally {
-  rmSync(profile, { recursive: true, force: true });
+  // En Windows el proceso del navegador todavia mantiene abiertos ficheros del
+  // perfil cuando volvemos aquí, y el borrado revienta con ENOTEMPTY: la
+  // comprobación moría en la limpieza, no por el layout. Se reintenta un poco y,
+  // si aun así no se puede, se deja el directorio temporal en paz — es basura en
+  // %TEMP%, no un motivo para tumbar la verificación.
+  try {
+    rmSync(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+  } catch {
+    /* perfil temporal huérfano: irrelevante para lo que se está verificando */
+  }
+}
+
+// Un navegador que sale con código 0 y NO escribe nada en stdout no ha llegado
+// a ejecutar la sonda: es el propio `--dump-dom` el que no funciona en esa
+// máquina (pasa con Edge headless bajo ciertas políticas de empresa, y también
+// con una página trivial, así que no tiene nada que ver con esta sonda). Eso no
+// es un fallo de layout, y contarlo como tal manda a buscar un bug inexistente
+// en la sonda: se OMITE, por el mismo motivo que cuando no hay navegador.
+if (dom.trim() === '') {
+  console.log('  OMITIDA  el navegador no ha devuelto ningún DOM con --dump-dom');
+  console.log('           (motor no utilizable aquí; define CHROME_PATH para probar otro)');
+  console.log();
+  process.exit(0);
 }
 
 const match = dom.match(/DBV_LAYOUT_JSON(.*?)DBV_LAYOUT_END/s);
 if (!match) {
-  console.error('  FALLO  la sonda no ha devuelto resultados (¿ha reventado su script?)\n');
+  console.error('  FALLO  la sonda ha devuelto un DOM sin resultados (¿ha reventado su script?)\n');
   process.exit(1);
 }
 

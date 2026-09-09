@@ -28,6 +28,10 @@ body {
 }
 
 /* ─── Banda de error fatal (ver el capturador inline de index.html) ────────── */
+/* Excepción consciente a la regla de RF-27 ("ningún color literal fuera de
+   tokens.css"): esta banda es lo último que se ve cuando algo ha reventado en
+   el arranque, y hacerla depender de una variable de tema la ataría justo a lo
+   que puede no haberse cargado. Un rojo literal siempre pinta. */
 .fatal-error {
   padding: 8px 14px;
   background: #b3261e;
@@ -137,6 +141,15 @@ body {
 .button:hover {
   background: var(--bg-primary);
   border-color: var(--accent);
+}
+
+/* Un control apagado tiene que parecerlo: el botón de paquetes de Universe se
+   deshabilita mientras no hay documento abierto (RF-26.10), y sin esta regla
+   seguiría teniendo el mismo aspecto que uno pulsable. */
+.icon-button:disabled,
+.button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .icon-button:focus-visible,
@@ -960,15 +973,15 @@ body {
 }
 
 .python-panel__env-badge[data-tone="success"] {
-  color: #10b981;
+  color: var(--status-ok);
 }
 
 .python-panel__env-badge[data-tone="warning"] {
-  color: #f59e0b;
+  color: var(--status-warn);
 }
 
 .python-panel__env-badge[data-tone="error"] {
-  color: #ef4444;
+  color: var(--status-error);
 }
 
 .python-panel__notice {
@@ -976,8 +989,8 @@ body {
   border-radius: var(--radius);
   font-size: 11px;
   line-height: 1.4;
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: var(--status-error-bg);
+  border: 1px solid var(--status-error-border);
   color: var(--text-primary);
   display: flex;
   flex-direction: column;
@@ -985,7 +998,7 @@ body {
 }
 
 .python-panel__notice a {
-  color: #3b82f6;
+  color: var(--status-info);
   text-decoration: underline;
 }
 
@@ -1029,11 +1042,11 @@ body {
 }
 
 .python-panel__status--success {
-  color: #10b981;
+  color: var(--status-ok);
 }
 
 .python-panel__status--error {
-  color: #ef4444;
+  color: var(--status-error);
 }
 
 .python-panel__output {
@@ -1148,13 +1161,13 @@ body {
 }
 
 .git-popover__badge--M {
-  background: rgba(234, 179, 8, 0.2);
-  color: #ca8a04;
+  background: var(--status-warn-bg);
+  color: var(--status-warn);
 }
 
 .git-popover__badge--\? {
-  background: rgba(16, 185, 129, 0.2);
-  color: #10b981;
+  background: var(--status-ok-bg);
+  color: var(--status-ok);
 }
 
 .git-popover__file-name {
@@ -1255,7 +1268,7 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-  font-family: var(--font-sans);
+  font-family: var(--font-ui);
   display: flex;
   flex-direction: column;
   gap: 8px;

@@ -42,6 +42,24 @@
   --code-tag: #e2777a;
   --code-class: #f8c555;
   --code-operator: #67cdcc;
+
+  /* ─── Estado (RF-27) ─────────────────────────────────────────────────────
+     Antes eran literales escritos a mano en `base.css`/`layout.css` (indicador
+     de Git, diagnósticos del LSP, panel de Python): al no ser tokens, NO
+     cambiaban con el tema, y en sepia quedaban cuatro colores fríos y saturados
+     sobre una paleta cálida. Es el mismo defecto que `--band-hint` ya corrigió
+     una vez tras el aviso de un usuario real, así que se resuelve igual: token
+     semántico, valor por tema. Los fondos usan una sola opacidad por tono, en
+     lugar del 0.1/0.12/0.2/0.3 disperso de antes. */
+  --status-ok: #10b981;
+  --status-warn: #f59e0b;
+  --status-error: #ef4444;
+  --status-info: #3b82f6;
+  --status-ok-bg: rgba(16, 185, 129, 0.16);
+  --status-warn-bg: rgba(245, 158, 11, 0.16);
+  --status-error-bg: rgba(239, 68, 68, 0.14);
+  --status-error-border: rgba(239, 68, 68, 0.35);
+  --accent-subtle: rgba(88, 166, 255, 0.18);
 }
 
 [data-theme='light'] {
@@ -67,6 +85,24 @@
   --code-tag: #116329;
   --code-class: #953800;
   --code-operator: #24292f;
+
+  /* ─── Estado (RF-27) ─────────────────────────────────────────────────────
+     Antes eran literales escritos a mano en `base.css`/`layout.css` (indicador
+     de Git, diagnósticos del LSP, panel de Python): al no ser tokens, NO
+     cambiaban con el tema, y en sepia quedaban cuatro colores fríos y saturados
+     sobre una paleta cálida. Es el mismo defecto que `--band-hint` ya corrigió
+     una vez tras el aviso de un usuario real, así que se resuelve igual: token
+     semántico, valor por tema. Los fondos usan una sola opacidad por tono, en
+     lugar del 0.1/0.12/0.2/0.3 disperso de antes. */
+  --status-ok: #107a52;
+  --status-warn: #8a5a00;
+  --status-error: #c0362c;
+  --status-info: #0b5cad;
+  --status-ok-bg: rgba(16, 122, 82, 0.10);
+  --status-warn-bg: rgba(138, 90, 0, 0.10);
+  --status-error-bg: rgba(192, 54, 44, 0.09);
+  --status-error-border: rgba(192, 54, 44, 0.30);
+  --accent-subtle: rgba(9, 105, 218, 0.15);
 }
 
 [data-theme='sepia'] {
@@ -98,6 +134,24 @@
   --code-tag: #7a4419;
   --code-class: #b3701f;
   --code-operator: #6b5240;
+
+  /* ─── Estado (RF-27) ─────────────────────────────────────────────────────
+     Antes eran literales escritos a mano en `base.css`/`layout.css` (indicador
+     de Git, diagnósticos del LSP, panel de Python): al no ser tokens, NO
+     cambiaban con el tema, y en sepia quedaban cuatro colores fríos y saturados
+     sobre una paleta cálida. Es el mismo defecto que `--band-hint` ya corrigió
+     una vez tras el aviso de un usuario real, así que se resuelve igual: token
+     semántico, valor por tema. Los fondos usan una sola opacidad por tono, en
+     lugar del 0.1/0.12/0.2/0.3 disperso de antes. */
+  --status-ok: #5b7553;
+  --status-warn: #b3701f;
+  --status-error: #9a3324;
+  --status-info: #3d6b99;
+  --status-ok-bg: rgba(91, 117, 83, 0.14);
+  --status-warn-bg: rgba(179, 112, 31, 0.14);
+  --status-error-bg: rgba(154, 51, 36, 0.12);
+  --status-error-border: rgba(154, 51, 36, 0.32);
+  --accent-subtle: rgba(139, 69, 19, 0.14);
 }
 
 :root {

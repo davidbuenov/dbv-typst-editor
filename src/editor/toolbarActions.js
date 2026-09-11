@@ -320,6 +320,18 @@ export const TOOLBAR_ACTIONS = [
     buildTransaction: cetzAction('flowchart'),
   },
   {
+    // RF-31: editor WYSIWYG de diagramas, coexiste con el asistente de
+    // plantillas CeTZ de arriba hasta que lo sustituya (Slice 49). El
+    // fallback (sin `specialHandlers` wireado, p. ej. en un test) reutiliza
+    // la misma plantilla de flujo de `cetz`, igual de razonable que insertar
+    // un lienzo vacío que el usuario no vería.
+    id: 'diagram',
+    group: 'content',
+    glyph: '✎',
+    i18nKey: 'toolbar.diagram',
+    buildTransaction: cetzAction('flowchart'),
+  },
+  {
     id: 'hr',
     group: 'content',
     glyph: '—',

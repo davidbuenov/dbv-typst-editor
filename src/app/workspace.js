@@ -21,6 +21,7 @@ import { createEditor } from '../editor/editor.js';
 import { createSymbolPicker } from '../editor/symbolPicker.js';
 import { createTableDialog } from '../editor/tableDialog.js';
 import { createCetzAssistant } from '../editor/cetzAssistant.js';
+import { createDiagramEditor } from '../editor/diagramEditor.js';
 import { createToolbar } from '../editor/toolbar.js';
 import { figureActionForPath } from '../editor/toolbarActions.js';
 import { posFromLsp } from '../editor/lspClient.js';
@@ -80,6 +81,7 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
   let symbolPicker;
   let tableDialog;
   let cetzAssistant;
+  let diagramEditor;
   const editor = createEditor(elements.editorHost, {
     theme: getTheme(),
     lspClient,
@@ -127,6 +129,7 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
       symbols: (button) => symbolPicker?.openNear(button),
       table: (button) => tableDialog?.openNear(button),
       cetz: (button) => cetzAssistant?.openNear(button),
+      diagram: (button) => diagramEditor?.openNear(button),
       // RF-17: el botón ya no salta al explorador de ficheros, sino que
       // ofrece primero las imágenes que el proyecto ya tiene —coherencia con
       // "Cite"—, dejando el selector nativo como última opción del desplegable.
@@ -244,6 +247,17 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
 
   cetzAssistant = createCetzAssistant({
     panelEl: elements.cetzPanel,
+    getView: editor.getView,
+  });
+
+  diagramEditor = createDiagramEditor({
+    panelEl: elements.diagramPanel,
+    svgEl: elements.diagramCanvas,
+    addNodeButtonEl: elements.diagramAddNode,
+    connectButtonEl: elements.diagramConnect,
+    deleteButtonEl: elements.diagramDelete,
+    insertButtonEl: elements.diagramInsert,
+    hintEl: elements.diagramHint,
     getView: editor.getView,
   });
 
@@ -570,7 +584,7 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
 
     if (choice === 'diff' && diffModal) {
       const diskRead = await readFile(state.document.path);
-      const diskContent = diskRead.ok ? diskRead.value : '';
+      const diskContent = diskRead.ok ? diskRead.value.content : '';
       choice = await diffModal.open({
         localContent: editor.getContent(),
         diskContent,
@@ -626,7 +640,7 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
       });
       if (choice === 'diff' && diffModal) {
         const diskRead = await readFile(state.document.path);
-        const diskContent = diskRead.ok ? diskRead.value : '';
+        const diskContent = diskRead.ok ? diskRead.value.content : '';
         const diffChoice = await diffModal.open({
           localContent: editor.getContent(),
           diskContent,

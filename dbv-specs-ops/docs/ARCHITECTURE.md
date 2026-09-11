@@ -1,9 +1,9 @@
 # 🏗 Arquitectura Técnica: DBV Typst Editor
 
 > **Fase:** `/plan` (Planificación Técnica) — Informe de análisis de reutilización sobre DBV Markdown Reader
-> **Estado:** 🔒 **CONGELADO v1.0 — 2026-09-04** (baseline arquitectónica para el MVP, validada en el Architecture Review final). Incorpora Spec Addendum, Additional Specification Clarification, TYPST CLI INTEGRATION, el research phase dedicado y el feedback de posicionamiento del usuario.
+> **Estado:** 🔒 **CONGELADO v1.0 — 2026-09-04** (baseline arquitectónica para el MVP, validada en el Architecture Review final). Incorpora Spec Addendum, Additional Specification Clarification, TYPST CLI INTEGRATION, el research phase dedicado y el feedback de posicionamiento del usuario. **§7.15 (2026-09-09) y §7.16 (2026-09-11) amplían la línea base con la arquitectura de v0.5.0 y v0.6.0 respectivamente, sin invalidar ninguna decisión de §0.1/§7 anterior.**
 > **Regla de congelación:** las decisiones de §7 son la línea base de `/build`. Cualquier desviación descubierta durante la implementación exige registrar un ADR en `memory.md` **antes** de implementarla, y actualizar este documento — no se cambia la arquitectura de facto en el código.
-> **Última Revisión:** 2026-09-04
+> **Última Revisión:** 2026-09-11
 > **Fuente analizada:** `d:/Programacion/github-davidbuenov/dbv-md-reader` (v0.15.0, commit `23fccad`) + investigación del ecosistema Typst en [`TYPST_ECOSYSTEM_RESEARCH.md`](./TYPST_ECOSYSTEM_RESEARCH.md)
 
 ---
@@ -628,6 +628,43 @@ Para la versión v0.5.0 se incorporan cuatro pilares arquitectónicos que amplí
 | Galería visual de plantillas (thumbnails) | 🟢 Baja | Assets pre-renderizados en `templates/` |
 | Asistente Diagramas CeTZ | 🟢 Baja | Plantillas de código de `@preview/cetz` |
 | Robustez de plataforma (`augment_path`, `write_atomic`) | 🟢 Baja | APIs nativas de Rust (`std::env`, `std::fs`) |
+
+---
+
+### 7.16. Arquitectura v0.6.0: Diagramas WYSIWYG, Menú Herramientas, Clonado, Universe Browser Completo, Bibliografía, macOS, Auto-actualizador y Runtime JavaScript
+
+Especificado en `SPECIFICATIONS.md` §5f (RF-31 a RF-38, congelado v1.7 el 2026-09-11). Siete piezas amplían el sistema; ninguna sustituye una decisión de §0.1/§7 ya tomada, salvo la primera, que sustituye explícitamente al asistente de plantillas de código de CeTZ (v0.5.0, punto 3 de §7.15):
+
+1. **Editor WYSIWYG de Diagramas (RF-31, sustituye al asistente CeTZ):**
+   - **Manipulación directa sobre lienzo:** requiere un modelo de datos propio para nodos/conexiones (forma, posición, texto, estilo) independiente del código CeTZ emitido — el código es la *salida* de guardar, no el estado que se edita, al revés que el asistente actual (que solo inserta plantillas de texto).
+   - **Renderizado del lienzo:** candidato natural es SVG interactivo (mismo formato que ya produce el sidecar `typst` para la vista previa, §7.2), pero la librería o el enfoque a mano queda **sin decidir aquí** — se resuelve en `/plan` con la misma disciplina de verificación contra un caso real que ya se aplicó al elegir CodeMirror 6 (§7.1).
+   - **Traducción a CeTZ:** función pura `modelo → código CeTZ` (patrón `getCompileTarget()` de la lección de v0.4.0, `memory.md`) — serializa el modelo a `cetz.canvas({ ... })` con el mismo `#import` deduplicado que ya usa el asistente actual.
+   - **Reapertura de un diagrama existente:** exige que el bloque insertado lleve una anotación reconocible (comentario o `#metadata`, mismo mecanismo que la sincronización por anclas de RF-16) para distinguir "generado por este editor, reabrible" de "CeTZ escrito a mano, no reabrible".
+
+2. **Menú "Herramientas" (RF-32):** reorganización de frontend sobre paneles ya existentes (`registerPanel()`, componente #13 de §3) — sin comandos Rust nuevos. Agrupa Terminal avanzado (§7.14), runner de Python (RF-22) y las acciones de Git (RF-19), y es el punto de entrada de RF-33 y RF-38.
+
+3. **Clonar por URL (RF-33):** extiende el wrapper de Git de §7.15.2 con un comando `git_clone(url, destino)`, mismo patrón de `current_dir`/degradación limpia/`GIT_TERMINAL_PROMPT=0` que `git_status`/`git_push`/`git_pull` — no es una integración nueva, es una operación más sobre la misma pieza.
+
+4. **Universe Browser Completo (RF-34):** extiende `UniverseIndexState` (§ Gestión de Estado, ya prevista en v0.5.0 como caché en memoria del `index.json`) para servir el catálogo completo sin filtrar, no solo la whitelist curada. Arquitectura de datos sin cambios; cambia el criterio de qué entra en la lista mostrada por defecto (pendiente en `SPECIFICATIONS.md` §9, se cierra en `/plan`).
+
+5. **Bibliografía Visual Completa (RF-35):** primera crate Rust nueva de parseo BibTeX del proyecto (ninguna decidida hasta ahora — pregunta abierta desde el spec original). Debe evaluarse en `/plan` con el mismo research phase dedicado que ya se aplicó a `tinymist` (`memory.md`, lección "antes de comprometerse con una integración externa…").
+
+6. **Empaquetado macOS (RF-36):** §2 ya registra que DBV Markdown Reader empaqueta `dmg/.app` **"sin firmar hoy"** — ese es el gap real que RF-36 debe cerrar para distribución pública (no solo compilar): firma de código y notarización de Apple exigen una cuenta de Apple Developer, que es una decisión/coste del usuario, no solo trabajo de ingeniería. **Estado (2026-09-11): el usuario aún no tiene la cuenta; la espera en los próximos días.** Hasta que llegue, `/build` de RF-36 puede avanzar sin firma (igual que hoy) pero el plan de `/plan` debe marcar explícitamente la firma/notarización como paso bloqueado en espera de esa cuenta, no como trabajo ya cerrado — siguiendo el gate de `MASTER_PROMPT.md` sobre CI de apps nativas multiplataforma.
+
+7. **Auto-actualizador (RF-37):** el componente #7 de §3 (`tauri-plugin-updater`) ya se clasificó **🟢 Trivial** de reutilizar desde DBV Markdown Reader — lo que falta no es el plugin, es activarlo con una clave de firma real, que `ADR-ACTUALIZADOR-001` (`memory.md`) fija que debe generar el propio usuario en su terminal, nunca la IA.
+
+8. **Runtime JavaScript con `jogs` (RF-38):** a diferencia del runner de Python (§7.15.3, subproceso `python`/`py` con timeout), `jogs` es un **paquete Typst normal** (`@preview/jogs:0.2.4`, plugin WASM con QuickJS embebido) — se descarga y cachea con el mismo mecanismo que cualquier paquete de Typst Universe (§7.6.2), sin comando Rust nuevo ni proceso hijo. El asistente de inserción (mismo patrón que el punto 1 de esta sección, pre-RF-31) solo inyecta `#import` + plantilla de código; la ejecución ocurre dentro del propio sidecar `typst` al compilar. Ver `ADR-JOGS-001` (`memory.md`) para el hallazgo completo y lo que queda pendiente de verificar en `/plan` (sandboxing real, límites de memoria/tiempo).
+
+| Componente v0.6.0 | Complejidad | Dependencias Clave |
+| --- | :---: | :--- |
+| Editor WYSIWYG de diagramas | 🔴 Alta | Modelo de datos propio, librería de lienzo sin decidir, traductor a CeTZ |
+| Menú Herramientas | 🟢 Baja | `registerPanel()` ya existente |
+| Clonar por URL | 🟢 Baja | Git local del usuario (mismo wrapper de v0.5.0) |
+| Universe Browser completo | 🟡 Media | `index.json` oficial, criterio de whitelist sin cerrar |
+| Bibliografía visual completa | 🟡 Media | Crate BibTeX en Rust sin decidir |
+| Empaquetado macOS | 🔴 Alta | Cuenta Apple Developer (firma + notarización), CI macOS real |
+| Auto-actualizador | 🟢 Baja | `tauri-plugin-updater`, clave de firma del usuario |
+| Runtime JavaScript (`jogs`) | 🟡 Media | Paquete `@preview/jogs`, sandboxing sin verificar |
 
 ---
 

@@ -85,6 +85,9 @@
             <button id="btn-menu-import-archive" class="menu-item" type="button" role="menuitem">
               <svg class="menu-item__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 6.3 4.1 3h11.8l1.1 3.3"/><rect x="3" y="6.3" width="14" height="9.7" rx="1"/><path d="M8 10h4"/></svg><span data-i18n="action.importArchive"></span>
             </button>
+            <button id="btn-menu-clone-repo" class="menu-item" type="button" role="menuitem">
+              <svg class="menu-item__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="5" cy="5" r="2"/><circle cx="5" cy="15" r="2"/><circle cx="15" cy="9" r="2"/><path d="M5 7v6"/><path d="M5 9c0-2.2 1.8-2 4.5-2S15 7 15 7"/></svg><span data-i18n="action.cloneRepo"></span>
+            </button>
             <div class="menu-separator" role="separator"></div>
             <button id="btn-export-archive" class="menu-item" type="button" role="menuitem">
               <svg class="menu-item__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 6.3 4.1 3h11.8l1.1 3.3"/><rect x="3" y="6.3" width="14" height="9.7" rx="1"/><path d="M8 10h4"/></svg><span data-i18n="action.exportArchive"></span>
@@ -153,6 +156,10 @@
               <button id="btn-import-archive" class="button button--ghost button--icon-label" type="button">
                 <svg class="button__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 6.3 4.1 3h11.8l1.1 3.3"/><rect x="3" y="6.3" width="14" height="9.7" rx="1"/><path d="M8 10h4"/></svg>
                 <span data-i18n="action.importArchive"></span>
+              </button>
+              <button id="btn-clone-repo" class="button button--ghost button--icon-label" type="button">
+                <svg class="button__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="5" cy="5" r="2"/><circle cx="5" cy="15" r="2"/><circle cx="15" cy="9" r="2"/><path d="M5 7v6"/><path d="M5 9c0-2.2 1.8-2 4.5-2S15 7 15 7"/></svg>
+                <span data-i18n="action.cloneRepo"></span>
               </button>
             </div>
           </div>
@@ -633,6 +640,23 @@
         <p class="about-update-status" id="about-update-status"></p>
       </div>
       <footer class="about__footer">David Bueno Vallejo · <span data-i18n="about.license"></span></footer>
+    </div>
+
+    <!-- Clonar repositorio por URL (RF-33): funciona con cualquier remoto Git
+         (GitHub, GitLab, Codeberg, SSH), no solo GitHub — mismo alcance que
+         RF-19 (§5e.1 de SPECIFICATIONS.md). Sin campo de credenciales: la
+         autenticación la resuelve el gestor del sistema, igual que push/pull. -->
+    <div id="clone-panel" class="floating-panel floating-panel--clone hidden" role="dialog" aria-modal="false">
+      <div class="panel__header">
+        <h2 class="floating-panel__title" data-i18n="clone.title"></h2>
+        <button id="btn-clone-close" class="icon-button icon-button--small" type="button" data-i18n-title="action.close">✕</button>
+      </div>
+      <p class="floating-panel__text" data-i18n="clone.hint"></p>
+      <form id="clone-form" class="universe__spec">
+        <input id="clone-url" class="form-row__input" type="text" autocomplete="off" spellcheck="false" data-i18n-placeholder="clone.urlPlaceholder" />
+        <button id="clone-submit" class="button button--primary button--compact" type="submit" data-i18n="clone.action"></button>
+      </form>
+      <p class="form__error hidden" id="clone-error"></p>
     </div>
 
     <script type="module" src="./main.js"></script>

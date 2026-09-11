@@ -1,7 +1,7 @@
 # 📋 Especificaciones: DBV Typst Editor
 
-> **Fase:** `/spec` (Especificación) → **v0.5.0 especificada (reabierta y ampliada)**
-> **Estado:** 🔒 **CONGELADO v1.6 — 2026-09-09.** v1.6 añade **RF-30** a §5e (la cabecera agrupa sus cinco acciones de fichero en un solo menú), propuesto por el usuario tras ver la cabecera con un proyecto abierto.
+> **Fase:** `/spec` (Especificación) → **v0.6.0 especificada**
+> **Estado:** 🔒 **CONGELADO v1.7 — 2026-09-11.** v1.7 abre v0.6.0 (§5f, RF-31 a RF-38) en una sola pasada, a petición explícita del usuario tras la dinámica de v0.5.0 (tres reaperturas del mismo `/spec`): editor WYSIWYG de diagramas que sustituye al asistente CeTZ de RF-23, menú "Herramientas" en la cabecera, alcance de integración con GitHub (clonar por URL, decisión del usuario cerrando la pregunta abierta de §5e.1/§9), Universe Browser completo, bibliografía visual completa, empaquetado macOS, auto-actualizador y ejecución de módulos JavaScript con el paquete Typst Universe `jogs` (runtime QuickJS embebido, análogo al runner de Python de RF-22).
 > **v1.5:** v1.4 consolidó el lanzador (§5d, RF-25 a RF-27, con la precisión de RF-26 criterio 10 añadida el mismo día). **v1.5 añade §5e** —RF-28 (chincheta de ventana encima, portada de DBV Markdown Reader) y RF-29 (ver la previsualización de plantilla a tamaño grande)— tras probar el usuario la aplicación construida, más **§5e.1, que documenta el alcance real de la integración con Git** y por qué NO es integración con GitHub. Ver `ADR-VENTANA-001` en `memory.md`. (baseline de especificación v0.5.0, ampliada). v1.3 especificó el salto a productividad profesional y robustez (v0.5.0): Integración con Git y resolución visual de conflictos (RF-19), Galería visual de plantillas con previsualización (RF-20), Inteligencia de código con Tinymist LSP vendorizado (RF-21), Figuras y datos dinámicos con Python (RF-22), Asistente visual de diagramas CeTZ (RF-23), y Robustez de entorno y guardado atómico (RF-24). **v1.4 reabre ese `/spec`, a decisión del usuario y antes de entregar la versión, para consolidar el lanzador** (§5d): Lanzador de una sola vía (RF-25), Galería unificada de creación de documentos (RF-26) y Tokens semánticos de estado (RF-27). El motivo es que `/build` de v0.5.0 dejó **tres** superficies distintas para elegir plantilla; ver `ADR-LANZADOR-001` en `memory.md`.
 > **Regla de congelación:** a partir de aquí, cualquier cambio de alcance o de requisito exige (1) registrarlo como ADR en `memory.md`, (2) actualizar este documento con nueva versión, y (3) revisar el impacto en `implementation_plan.md`. No se modifican requisitos "al vuelo" durante `/build`.
 > **Documento de diseño:** el sistema visual que rige §5d está en [`DESIGN.md`](./DESIGN.md), escrito el 2026-09-09 (deuda documental abierta desde el `/spec` original, saldada al abordar este rediseño).
@@ -343,7 +343,93 @@ cual en el panel. Esto es una consecuencia deliberada del diseño, no una carenc
 
 **El hueco reconocido:** no se puede clonar un repositorio desde la aplicación. El texto del lanzador ya
 lo refleja con honestidad —habla de abrir "un repositorio clonado"—, dando por hecho que el usuario lo
-clonó por su cuenta. Cubrirlo es trabajo de v0.6.0 (ver §9).
+clonó por su cuenta. Se cubre en v0.6.0 con **RF-33** (§5f).
+
+## ✨ 5f. Funcionalidades — v0.6.0 (Herramientas del Ecosistema)
+
+> Alcance acordado con el usuario el 2026-09-11, congelado en una sola pasada para evitar la dinámica de
+> v0.5.0 (tres reaperturas del mismo `/spec`). Consolida deuda de Beta que llevaba abierta desde el spec
+> original (Universe Browser completo, bibliografía visual, macOS, auto-actualizador) junto con
+> funcionalidad nueva pedida explícitamente en esta sesión (diagramas WYSIWYG, menú Herramientas, alcance
+> de GitHub, runtime JavaScript). Los detalles de implementación que no se han resuelto aquí (crate BibTeX
+> concreto, tamaño/criterio de la whitelist de Universe Browser, mecanismo exacto de invocación de `jogs`)
+> quedan explícitamente diferidos a `/plan`, no a una futura reapertura de este `/spec`.
+
+- [ ] **RF-31 Editor WYSIWYG de Diagramas (sustituye a RF-23).**
+  El asistente visual de diagramas CeTZ (RF-23, `cetzAssistant.js`, botón ⬡) tiene un fallo activo sin
+  arreglar y se sustituye por un editor visual de manipulación directa, en vez de parchearse dos veces
+  (una para el bug, otra para el rediseño).
+  - **Criterios de aceptación:**
+    1. *Manipulación directa.* El usuario dibuja y ajusta formas, conexiones y texto sobre un lienzo interactivo (arrastrar nodos, redimensionar, conectar), no solo elige una plantilla de código ya escrita como hace RF-23 hoy.
+    2. *Emisión de código CeTZ limpio.* El resultado se traduce a `cetz.canvas({ ... })` legible e insertable en el documento, igual que RF-23, manteniendo el `#import "@preview/cetz:0.3.1"` deduplicado.
+    3. *Edición bidireccional mínima.* Reabrir un diagrama ya insertado desde su código CeTZ lo recupera en el lienzo visual, siempre que se generara con este editor (no se exige parsear CeTZ arbitrario escrito a mano).
+    4. *Cubre como mínimo los 4 tipos de RF-23* (flujo, bloques/arquitectura, gráficas 2D, lienzo libre) sin regresión de funcionalidad.
+    5. *El bug actual de RF-23 no se hereda.* Se documenta su causa raíz en `memory.md` antes de empezar la construcción, para no repetirlo en el editor nuevo.
+
+- [ ] **RF-32 Menú "Herramientas" en la cabecera.**
+  Agrupa funcionalidad de ecosistema ya dispersa por la cabecera y la barra del editor en un único punto de entrada, con el mismo criterio de RF-30 (un control en vez de varios).
+  - **Criterios de aceptación:**
+    1. *Un menú, no una reorganización silenciosa.* Terminal avanzado (Beta, §6), runner de Python (RF-22) y las acciones de Git existentes (RF-19) pasan a vivir bajo **Herramientas ▾**; ninguna pierde su atajo de teclado si lo tenía.
+    2. *Punto de entrada para lo nuevo de esta versión.* El clonado por URL de RF-33 y el runner de JavaScript de RF-38 se añaden a este mismo menú, no a superficies nuevas — evita repetir el problema de tres puertas de entrada que motivó RF-25/RF-26.
+    3. *Lo que necesita proyecto abierto se deshabilita, no se oculta*, mismo criterio que RF-26.10 y RF-30.3.
+    4. *Extensible sin rediseño.* La estructura del menú (lista de entradas con icono + etiqueta + acción) admite añadir una entrada nueva sin tocar layout — relevante porque RF-38 ya es la primera incorporación tras el diseño inicial.
+
+- [ ] **RF-33 Clonar Repositorio por URL.**
+  Cierra el hueco reconocido en §5e.1: hoy no se puede clonar desde la aplicación. Decisión del usuario
+  (2026-09-11) entre las 5 alternativas evaluadas en §9: **clonar por URL**, la única que aporta valor sin
+  custodiar credenciales ni atarse a una plataforma concreta.
+  - **Criterios de aceptación:**
+    1. *Campo de URL* accesible desde el menú Herramientas (RF-32) y desde el lanzador, que acepta cualquier URL de remoto Git (no solo `github.com`) — coherente con que RF-19 ya funciona igual con GitLab, Codeberg o SSH.
+    2. *Clona con la CLI de Git ya integrada* (`commands::git`), sin vendorizar Git ni añadir un cliente propio — mismo ADR que RF-19.
+    3. *Repositorios públicos funcionan sin configuración.* Uno privado depende del gestor de credenciales del sistema, con el mismo comportamiento y el mismo error legible que ya tienen `git_push`/`git_pull` (§5e.1) — no se añade custodia de credenciales propia de la aplicación.
+    4. *Tras clonar, abre el proyecto* directamente en el workspace, igual que "Abrir carpeta de proyecto".
+    5. *Error legible* si la URL no es válida, el destino ya existe y no está vacío, o la clonación falla (red, autenticación, repositorio no encontrado) — nunca falla en silencio.
+
+- [ ] **RF-34 Universe Browser Completo (Package Explorer + Template Explorer).**
+  Cierra la deuda de Beta descrita en §6: hoy solo existe una whitelist curada de plantillas/paquetes.
+  - **Criterios de aceptación:**
+    1. *Package Explorer* sobre el `index.json` público de Typst: buscar/explorar por categoría, ver instalados, insertar `#import` con un botón, detección de paquetes usados en el proyecto abierto con insignia de actualización disponible.
+    2. *Template Explorer* sobre el mismo catálogo, filtrado por plantillas: pestañas Instaladas/Comunidad/Favoritas/Recientes/Actualizaciones, integrado en la galería unificada de RF-26 como ampliación de su pestaña "Typst Universe", no como una cuarta puerta de entrada — ver `ADR-UNIVERSE-001`.
+    3. *Transición de "whitelist curada" a "catálogo completo"* con un criterio de confianza visible (p. ej. badge de verificado/curado vs. comunidad sin filtrar) — el tamaño exacto de la whitelist inicial y el criterio de expansión se cierran en `/plan`, no aquí (pregunta ya abierta en §9).
+    4. *El aviso de código de terceros de RF-26.4/RF-26.5 se mantiene* para cualquier paquete o plantilla fuera de la lista curada original.
+
+- [ ] **RF-35 Gestión Visual de Bibliografía Completa.**
+  Cierra la deuda de Beta descrita en §6: hoy la cita del editor solo escanea claves del `.bib` con un
+  escaneo ligero, sin parsear campos.
+  - **Criterios de aceptación:**
+    1. *Explorador de referencias* del `.bib` del proyecto: lista de entradas con autor/título/año, búsqueda y filtro.
+    2. *Autocompletado de citas enriquecido* en el editor (extiende el asistente de cita ya existente) con vista previa del campo completo, no solo la clave.
+    3. *Validación básica* del `.bib`: entradas duplicadas o campos obligatorios ausentes se señalan sin bloquear la edición.
+    4. *Motor/crate BibTeX concreto sin decidir aquí* — pregunta abierta desde el spec original (§9), se resuelve en `/plan` de esta fase con un research phase dedicado, misma disciplina que `tinymist`.
+
+- [ ] **RF-36 Empaquetado macOS.**
+  Cierra la deuda de Beta descrita en §6 y en el roadmap (§11): hoy solo hay empaquetado Windows y Linux.
+  - **Criterios de aceptación:**
+    1. *Bundle `.dmg`/`.app`* generado por Tauri v2 para macOS (Intel y Apple Silicon), con el mismo sidecar `typst`/`tinymist` vendorizado por arquitectura que ya existe para Windows/Linux.
+    2. *CI dedicada* que compila macOS en GitHub Actions — ver gate de `MASTER_PROMPT.md` sobre apps nativas multiplataforma: el plan de `/plan` debe fijar explícitamente qué runner compila qué plataforma y si hay Release automatizada.
+    3. *Verificación funcional mínima* (arranque, compilación de un proyecto de prueba, preview) antes de dar el empaquetado por cerrado — no basta con que compile, misma lección que el fallo del `.msix` de Microsoft Store (`memory.md`, lección 2026-09-07).
+
+- [ ] **RF-37 Auto-actualizador.**
+  Cierra la deuda de Beta descrita en §6 (`tauri-plugin-updater`). Solo bloqueado en un paso manual del
+  usuario, no en una decisión de diseño pendiente.
+  - **Criterios de aceptación:**
+    1. *Clave de firma generada por el propio usuario* en su terminal, nunca por la IA — regla ya fijada en `UPGRADE_PROMPT.md` §4 y confirmada en `ADR-ACTUALIZADOR-001` (`memory.md`).
+    2. *Comprobación de actualizaciones* desde el panel "Acerca de", que hoy solo informa si la instalación es de Microsoft Store o manual — se añade la acción real que antes no existía por falta de esta pieza.
+    3. *Descarga y aplicación firmadas y verificadas* antes de instalar, sin exponer al usuario a un binario sin firmar.
+    4. *No sustituye al canal de actualización de Microsoft Store* cuando la instalación viene de ahí — degrada a "gestionado por la tienda" en ese caso, coherente con la detección de `is_packaged_app` ya existente.
+
+- [ ] **RF-38 Ejecución de Módulos JavaScript con `jogs` (análogo a RF-22).**
+  Paralelo directo del runner de Python (RF-22), pedido explícitamente por el usuario, usando el paquete
+  de Typst Universe [`jogs`](https://typst.app/universe/package/jogs/) (`#import "@preview/jogs:0.2.4"`):
+  runtime **QuickJS embebido como plugin WASM del propio compilador Typst**, sin proceso Node/Deno externo
+  — arquitectura más ligera que RF-22, que sí lanza un proceso `python` real. Investigado antes de fijar
+  alcance, misma disciplina que el research phase de `tinymist` y del ecosistema Typst en general
+  (`TYPST_ECOSYSTEM_RESEARCH.md`).
+  - **Criterios de aceptación:**
+    1. *Asistente de inserción*, en el menú Herramientas (RF-32), que inyecta el `#import` de `jogs` deduplicado y una plantilla de `eval-js`/`call-js-function` lista para editar — mismo patrón que RF-23/RF-31 para CeTZ, no un runner con proceso propio como RF-22.
+    2. *Sin aprovisionamiento de sistema.* A diferencia de RF-22 (detección de intérprete `python`/`py`), no depende de nada instalado fuera de la app: el runtime viaja dentro del propio paquete WASM que Typst ya descarga/cachea.
+    3. *Precompilación opcional* vía `compile-js`, documentada en el asistente para scripts que se reutilizan varias veces en el mismo documento (evita recompilar en cada render).
+    4. *Confirmación exacta del mecanismo de invocación* (cómo se pasa el resultado de vuelta al documento, límites de `list-global-property`, comportamiento si el script lanza una excepción) se cierra en `/plan` con una prueba mínima contra el paquete real, mismo método que validó cada flag del CLI de `typst` en el Slice 2 — la página de Typst Universe no documenta sandboxing explícito y conviene verificarlo antes de exponerlo al usuario.
 
 ## 🚀 6. Funcionalidades — Beta y v1.0 (detalle del Spec Addendum)
 
@@ -355,12 +441,13 @@ Estas funcionalidades están **descritas y arquitectónicamente resueltas** (ver
 - Panel de navegación estructural (esquema del documento, actualizado automáticamente, navegación rápida) — crítico para tesis y documentos extensos. Vía `typst query` del sidecar CLI.
 - Asistentes de inserción **con formulario** (la barra de botones en sí es **v0.2**, RF-13): galería de símbolos matemáticos con búsqueda, diálogo de tabla con dimensiones y alineación, inserción de figura con selector de fichero y copia al proyecto —ampliado en **RF-17** (§5b) a un desplegable con las imágenes que ya tiene el proyecto, por coherencia con el de citas—, cita con autocompletado sobre las claves del `.bib`. Es la capa que necesita UI y datos propios por encima del simple emisor de marcado de RF-13.
 - Gestión de imágenes por arrastre: copiar al proyecto, organizar, generar `figure()` con caption automáticamente. *Entregado en el Slice 19, pero restringido a soltar dentro del panel del editor; **RF-18** (§5b) lo iguala con el arrastre de fuentes, que acepta la ventana entera.*
-- Gestión visual de bibliografía (`.bib`): exploración de referencias, autocompletado de citas, validación.
+- ~~Gestión visual de bibliografía (`.bib`): exploración de referencias, autocompletado de citas, validación.~~ **Movido a v0.6.0 como RF-35 (§5f), 2026-09-11.**
 - Modos de trabajo: Escritura (mínima distracción), Edición (todas las herramientas), Dividido (editor + PDF), Lectura (documento final).
 - Exportación PNG (página actual / rango / documento completo).
-- **Terminal avanzado:** consola opcional, oculta por defecto, para ejecutar subcomandos oficiales de Typst directamente sobre el proyecto activo, con salida mostrada en la app — para usuarios avanzados; no sustituye a ningún flujo guiado. `ARCHITECTURE.md` §7.14.
+- **Terminal avanzado:** consola opcional, oculta por defecto, para ejecutar subcomandos oficiales de Typst directamente sobre el proyecto activo, con salida mostrada en la app — para usuarios avanzados; no sustituye a ningún flujo guiado. `ARCHITECTURE.md` §7.14. **Pasa a vivir bajo el menú Herramientas en v0.6.0 (RF-32, §5f), 2026-09-11.**
 - Autocompletado semántico y diagnósticos en línea vía LSP `tinymist`. ~~Sincronización de scroll editor↔preview por posición real de fuente (no por anclas).~~ **Sustituido el 2026-09-08 por RF-16 (§5b):** el Spike S-2 demuestra que no existe posición real de fuente accesible desde el sidecar —ni `span` en el API de scripting ni anotación en el SVG— y §9 ya había descartado `tinymist` para esto mismo. La sincronización se implementa **con anclas**. `tinymist` sigue siendo candidato para el autocompletado semántico y, en el futuro, para elevar la precisión del sync de bloque a línea.
-- Empaquetado macOS, auto-actualizador (`tauri-plugin-updater`).
+- ~~Empaquetado macOS, auto-actualizador (`tauri-plugin-updater`).~~ **Movidos a v0.6.0 como RF-36 y RF-37 (§5f), 2026-09-11.**
+- ~~Universe Browser — Package Explorer y Template Explorer completos (párrafos de arriba, sobre el catálogo sin filtrar).~~ **Movido a v0.6.0 como RF-34 (§5f), 2026-09-11**: la whitelist curada del lanzador (RF-25/RF-26) cubría el MVP/v0.5.0; el catálogo completo entra en v0.6.0.
 
 **v1.0:**
 - Ecosistema completo de plantillas (categorías ampliadas: Académico, Docencia, Profesional, Presentaciones — ver listado completo del Spec Addendum en `ARCHITECTURE.md` §7.6).
@@ -398,10 +485,10 @@ Estas funcionalidades están **descritas y arquitectónicamente resueltas** (ver
 - [x] ¿Monaco o CodeMirror 6? → Re-evaluado tras el Spec Addendum, confirmado **CodeMirror 6** — ver `ARCHITECTURE.md` §7.1.
 - [x] ¿Integración con Typst vía crates embebidas o CLI? → Resuelto por instrucción explícita del usuario: **CLI oficial vendorizado como sidecar** — ver `ARCHITECTURE.md` §7.2 y `TYPST_ECOSYSTEM_RESEARCH.md`.
 - [x] ¿El catálogo "Comunidad" se apoya en el registro oficial de Typst o en uno propio? → Resuelto tras investigación: **sí, exclusivamente en el `index.json` público oficial** (`packages.typst.org`), nunca en la API privada `api.typst.app` — ver `TYPST_ECOSYSTEM_RESEARCH.md` §5.
-- [ ] ¿Se persigue publicación en Microsoft Store / Uptodown desde el MVP, o se pospone a v1.0 como plantea el roadmap de §6?
-- [ ] Tamaño exacto de la whitelist curada inicial de paquetes/plantillas comunitarios y criterio de expansión hacia el catálogo completo sin filtrar (`ARCHITECTURE.md` §6, §7.6.3).
+- [x] ¿Se persigue publicación en Microsoft Store / Uptodown desde el MVP, o se pospone a v1.0 como plantea el roadmap de §6? → **Superado por los hechos: publicada desde v0.3.1** (Store ID `9PCPSVTNJMP0`), con envíos actualizados en cada entrega posterior (v0.5.0 incluida). No se pospuso a v1.0.
+- [ ] Tamaño exacto de la whitelist curada inicial de paquetes/plantillas comunitarios y criterio de expansión hacia el catálogo completo sin filtrar (`ARCHITECTURE.md` §6, §7.6.3). Se resuelve en `/plan` de **RF-34 (v0.6.0, §5f)**.
 - [ ] ¿`.dbvt` es el nombre de extensión definitivo para el Project Archive, o solo conceptual en el Addendum? Confirmar antes de fijarlo en `tauri.conf.json` (`fileAssociations`) en `/build`.
-- [ ] ¿Qué motor/crate de parseo BibTeX se usa para la gestión visual de bibliografía (Beta)? Se resolverá en `/plan` de esa fase.
+- [ ] ¿Qué motor/crate de parseo BibTeX se usa para la gestión visual de bibliografía? Se resolverá en `/plan` de **RF-35 (v0.6.0, §5f)**.
 - [ ] Spike técnico pendiente (`/build`): ¿sirve `packages.typst.org` una URL directa para las miniaturas/capturas de plantilla (`template.thumbnail`, `screenshots` de la Capa DBV) sin descargar el tarball completo? Condiciona el rendimiento de scroll del Template Explorer (`TYPST_ECOSYSTEM_RESEARCH.md` §5).
 - [x] Spike técnico: ¿hay posición de página suficiente para la navegación del panel de outline? → **Resuelto en el Slice 2, a favor.** No con `typst query` (deprecado y sin serializar la posición) sino con **`typst eval`**, que devuelve nivel, texto, página y coordenada `y` por encabezado. El plan B con `tinymist` queda descartado (`TYPST_ECOSYSTEM_RESEARCH.md` §1.5).
 - [ ] Diseño de UX pendiente (`/build`, Beta): cómo comunicar al usuario que el Universe Browser muestra el catálogo **cacheado en el último sincronizado**, no en vivo, cuando no hay red o el usuario no ha pulsado "Actualizar catálogo" — evitar que parezca desactualizado sin explicación (`ARCHITECTURE.md` §7.6.1).
@@ -412,14 +499,14 @@ Estas funcionalidades están **descritas y arquitectónicamente resueltas** (ver
 - [x] ¿Cómo integrar el control de versiones Git (v0.5.0)? → **Resuelto por decisión del usuario (2026-09-09): apoyarse en la CLI nativa de Git instalada en el sistema del usuario**, con detección en PATH y degradación limpia si no está presente.
 - [x] ¿La pestaña de identificador libre de la galería (RF-26) debe previsualizar la plantilla antes de crear el documento? → **Resuelto por decisión del usuario (2026-09-09): previsualización solo bajo un control explícito** que declara que descarga y ejecuta la plantilla. Se descartaron las dos alternativas: no ofrecer previsualización (pierde el rasgo distintivo de la pantalla) y previsualizar automáticamente al validar el identificador (descargaría y ejecutaría código de terceros solo por teclear, en contra de `ARCHITECTURE.md` §6).
 
-- [ ] **¿Qué debe cubrir la integración con GitHub, y hasta dónde?** Planteada el 2026-09-09 por el usuario, que pidió expresamente **analizar todas las alternativas al inicio de v0.6.0** en vez de decidirlo sobre la marcha. Punto de partida: hoy hay integración con **Git**, no con GitHub (§5e.1) — cuatro operaciones sobre la CLI del sistema y ninguna funcionalidad específica de la plataforma. Alternativas a evaluar, de menor a mayor compromiso:
+- [x] **¿Qué debe cubrir la integración con GitHub, y hasta dónde?** Planteada el 2026-09-09 por el usuario, que pidió expresamente **analizar todas las alternativas al inicio de v0.6.0** en vez de decidirlo sobre la marcha. Punto de partida: hoy hay integración con **Git**, no con GitHub (§5e.1) — cuatro operaciones sobre la CLI del sistema y ninguna funcionalidad específica de la plataforma. Alternativas evaluadas, de menor a mayor compromiso:
   1. **No hacer nada específico de GitHub.** Documentar bien lo que hay y dejar que el usuario clone por fuera. Coste cero; el hueco (no se puede clonar desde la app) sigue abierto.
   2. **Clonar desde una URL.** Pegar una URL en el lanzador, clonar con la CLI y abrir el proyecto. Es el hueco más evidente y el único que no necesita autenticación **si el repositorio es público**. Sobre uno privado vuelve a depender del gestor de credenciales del sistema, con el mismo límite de §5e.1.
   3. **Publicar un proyecto local en GitHub.** `git init` + crear el repositorio remoto + primer *push*. Esto ya **no se puede hacer solo con la CLI**: crear el repositorio exige la API de GitHub y, por tanto, un token.
   4. **Autenticación propia de la aplicación.** Que DBV gestione el acceso en vez de depender del gestor de credenciales del sistema. Aquí hay que elegir mecanismo (*device flow* de OAuth frente a token personal pegado a mano) y, sobre todo, **dónde se guarda el secreto**: un editor offline-first que empieza a custodiar credenciales cambia de categoría en cuanto a superficie de riesgo, y eso afecta a la ficha de privacidad de las tiendas.
   5. **Usar la CLI `gh` si está instalada**, en lugar de hablar con la API. Reutiliza la autenticación que el usuario ya tenga hecha y evita custodiar nada — coherente con la decisión de RF-19 de apoyarse en el binario del sistema— a cambio de depender de una herramienta que la mayoría no tiene instalada.
 
-  **Preguntas que la evaluación debe responder, no solo listar:** ¿cuántos usuarios de este producto usan Git siquiera, siendo un editor pensado para quien "quiere escribir su TFG" y no para desarrolladores? ¿Justifica eso custodiar credenciales? ¿Y encaja atarse a **una** plataforma en un producto que hasta ahora funciona igual con GitLab, Codeberg o un remoto por SSH? La opción 2 es la única que aporta valor sin responder a ninguna de esas preguntas.
+  **→ Resuelto por decisión del usuario (2026-09-11): opción 2, clonar por URL.** Es la que aporta valor sin custodiar credenciales ni atarse a una única plataforma — coherente con que RF-19 ya funciona igual con GitLab, Codeberg o SSH. Las opciones 3, 4 y 5 quedan descartadas para v0.6.0 (no reabren esta pregunta salvo petición futura explícita del usuario). Especificada como **RF-33 (§5f)**.
 
 ## 🧪 10. Criterios de Evaluación (No Deterministas)
 
@@ -442,8 +529,9 @@ Orden de prioridad para toda decisión de diseño/arquitectura (fijado explícit
 | **MVP (v0.1)** — alcance reducido aprobado | Bucle de valor completo: lanzador, proyectos (incl. apertura de proyectos existentes y operaciones Abrir/Mostrar/Recientes), asistente de creación, **4 plantillas** (Proyecto en blanco, TFG, Artículo académico, CV), editor CodeMirror 6, preview SVG en tiempo real, guardado con detección de conflicto, temas, configuración, exportación PDF, empaquetado Windows + Linux. | ✅ Completado (2026-09-05) |
 | **v0.2** | **Barra de herramientas de inserción del editor (RF-13)** + Project Archive `.dbvt` (export/import) + 4 plantillas restantes (TFM, Tesis doctoral, Informe técnico, Presentación). | ✅ Completado (2026-09-05) |
 | **v0.4.0** | Vista previa del **documento completo** conmutable (RF-14), **control de refresco** automático/manual (RF-15), **sincronización editor↔vista previa** por anclas (RF-16), **selector de imágenes del proyecto** en el botón Fig (RF-17) y **arrastre de imágenes** coherente con el de fuentes (RF-18). | ✅ Completado (2026-09-08) |
-| **v0.5.0** | **Integración con Git y diffs side-by-side (RF-19)**, **Galería visual de plantillas con preview (RF-20)**, **LSP Tinymist vendorizado (RF-21)**, **Figuras y datos dinámicos con Python (RF-22)**, **Asistente visual de diagramas CeTZ (RF-23)**, **Robustez de entorno Windows y guardado atómico (RF-24)**. Especificado el 2026-09-09. | 📋 Especificado |
-| **Beta (v0.2–v0.4)** | **Universe Browser** (Package Explorer + Template Explorer, separados a nivel de UX, sobre el `index.json` oficial de Typst Universe), navegación estructural, asistentes de inserción con formulario (la barra en sí es v0.2, RF-13), gestión de imágenes por arrastre, bibliografía visual, modos de escritura, exportación PNG, terminal avanzado, LSP `tinymist`, macOS, auto-actualizador. | En evolución |
+| **v0.5.0** | **Integración con Git y diffs side-by-side (RF-19)**, **Galería visual de plantillas con preview (RF-20)**, **LSP Tinymist vendorizado (RF-21)**, **Figuras y datos dinámicos con Python (RF-22)**, **Asistente visual de diagramas CeTZ (RF-23)**, **Robustez de entorno Windows y guardado atómico (RF-24)**, consolidación del lanzador (RF-25 a RF-27), pulido de ventana y previsualización (RF-28 a RF-30). Cerrado y publicado. | ✅ Completado (2026-09-09) |
+| **v0.6.0** | **Editor WYSIWYG de diagramas (RF-31, sustituye a RF-23)**, **menú Herramientas (RF-32)**, **clonar repositorio por URL (RF-33)**, **Universe Browser completo (RF-34)**, **bibliografía visual completa (RF-35)**, **empaquetado macOS (RF-36)**, **auto-actualizador (RF-37)**, **ejecución de módulos JavaScript con `jogs` (RF-38)**. Especificado el 2026-09-11 en una sola pasada. | 📋 Especificado |
+| **Beta (v0.2–v0.4)** | Navegación estructural, asistentes de inserción con formulario (la barra en sí es v0.2, RF-13), gestión de imágenes por arrastre, modos de escritura, exportación PNG, terminal avanzado, LSP `tinymist`. | ✅ Completado / absorbido por v0.5.0–v0.6.0 |
 | **v1.0** | Ecosistema completo de plantillas, exportación SVG, asistentes avanzados, Paquete Docente, publicación en stores, accesibilidad WCAG AA. | Futuro |
 | **Futuro (post-1.0)** | IA, repositorio comunitario, sincronización, colaboración en tiempo real, integración Zotero/Mendeley, asistentes de redacción académica. | Exploratorio |
 

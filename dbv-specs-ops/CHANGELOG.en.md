@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- **Clone repository by URL (RF-33).** Closes the gap acknowledged in v0.5.0 (`SPECIFICATIONS.md` §5e.1): until now the app could not clone a repository. A new `git_clone` command reuses the same non-interactive Git wrapper already used by `git_status`/`git_commit`/`git_push`/`git_pull` (`GIT_TERMINAL_PROMPT=0`, no credential custody), and works the same with GitHub, GitLab, Codeberg, or SSH — it was not tied to a single platform, an explicit user decision among the 5 alternatives evaluated for v0.6.0. The destination folder name is derived from the URL the same way `git clone` itself does, and it never overwrites an existing non-empty destination. Available from "Clone repository" in the launcher and the File menu; after cloning, it opens the project directly.
+
 ## [0.5.0] - 2026-09-09
 
 ### Added

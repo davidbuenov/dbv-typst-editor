@@ -37,6 +37,7 @@ import { createWizard } from './project-wizard/wizard.js';
 import {
   copyAssetIntoProject,
   copyFontIntoProject,
+  gitClone,
   getAppInfo,
   isPackagedApp,
   getStartupDocument,
@@ -693,6 +694,48 @@ async function bootstrap() {
     }
     await openPath(imported.value.root);
   };
+
+  // Clonar repositorio por URL (RF-33): funciona con cualquier remoto Git, no
+  // solo GitHub — mismo alcance que RF-19 (§5e.1). La carpeta destino se pide
+  // con el mismo diálogo nativo que ya usa `importArchive`, en vez de
+  // construir un selector de carpeta propio.
+  const cloneError = el('clone-error');
+  const showCloneError = (message) => {
+    cloneError.textContent = message;
+    cloneError.classList.remove('hidden');
+  };
+  const clonePanel = registerPanel(el('clone-panel'), {
+    trigger: [el('btn-clone-repo'), el('btn-menu-clone-repo')],
+    toggle: true,
+    onOpen: () => {
+      cloneError.classList.add('hidden');
+      el('clone-url').value = '';
+      el('clone-url').focus();
+    },
+  });
+  el('btn-clone-close').addEventListener('click', clonePanel.close);
+  el('clone-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const url = el('clone-url').value.trim();
+    if (!url) {
+      showCloneError(t('clone.invalidUrl'));
+      return;
+    }
+
+    const destination = await pickProjectFolder();
+    if (!destination.ok || !destination.value) return;
+
+    cloneError.classList.add('hidden');
+    toast.show(t('clone.working'));
+    const cloned = await gitClone({ url, parentDir: destination.value });
+    if (!cloned.ok || !cloned.value.success) {
+      const detail = cloned.ok ? cloned.value.message : cloned.error.message;
+      showCloneError(`${t('clone.failed')} — ${detail}`);
+      return;
+    }
+    clonePanel.close();
+    await openPath(cloned.value.path);
+  });
 
   // Menú Archivo (RF-30). `registerPanel` ya cierra al pulsar fuera y con
   // Escape; aquí solo falta cerrarlo al elegir algo, porque si no el menú se

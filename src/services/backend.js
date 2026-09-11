@@ -209,6 +209,7 @@ export const gitCommit = ({ projectPath, message }) =>
   call('git_commit', { projectPath, message });
 export const gitPush = (projectPath) => call('git_push', { projectPath });
 export const gitPull = (projectPath) => call('git_pull', { projectPath });
+export const gitClone = ({ url, parentDir }) => call('git_clone', { url, parentDir });
 
 // ─── Language Server Tinymist (RF-21) ────────────────────────────────────────
 

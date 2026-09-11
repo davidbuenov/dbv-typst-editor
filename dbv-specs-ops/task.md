@@ -11,7 +11,8 @@
   4. **Tinymist LSP y Python Runner**: LSP en segundo plano con diagnósticos `@codemirror/lint` en vivo, atajos de autocompletado y entorno Python compartido multiplataforma.
 * **Última decisión técnica**: Mapeo estricto de rutas y mockups vectoriales completos en `templateThumbnails.js` y `universeThumbnails.js` con fallback SVG elegante offline; 414 tests en verde (176 Rust + 238 Vitest) + 48 verificaciones de frontend y plantillas (8/8 verify:frontend, 40/40 verify:templates).
 * **Alcance ampliado el 2026-09-09**: el usuario, tras abrir la aplicación construida, pidió simplificar la pantalla de inicio ("aparece compleja... demasiado enrevesado") y decidió que el rediseño entra **en la misma v0.5.0**, reabriendo el `/spec`. Diseño validado en un lienzo de 6 artboards (fuentes en `spikes/launcher-redesign/`) y congelado como RF-25 a RF-27 en `SPECIFICATIONS.md` v1.4 §5d, con `ADR-LANZADOR-001` en `memory.md`.
-* **Próximo paso al retomar**: `/plan` del rediseño del lanzador (RF-25 a RF-27) y, después, consolidación y empaquetado final de v0.5.0 (`/test`, `/code-simplify`, `/ship`).
+* **v0.5.0 cerrado y publicado (2026-09-09/11).** `/spec` de **v0.6.0 CONGELADO v1.7 (2026-09-11)**: RF-31 a RF-38 en `docs/SPECIFICATIONS.md` §5f, en una sola pasada para evitar las tres reaperturas de v0.5.0 — editor WYSIWYG de diagramas (sustituye a RF-23), menú Herramientas, clonar repo por URL, Universe Browser completo, bibliografía visual completa, macOS, auto-actualizador, runner de JavaScript con `jogs`. Ver `ADR-V060-001`, `ADR-GITHUB-001`, `ADR-JOGS-001` en `memory.md`.
+* **Próximo paso al retomar**: `/plan` de v0.6.0 — Modo Orquestador (8 RF, afecta a muchos ficheros), Adversarial Architect Review citando términos concretos de §5f, y desglose en `implementation_plan.md`. Detalles de implementación diferidos a propósito desde el `/spec` (no reabren la pregunta de alcance): crate BibTeX de RF-35, tamaño/criterio de whitelist de RF-34, verificación de sandboxing de `jogs` para RF-38.
 
 ## Checklist de Tareas
 
@@ -254,6 +255,23 @@
   - [x] **`/ship` v0.5.0 COMPLETADO (2026-09-09).** Versión Minor: funcionalidad nueva sin roturas. Bump `0.4.0` → `0.5.0` en los **cuatro** sitios (`package.json`, `tauri.conf.json`, `Cargo.toml` y la entrada del propio paquete en `Cargo.lock`); sección `[0.5.0] - 2026-09-09` cerrada en los DOS changelogs con 43 entradas simétricas, dejando `[Sin publicar]`/`[Unreleased]` vacías; `README.md` y `README.en.md` actualizados (insignias, versión actual y resumen de la entrega); `walkthrough.md` reescrito para v0.5.0; Snapshot de Contexto actualizado; tag `v0.5.0` creado. **`latest.json` se deja a propósito en `0.4.0`:** lo genera `npm run updater:manifest` a partir de un build firmado, y la clave de firma la genera el usuario en su terminal, nunca la IA — editarlo a mano dejaría un manifiesto con una firma que no corresponde.
   - [ ] **PENDIENTE (acción del usuario): `git push origin master --tags`.** Al empujar el tag arrancan los releases de Linux y macOS, y es la primera vez que corren con el arreglo del sidecar de Tinymist: conviene vigilar las dos ejecuciones en vez de darlas por buenas.
 
+- [x] **Fase 12: `/spec` v0.6.0 — CONGELADO v1.7 (2026-09-11).** Alcance acordado en una sola pasada para evitar las tres reaperturas de v0.5.0 (ver `ADR-V060-001` en `memory.md`). `docs/SPECIFICATIONS.md` §5f añade **RF-31 a RF-38**:
+  - [ ] **RF-31** Editor WYSIWYG de diagramas — sustituye al asistente CeTZ (RF-23), que tiene un fallo activo sin arreglar.
+  - [ ] **RF-32** Menú "Herramientas" en la cabecera (Terminal, Python, Git, y punto de entrada de RF-33/RF-38).
+  - [ ] **RF-33** Clonar repositorio por URL — decisión del usuario (2026-09-11) entre las 5 alternativas de integración con GitHub evaluadas en §9: **clonar por URL**, sin custodiar credenciales. Ver `ADR-GITHUB-001`.
+  - [ ] **RF-34** Universe Browser completo (Package Explorer + Template Explorer sobre el catálogo sin filtrar) — deuda de Beta.
+  - [ ] **RF-35** Bibliografía visual completa — deuda de Beta; crate BibTeX sin decidir, se cierra en `/plan`.
+  - [ ] **RF-36** Empaquetado macOS — deuda de Beta/roadmap.
+  - [ ] **RF-37** Auto-actualizador (`tauri-plugin-updater`) — deuda de Beta, bloqueada solo en que el usuario genere su clave de firma.
+  - [ ] **RF-38** Ejecución de módulos JavaScript con `jogs` — análogo a RF-22 (Python) pero investigado y especificado como plugin WASM con QuickJS embebido, no como runner con proceso externo. Ver `ADR-JOGS-001`.
+  - **Próximo paso:** `/plan` de v0.6.0 (Modo Orquestador, Adversarial Architect Review, desglose en `implementation_plan.md`).
+
+- [ ] **Fase 14: `/build` v0.6.0 — en curso desde el 2026-09-11**, aprobado el `implementation_plan.md` (12 slices, 41-52).
+  - [x] **Slice 41 — Clonar repositorio por URL (RF-33) — COMPLETADO (2026-09-11).** `commands::git::git_clone` (nuevo `GitCloneResult`, `derive_clone_destination_name`) reutiliza el wrapper no interactivo existente; nombre de destino derivado de la URL, nunca sobrescribe una carpeta no vacía. UI: botón "Clonar repositorio" en el lanzador y en el menú Archivo, panel `#clone-panel` (reutiliza `.floating-panel`/`.universe__spec`/`.form-row__input` ya existentes, sin CSS nuevo). 280 Vitest + 200 Rust + `verify:frontend` 11/11 en verde.
+
+- [x] **Fase 13: `/plan` v0.6.0 — cerrado el 2026-09-11.** `implementation_plan.md` reescrito con 12 slices (41-52), Adversarial Architect Review (riesgo de `jogs` colgando la vista previa en vivo dentro del sidecar `typst`) y 5 riesgos resueltos (R-31 a R-36, ver frontmatter). Decisiones técnicas cerradas en esta fase, no diferidas más: **`hayagriva`** como crate BibTeX de RF-35 (el mismo motor que usa el propio compilador `typst`), **SVG interactivo a mano** para el lienzo de RF-31 (sin librería nueva), **modelo de dos niveles** (verificado/comunidad) para la whitelist de RF-34. RF-38 empieza por un spike de sandboxing (Slice 43) antes de construir el asistente. RF-37 y RF-36 (parte de firma) quedan aislados al final por depender de acciones externas del usuario (clave de firma, cuenta de Apple Developer) sin bloquear el resto de la versión.
+  - **PENDIENTE: aprobación explícita del usuario antes de `/build`.**
+
 ## 🔄 Context Snapshot / Snapshot de Contexto
 
 > ### 👉 CÓMO RETOMAR ESTE PROYECTO (leer esto primero) — actualizado 2026-09-09, `/ship` v0.5.0 cerrado
@@ -298,19 +316,19 @@
 > 4. **Vigilar la ejecución de macOS** si se empuja el tag: `macos_menu.rs` sigue sin haberse compilado
 >    nunca en un Mac real y es la pieza menos fiable del proyecto.
 >
-> **Trabajo pendiente para v0.6.0, por orden:**
-> - **Decidir la integración con GitHub AL INICIO de la versión**, con las cinco alternativas ya
->   enumeradas en `SPECIFICATIONS.md` §9 (no hacer nada · clonar desde una URL · publicar un proyecto ·
->   autenticación propia · apoyarse en la CLI `gh`). Petición explícita del usuario. La pregunta de
->   fondo no es técnica: si el producto es para quien "quiere escribir su TFG" y no para
->   desarrolladores, ¿cuántos de sus usuarios usan Git siquiera, y justifica eso custodiar credenciales
->   y atarse a una plataforma?
+> **v0.6.0 ya especificada (2026-09-11), no replanificar el alcance — ver Fase 12 arriba y `docs/SPECIFICATIONS.md` §5f (RF-31 a RF-38). Próximo paso: `/plan`.** Detalles que siguen abiertos, a propósito, para resolver en `/plan` en vez de en un nuevo `/spec`:
+> - Crate/motor BibTeX para RF-35 (bibliografía visual completa).
+> - Tamaño y criterio de expansión de la whitelist de RF-34 (Universe Browser completo).
+> - Verificación de sandboxing/límites reales de `jogs` para RF-38 (la página de Typst Universe no lo documenta) — ver `ADR-JOGS-001`.
+> - Causa raíz del fallo actual del asistente CeTZ (RF-23), a documentar antes de construir su reemplazo RF-31, para no heredarlo.
+> - **RF-36 (macOS) bloqueado en la firma/notarización, no en el código: el usuario aún no tiene la cuenta de Apple Developer (2026-09-11), la espera "en unos días".** El resto de RF-36 (bundle `.dmg/.app`, CI dedicada) puede avanzar sin firma mientras tanto, igual que hoy — ver `ARCHITECTURE.md` §7.16.6. Revisar el estado de la cuenta al retomar antes de dar por bloqueado todo RF-36.
+>
+> **Sigue pendiente, sin relación con v0.6.0:**
 > - Bug reportado sin reproducir, arrastrado desde hace sesiones: al escribir dentro de una ecuación, el
 >   estado de la vista previa alterna "Compilando…"/"Página 1".
-> - Bibliografía visual de **lectura** — sigue abierta la pregunta de qué crate BibTeX usar (§9).
-> - `macos_menu.rs` sin cobertura y sin compilar jamás en un Mac.
+> - `macos_menu.rs` sin cobertura y sin compilar jamás en un Mac — se compilará de verdad al construir RF-36.
 >
-> **Última sesión:** 2026-09-09 · **Rama:** `master` · remoto `origin` = `github.com/davidbuenov/dbv-typst-editor` (público) · **7 commits + tag `v0.5.0` sin empujar**.
+> **Última sesión:** 2026-09-11 · **Rama:** `master` · remoto `origin` = `github.com/davidbuenov/dbv-typst-editor` (público) · **7 commits + tag `v0.5.0` sin empujar** (pendiente de acción del usuario, ver arriba).
 
 ### ✅ Qué funciona hoy (MVP v0.1 completo)
 
@@ -393,6 +411,14 @@ Los cuatro primeros se ejecutan también en CI (`.github/workflows/ci.yml`) en c
   mismo patrón ("el fallo no es tuyo y no está en tu mano"), junto con "unknown font family" (Slice 26)
   y la bibliografía ausente (Slice 27); conviene implementarlos como una sola pasada sobre el
   reconocimiento de errores del compilador, no por separado.
+- **Idea propuesta por el usuario (2026-09-10), no especificada todavía: pegar imagen del portapapeles.**
+  Motivación de uso real: en reuniones o cursos, el usuario copia capturas de pantalla y hoy tiene que
+  guardarlas manualmente a disco antes de poder arrastrarlas al proyecto. Propuesta: al pulsar `Ctrl+V` con
+  una imagen (no texto) en el portapapeles, pedir un nombre (o generar uno por defecto), guardarla en
+  `images/` del proyecto — reutilizando `copy_asset_into_project`/`find_existing_copy`, la misma
+  infraestructura del Slice 19 (arrastrar y soltar) y el Slice 21 (selector manual) — e insertarla en la
+  posición del cursor con `figureActionForPath()` si el editor tiene el foco. Candidato natural a un RF
+  propio de la siguiente `/spec`, hermano de RF-17/RF-18.
 - **Investigación abierta: importador Markdown → Typst.** Palanca de adquisición para el público que viene
   de Markdown/Pandoc/MkDocs, muy superior a soportar plantillas Pandoc (razonamiento en ADR-PANDOC-001).
   Aplicando la disciplina de ADR-LATEX-001, **se mide sobre proyectos reales antes de comprometer alcance**.

@@ -34,6 +34,33 @@ pub struct GitCommandResult {
     pub message: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GitCloneResult {
+    pub success: bool,
+    pub message: String,
+    pub path: Option<String>,
+}
+
+/// Deriva el nombre de carpeta destino a partir de una URL de remoto Git,
+/// igual que hace el propio `git clone` sin segundo argumento: el último
+/// segmento de la ruta, sin `.git` final ni barras sobrantes.
+fn derive_clone_destination_name(url: &str) -> Option<String> {
+    let sin_barra_final = url.trim_end_matches('/');
+    let ultimo_segmento = sin_barra_final
+        .rsplit(['/', ':'])
+        .next()
+        .unwrap_or("")
+        .trim();
+    let nombre = ultimo_segmento.strip_suffix(".git").unwrap_or(ultimo_segmento);
+
+    if nombre.is_empty() {
+        None
+    } else {
+        Some(nombre.to_string())
+    }
+}
+
 /// Comprueba si el ejecutable `git` está disponible en el PATH del sistema.
 pub fn is_git_available() -> bool {
     let mut cmd = Command::new("git");
@@ -261,6 +288,59 @@ pub async fn git_pull(project_path: String) -> Result<GitCommandResult, AppError
     Ok(GitCommandResult { success, message })
 }
 
+/// Clona un repositorio remoto por URL dentro de `parent_dir` (RF-33). El
+/// nombre de carpeta se deriva de la URL, igual que el propio `git clone`, y
+/// nunca sobrescribe un destino ya existente y no vacío: es la misma regla de
+/// "nunca se sobrescribe silenciosamente" que RF-19 aplica a los conflictos de
+/// guardado (§5e.1 de SPECIFICATIONS.md).
+#[tauri::command]
+pub async fn git_clone(url: String, parent_dir: String) -> Result<GitCloneResult, AppError> {
+    let parent = PathBuf::from(&parent_dir);
+    if !parent.is_dir() {
+        return Err(AppError::InvalidPath(parent_dir));
+    }
+
+    if !is_git_available() {
+        return Ok(GitCloneResult {
+            success: false,
+            message: "Git no está disponible en el PATH del sistema.".to_string(),
+            path: None,
+        });
+    }
+
+    let Some(nombre_destino) = derive_clone_destination_name(&url) else {
+        return Err(AppError::InvalidPath(url));
+    };
+
+    let destino = parent.join(&nombre_destino);
+    if destino.exists() {
+        let no_vacio = destino
+            .read_dir()
+            .map(|mut entradas| entradas.next().is_some())
+            .unwrap_or(true);
+        if no_vacio {
+            return Err(AppError::Denied(format!(
+                "Ya existe una carpeta no vacía en {}",
+                destino.display()
+            )));
+        }
+    }
+
+    let clone_out = git_command(&parent)
+        .args(["clone", "--", &url, &nombre_destino])
+        .output()
+        .map_err(|e| AppError::Io(format!("Fallo al ejecutar git clone: {e}")))?;
+
+    let stderr = String::from_utf8_lossy(&clone_out.stderr);
+    let success = clone_out.status.success();
+
+    Ok(GitCloneResult {
+        success,
+        message: if success { destino.display().to_string() } else { stderr.to_string() },
+        path: if success { Some(destino.display().to_string()) } else { None },
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -375,5 +455,35 @@ mod tests {
         // producir una entrada con una ruta falsa en la lista de modificados.
         let estado = parse_git_status_output("# branch.head master\n1 .M N... 100644\n");
         assert!(estado.modified_files.is_empty());
+    }
+
+    #[test]
+    fn deriva_el_nombre_de_una_url_https_con_sufijo_git() {
+        let nombre = derive_clone_destination_name("https://github.com/davidbuenov/dbv-typst-editor.git");
+        assert_eq!(nombre, Some("dbv-typst-editor".to_string()));
+    }
+
+    #[test]
+    fn deriva_el_nombre_de_una_url_https_sin_sufijo_git() {
+        let nombre = derive_clone_destination_name("https://gitlab.com/usuario/mi-tfg");
+        assert_eq!(nombre, Some("mi-tfg".to_string()));
+    }
+
+    #[test]
+    fn deriva_el_nombre_de_una_url_ssh() {
+        let nombre = derive_clone_destination_name("git@codeberg.org:usuario/repo.git");
+        assert_eq!(nombre, Some("repo".to_string()));
+    }
+
+    #[test]
+    fn deriva_el_nombre_ignorando_una_barra_final() {
+        let nombre = derive_clone_destination_name("https://github.com/davidbuenov/dbv-typst-editor/");
+        assert_eq!(nombre, Some("dbv-typst-editor".to_string()));
+    }
+
+    #[test]
+    fn deriva_ninguno_de_una_url_vacia_o_sin_segmento() {
+        assert_eq!(derive_clone_destination_name(""), None);
+        assert_eq!(derive_clone_destination_name("/"), None);
     }
 }

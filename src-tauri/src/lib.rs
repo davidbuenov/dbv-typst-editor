@@ -98,6 +98,7 @@ pub fn run() {
             commands::file_io::reveal_in_file_manager,
             commands::file_io::save_file_dialog,
             commands::file_io::write_file,
+            commands::git::git_clone,
             commands::git::git_commit,
             commands::git::git_pull,
             commands::git::git_push,

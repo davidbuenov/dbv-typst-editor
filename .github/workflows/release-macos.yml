@@ -1,10 +1,13 @@
 name: Release macOS
 
-# Construye el .dmg y el .app (SIN firmar ni notarizar) y los adjunta al mismo
-# borrador de GitHub Release que crean los demás workflows, en cada tag vX.Y.Z.
-# Ver NATIVE_APPS_RELEASE_CI.md §8 sobre por qué distribuir sin firma es una
-# decisión legítima, y su checklist de Gatekeeper para el usuario final
-# (clic derecho → Abrir, o `xattr -cr` sobre el .app).
+# Construye el .dmg y el .app y los adjunta al mismo borrador de GitHub Release
+# que crean los demás workflows, en cada tag vX.Y.Z. Firma y notariza SOLO si
+# los secretos `APPLE_*` existen en el repositorio (RF-36, v0.6.0, Slice 52) —
+# hoy no existen (el usuario todavía no tiene la cuenta de Apple Developer), así
+# que el build sale sin firmar, igual que hasta ahora. Ver NATIVE_APPS_RELEASE_CI.md
+# §8 sobre por qué distribuir sin firma es una decisión legítima mientras tanto,
+# y su checklist de Gatekeeper para el usuario final (clic derecho → Abrir, o
+# `xattr -cr` sobre el .app).
 #
 # Build universal (--target universal-apple-darwin): macos-latest es Apple
 # Silicon, así que sin esto el binario no arrancaría en un Mac Intel — Rosetta
@@ -122,10 +125,23 @@ jobs:
       - name: Tests del backend
         run: npm test
 
+      # RF-36 (v0.6.0, Slice 52): firma/notarización condicionada a que estos
+      # secretos EXISTAN en el repositorio — hoy no existen (el usuario aún no
+      # tiene la cuenta de Apple Developer, ARCHITECTURE.md §7.16.6), así que
+      # llegan vacíos y `tauri-action` construye sin firmar, exactamente como
+      # hasta ahora. El día que se configuren, este mismo workflow empieza a
+      # firmar sin tocarlo de nuevo — evita el riesgo R-36 del plan (CI en rojo
+      # permanente si el paso de firma se activara antes de tener la cuenta).
       - name: Build y Release (macOS universal)
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
           args: --target universal-apple-darwin
           tagName: ${{ steps.version.outputs.tag }}

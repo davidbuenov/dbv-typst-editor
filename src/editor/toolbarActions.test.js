@@ -21,9 +21,12 @@ import {
   cetzAction,
   figureActionForPath,
   getCetzSnippet,
+  getJogsSnippet,
   hasCetzImport,
+  hasJogsImport,
   insertSymbolAction,
   isInsideMath,
+  jogsAction,
   tableAction,
 } from './toolbarActions.js';
 
@@ -321,6 +324,40 @@ describe('cetzAction', () => {
     const res = apply('cetz', '', 0);
     expect(res.doc).toContain('#import "@preview/cetz:0.3.1"');
     expect(res.doc).toContain('cetz.canvas');
+  });
+});
+
+describe('jogsAction', () => {
+  it('detecta correctamente si jogs ya está importado', () => {
+    expect(hasJogsImport('#import "@preview/jogs:0.2.4": eval-js')).toBe(true);
+    expect(hasJogsImport("#import '@preview/jogs:0.2.0'")).toBe(true);
+    expect(hasJogsImport('#import "@preview/jogs"')).toBe(true);
+    expect(hasJogsImport('= Mi Documento\n\nTexto normal')).toBe(false);
+  });
+
+  it('el snippet usa eval-js y avisa del margen de 45s', () => {
+    const snippet = getJogsSnippet();
+    expect(snippet).toContain('eval-js');
+    expect(snippet).toContain('45s');
+  });
+
+  it('inyecta #import "@preview/jogs:0.2.4" en la cabecera si no existe', () => {
+    const state = stateWithSelection('= Documento\n\n', 13);
+    const spec = jogsAction()(state);
+    const next = state.update(spec).state;
+    const doc = next.doc.toString();
+    expect(doc.startsWith('#import "@preview/jogs:0.2.4": eval-js')).toBe(true);
+    expect(doc).toContain('eval-js');
+  });
+
+  it('no duplica el #import si ya está presente en el documento', () => {
+    const initial = '#import "@preview/jogs:0.2.4": eval-js\n\n= Documento\n';
+    const state = stateWithSelection(initial, initial.length);
+    const spec = jogsAction()(state);
+    const next = state.update(spec).state;
+    const doc = next.doc.toString();
+    const matches = doc.match(/#import\s+"@preview\/jogs/g);
+    expect(matches?.length).toBe(1);
   });
 });
 

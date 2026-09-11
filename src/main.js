@@ -13,7 +13,7 @@
 import { createWorkspace } from './app/workspace.js';
 import { createUpdater } from './app/updater.js';
 import { PANELS, getPanelState, initPanels, togglePanel } from './app/workspacePanels.js';
-import { figureActionForPath } from './editor/toolbarActions.js';
+import { figureActionForPath, jogsAction } from './editor/toolbarActions.js';
 import { decideImageDrop, pathsWithExtension } from './app/dropTarget.js';
 import { applyTranslations, getLanguage, setLanguage, t } from './i18n/i18n.js';
 import { createHelp } from './help/help.js';
@@ -765,6 +765,21 @@ async function bootstrap() {
   });
   el('tools-menu').addEventListener('click', (event) => {
     if (event.target.closest('.menu-item')) toolsMenu.close();
+  });
+
+  // Asistente de inserción jogs (RF-38): inyecta #import + plantilla de
+  // eval-js, mismo patrón que el asistente de diagramas CeTZ — no un runner
+  // con proceso propio como el de Python (RF-22), porque jogs corre DENTRO
+  // de la compilación (ver ADR-JOGS-001 en memory.md).
+  el('btn-jogs-insert').addEventListener('click', () => {
+    const view = workspace.editor.getView();
+    if (!workspace.state.document || !view) {
+      toast.show(t('jogs.needDocument'), 'error');
+      return;
+    }
+    view.dispatch(jogsAction()(view.state));
+    view.focus();
+    toast.show(t('jogs.inserted'));
   });
 
   el('btn-open-folder').addEventListener('click', openFolder);

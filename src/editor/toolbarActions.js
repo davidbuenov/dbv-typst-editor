@@ -521,6 +521,73 @@ export function getCetzSnippet(type) {
 }
 
 /**
+ * Comprueba si el documento ya importa `jogs` (RF-38).
+ * @param {string} docText
+ * @returns {boolean}
+ */
+export function hasJogsImport(docText) {
+  return /#import\s+["']@preview\/jogs[:0-9.]*["']/.test(docText);
+}
+
+/**
+ * Plantilla de inserción de `jogs` (RF-38): runtime JavaScript vía QuickJS
+ * embebido en el propio plugin WASM de Typst, sin proceso externo — a
+ * diferencia del runner de Python (RF-22), que sí lanza un proceso real.
+ * `eval-js` corre DENTRO de la compilación, así que un bucle infinito en el
+ * script no lo detiene ningún timeout de proceso hijo (verificado en el
+ * spike `spikes/jogs-sandbox/`, ver `ADR-JOGS-001` en memory.md): el motor
+ * de compilación tiene un margen de 45s antes de matar el proceso — esta
+ * plantilla avisa de ello para que el usuario nunca dependa de descubrirlo.
+ */
+export function getJogsSnippet() {
+  return `// jogs (RF-38): evita bucles sin condición de salida — la
+// compilación se cancela a los 45s si el script no termina.
+#let resultado = eval-js("1 + 1")
+#resultado`;
+}
+
+/**
+ * Genera la transacción para insertar el arranque de un script `jogs`,
+ * inyectando el `#import "@preview/jogs:0.2.4"` en la cabecera si el
+ * documento no lo tiene ya. Mismo patrón que `cetzAction`, sin selector de
+ * tipo porque `jogs` no tiene variantes que elegir.
+ */
+export function jogsAction() {
+  return function buildTransaction(state) {
+    const docText = state.doc.toString();
+    const needsImport = !hasJogsImport(docText);
+    const importText = '#import "@preview/jogs:0.2.4": eval-js\n\n';
+    const snippet = getJogsSnippet();
+    const { from, to } = state.selection.main;
+
+    if (from === 0) {
+      const fullText = (needsImport ? importText : '') + snippet + '\n\n';
+      return {
+        changes: { from: 0, to, insert: fullText },
+        selection: { anchor: fullText.length },
+      };
+    }
+
+    const before = docText[from - 1] === '\n' ? '\n' : '\n\n';
+    const body = before + snippet + '\n';
+    const changes = [];
+    let offset = 0;
+
+    if (needsImport) {
+      changes.push({ from: 0, to: 0, insert: importText });
+      offset = importText.length;
+    }
+    changes.push({ from, to, insert: body });
+
+    const newPos = from + offset + body.length;
+    return {
+      changes,
+      selection: { anchor: newPos },
+    };
+  };
+}
+
+/**
  * Genera la transacción para insertar un diagrama CeTZ, inyectando el
  * #import "@preview/cetz:0.3.1" en la cabecera si el documento no lo tiene ya.
  * @param {'flowchart'|'block'|'plot'|'canvas'} type

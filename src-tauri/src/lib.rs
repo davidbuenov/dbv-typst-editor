@@ -88,6 +88,7 @@ pub fn run() {
             assets::pick_image_dialog,
             assets::project_images,
             assets::supported_asset_extensions,
+            bibliography::bibliography_entries,
             bibliography::bibliography_keys,
             commands::app_info::app_info,
             commands::app_info::is_packaged_app,

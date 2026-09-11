@@ -7,15 +7,35 @@
 //
 // Asistente "Insertar cita con autocompletado sobre las claves reales del
 // .bib del proyecto" — el botón "Cite" de la barra (RF-13) ya no inserta un
-// marcador genérico: abre este desplegable, filtrable, con las claves reales
-// (`bibliography.rs`, escaneo ligero, sin parser BibTeX completo).
+// marcador genérico: abre este desplegable, filtrable, con las claves reales.
 //
 // Desde RF-17 la mecánica del desplegable (cargar, filtrar, elegir, salida de
 // escape) vive en `filterablePicker.js`, compartida con el de imágenes. Aquí
-// queda solo lo propio de citar: de dónde salen las claves y qué se inserta.
+// queda solo lo propio de citar: de dónde salen las entradas y qué se inserta.
+//
+// RF-35 (v0.6.0): la etiqueta deja de ser solo la clave y pasa a mostrar el
+// campo completo (título, autor, año) — `bibliography_entries`, parseado con
+// `hayagriva`, en vez del escaneo ligero de `bibliography_keys` (que sigue
+// existiendo para quien solo necesita las claves, p. ej. el explorador de
+// paquetes). Una entrada duplicada o sin título/autor lleva un aviso ⚠ en la
+// propia etiqueta — visible, sin bloquear la inserción (RF-35.3).
 
-import { getBibliographyKeys } from '../services/backend.js';
+import { getBibliographyEntries } from '../services/backend.js';
 import { createFilterablePicker } from './filterablePicker.js';
+
+/**
+ * Etiqueta visible del desplegable para una entrada de `bibliography_entries`.
+ * @param {{key: string, title: string|null, authors: string[], year: number|null, duplicate: boolean, missingRequired: boolean}} entry
+ */
+export function labelForEntry(entry) {
+  const authorPart = entry.authors[0] ? entry.authors[0].split(',')[0] : null;
+  const yearPart = entry.year ?? null;
+  const detail = [entry.title, authorPart && yearPart ? `${authorPart}, ${yearPart}` : authorPart || yearPart]
+    .filter(Boolean)
+    .join(' — ');
+  const warning = entry.duplicate || entry.missingRequired ? '⚠ ' : '';
+  return detail ? `${warning}${entry.key} — ${detail}` : `${warning}${entry.key}`;
+}
 
 /**
  * @param {object} deps
@@ -30,11 +50,11 @@ import { createFilterablePicker } from './filterablePicker.js';
  * @param {() => import('@codemirror/view').EditorView | null} deps.getView
  */
 export function createCitationPicker({ panelEl, listEl, filterEl, newEntryButtonEl, onCreateNew, getRoot, getView }) {
-  function insertCitation(key) {
+  function insertCitation(entry) {
     const view = getView();
     if (!view) return;
     const { from, to } = view.state.selection.main;
-    const text = `#cite(<${key}>)`;
+    const text = `#cite(<${entry.key}>)`;
     view.dispatch({ changes: { from, to, insert: text }, selection: { anchor: from + text.length } });
     view.focus();
   }
@@ -48,11 +68,11 @@ export function createCitationPicker({ panelEl, listEl, filterEl, newEntryButton
     load: async () => {
       const root = getRoot();
       if (!root) return [];
-      const result = await getBibliographyKeys(root);
-      return result.ok ? result.value.keys : [];
+      const result = await getBibliographyEntries(root);
+      return result.ok ? result.value : [];
     },
     onPick: insertCitation,
-    labelOf: (key) => key,
+    labelOf: labelForEntry,
     emptyKey: 'citation.empty',
     noMatchesKey: 'citation.noMatches',
   });

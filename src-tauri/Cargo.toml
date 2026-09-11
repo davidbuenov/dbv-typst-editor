@@ -50,6 +50,11 @@ dunce = "1"
 # Misma librería que ya usaba DBV Markdown Reader para su propio catálogo
 # (ARCHITECTURE.md §2), en vez de introducir un segundo cliente HTTP.
 ureq = { version = "3", features = ["json"] }
+# v0.6.0: Bibliografía visual completa (RF-35) — el mismo motor de parseo
+# BibTeX/Hayagriva que usa el propio compilador Typst para `#bibliography()`,
+# en vez de un crate distinto que pudiera divergir de lo que la app compila
+# de verdad (ADR-BIBLIOGRAFIA-001, memory.md).
+hayagriva = "0.10.1"
 
 # Beta: menú nativo de macOS (macos_menu.rs) — dependencia exclusiva de esa
 # plataforma (`[target...]`, no una feature): en Windows/Linux ni siquiera se

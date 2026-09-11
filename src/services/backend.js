@@ -165,6 +165,8 @@ export const getOutline = (target) => call('typst_outline', { target });
 /** Tabla de anclas para la sincronización editor↔vista previa (RF-16). */
 export const getSyncAnchors = (target) => call('typst_sync_anchors', { target });
 export const getBibliographyKeys = (root) => call('bibliography_keys', { root });
+/** RF-35: bibliografía completa con campos y validación básica (duplicados, campos ausentes). */
+export const getBibliographyEntries = (root) => call('bibliography_entries', { root });
 
 // ─── Gestión de imágenes por arrastre (Beta, §7.10) ──────────────────────────
 

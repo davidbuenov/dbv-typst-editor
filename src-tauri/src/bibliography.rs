@@ -17,6 +17,7 @@
 // esto: el asistente solo necesita saber qué claves existen, no leer los
 // campos de cada entrada.
 
+use std::collections::HashSet;
 use std::fs;
 use std::path::Path;
 
@@ -74,22 +75,17 @@ pub struct BibliographyKeys {
     pub keys: Vec<String>,
 }
 
-/// Claves de cita disponibles en el proyecto (Beta, asistente "Insertar cita").
+/// Contenido de cada `.bib` de la raíz del proyecto, concatenado.
 ///
 /// Solo mira `.bib` en la raíz del proyecto — es donde las 8 plantillas
 /// curadas de DBV colocan `refs.bib`, y cubre el caso real sin recorrer todo
-/// el árbol de un proyecto ajeno pieza a pieza. Un proyecto sin `.bib` no es
-/// un error: devuelve una lista vacía (RF-02b, degradación limpia).
-#[tauri::command]
-pub fn bibliography_keys(root: String) -> Result<BibliographyKeys, AppError> {
-    let root_path = Path::new(&root);
-    if !root_path.is_dir() {
-        return Err(AppError::InvalidPath(root));
-    }
-
-    let mut keys = Vec::new();
+/// el árbol de un proyecto ajeno pieza a pieza. Compartida entre
+/// `bibliography_keys` (Beta) y `bibliography_entries` (RF-35, v0.6.0) para
+/// no leer el disco dos veces con dos criterios distintos de qué es un `.bib`.
+fn read_project_bib_sources(root_path: &Path) -> Vec<String> {
+    let mut sources = Vec::new();
     let Ok(entries) = fs::read_dir(root_path) else {
-        return Ok(BibliographyKeys { keys });
+        return sources;
     };
     for entry in entries.filter_map(|entry| entry.ok()) {
         let path = entry.path();
@@ -101,12 +97,102 @@ pub fn bibliography_keys(root: String) -> Result<BibliographyKeys, AppError> {
             continue;
         }
         if let Ok(source) = fs::read_to_string(&path) {
-            keys.extend(extract_keys(&source));
+            sources.push(source);
         }
+    }
+    sources
+}
+
+/// Claves de cita disponibles en el proyecto (Beta, asistente "Insertar cita").
+///
+/// Un proyecto sin `.bib` no es un error: devuelve una lista vacía (RF-02b,
+/// degradación limpia).
+#[tauri::command]
+pub fn bibliography_keys(root: String) -> Result<BibliographyKeys, AppError> {
+    let root_path = Path::new(&root);
+    if !root_path.is_dir() {
+        return Err(AppError::InvalidPath(root));
+    }
+
+    let mut keys = Vec::new();
+    for source in read_project_bib_sources(root_path) {
+        keys.extend(extract_keys(&source));
     }
     keys.sort();
     keys.dedup();
     Ok(BibliographyKeys { keys })
+}
+
+/// Una entrada bibliográfica ya interpretada, para el explorador de
+/// referencias y el autocompletado enriquecido de citas (RF-35, v0.6.0).
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BibliographyEntry {
+    pub key: String,
+    pub entry_type: String,
+    pub title: Option<String>,
+    pub authors: Vec<String>,
+    pub year: Option<i32>,
+    /// La misma clave aparece más de una vez en los `.bib` del proyecto —
+    /// `hayagriva::Library` es un mapa por clave, así que una entrada
+    /// duplicada desaparecería en silencio si no se detectara ANTES de
+    /// parsear, sobre el texto crudo (mismo `extract_keys` de arriba).
+    pub duplicate: bool,
+    /// Sin título o sin ningún autor: el mínimo común a cualquier tipo de
+    /// entrada BibTeX. Validación "básica" a propósito (RF-35.3) — reglas
+    /// completas por tipo (`article` exige `journal`, etc.) quedan fuera.
+    pub missing_required: bool,
+}
+
+/// Bibliografía completa del proyecto, con campos y validación básica
+/// (RF-35): explorador de referencias y autocompletado de citas enriquecido.
+///
+/// Parseada con `hayagriva` (`ADR-BIBLIOGRAFIA-001`, memory.md) — el mismo
+/// motor que usa el propio compilador Typst para `#bibliography()`, así que
+/// lo que aquí se muestra como válido es lo que el compilador acepta de
+/// verdad. Una entrada que hayagriva no consigue parsear no tumba el
+/// explorador entero: se omite, degradación limpia (RF-02b).
+#[tauri::command]
+pub fn bibliography_entries(root: String) -> Result<Vec<BibliographyEntry>, AppError> {
+    let root_path = Path::new(&root);
+    if !root_path.is_dir() {
+        return Err(AppError::InvalidPath(root));
+    }
+
+    let sources = read_project_bib_sources(root_path);
+
+    let mut raw_keys = Vec::new();
+    for source in &sources {
+        raw_keys.extend(extract_keys(source));
+    }
+    let mut seen = HashSet::new();
+    let duplicated_keys: HashSet<String> =
+        raw_keys.into_iter().filter(|key| !seen.insert(key.clone())).collect();
+
+    let mut entries = Vec::new();
+    for source in &sources {
+        let Ok(library) = hayagriva::io::from_biblatex_str(source) else {
+            continue;
+        };
+        for entry in library.iter() {
+            let title = entry.title().map(|value| value.to_string());
+            let authors: Vec<String> = entry
+                .authors()
+                .map(|people| people.iter().map(|person| person.name_first(false, false)).collect())
+                .unwrap_or_default();
+            entries.push(BibliographyEntry {
+                key: entry.key().to_string(),
+                entry_type: format!("{:?}", entry.entry_type()).to_lowercase(),
+                title: title.clone(),
+                duplicate: duplicated_keys.contains(entry.key()),
+                missing_required: title.is_none() || authors.is_empty(),
+                authors,
+                year: entry.date().map(|date| date.year),
+            });
+        }
+    }
+    entries.sort_by(|a, b| a.key.cmp(&b.key));
+    Ok(entries)
 }
 
 #[cfg(test)]
@@ -171,6 +257,67 @@ mod tests {
         fs::write(&file, "= Título\n").unwrap();
 
         let result = bibliography_keys(file.to_string_lossy().to_string());
+        assert!(matches!(result, Err(AppError::InvalidPath(_))));
+    }
+
+    #[test]
+    fn bibliography_entries_lee_titulo_autor_y_ano() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(
+            dir.path().join("refs.bib"),
+            "@article{knuth1984,\n  title = {The TeXbook},\n  author = {Knuth, Donald E.},\n  year = {1984},\n}\n",
+        )
+        .unwrap();
+
+        let entries = bibliography_entries(dir.path().to_string_lossy().to_string()).unwrap();
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].key, "knuth1984");
+        assert_eq!(entries[0].title.as_deref(), Some("The TeXbook"));
+        assert_eq!(entries[0].authors, vec!["Knuth, Donald E.".to_string()]);
+        assert_eq!(entries[0].year, Some(1984));
+        assert!(!entries[0].duplicate);
+        assert!(!entries[0].missing_required);
+    }
+
+    #[test]
+    fn bibliography_entries_marca_una_clave_duplicada() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(
+            dir.path().join("refs.bib"),
+            "@misc{dup2025, title = {Uno}, author = {A}}\n@misc{dup2025, title = {Dos}, author = {B}}\n",
+        )
+        .unwrap();
+
+        let entries = bibliography_entries(dir.path().to_string_lossy().to_string()).unwrap();
+        assert!(entries.iter().all(|entry| entry.duplicate), "{entries:?}");
+    }
+
+    #[test]
+    fn bibliography_entries_marca_falta_de_titulo_o_autor() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("refs.bib"), "@misc{incompleta2025, note = {sin título ni autor}}\n").unwrap();
+
+        let entries = bibliography_entries(dir.path().to_string_lossy().to_string()).unwrap();
+        assert_eq!(entries.len(), 1);
+        assert!(entries[0].missing_required);
+    }
+
+    #[test]
+    fn bibliography_entries_de_proyecto_sin_bib_es_lista_vacia() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("main.typ"), "= Título\n").unwrap();
+
+        let entries = bibliography_entries(dir.path().to_string_lossy().to_string()).unwrap();
+        assert!(entries.is_empty());
+    }
+
+    #[test]
+    fn bibliography_entries_rechaza_una_ruta_que_no_es_carpeta() {
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join("main.typ");
+        fs::write(&file, "= Título\n").unwrap();
+
+        let result = bibliography_entries(file.to_string_lossy().to_string());
         assert!(matches!(result, Err(AppError::InvalidPath(_))));
     }
 }

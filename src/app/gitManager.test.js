@@ -80,6 +80,7 @@ describe('gitManager', () => {
         behind: 0,
         modifiedFiles: [],
         untrackedFiles: [],
+        conflictedFiles: [],
       },
     });
 
@@ -99,6 +100,7 @@ describe('gitManager', () => {
         behind: 0,
         modifiedFiles: ['main.typ'],
         untrackedFiles: ['extra.typ'],
+        conflictedFiles: [],
       },
     });
 
@@ -124,6 +126,7 @@ describe('gitManager', () => {
         behind: 0,
         modifiedFiles: ['doc.typ'],
         untrackedFiles: [],
+        conflictedFiles: [],
       },
     });
 
@@ -161,6 +164,7 @@ describe('gitManager', () => {
         behind: 0,
         modifiedFiles: [],
         untrackedFiles: [],
+        conflictedFiles: [],
       },
     });
 
@@ -184,6 +188,7 @@ describe('gitManager', () => {
         behind: 0,
         modifiedFiles: [],
         untrackedFiles: [],
+        conflictedFiles: [],
       },
     });
 
@@ -204,7 +209,7 @@ describe('gitManager', () => {
     });
     vi.spyOn(backend, 'gitStatus').mockResolvedValue({
       ok: true,
-      value: { isRepo: true, branch: 'main', ahead: 0, behind: 1, modifiedFiles: ['main.typ'], untrackedFiles: [] },
+      value: { isRepo: true, branch: 'main', ahead: 0, behind: 1, modifiedFiles: ['main.typ'], untrackedFiles: [], conflictedFiles: [] },
     });
 
     setup();
@@ -223,7 +228,7 @@ describe('gitManager', () => {
     });
     vi.spyOn(backend, 'gitStatus').mockResolvedValue({
       ok: true,
-      value: { isRepo: true, branch: 'main', ahead: 0, behind: 0, modifiedFiles: [], untrackedFiles: [] },
+      value: { isRepo: true, branch: 'main', ahead: 0, behind: 0, modifiedFiles: [], untrackedFiles: [], conflictedFiles: [] },
     });
 
     setup();
@@ -231,5 +236,49 @@ describe('gitManager', () => {
 
     await vi.waitFor(() => expect(notifications.length).toBe(1));
     expect(notifications[0].msg).toBe('fatal: unable to access remote');
+  });
+
+  it('shows a conflicted file with its own Resolve button, ahead of the regular list', async () => {
+    vi.spyOn(backend, 'gitStatus').mockResolvedValue({
+      ok: true,
+      value: {
+        isRepo: true,
+        branch: 'main',
+        ahead: 0,
+        behind: 1,
+        modifiedFiles: ['other.typ'],
+        untrackedFiles: [],
+        conflictedFiles: ['main.typ'],
+      },
+    });
+
+    const resolved = [];
+    const manager = createGitManager({
+      indicatorEl,
+      triggerBtn,
+      branchEl,
+      summaryEl,
+      panelEl,
+      popoverBranchEl,
+      popoverAbEl,
+      filesEl,
+      commitInputEl,
+      commitBtn,
+      pushBtn,
+      pullBtn,
+      getProjectPath: () => '/mi/repo',
+      notify: (msg, tone) => notifications.push({ msg, tone }),
+      onResolveConflict: (path) => resolved.push(path),
+    });
+
+    await manager.refresh();
+
+    const items = filesEl.querySelectorAll('.git-popover__file-item');
+    expect(items.length).toBe(2);
+    expect(items[0].classList.contains('git-popover__file-item--conflict')).toBe(true);
+    expect(items[0].textContent).toContain('main.typ');
+
+    items[0].querySelector('button').click();
+    expect(resolved).toEqual(['main.typ']);
   });
 });

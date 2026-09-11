@@ -25,6 +25,13 @@ pub struct GitStatusResult {
     pub behind: u32,
     pub modified_files: Vec<String>,
     pub untracked_files: Vec<String>,
+    /// Ficheros con un conflicto de fusión sin resolver todavía (marcas
+    /// `<<<<<<<`/`=======`/`>>>>>>>` dentro). Verificado contra un pull real
+    /// que sí deja conflicto (`spikes/git-conflict-sandbox/`, 2026-09-11):
+    /// `git status --porcelain=v2` los reporta en una línea `u `, no en las
+    /// `1 `/`2 ` que ya cubre `parse_entry_path` — sin este campo, un
+    /// fichero en conflicto no aparecía en ningún lado del panel de Git.
+    pub conflicted_files: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -94,20 +101,29 @@ fn git_command<P: AsRef<Path>>(project_path: P) -> Command {
     cmd
 }
 
-/// Ruta de una línea de entrada ordinaria (`1 `) o de renombrado (`2 `) de
-/// `git status --porcelain=v2`, cuyos formatos son:
+/// Ruta de una línea de entrada ordinaria (`1 `), de renombrado (`2 `) o sin
+/// fusionar (`u `) de `git status --porcelain=v2`, cuyos formatos son:
 ///
 /// ```text
 /// 1 <XY> <sub> <mH> <mI> <mW> <hH> <hI> <ruta>
 /// 2 <XY> <sub> <mH> <mI> <mW> <hH> <hI> <Xpuntuación> <ruta>\t<ruta original>
+/// u <XY> <sub> <m1> <m2> <m3> <mW> <h1> <h2> <h3> <ruta>
 /// ```
 ///
 /// Existe porque el parser hacía `split_whitespace().last()`, y eso rompía dos
 /// casos comprobados contra el git real: un fichero llamado `mi documento.typ`
 /// aparecía como `documento.typ` (solo la última palabra), y un renombrado
 /// mostraba el nombre VIEJO, porque en las líneas `2 ` va después del tabulador.
+/// El formato `u ` (conflicto de fusión sin resolver) se comprobó reproduciendo
+/// un conflicto real, no de memoria (`spikes/git-conflict-sandbox/`).
 fn parse_entry_path(line: &str) -> Option<String> {
-    let campos_previos = if line.starts_with("2 ") { 9 } else { 8 };
+    let campos_previos = if line.starts_with("2 ") {
+        9
+    } else if line.starts_with("u ") {
+        10
+    } else {
+        8
+    };
 
     let mut resto = line;
     for _ in 0..campos_previos {
@@ -131,6 +147,7 @@ pub fn parse_git_status_output(output: &str) -> GitStatusResult {
     let mut behind = 0;
     let mut modified_files = Vec::new();
     let mut untracked_files = Vec::new();
+    let mut conflicted_files = Vec::new();
 
     for line in output.lines() {
         let trimmed = line.trim();
@@ -150,6 +167,10 @@ pub fn parse_git_status_output(output: &str) -> GitStatusResult {
             if let Some(path) = parse_entry_path(trimmed) {
                 modified_files.push(path);
             }
+        } else if trimmed.starts_with("u ") {
+            if let Some(path) = parse_entry_path(trimmed) {
+                conflicted_files.push(path);
+            }
         } else if trimmed.starts_with("? ") {
             let path = trimmed[2..].trim();
             if !path.is_empty() {
@@ -165,6 +186,21 @@ pub fn parse_git_status_output(output: &str) -> GitStatusResult {
         behind,
         modified_files,
         untracked_files,
+        conflicted_files,
+    }
+}
+
+/// Estado "sin repo"/degradado, reutilizado en los dos caminos de fallo de
+/// `git_status` para no repetir los siete campos vacíos dos veces.
+fn not_a_repo_status() -> GitStatusResult {
+    GitStatusResult {
+        is_repo: false,
+        branch: String::new(),
+        ahead: 0,
+        behind: 0,
+        modified_files: Vec::new(),
+        untracked_files: Vec::new(),
+        conflicted_files: Vec::new(),
     }
 }
 
@@ -177,14 +213,7 @@ pub async fn git_status(project_path: String) -> Result<GitStatusResult, AppErro
     }
 
     if !is_git_available() {
-        return Ok(GitStatusResult {
-            is_repo: false,
-            branch: String::new(),
-            ahead: 0,
-            behind: 0,
-            modified_files: Vec::new(),
-            untracked_files: Vec::new(),
-        });
+        return Ok(not_a_repo_status());
     }
 
     let output = git_command(&root)
@@ -196,14 +225,7 @@ pub async fn git_status(project_path: String) -> Result<GitStatusResult, AppErro
             let text = String::from_utf8_lossy(&out.stdout);
             Ok(parse_git_status_output(&text))
         }
-        _ => Ok(GitStatusResult {
-            is_repo: false,
-            branch: String::new(),
-            ahead: 0,
-            behind: 0,
-            modified_files: Vec::new(),
-            untracked_files: Vec::new(),
-        }),
+        _ => Ok(not_a_repo_status()),
     }
 }
 
@@ -394,6 +416,32 @@ mod tests {
 
         let estado = parse_git_status_output(salida);
         assert_eq!(estado.modified_files, vec!["mi documento.typ"]);
+    }
+
+    #[test]
+    fn parse_detecta_un_fichero_con_conflicto_de_fusion_sin_resolver() {
+        // Copiado de una reproducción real de un conflicto de merge
+        // (`spikes/git-conflict-sandbox/`, 2026-09-11): `git status
+        // --porcelain=v2` reporta los ficheros sin fusionar en una línea `u `,
+        // con 4 modos y 3 hashes antes de la ruta (no 3 modos + 2 hashes como
+        // las líneas `1 `) — sin este caso, un fichero en conflicto real no
+        // aparecía ni como modificado ni como no seguido: desaparecía del todo.
+        let salida = "# branch.head master\n\
+# branch.ab +1 -1\n\
+u UU N... 100644 100644 100644 100644 22c02951195e38dc2a602ed78dfec38f184f462c c02709edd9236e3339697d5a892abefd7fe2a08f e6969483ba83f4fa88144b388158fde87bcc4b51 main.typ\n";
+
+        let estado = parse_git_status_output(salida);
+        assert_eq!(estado.conflicted_files, vec!["main.typ"]);
+        assert!(estado.modified_files.is_empty());
+    }
+
+    #[test]
+    fn parse_conserva_espacios_en_la_ruta_de_un_conflicto() {
+        let salida = "# branch.head master\n\
+u UU N... 100644 100644 100644 100644 aaaa bbbb cccc mi capitulo.typ\n";
+
+        let estado = parse_git_status_output(salida);
+        assert_eq!(estado.conflicted_files, vec!["mi capitulo.typ"]);
     }
 
     #[test]

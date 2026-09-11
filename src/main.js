@@ -31,6 +31,8 @@ import { createTerminal } from './terminal/terminal.js';
 import { createPythonRunnerPanel } from './panels/pythonRunnerPanel.js';
 import { createDiffModal } from './editor/diffModal.js';
 import { createGitManager } from './app/gitManager.js';
+import { createConflictResolver } from './app/conflictResolver.js';
+import { hasConflictMarkers } from './app/conflictParser.js';
 import { createLspClient } from './editor/lspClient.js';
 import { createProjectTree } from './project-explorer/projectTree.js';
 import { createWizard } from './project-wizard/wizard.js';
@@ -40,6 +42,7 @@ import {
   gitClone,
   getAppInfo,
   listDirectory,
+  readFile,
   writeFile,
   isPackagedApp,
   getStartupDocument,
@@ -324,6 +327,15 @@ async function bootstrap() {
     cancelBtn: el('diff-cancel'),
   });
 
+  const conflictResolver = createConflictResolver({
+    dialogEl: el('conflict-dialog'),
+    titleEl: el('conflict-dialog-title'),
+    blocksEl: el('conflict-blocks'),
+    hintEl: el('conflict-progress'),
+    applyBtn: el('conflict-apply'),
+    cancelBtn: el('conflict-cancel'),
+  });
+
   const lspStatusEl = el('lsp-status');
   let currentLspStatus = 'offline';
   const updateLspStatus = (status) => {
@@ -490,6 +502,41 @@ async function bootstrap() {
     pullBtn: el('git-pull-btn'),
     getProjectPath: () => workspace.state.project?.root ?? null,
     notify: toast.show,
+    onResolveConflict: async (relativePath) => {
+      const root = workspace.state.project?.root;
+      if (!root) return;
+      const target = joinPath(root, relativePath);
+
+      const read = await readFile(target);
+      if (!read.ok) {
+        toast.show(`${t('doc.openError')} — ${read.error.message}`, 'error');
+        return;
+      }
+      if (!hasConflictMarkers(read.value.content)) {
+        // Se resolvió por otra vía (editado a mano, git add manual…) entre
+        // el refresco del popover y el clic: no hay nada que mostrar.
+        gitManager.refresh();
+        return;
+      }
+
+      const result = await conflictResolver.open({ fileName: relativePath, content: read.value.content });
+      if (result.action !== 'apply') return;
+
+      const written = await writeFile(target, result.content);
+      if (!written.ok) {
+        toast.show(`${t('tree.newFileError')} — ${written.error.message}`, 'error');
+        return;
+      }
+
+      toast.show(t('git.conflictResolved'));
+      await gitManager.refresh();
+      // Si el fichero resuelto es el que está abierto en el editor, refleja
+      // el resultado ahí también — si no, no lo abre solo, sería sorprender
+      // al usuario con un cambio de documento que no pidió.
+      if (workspace.state.document?.path === target) {
+        await workspace.openDocument(target, { force: true });
+      }
+    },
   });
   el('git-popover-close').addEventListener('click', gitManager.close);
   makeDraggable(el('git-popover'), el('git-popover-header'));

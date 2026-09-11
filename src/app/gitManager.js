@@ -25,6 +25,11 @@ import { t } from '../i18n/i18n.js';
  * @param {HTMLButtonElement} deps.pullBtn
  * @param {() => string | null} deps.getProjectPath
  * @param {(msg: string, tone?: 'info'|'error') => void} deps.notify
+ * @param {(path: string) => void} [deps.onResolveConflict] RF-19/v0.6.0: se
+ *   llama con la ruta relativa de un fichero en conflicto cuando el usuario
+ *   pulsa "Resolver" — leer/escribir el fichero y abrir el modal de
+ *   resolución es responsabilidad de quien conecta este módulo (`main.js`),
+ *   no de `gitManager.js`, que no toca ficheros directamente.
  */
 export function createGitManager({
   indicatorEl,
@@ -41,6 +46,7 @@ export function createGitManager({
   pullBtn,
   getProjectPath,
   notify,
+  onResolveConflict,
 }) {
   let busy = false;
 
@@ -89,19 +95,44 @@ export function createGitManager({
 
       summaryEl.textContent = summaryText;
 
-      // Lista de archivos en el popover
+      // Lista de archivos en el popover. Los ficheros en conflicto (RF-19,
+      // v0.6.0) van primero y llevan su propio botón "Resolver" — son el
+      // único estado de esta lista que exige una acción antes de poder
+      // commitear, así que no se mezclan visualmente con M/? sin más.
       filesEl.replaceChildren();
       const allFiles = [
         ...status.modifiedFiles.map((f) => ({ path: f, type: 'M' })),
         ...status.untrackedFiles.map((f) => ({ path: f, type: '?' })),
       ];
 
-      if (allFiles.length === 0) {
+      if (status.conflictedFiles.length === 0 && allFiles.length === 0) {
         const empty = document.createElement('div');
         empty.className = 'git-popover__empty';
         empty.textContent = t('git.clean');
         filesEl.appendChild(empty);
       } else {
+        for (const path of status.conflictedFiles) {
+          const item = document.createElement('div');
+          item.className = 'git-popover__file-item git-popover__file-item--conflict';
+
+          const badge = document.createElement('span');
+          badge.className = 'git-popover__badge git-popover__badge--U';
+          badge.textContent = 'U';
+          badge.title = t('git.conflicted');
+
+          const name = document.createElement('span');
+          name.className = 'git-popover__file-name';
+          name.textContent = path;
+
+          const resolveBtn = document.createElement('button');
+          resolveBtn.type = 'button';
+          resolveBtn.className = 'button button--compact button--primary';
+          resolveBtn.textContent = t('git.resolveConflict');
+          resolveBtn.addEventListener('click', () => onResolveConflict?.(path));
+
+          item.append(badge, name, resolveBtn);
+          filesEl.appendChild(item);
+        }
         for (const file of allFiles) {
           const item = document.createElement('div');
           item.className = 'git-popover__file-item';

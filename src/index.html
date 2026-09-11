@@ -428,6 +428,23 @@
       </div>
     </div>
 
+    <!-- Resolución visual de conflictos de fusión (RF-19, v0.6.0). Distinto
+         del diff-dialog de arriba: aquél reconcilia el buffer del editor con
+         el disco tras un cambio externo; este resuelve un conflicto de
+         verdad que `git pull` dejó con marcas dentro del fichero. -->
+    <div class="modal hidden" id="conflict-dialog" role="dialog" aria-modal="true">
+      <div class="modal__card modal__card--wide">
+        <h2 class="modal__title" id="conflict-dialog-title">Conflicto</h2>
+        <p class="floating-panel__text" data-i18n="mergeConflict.hint"></p>
+        <div class="conflict-blocks" id="conflict-blocks"></div>
+        <div class="modal__actions">
+          <span class="conflict-progress" id="conflict-progress"></span>
+          <button id="conflict-cancel" class="button" type="button" data-i18n="action.cancel"></button>
+          <button id="conflict-apply" class="button button--primary" type="button" disabled data-i18n="mergeConflict.apply"></button>
+        </div>
+      </div>
+    </div>
+
     <!-- Popover de Git (RF-19). Arrastrable por la cabecera y con botón de
          cierre propio (RF-33: se detectó al probar el flujo de clonado que no
          tenía ninguno de los dos, a diferencia de terminal/python). -->

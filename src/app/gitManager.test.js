@@ -192,4 +192,44 @@ describe('gitManager', () => {
     pullBtn.click();
     await vi.waitFor(() => expect(pullSpy).toHaveBeenCalledWith('/mi/repo'));
   });
+
+  it('turns the raw "would be overwritten by merge" git error into an actionable message', async () => {
+    vi.spyOn(backend, 'gitPull').mockResolvedValue({
+      ok: true,
+      value: {
+        success: false,
+        message:
+          'error: Your local changes to the following files would be overwritten by merge:\n\tmain.typ\nPlease commit your changes or stash them before you merge.\nAborting',
+      },
+    });
+    vi.spyOn(backend, 'gitStatus').mockResolvedValue({
+      ok: true,
+      value: { isRepo: true, branch: 'main', ahead: 0, behind: 1, modifiedFiles: ['main.typ'], untrackedFiles: [] },
+    });
+
+    setup();
+    pullBtn.click();
+
+    await vi.waitFor(() => expect(notifications.length).toBe(1));
+    expect(notifications[0].tone).toBe('error');
+    expect(notifications[0].msg).not.toContain('would be overwritten');
+    expect(notifications[0].msg.toLowerCase()).toContain('commit');
+  });
+
+  it('shows an unrecognized pull error as-is', async () => {
+    vi.spyOn(backend, 'gitPull').mockResolvedValue({
+      ok: true,
+      value: { success: false, message: 'fatal: unable to access remote' },
+    });
+    vi.spyOn(backend, 'gitStatus').mockResolvedValue({
+      ok: true,
+      value: { isRepo: true, branch: 'main', ahead: 0, behind: 0, modifiedFiles: [], untrackedFiles: [] },
+    });
+
+    setup();
+    pullBtn.click();
+
+    await vi.waitFor(() => expect(notifications.length).toBe(1));
+    expect(notifications[0].msg).toBe('fatal: unable to access remote');
+  });
 });

@@ -177,7 +177,19 @@ export function createGitManager({
         notify(t('git.pullSuccess'));
         await refresh();
       } else {
-        notify(res.value?.message || res.error?.message || 'Error en pull', 'error');
+        const rawMessage = res.value?.message || res.error?.message || 'Error en pull';
+        // Git rechaza el pull ENTERO si hay cambios sin confirmar que chocarían
+        // con lo que trae — no es un conflicto de fusión real (eso pasaría
+        // DESPUÉS de empezar a fusionar), así que no hace falta un diff: basta
+        // con decir qué hacer y dónde. El cuadro de commit está en este mismo
+        // popover, justo debajo. Detectado por el texto porque Git no da un
+        // código de error propio para este caso — verificado contra el mensaje
+        // real (`git pull` con cambios locales sin confirmar).
+        if (/would be overwritten by merge/i.test(rawMessage)) {
+          notify(t('git.pullBlockedByLocalChanges'), 'error');
+        } else {
+          notify(rawMessage, 'error');
+        }
       }
     } finally {
       busy = false;

@@ -10,7 +10,7 @@
 // `project-explorer/`, `editor/`, `preview/`, `services/`), igual que el
 // backend evita el monolito `lib.rs`.
 
-import { createWorkspace } from './app/workspace.js';
+import { createWorkspace, joinPath } from './app/workspace.js';
 import { createUpdater } from './app/updater.js';
 import { PANELS, getPanelState, initPanels, togglePanel } from './app/workspacePanels.js';
 import { figureActionForPath, jogsAction } from './editor/toolbarActions.js';
@@ -39,6 +39,8 @@ import {
   copyFontIntoProject,
   gitClone,
   getAppInfo,
+  listDirectory,
+  writeFile,
   isPackagedApp,
   getStartupDocument,
   getSupportedAssetExtensions,
@@ -364,6 +366,61 @@ async function bootstrap() {
     onOpenFile: (path) => workspace.openDocument(path),
   });
 
+  // Nuevo fichero .typ en la raíz del proyecto: el hueco real que destapó
+  // RF-33 (clonar un repositorio VACÍO deja un proyecto abierto sin ningún
+  // fichero, y hasta ahora no había ninguna vía para crear el primero — los
+  // asistentes de plantilla siempre crean una carpeta nueva, nunca añaden a
+  // una ya abierta). Fila de creación inline en vez de `window.prompt`
+  // (`verify:frontend` lo prohíbe): Intro crea, Escape cancela.
+  const newFileRow = el('tree-new-file-row');
+  const newFileInput = el('tree-new-file-input');
+  const openNewFileRow = () => {
+    newFileRow.classList.remove('hidden');
+    newFileInput.value = '';
+    newFileInput.focus();
+  };
+  const closeNewFileRow = () => {
+    newFileRow.classList.add('hidden');
+    newFileInput.value = '';
+  };
+  el('tree-new-file').addEventListener('click', () => {
+    if (newFileRow.classList.contains('hidden')) openNewFileRow();
+    else closeNewFileRow();
+  });
+  newFileInput.addEventListener('keydown', async (event) => {
+    if (event.key === 'Escape') {
+      closeNewFileRow();
+      return;
+    }
+    if (event.key !== 'Enter') return;
+
+    const root = tree.getRoot();
+    const name = newFileInput.value.trim();
+    if (!root) return;
+    if (!name || !name.toLowerCase().endsWith('.typ') || name.includes('/') || name.includes('\\')) {
+      toast.show(t('tree.newFileInvalid'), 'error');
+      return;
+    }
+
+    const listing = await listDirectory(root);
+    const exists = listing.ok && listing.value.some((entry) => entry.name === name);
+    if (exists) {
+      toast.show(t('tree.newFileExists'), 'error');
+      return;
+    }
+
+    const target = joinPath(root, name);
+    const created = await writeFile(target, '');
+    if (!created.ok) {
+      toast.show(`${t('tree.newFileError')} — ${created.error.message}`, 'error');
+      return;
+    }
+
+    closeNewFileRow();
+    await tree.refresh();
+    await workspace.openDocument(target);
+  });
+
   const workspace = createWorkspace({
     tree,
     dialog,
@@ -434,6 +491,8 @@ async function bootstrap() {
     getProjectPath: () => workspace.state.project?.root ?? null,
     notify: toast.show,
   });
+  el('git-popover-close').addEventListener('click', gitManager.close);
+  makeDraggable(el('git-popover'), el('git-popover-header'));
 
   // El editor (CodeMirror) necesita reconfigurar su tema, no solo heredar CSS.
   const themeSwitcher = wireThemeSwitcher((theme) => workspace.setTheme(theme));

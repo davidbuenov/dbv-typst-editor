@@ -202,12 +202,22 @@
             <button class="sidebar-tab" id="tab-outline" type="button" role="tab" data-i18n="sidebar.tabOutline"></button>
           </div>
           <div class="sidebar-panel" id="files-panel">
-            <input
-              id="tree-filter"
-              class="sidebar__filter"
-              type="search"
-              data-i18n-placeholder="tree.filter"
-            />
+            <div class="sidebar__filter-row">
+              <input
+                id="tree-filter"
+                class="sidebar__filter"
+                type="search"
+                data-i18n-placeholder="tree.filter"
+              />
+              <button id="tree-new-file" class="icon-button icon-button--small" type="button" data-i18n-title="tree.newFile">+</button>
+            </div>
+            <!-- RF-33: al clonar un repositorio vacío no había NINGUNA forma de
+                 crear el primer fichero dentro de un proyecto ya abierto — los
+                 asistentes de plantilla siempre crean una carpeta NUEVA. Fila
+                 de creación inline, oculta hasta que se pulsa "+". -->
+            <div class="sidebar__new-file-row hidden" id="tree-new-file-row">
+              <input id="tree-new-file-input" class="sidebar__filter" type="text" autocomplete="off" spellcheck="false" data-i18n-placeholder="tree.newFilePlaceholder" />
+            </div>
             <div class="tree" id="project-tree"></div>
           </div>
           <div class="sidebar-panel hidden" id="outline-panel">
@@ -418,11 +428,14 @@
       </div>
     </div>
 
-    <!-- Popover de Git (RF-19) -->
+    <!-- Popover de Git (RF-19). Arrastrable por la cabecera y con botón de
+         cierre propio (RF-33: se detectó al probar el flujo de clonado que no
+         tenía ninguno de los dos, a diferencia de terminal/python). -->
     <div id="git-popover" class="floating-panel floating-panel--git hidden" role="dialog" aria-modal="false">
-      <div class="git-popover__header">
+      <div class="git-popover__header" id="git-popover-header">
         <span class="git-popover__title" id="git-popover-branch">master</span>
         <span class="git-popover__ab" id="git-popover-ab"></span>
+        <button id="git-popover-close" class="icon-button icon-button--small" type="button" data-i18n-title="action.close">✕</button>
       </div>
       <div class="git-popover__files" id="git-popover-files"></div>
       <div class="git-popover__commit">

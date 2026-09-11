@@ -1185,9 +1185,11 @@ body {
 
 .git-popover__header {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
+  gap: 6px;
   font-size: 12px;
+  cursor: grab;
 }
 
 .git-popover__title {
@@ -1196,6 +1198,7 @@ body {
 }
 
 .git-popover__ab {
+  flex: 1 1 auto;
   font-size: 10px;
   color: var(--text-muted);
 }

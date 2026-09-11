@@ -660,6 +660,23 @@
   outline-offset: -1px;
 }
 
+/* RF-33: fila del filtro + "nuevo fichero", y su input inline de creación. */
+.sidebar__filter-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 10px 8px;
+}
+
+.sidebar__filter-row .sidebar__filter {
+  flex: 1 1 auto;
+  margin: 0;
+}
+
+.sidebar__new-file-row .sidebar__filter {
+  margin: 0 10px 8px;
+}
+
 /* ─── Árbol de proyecto ───────────────────────────────────────────────────── */
 .tree {
   flex: 1 1 auto;

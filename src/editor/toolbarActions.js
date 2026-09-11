@@ -554,7 +554,12 @@ export function hasJogsImport(docText) {
 export function getJogsSnippet() {
   return `// jogs (RF-38): evita bucles sin condición de salida — la
 // compilación se cancela a los 45s si el script no termina.
-#let resultado = eval-js("1 + 1")
+// Ejemplo verificado contra el compilador real: una función JavaScript
+// normal, con recursión — sustitúyela por tu propio cálculo.
+#let resultado = eval-js("
+  function factorial(n) { return n <= 1 ? 1 : n * factorial(n - 1); }
+  'Factorial de 6: ' + factorial(6)
+")
 #resultado`;
 }
 

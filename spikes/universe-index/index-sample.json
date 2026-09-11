@@ -1,0 +1,675 @@
+[
+  {
+    "name": "a2c-nums",
+    "version": "0.0.1",
+    "entrypoint": "src/lib.typ",
+    "authors": [
+      "Zhuo Nengwen <soarowl@yeah.net>"
+    ],
+    "license": "MIT",
+    "description": "Convert a number to Chinese",
+    "repository": "https://github.com/soarowl/a2c-nums.git",
+    "keywords": [
+      "Converter",
+      "number",
+      "Chinese",
+      "Currency"
+    ],
+    "compiler": "0.10.0",
+    "exclude": [
+      "demo.pdf"
+    ],
+    "updatedAt": 1704708827
+  },
+  {
+    "name": "aa-draw",
+    "version": "0.1.0",
+    "entrypoint": "lib.typ",
+    "authors": [
+      "chillcicada"
+    ],
+    "license": "MIT",
+    "description": "Convert ASCII art diagrams into SVG powered by aasvg-rs",
+    "repository": "https://github.com/chillcicada/typst-aasvg",
+    "keywords": [
+      "wasm",
+      "aasvg"
+    ],
+    "categories": [
+      "utility"
+    ],
+    "compiler": "0.14.0",
+    "exclude": [
+      ".*",
+      "example*"
+    ],
+    "updatedAt": 1775025631
+  },
+  {
+    "name": "ab-annotate",
+    "version": "0.1.0",
+    "entrypoint": "ab-annotate.typ",
+    "authors": [
+      "Cameron Wimpy <cwimpy@astate.edu>"
+    ],
+    "license": "MIT",
+    "description": "Annotated bibliographies that render abstracts and user annotations beneath each citation entry.",
+    "repository": "https://github.com/cwimpy/ab-annotate",
+    "keywords": [
+      "bibliography",
+      "annotated-bibliography",
+      "citation",
+      "biblatex"
+    ],
+    "categories": [
+      "scripting"
+    ],
+    "compiler": "0.13.0",
+    "updatedAt": 1776770327
+  },
+  {
+    "name": "abbr",
+    "version": "0.1.0",
+    "entrypoint": "abbr.typ",
+    "authors": [
+      "Jonathan Halmen <slowjo@halmen.xyz>"
+    ],
+    "license": "MIT",
+    "description": "An Abbreviations package.",
+    "repository": "https://git.sr.ht/~slowjo/typst-abbr",
+    "keywords": [
+      "abbreviation",
+      "acronym"
+    ],
+    "categories": [
+      "model"
+    ],
+    "exclude": [
+      "example.*"
+    ],
+    "updatedAt": 1730797683
+  },
+  {
+    "name": "abbr",
+    "version": "0.1.1",
+    "entrypoint": "abbr.typ",
+    "authors": [
+      "Jonathan Halmen <slowjo@halmen.xyz>"
+    ],
+    "license": "MIT",
+    "description": "An Abbreviations package.",
+    "repository": "https://git.sr.ht/~slowjo/typst-abbr",
+    "keywords": [
+      "abbreviation",
+      "acronym"
+    ],
+    "categories": [
+      "model"
+    ],
+    "exclude": [
+      "example.*"
+    ],
+    "updatedAt": 1736414439
+  },
+  {
+    "name": "abbr",
+    "version": "0.2.1",
+    "entrypoint": "abbr.typ",
+    "authors": [
+      "Jonathan Halmen <slowjo@halmen.xyz>"
+    ],
+    "license": "MIT",
+    "description": "An Abbreviations package.",
+    "repository": "https://git.sr.ht/~slowjo/typst-abbr",
+    "keywords": [
+      "abbreviation",
+      "acronym"
+    ],
+    "categories": [
+      "model"
+    ],
+    "exclude": [
+      "example.*"
+    ],
+    "updatedAt": 1738575221
+  },
+  {
+    "name": "abbr",
+    "version": "0.2.2",
+    "entrypoint": "abbr.typ",
+    "authors": [
+      "Jonathan Halmen <slowjo@halmen.xyz>"
+    ],
+    "license": "MIT",
+    "description": "An Abbreviations package.",
+    "repository": "https://git.sr.ht/~slowjo/typst-abbr",
+    "keywords": [
+      "abbreviation",
+      "acronym"
+    ],
+    "categories": [
+      "model"
+    ],
+    "exclude": [
+      "example.*"
+    ],
+    "updatedAt": 1739177861
+  },
+  {
+    "name": "abbr",
+    "version": "0.2.3",
+    "entrypoint": "abbr.typ",
+    "authors": [
+      "Jonathan Halmen <slowjo@halmen.xyz>"
+    ],
+    "license": "MIT",
+    "description": "An Abbreviations package.",
+    "repository": "https://git.sr.ht/~slowjo/typst-abbr",
+    "keywords": [
+      "abbreviation",
+      "acronym"
+    ],
+    "categories": [
+      "model"
+    ],
+    "exclude": [
+      "example.*"
+    ],
+    "updatedAt": 1740089348
+  },
+  {
+    "name": "abbr",
+    "version": "0.3.0",
+    "entrypoint": "abbr.typ",
+    "authors": [
+      "Jonathan Halmen <slowjo@halmen.xyz>"
+    ],
+    "license": "MIT",
+    "description": "An Abbreviations package.",
+    "repository": "https://git.sr.ht/~slowjo/typst-abbr",
+    "keywords": [
+      "abbreviation",
+      "acronym"
+    ],
+    "categories": [
+      "model"
+    ],
+    "exclude": [
+      "example*",
+      "testing.*",
+      "*.sh"
+    ],
+    "updatedAt": 1760950606
+  },
+  {
+    "name": "abbr",
+    "version": "0.3.1",
+    "entrypoint": "abbr.typ",
+    "authors": [
+      "Jonathan Halmen <slowjo@halmen.xyz>"
+    ],
+    "license": "MIT",
+    "description": "An Abbreviations package.",
+    "repository": "https://git.sr.ht/~slowjo/typst-abbr",
+    "keywords": [
+      "abbreviation",
+      "acronym"
+    ],
+    "categories": [
+      "model"
+    ],
+    "exclude": [
+      "example*",
+      "testing.*",
+      "*.sh"
+    ],
+    "updatedAt": 1779465214
+  },
+  {
+    "name": "abbrev",
+    "version": "0.1.0",
+    "entrypoint": "lib.typ",
+    "authors": [
+      "Luca P. <@girasole123>"
+    ],
+    "license": "GPL-3.0-or-later",
+    "description": "Create and manage abbreviations in your documents.",
+    "repository": "https://github.com/girasole123/Abbrev",
+    "keywords": [
+      "abbreviations",
+      "acronyms",
+      "glossary",
+      "list"
+    ],
+    "categories": [
+      "text",
+      "model"
+    ],
+    "exclude": [
+      "example.typ"
+    ],
+    "updatedAt": 1786466420
+  },
+  {
+    "name": "abbrev",
+    "version": "0.1.1",
+    "entrypoint": "lib.typ",
+    "authors": [
+      "Luca P. <@girasole123>"
+    ],
+    "license": "GPL-3.0-or-later",
+    "description": "Create and manage abbreviations in your documents.",
+    "repository": "https://github.com/girasole123/Abbrev",
+    "keywords": [
+      "abbreviations",
+      "acronyms",
+      "glossary",
+      "list"
+    ],
+    "categories": [
+      "text",
+      "model"
+    ],
+    "exclude": [
+      "example.typ"
+    ],
+    "updatedAt": 1786706421
+  },
+  {
+    "name": "abbrev",
+    "version": "0.1.2",
+    "entrypoint": "lib.typ",
+    "authors": [
+      "Luca P. <@girasole123>"
+    ],
+    "license": "GPL-3.0-or-later",
+    "description": "Create and manage abbreviations in your documents.",
+    "repository": "https://github.com/girasole123/Abbrev",
+    "keywords": [
+      "abbreviations",
+      "acronyms",
+      "glossary",
+      "list"
+    ],
+    "categories": [
+      "text",
+      "model"
+    ],
+    "exclude": [
+      "example.typ"
+    ],
+    "updatedAt": 1786954538
+  },
+  {
+    "name": "abbrev",
+    "version": "0.1.3",
+    "entrypoint": "lib.typ",
+    "authors": [
+      "Luca P. <@girasole123>"
+    ],
+    "license": "GPL-3.0-or-later",
+    "description": "Create and manage abbreviations in your documents.",
+    "repository": "https://github.com/girasole123/Abbrev",
+    "keywords": [
+      "abbreviations",
+      "acronyms",
+      "glossary",
+      "list"
+    ],
+    "categories": [
+      "text",
+      "model"
+    ],
+    "exclude": [
+      "example.typ"
+    ],
+    "updatedAt": 1787067179
+  },
+  {
+    "name": "abbrev",
+    "version": "0.1.4",
+    "entrypoint": "lib.typ",
+    "authors": [
+      "Luca P. <@girasole123>"
+    ],
+    "license": "GPL-3.0-or-later",
+    "description": "Create and manage abbreviations in your documents.",
+    "repository": "https://github.com/girasole123/Abbrev",
+    "keywords": [
+      "abbreviations",
+      "acronyms",
+      "glossary",
+      "list"
+    ],
+    "categories": [
+      "text",
+      "model"
+    ],
+    "exclude": [
+      "example.typ"
+    ],
+    "updatedAt": 1787228939
+  },
+  {
+    "name": "abbrev",
+    "version": "0.1.5",
+    "entrypoint": "lib.typ",
+    "authors": [
+      "Luca P. <@girasole123>"
+    ],
+    "license": "GPL-3.0-or-later",
+    "description": "Create and manage abbreviations in your documents.",
+    "repository": "https://github.com/girasole123/Abbrev",
+    "keywords": [
+      "abbreviations",
+      "acronyms",
+      "glossary",
+      "list"
+    ],
+    "categories": [
+      "text",
+      "model"
+    ],
+    "exclude": [
+      "example.typ"
+    ],
+    "updatedAt": 1787295717
+  },
+  {
+    "name": "abbrev",
+    "version": "0.1.6",
+    "entrypoint": "lib.typ",
+    "authors": [
+      "Luca P. <@girasole123>"
+    ],
+    "license": "GPL-3.0-or-later",
+    "description": "Create and manage abbreviations in your documents.",
+    "repository": "https://github.com/girasole123/Abbrev",
+    "keywords": [
+      "abbreviations",
+      "acronyms",
+      "glossary",
+      "list"
+    ],
+    "categories": [
+      "text",
+      "model"
+    ],
+    "exclude": [
+      "example.typ"
+    ],
+    "updatedAt": 1787573812
+  },
+  {
+    "name": "abbrev",
+    "version": "0.1.7",
+    "entrypoint": "lib.typ",
+    "authors": [
+      "Luca P. <@girasole123>"
+    ],
+    "license": "GPL-3.0-or-later",
+    "description": "Create and manage abbreviations in your documents.",
+    "repository": "https://github.com/girasole123/Abbrev",
+    "keywords": [
+      "abbreviations",
+      "acronyms",
+      "glossary",
+      "list"
+    ],
+    "categories": [
+      "text",
+      "model"
+    ],
+    "exclude": [
+      "example.typ"
+    ],
+    "updatedAt": 1787750421
+  },
+  {
+    "name": "abiding-ifacconf",
+    "version": "0.1.0",
+    "entrypoint": "lib.typ",
+    "authors": [
+      "Alexander Von Moll <https://avonmoll.github.io>"
+    ],
+    "license": "MIT-0",
+    "description": "An IFAC-style paper template to publish at conferences for International Federation of Automatic Control",
+    "repository": "https://github.com/avonmoll/ifacconf-typst",
+    "keywords": [
+      "International Federation of Automatic Control",
+      "IFAC",
+      "Electrical Engineering",
+      "Computer Science",
+      "conference"
+    ],
+    "categories": [
+      "paper"
+    ],
+    "disciplines": [
+      "computer-science",
+      "engineering"
+    ],
+    "compiler": "0.11.0",
+    "template": {
+      "path": "template",
+      "entrypoint": "main.typ",
+      "thumbnail": "thumbnail.png"
+    },
+    "updatedAt": 1711039864
+  },
+  {
+    "name": "abiding-ifacconf",
+    "version": "0.2.0",
+    "entrypoint": "lib.typ",
+    "authors": [
+      "Alexander Von Moll <https://avonmoll.github.io>"
+    ],
+    "license": "MIT-0",
+    "description": "An IFAC-style paper template to publish at conferences for International Federation of Automatic Control",
+    "repository": "https://github.com/avonmoll/ifacconf-typst",
+    "keywords": [
+      "International Federation of Automatic Control",
+      "IFAC",
+      "Electrical Engineering",
+      "Computer Science",
+      "conference"
+    ],
+    "categories": [
+      "paper"
+    ],
+    "disciplines": [
+      "computer-science",
+      "engineering"
+    ],
+    "compiler": "0.13.0",
+    "template": {
+      "path": "template",
+      "entrypoint": "main.typ",
+      "thumbnail": "thumbnail.png"
+    },
+    "updatedAt": 1747048696
+  },
+  {
+    "name": "abiding-ifacconf",
+    "version": "0.2.1",
+    "entrypoint": "lib.typ",
+    "authors": [
+      "Alexander Von Moll <https://avonmoll.github.io>"
+    ],
+    "license": "MIT-0",
+    "description": "An IFAC-style paper template to publish at conferences for International Federation of Automatic Control",
+    "repository": "https://github.com/avonmoll/ifacconf-typst",
+    "keywords": [
+      "International Federation of Automatic Control",
+      "IFAC",
+      "Electrical Engineering",
+      "Computer Science",
+      "conference"
+    ],
+    "categories": [
+      "paper"
+    ],
+    "disciplines": [
+      "computer-science",
+      "engineering",
+      "transportation",
+      "mathematics"
+    ],
+    "compiler": "0.13.0",
+    "template": {
+      "path": "template",
+      "entrypoint": "main.typ",
+      "thumbnail": "thumbnail.png"
+    },
+    "updatedAt": 1763464662
+  },
+  {
+    "name": "abntyp",
+    "version": "0.1.0",
+    "entrypoint": "lib.typ",
+    "authors": [
+      "Esdras"
+    ],
+    "license": "MIT",
+    "description": "Format academic documents following Brazilian ABNT standards.",
+    "repository": "https://github.com/3sdras/abntyp",
+    "keywords": [
+      "abnt",
+      "tcc",
+      "tese",
+      "thesis",
+      "artigo",
+      "paper",
+      "acadêmico",
+      "brasileiro"
+    ],
+    "categories": [
+      "paper",
+      "thesis",
+      "report"
+    ],
+    "exclude": [
+      "docs/*",
+      "examples/*",
+      "*.pdf",
+      "CREDITS.md",
+      ".gitignore",
+      ".claude/*",
+      ".DS_Store"
+    ],
+    "updatedAt": 1772620059
+  },
+  {
+    "name": "abntyp",
+    "version": "0.1.2",
+    "entrypoint": "lib.typ",
+    "authors": [
+      "Esdras"
+    ],
+    "license": "MIT",
+    "description": "Format academic documents following Brazilian ABNT standards.",
+    "repository": "https://github.com/3sdras/abntyp",
+    "keywords": [
+      "abnt",
+      "tcc",
+      "tese",
+      "thesis",
+      "artigo",
+      "paper",
+      "acadêmico",
+      "brasileiro"
+    ],
+    "categories": [
+      "paper",
+      "thesis",
+      "report"
+    ],
+    "exclude": [
+      "docs/*",
+      "examples/*",
+      "*.pdf",
+      "CREDITS.md",
+      ".gitignore",
+      ".claude/*",
+      ".DS_Store"
+    ],
+    "updatedAt": 1773063447
+  },
+  {
+    "name": "abntyp",
+    "version": "0.1.3",
+    "entrypoint": "lib.typ",
+    "authors": [
+      "Esdras"
+    ],
+    "license": "MIT",
+    "description": "Format academic documents following Brazilian ABNT standards.",
+    "repository": "https://github.com/3sdras/abntyp",
+    "keywords": [
+      "abnt",
+      "tcc",
+      "tese",
+      "thesis",
+      "artigo",
+      "paper",
+      "acadêmico",
+      "brasileiro"
+    ],
+    "categories": [
+      "paper",
+      "thesis",
+      "report"
+    ],
+    "exclude": [
+      "docs/*",
+      "examples/*",
+      "*.pdf",
+      "CREDITS.md",
+      ".gitignore",
+      ".claude/*",
+      ".DS_Store"
+    ],
+    "updatedAt": 1776861438
+  },
+  {
+    "name": "abntyp",
+    "version": "0.1.5",
+    "entrypoint": "lib.typ",
+    "authors": [
+      "Esdras"
+    ],
+    "license": "MIT",
+    "description": "Format academic documents following Brazilian ABNT standards.",
+    "repository": "https://github.com/3sdras/abntyp",
+    "keywords": [
+      "abnt",
+      "tcc",
+      "tese",
+      "thesis",
+      "artigo",
+      "paper",
+      "acadêmico",
+      "brasileiro"
+    ],
+    "categories": [
+      "paper",
+      "thesis",
+      "report"
+    ],
+    "exclude": [
+      "docs/*",
+      "examples/*",
+      "*.pdf",
+      "CREDITS.md",
+      "README-typst.md",
+      "CLAUDE.md",
+      ".gitignore",
+      ".claude/*",
+      ".DS_Store",
+      ".kilo/*",
+      "ABNTypst.code-workspace",
+      "bugfixes.md"
+    ],
+    "updatedAt": 1781796443
+  }
+]

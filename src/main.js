@@ -646,6 +646,9 @@ async function bootstrap() {
     specInputEl: el('universe-spec'),
     specButtonEl: el('universe-spec-apply'),
     errorEl: el('universe-error'),
+    searchInputEl: el('universe-search'),
+    searchResultsEl: el('universe-search-results'),
+    searchStatusEl: el('universe-search-status'),
     onUsePackage: (spec) => {
       const view = workspace.editor.getView();
       if (!workspace.state.document || !view) {

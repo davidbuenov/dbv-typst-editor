@@ -16,3 +16,4 @@ pub mod python_runner;
 pub mod recent_projects;
 pub mod startup;
 pub mod tinymist;
+pub mod universe_index;

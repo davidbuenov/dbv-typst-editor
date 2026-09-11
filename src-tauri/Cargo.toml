@@ -45,6 +45,12 @@ tauri-plugin-process = "2"
 # ruta canónica sin ese prefijo.
 dunce = "1"
 
+# v0.6.0: Universe Browser completo (RF-34) — descarga el índice público de
+# Typst Universe (`packages.typst.org/preview/index.json`, ~4.700 paquetes).
+# Misma librería que ya usaba DBV Markdown Reader para su propio catálogo
+# (ARCHITECTURE.md §2), en vez de introducir un segundo cliente HTTP.
+ureq = { version = "3", features = ["json"] }
+
 # Beta: menú nativo de macOS (macos_menu.rs) — dependencia exclusiva de esa
 # plataforma (`[target...]`, no una feature): en Windows/Linux ni siquiera se
 # resuelve, coherente con que el propio módulo está `#[cfg(target_os = "macos")]`.

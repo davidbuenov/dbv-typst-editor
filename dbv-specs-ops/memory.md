@@ -266,6 +266,18 @@
 
 **Decisión final de RF-38:** el asistente de inserción (Slice 44) SÍ lleva un aviso explícito en la plantilla insertada, pero ya no es la única red de seguridad — es una advertencia educativa sobre un límite que el motor garantiza de todas formas. Ver `spikes/jogs-sandbox/` para los ficheros de reproducción.
 
+### ADR-UNIVERSE-002 — Universe Browser completo (RF-34): dos niveles de confianza, caché en memoria, sin registro propio
+
+*Registrada el 2026-09-11, Slice 45 de `/build` v0.6.0.*
+
+- **Contexto:** hasta v0.5.0 el panel de Universe solo mostraba la whitelist curada (`CURATED_PACKAGES`, 13 entradas). RF-34 pide el catálogo completo (~4.700 paquetes) sin cerrar todavía el criterio exacto de expansión (`SPECIFICATIONS.md` §9, diferido a `/plan`).
+- **Decisión 1 — modelo de dos niveles, no una lista de tamaño fijo.** La whitelist curada se queda con el badge "✓ Verificado por DBV"; cualquier resultado del catálogo completo que no esté en ella muestra "Comunidad, sin revisar" — mismo aviso de terceros que ya usa la pestaña "Dirección" de la galería (RF-26.5), sin inventar un lenguaje de confianza nuevo. `isCuratedPackageName()` en `curatedCatalog.js` es la única fuente de verdad de qué está verificado.
+- **Decisión 2 — detrás de una búsqueda, nunca pintado por defecto.** 4.700 tarjetas sin filtrar reventarían el panel y confundirían "aquí tienes lo revisado" con "aquí tienes de todo". El campo de búsqueda no descarga nada hasta que se escribe algo (`filterUniverseIndexEntries` devuelve `[]` con query vacía a propósito).
+- **Decisión 3 — el índice se sirve desde Rust, cacheado en memoria, no con `fetch()` directo del frontend.** El CSP del proyecto es `null` (sin restricción), así que un `fetch()` desde el WebView habría funcionado igual — pero se descartó para mantener el patrón ya establecido de que **toda salida de red pasa por un comando Rust validado** (mismo criterio que `typst_engine` con el sidecar: "el WebView no necesita permisos de shell"). Nuevo comando `fetch_universe_index` + `UniverseIndexState` (Mutex en memoria), dependencia nueva `ureq` (ya usada por DBV Markdown Reader, ARCHITECTURE.md §2, en vez de introducir un segundo cliente HTTP).
+- **Decisión 4 — sigue sin haber un registro propio de DBV.** El índice se sirve tal cual de `packages.typst.org/preview/index.json`, reafirmando `ADR-UNIVERSE-001`.
+- **Verificado contra una descarga real** (2026-09-11, `spikes/universe-index/`): 4.711 paquetes, ~2,2 MB. Campos opcionales (`categories`, `disciplines`) solo aparecen en algunas entradas —sobre todo plantillas—, así que `UniverseIndexEntry` los deserializa con `#[serde(default)]` en vez de asumir que siempre llegan.
+- **Disparador de reevaluación:** si en algún momento hace falta paginar/virtualizar (más de 60 resultados a la vez, hoy recortado con `.slice(0, 60)`) o cachear el índice en disco entre sesiones (hoy se repite la descarga de ~2,2 MB en cada arranque de la app), este ADR es el sitio donde documentarlo.
+
 ## ⚠️ Lecciones Aprendidas
 
 - **2026-09-08 — Al cambiar el fichero activo en el editor dentro de un proyecto, la vista previa no debe reiniciarse si el documento objetivo sigue siendo el mismo.** Cuando la vista previa compila a nivel de documento (`main.typ`), cambiar de capítulo (o navegar a una línea mediante doble clic en la vista previa) emitía `documentOpened` en `main.js` y llamaba incondicionalmente a `preview.restart()` y `outline.restart()`. Eso borraba el DOM de páginas y reseteaba `scrollTop` a la página 1, arruinando la navegación interactiva. Al condicionar el reinicio a que `target.document` realmente haya cambiado respecto al `lastTargetDocument`, el scroll y el zoom se mantienen intactos.

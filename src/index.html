@@ -607,6 +607,19 @@
       <div class="universe__body">
         <div class="universe__grid" id="universe-packages"></div>
       </div>
+
+      <!-- RF-34: catálogo completo de Typst Universe (~4.700 paquetes), sin
+           filtrar y detrás de una búsqueda — la whitelist de arriba sigue
+           siendo el punto de entrada por defecto (ADR-UNIVERSE-001). El
+           propio placeholder explica qué es, en vez de un título nuevo con
+           una talla de fuente propia sin clase — ver DESIGN.md sobre no
+           añadir excepciones sueltas al sistema visual. -->
+      <input id="universe-search" class="form-row__input" type="search" autocomplete="off" spellcheck="false" data-i18n-placeholder="universe.searchPlaceholder" />
+      <p class="universe__notice hidden" id="universe-search-status"></p>
+      <div class="universe__body">
+        <div class="universe__grid" id="universe-search-results"></div>
+      </div>
+
       <div class="universe__spec">
         <input id="universe-spec" class="form-row__input" type="text" autocomplete="off" spellcheck="false" />
         <button id="universe-spec-apply" class="button button--primary button--compact" type="button" data-i18n="universe.apply"></button>

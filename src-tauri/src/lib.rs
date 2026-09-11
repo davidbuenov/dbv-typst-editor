@@ -69,6 +69,7 @@ pub fn run() {
         .manage(typst_engine::compile::EngineState::default())
         .manage(commands::startup::PendingDocument::default())
         .manage(commands::tinymist::TinymistState::default())
+        .manage(commands::universe_index::UniverseIndexState::default())
         .setup(|_app| {
             // Menú nativo de macOS (Beta): Tauri v2 no trae uno por defecto en
             // esta plataforma, y sin él no hay Cmd+Q, Cmd+H ni el Edit del
@@ -116,6 +117,7 @@ pub fn run() {
             commands::tinymist::tinymist_start,
             commands::tinymist::tinymist_status,
             commands::tinymist::tinymist_stop,
+            commands::universe_index::fetch_universe_index,
             project::open_project,
             templates::create_project,
             templates::list_templates,

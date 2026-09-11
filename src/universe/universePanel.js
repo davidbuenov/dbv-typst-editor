@@ -24,7 +24,8 @@
 // `@preview/nombre:version`, para quien sabe lo que busca.
 
 import { getLanguage, t } from '../i18n/i18n.js';
-import { CURATED_PACKAGES } from './curatedCatalog.js';
+import { fetchUniverseIndex } from '../services/backend.js';
+import { CURATED_PACKAGES, filterUniverseIndexEntries, universeIndexEntryToCard } from './curatedCatalog.js';
 import { parseUniverseSpec } from './universeSpec.js';
 import { getUniversePackageIcon } from './universeThumbnails.js';
 
@@ -34,6 +35,9 @@ import { getUniversePackageIcon } from './universeThumbnails.js';
  * @param {HTMLInputElement} deps.specInputEl Campo del identificador libre.
  * @param {HTMLButtonElement} deps.specButtonEl Botón que lo aplica.
  * @param {HTMLElement} deps.errorEl Mensaje de error del campo.
+ * @param {HTMLInputElement} [deps.searchInputEl] Búsqueda sobre el catálogo completo (RF-34).
+ * @param {HTMLElement} [deps.searchResultsEl] Rejilla de resultados de esa búsqueda.
+ * @param {HTMLElement} [deps.searchStatusEl] Mensaje de estado de la búsqueda (cargando/error/vacío).
  * @param {(spec: string) => void} deps.onUsePackage
  * @param {(spec: string) => void} deps.onViewPackage Abre la ficha en typst.app, sin instalar nada.
  */
@@ -42,6 +46,9 @@ export function createUniversePanel({
   specInputEl,
   specButtonEl,
   errorEl,
+  searchInputEl,
+  searchResultsEl,
+  searchStatusEl,
   onUsePackage,
   onViewPackage,
 }) {
@@ -99,7 +106,11 @@ export function createUniversePanel({
       // el usuario tiene derecho a saber qué instala y bajo qué condiciones.
       const meta = document.createElement('span');
       meta.className = 'universe-card__meta';
-      meta.textContent = `${entry.spec} · ${entry.license}`;
+      // `verified` solo llega en los resultados del catálogo completo
+      // (RF-34): la rejilla curada de arriba no lo necesita, porque TODA
+      // ella ya es la lista verificada — mostrar el badge ahí sería ruido.
+      const badge = entry.verified === undefined ? '' : entry.verified ? `${t('universe.badgeVerified')} · ` : `${t('universe.badgeCommunity')} · `;
+      meta.textContent = `${badge}${entry.spec} · ${entry.license}`;
 
       content.append(title, description, meta);
       body.append(visualEl, content);
@@ -128,6 +139,56 @@ export function createUniversePanel({
 
   function render() {
     renderGrid(packagesEl, CURATED_PACKAGES, onUsePackage);
+  }
+
+  // RF-34: catálogo completo de Typst Universe, detrás de una búsqueda — no
+  // se pinta sin escribir nada, tanto por volumen (~4.700 entradas) como
+  // porque la whitelist curada de arriba ya cubre el caso de "no sé qué
+  // busco". El índice se descarga una sola vez por sesión: `fetchUniverseIndex`
+  // ya cachea en el backend, y aquí se cachea también el resultado para no
+  // repetir el `await` en cada tecla.
+  let fullIndexCache = null;
+  let searchToken = 0;
+
+  async function runSearch(rawQuery) {
+    const query = rawQuery.trim();
+    if (!searchResultsEl || !searchStatusEl) return;
+
+    if (query === '') {
+      searchResultsEl.replaceChildren();
+      searchStatusEl.classList.add('hidden');
+      return;
+    }
+
+    const token = ++searchToken;
+    searchStatusEl.textContent = t('universe.searchLoading');
+    searchStatusEl.classList.remove('hidden');
+
+    if (!fullIndexCache) {
+      const result = await fetchUniverseIndex();
+      if (token !== searchToken) return; // una búsqueda posterior ya la sustituyó
+      if (!result.ok) {
+        searchStatusEl.textContent = t('universe.searchFailed');
+        return;
+      }
+      fullIndexCache = result.value;
+    }
+
+    const matches = filterUniverseIndexEntries(fullIndexCache, query).slice(0, 60).map(universeIndexEntryToCard);
+    if (matches.length === 0) {
+      searchResultsEl.replaceChildren();
+      searchStatusEl.textContent = t('universe.searchEmpty');
+      return;
+    }
+
+    searchStatusEl.classList.add('hidden');
+    renderGrid(searchResultsEl, matches, onUsePackage);
+  }
+
+  if (searchInputEl) {
+    searchInputEl.addEventListener('input', () => {
+      runSearch(searchInputEl.value);
+    });
   }
 
   function applyTypedSpec() {

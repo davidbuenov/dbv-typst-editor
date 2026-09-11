@@ -187,3 +187,58 @@ export const CURATED_PACKAGES = [
     license: 'MIT',
   },
 ];
+
+/** Nombre de paquete (sin versión) de cada entrada curada, para el badge de RF-34. */
+const CURATED_NAMES = new Set(
+  [...CURATED_TEMPLATES, ...CURATED_PACKAGES].map((entry) => entry.spec.split('/')[1].split(':')[0])
+);
+
+/**
+ * RF-34: ¿este nombre de paquete está en la whitelist curada de DBV? Modelo
+ * de dos niveles del Universe Browser completo — la lista curada conserva el
+ * badge "verificado"; cualquier otro paquete del catálogo sin filtrar se
+ * marca como "comunidad, sin revisar", mismo aviso de terceros que ya usa la
+ * pestaña "Dirección" de la galería (RF-26.5), sin inventar un lenguaje de
+ * confianza nuevo.
+ * @param {string} name Nombre de paquete sin `@preview/` ni versión.
+ */
+export function isCuratedPackageName(name) {
+  return CURATED_NAMES.has(name);
+}
+
+/**
+ * Adapta una entrada cruda de `fetch_universe_index` (name/version/
+ * description/authors/license) a la forma de tarjeta que ya consume
+ * `universePanel.js` (spec/title/description/license) — sin duplicar el
+ * componente de tarjeta para el catálogo completo.
+ * @param {{name: string, version: string, description: string, authors: string[], license: string}} entry
+ */
+export function universeIndexEntryToCard(entry) {
+  const spec = `@preview/${entry.name}:${entry.version}`;
+  return {
+    spec,
+    title: entry.name,
+    titleEn: entry.name,
+    description: entry.description || '',
+    descriptionEn: entry.description || '',
+    license: entry.license || '—',
+    verified: isCuratedPackageName(entry.name),
+  };
+}
+
+/**
+ * Filtro de búsqueda sobre el catálogo completo (RF-34): substring sin
+ * distinguir mayúsculas sobre nombre y descripción. Función pura, sin acceso
+ * a red — el índice ya llegó cacheado desde `fetch_universe_index`.
+ * @param {Array<{name: string, description: string}>} entries
+ * @param {string} query
+ */
+export function filterUniverseIndexEntries(entries, query) {
+  const needle = query.trim().toLowerCase();
+  if (needle === '') return [];
+
+  return entries.filter(
+    (entry) =>
+      entry.name.toLowerCase().includes(needle) || (entry.description ?? '').toLowerCase().includes(needle)
+  );
+}

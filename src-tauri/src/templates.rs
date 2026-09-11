@@ -359,6 +359,7 @@ fn describe_typst_error(error: &TypstError) -> String {
         TypstError::ExecutionFailed(message) => message.clone(),
         TypstError::PreviewExpired(message) => message.clone(),
         TypstError::CompilationFailed(stderr) => stderr.clone(),
+        TypstError::TimedOut(message) => message.clone(),
     }
 }
 

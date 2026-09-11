@@ -269,7 +269,8 @@ fn describe(error: &typst_engine::TypstError) -> String {
     match error {
         typst_engine::TypstError::SidecarUnavailable(message)
         | typst_engine::TypstError::ExecutionFailed(message)
-        | typst_engine::TypstError::PreviewExpired(message) => message.clone(),
+        | typst_engine::TypstError::PreviewExpired(message)
+        | typst_engine::TypstError::TimedOut(message) => message.clone(),
         typst_engine::TypstError::CompilationFailed(stderr) => stderr.clone(),
     }
 }

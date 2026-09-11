@@ -46,6 +46,17 @@ use tempfile::TempDir;
 use super::shadow::{self, ShadowRoot};
 use super::{TypstError, SIDECAR};
 
+/// Margen de seguridad para una compilación (RF-38, `ADR-JOGS-001` en
+/// `memory.md`): un script `eval-js` de `jogs` en bucle infinito no tiene
+/// límite propio dentro de QuickJS, verificado con un spike real que cuelga
+/// el proceso sin autolimitarse (`spikes/jogs-sandbox/infinite.typ`). El
+/// límite lo pone este motor, no el paquete — y se aplica a TODA compilación,
+/// no solo a las que usan `jogs`, porque cualquier otro paquete de terceros
+/// podría colgarse igual de bien. Generoso a propósito: una tesis de 200
+/// páginas compila en 0,85 s (Slice 5) y la primera compilación de un
+/// proyecto con varios paquetes de Universe puede tardar en descargarlos.
+const COMPILE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(45);
+
 /// Qué compilar y con qué contenido, resuelto por el frontend (RF-14).
 ///
 /// Sustituye al par `(document, content)` de antes de v0.4.0. Dos cambios de
@@ -339,17 +350,34 @@ async fn run_cancelable(
     let mut stderr = String::new();
     let mut code = None;
 
-    while let Some(event) = events.recv().await {
-        match event {
-            CommandEvent::Stdout(chunk) => stdout.extend_from_slice(&chunk),
-            CommandEvent::Stderr(chunk) => stderr.push_str(&String::from_utf8_lossy(&chunk)),
-            CommandEvent::Error(message) => stderr.push_str(&message),
-            CommandEvent::Terminated(payload) => {
-                code = payload.code;
-                break;
+    let drained = tokio::time::timeout(COMPILE_TIMEOUT, async {
+        while let Some(event) = events.recv().await {
+            match event {
+                CommandEvent::Stdout(chunk) => stdout.extend_from_slice(&chunk),
+                CommandEvent::Stderr(chunk) => stderr.push_str(&String::from_utf8_lossy(&chunk)),
+                CommandEvent::Error(message) => stderr.push_str(&message),
+                CommandEvent::Terminated(payload) => {
+                    code = payload.code;
+                    break;
+                }
+                _ => {}
             }
-            _ => {}
         }
+    })
+    .await;
+
+    if drained.is_err() {
+        // Se agotó el margen: el proceso sigue vivo (si hubiera terminado,
+        // `Terminated` habría llegado antes que el timeout). Se mata igual
+        // que una cancelación normal, y se informa con un mensaje propio en
+        // vez de dejar `code` en `None`, que el resto del código lee como
+        // "el sidecar no arrancó" — aquí sí arrancó, solo que no ha vuelto.
+        state.cancel_running();
+        state.clear_running(generation);
+        return Err(TypstError::TimedOut(format!(
+            "El proceso no terminó en {}s (posible bucle infinito en un script embebido)",
+            COMPILE_TIMEOUT.as_secs()
+        )));
     }
 
     state.clear_running(generation);

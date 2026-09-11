@@ -48,6 +48,12 @@ pub enum TypstError {
     /// Se pidió una página de una vista previa ya sustituida por otra más
     /// reciente. No es un fallo: el frontend espera a la compilación nueva.
     PreviewExpired(String),
+    /// El proceso no terminó dentro del margen de seguridad (§7.16 de
+    /// ARCHITECTURE.md, RF-38): un script `eval-js` de `jogs` en bucle
+    /// infinito no tiene límite propio dentro de QuickJS — verificado con un
+    /// spike real (`spikes/jogs-sandbox/`) que cuelga el proceso sin
+    /// autolimitarse — así que el límite lo pone este motor, no el paquete.
+    TimedOut(String),
 }
 
 /// Salida completa de una invocación del CLI.

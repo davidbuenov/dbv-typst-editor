@@ -253,6 +253,9 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
   diagramEditor = createDiagramEditor({
     panelEl: elements.diagramPanel,
     svgEl: elements.diagramCanvas,
+    seedRowEl: elements.diagramSeedRow,
+    seedFlowchartBtn: elements.diagramSeedFlowchart,
+    seedBlockBtn: elements.diagramSeedBlock,
     addNodeButtonEl: elements.diagramAddNode,
     connectButtonEl: elements.diagramConnect,
     deleteButtonEl: elements.diagramDelete,

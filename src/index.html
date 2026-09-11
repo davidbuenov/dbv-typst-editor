@@ -581,6 +581,15 @@
          lógica pura. -->
     <div id="diagram-panel" class="floating-panel floating-panel--diagram hidden" role="dialog" aria-modal="false">
       <h2 class="floating-panel__title" data-i18n="diagram.title"></h2>
+      <!-- RF-31, feedback del usuario: un lienzo en blanco no da ninguna
+           idea de qué hacer. Dos plantillas de arranque con el MISMO
+           contenido que ya ofrece el asistente CeTZ (⬡) — se ocultan solas
+           en cuanto el lienzo tiene algún nodo. -->
+      <div class="diagram-editor__seed" id="diagram-seed-row">
+        <span class="diagram-editor__hint" data-i18n="diagram.seedHint"></span>
+        <button id="diagram-seed-flowchart" type="button" class="button button--compact button--ghost" data-i18n="diagram.seedFlowchart"></button>
+        <button id="diagram-seed-block" type="button" class="button button--compact button--ghost" data-i18n="diagram.seedBlock"></button>
+      </div>
       <div class="diagram-editor__toolbar">
         <button id="diagram-add-node" type="button" class="button button--compact" data-i18n="diagram.addNode"></button>
         <button id="diagram-connect" type="button" class="button button--compact button--ghost" data-i18n="diagram.connect"></button>

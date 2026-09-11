@@ -554,6 +554,14 @@ body {
   width: min(480px, calc(100vw - 32px));
 }
 
+.diagram-editor__seed {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0;
+  flex-wrap: wrap;
+}
+
 .diagram-editor__toolbar {
   display: flex;
   align-items: center;

@@ -145,6 +145,18 @@
   color: var(--text-secondary);
 }
 
+/* RF-32: Terminal y Python entran al menú con su glifo de siempre en vez de
+   un SVG a medida — no necesitan el ancho fijo de 16px del icono vectorial. */
+.menu-item__icon--glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  min-width: 16px;
+  font-size: 13px;
+  line-height: 1;
+}
+
 .menu-separator {
   height: 1px;
   margin: 6px 8px;

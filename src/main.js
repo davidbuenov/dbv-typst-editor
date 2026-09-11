@@ -522,6 +522,11 @@ async function bootstrap() {
     trigger: el('btn-terminal'),
     toggle: true,
     onOpen: () => {
+      // El propio botón está dentro de `#tools-menu` (RF-32) y frena la
+      // propagación de su clic para poder alternarse a sí mismo, así que el
+      // cierre del desplegable no puede depender de ese burbujeo — se cierra
+      // aquí, explícitamente, al abrirse el panel que reemplaza su contenido.
+      toolsMenu.close();
       const hint = workspace.state.project
         ? workspace.state.project.root
         : t('terminal.hint');
@@ -556,6 +561,7 @@ async function bootstrap() {
     trigger: el('btn-python'),
     toggle: true,
     onOpen: () => {
+      toolsMenu.close(); // ver comentario equivalente en terminalPanel arriba
       const hint = workspace.state.project
         ? workspace.state.project.root
         : t('python.hint');
@@ -705,9 +711,10 @@ async function bootstrap() {
     cloneError.classList.remove('hidden');
   };
   const clonePanel = registerPanel(el('clone-panel'), {
-    trigger: [el('btn-clone-repo'), el('btn-menu-clone-repo')],
+    trigger: [el('btn-clone-repo'), el('btn-tools-clone-repo')],
     toggle: true,
     onOpen: () => {
+      toolsMenu.close(); // ver comentario equivalente en terminalPanel arriba
       cloneError.classList.add('hidden');
       el('clone-url').value = '';
       el('clone-url').focus();
@@ -746,6 +753,18 @@ async function bootstrap() {
   });
   el('file-menu').addEventListener('click', (event) => {
     if (event.target.closest('.menu-item')) fileMenu.close();
+  });
+
+  // Menú Herramientas (RF-32): Terminal, Python y Clonar repositorio dejan de
+  // ser botones sueltos en la cabecera. Sus propios paneles (terminalPanel,
+  // pythonPanel, clonePanel, más abajo) se registran aparte — este menú solo
+  // decide cuándo se cierra ÉL, igual que fileMenu con el suyo.
+  const toolsMenu = registerPanel(el('tools-menu'), {
+    trigger: el('btn-tools-menu'),
+    toggle: true,
+  });
+  el('tools-menu').addEventListener('click', (event) => {
+    if (event.target.closest('.menu-item')) toolsMenu.close();
   });
 
   el('btn-open-folder').addEventListener('click', openFolder);

@@ -85,9 +85,6 @@
             <button id="btn-menu-import-archive" class="menu-item" type="button" role="menuitem">
               <svg class="menu-item__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 6.3 4.1 3h11.8l1.1 3.3"/><rect x="3" y="6.3" width="14" height="9.7" rx="1"/><path d="M8 10h4"/></svg><span data-i18n="action.importArchive"></span>
             </button>
-            <button id="btn-menu-clone-repo" class="menu-item" type="button" role="menuitem">
-              <svg class="menu-item__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="5" cy="5" r="2"/><circle cx="5" cy="15" r="2"/><circle cx="15" cy="9" r="2"/><path d="M5 7v6"/><path d="M5 9c0-2.2 1.8-2 4.5-2S15 7 15 7"/></svg><span data-i18n="action.cloneRepo"></span>
-            </button>
             <div class="menu-separator" role="separator"></div>
             <button id="btn-export-archive" class="menu-item" type="button" role="menuitem">
               <svg class="menu-item__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 6.3 4.1 3h11.8l1.1 3.3"/><rect x="3" y="6.3" width="14" height="9.7" rx="1"/><path d="M8 10h4"/></svg><span data-i18n="action.exportArchive"></span>
@@ -97,6 +94,32 @@
             </button>
             <button id="btn-close-project" class="menu-item" type="button" role="menuitem">
               <svg class="menu-item__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2.3 6.5c0-.7.5-1.2 1.2-1.2h3.4l1.4 1.7h7.1c.7 0 1.3.6 1.2 1.3l-.8 5.4c-.1.7-.7 1.2-1.3 1.2H3.9c-.7 0-1.2-.5-1.3-1.2L2.3 8Z"/><path d="M8.3 9.3l3 3M11.3 9.3l-3 3"/></svg><span data-i18n="action.closeProject"></span>
+            </button>
+          </div>
+        </div>
+
+        <!-- RF-32: Terminal, Python y Clonar repositorio dejan de ser botones
+             de icono sueltos y viven bajo un único menú, mismo criterio que
+             RF-30 con Archivo. El indicador de rama de Git (§ arriba, en
+             `.app-header__brand`) NO se mueve aquí: es un estado que debe
+             verse de un vistazo (RF-19.1), no una acción — moverlo detrás de
+             un menú le haría perder ese valor. -->
+        <div class="header-menu">
+          <button id="btn-tools-menu" class="button button--ghost button--icon-label" type="button" aria-haspopup="menu" aria-expanded="false">
+            <svg class="button__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12.5 4.3a3 3 0 0 0-4.1 3.5L3 13.2v2.5h2.5l5.4-5.4a3 3 0 0 0 3.5-4.1l-2 2-1.9-.5-.5-1.9 2-2Z"/></svg>
+            <span data-i18n="action.toolsMenu"></span>
+            <span class="header-menu__caret" aria-hidden="true">▾</span>
+          </button>
+          <div id="tools-menu" class="floating-panel floating-panel--menu hidden" role="menu">
+            <button id="btn-terminal" class="menu-item" type="button" role="menuitem">
+              <span class="menu-item__icon menu-item__icon--glyph" aria-hidden="true">&gt;_</span><span data-i18n="action.terminal"></span>
+            </button>
+            <button id="btn-python" class="menu-item" type="button" role="menuitem">
+              <span class="menu-item__icon menu-item__icon--glyph" aria-hidden="true">🐍</span><span data-i18n="action.python"></span>
+            </button>
+            <div class="menu-separator" role="separator"></div>
+            <button id="btn-tools-clone-repo" class="menu-item" type="button" role="menuitem">
+              <svg class="menu-item__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="5" cy="5" r="2"/><circle cx="5" cy="15" r="2"/><circle cx="15" cy="9" r="2"/><path d="M5 7v6"/><path d="M5 9c0-2.2 1.8-2 4.5-2S15 7 15 7"/></svg><span data-i18n="action.cloneRepo"></span>
             </button>
           </div>
         </div>
@@ -112,8 +135,6 @@
         <button id="btn-always-on-top" class="icon-button" type="button" data-i18n-title="action.alwaysOnTop">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 17v5M8.5 12.5L5 14l7-7 7 7-3.5-1.5M8.5 12.5L7 6l5-2 5 2-1.5 6.5M8.5 12.5h7"/></svg>
         </button>
-        <button id="btn-terminal" class="icon-button" type="button" data-i18n-title="action.terminal">&gt;_</button>
-        <button id="btn-python" class="icon-button" type="button" data-i18n-title="action.python">🐍</button>
         <button id="btn-universe" class="icon-button" type="button" disabled data-i18n-title="action.universe">✦</button>
         <button id="btn-help" class="icon-button" type="button" data-i18n-title="action.help">?</button>
         <button id="btn-about" class="icon-button" type="button" data-i18n-title="action.about">ⓘ</button>

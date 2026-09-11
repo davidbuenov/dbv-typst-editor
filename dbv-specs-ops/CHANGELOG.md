@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Sin publicar] / [Unreleased]
 
 ### Added
+- **Menú "Herramientas" en la cabecera (RF-32).** Terminal avanzado y Runner de Python dejan de ser botones de icono sueltos en la cabecera y viven bajo un único **Herramientas ▾**, junto con "Clonar repositorio" — mismo criterio que el menú Archivo de RF-30 (v0.5.0). El indicador de rama de Git **no** se mueve: es un estado que debe verse de un vistazo (RF-19), no una acción, así que trasladarlo detrás de un menú le haría perder su valor. Ninguna función pierde su atajo ni su comportamiento; `npm run verify:layout` confirma que la cabecera sigue en una sola fila a 830 px.
 - **Clonar repositorio por URL (RF-33).** Cierra el hueco reconocido en v0.5.0 (§5e.1 de `SPECIFICATIONS.md`): hasta ahora no se podía clonar un repositorio desde la aplicación. Nuevo comando `git_clone` reutiliza el mismo wrapper no interactivo de Git que ya usan `git_status`/`git_commit`/`git_push`/`git_pull` (`GIT_TERMINAL_PROMPT=0`, sin custodiar credenciales), y funciona igual con GitHub, GitLab, Codeberg o SSH — no se ató a una plataforma concreta, decisión explícita del usuario entre las 5 alternativas evaluadas para v0.6.0. El nombre de la carpeta destino se deriva de la URL igual que el propio `git clone`, y nunca sobrescribe un destino ya existente y no vacío. Accesible desde "Clonar repositorio" en el lanzador y en el menú Archivo; tras clonar, abre el proyecto directamente.
 
 ## [0.5.0] - 2026-09-09

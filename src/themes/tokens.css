@@ -160,4 +160,11 @@
   --font-mono: 'JetBrains Mono', 'Cascadia Code', Consolas, 'SF Mono', Menlo, monospace;
   --radius: 8px;
   --transition: 120ms ease;
+
+  /* Texto de las etiquetas del editor de diagramas (RF-31). Vive aquí, fuera
+     de los bloques por tema, porque NO debe cambiar con el tema: los rellenos
+     de los nodos son los colores con los que se compilará el diagrama —
+     siempre claros—, así que sobre ellos el texto tiene que ser oscuro aunque
+     el editor esté en modo oscuro. */
+  --diagram-label: #0f172a;
 }

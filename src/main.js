@@ -24,7 +24,6 @@ import { createAlwaysOnTop } from './app/alwaysOnTop.js';
 import { createLauncher } from './launcher/launcher.js';
 import { createTemplateGalleryModal } from './launcher/templateGalleryModal.js';
 import { createOutline } from './outline/outline.js';
-import { makeDraggable } from './panels/draggablePanel.js';
 import { closeAllPanels, registerPanel } from './panels/registerPanel.js';
 import { createPreview } from './preview/preview.js';
 import { createTerminal } from './terminal/terminal.js';
@@ -466,16 +465,9 @@ async function bootstrap() {
       tableHeader: el('table-header'),
       tableInsert: el('table-insert'),
       cetzPanel: el('cetz-panel'),
+      // El editor de diagramas busca sus propios controles dentro del panel
+      // por `data-diagram`, así que aquí basta con el panel.
       diagramPanel: el('diagram-panel'),
-      diagramCanvas: el('diagram-canvas'),
-      diagramSeedRow: el('diagram-seed-row'),
-      diagramSeedFlowchart: el('diagram-seed-flowchart'),
-      diagramSeedBlock: el('diagram-seed-block'),
-      diagramAddNode: el('diagram-add-node'),
-      diagramConnect: el('diagram-connect'),
-      diagramDelete: el('diagram-delete'),
-      diagramInsert: el('diagram-insert'),
-      diagramHint: el('diagram-hint'),
       documentName: el('document-name'),
       documentDirty: el('document-dirty'),
       documentPath: el('document-path'),
@@ -542,7 +534,6 @@ async function bootstrap() {
     },
   });
   el('git-popover-close').addEventListener('click', gitManager.close);
-  makeDraggable(el('git-popover'), el('git-popover-header'));
 
   // El editor (CodeMirror) necesita reconfigurar su tema, no solo heredar CSS.
   const themeSwitcher = wireThemeSwitcher((theme) => workspace.setTheme(theme));
@@ -652,7 +643,6 @@ async function bootstrap() {
   });
   el('terminal-close').addEventListener('click', terminalPanel.close);
   el('terminal-clear').addEventListener('click', terminal.clear);
-  makeDraggable(el('terminal-panel'), el('terminal-header'));
 
   // Python Runner (RF-22): ejecución de scripts locales y figuras dinámicas.
   const pythonRunner = createPythonRunnerPanel({
@@ -687,7 +677,6 @@ async function bootstrap() {
     },
   });
   el('python-close').addEventListener('click', pythonPanel.close);
-  makeDraggable(el('python-panel'), el('python-header'));
 
   // Typst Universe (Beta, §7.6): plantillas que crean proyecto y paquetes que
   // se importan en el documento abierto. La plantilla reutiliza el asistente

@@ -551,7 +551,96 @@ body {
   top: 0;
   left: 0;
   right: auto;
-  width: min(480px, calc(100vw - 32px));
+  width: min(680px, calc(100vw - 32px));
+  /* El lienzo mide 420px y encima lleva dos barras: en una ventana baja el
+     botón "Insertar" se saldría por debajo sin poder llegar a él. */
+  max-height: calc(100vh - 80px);
+  overflow: auto;
+}
+
+.diagram-editor__group-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.diagram-editor__separator {
+  width: 1px;
+  align-self: stretch;
+  background: var(--border);
+  margin: 0 2px;
+}
+
+/* Botón de forma: el glifo ES la silueta, así que se dibuja grande y sin
+   texto al lado — no reutiliza `.button` porque este es cuadrado. */
+.diagram-editor__shape {
+  width: 30px;
+  height: 28px;
+  font-size: 17px;
+  line-height: 1;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.diagram-editor__shape:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.diagram-editor__colors {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.diagram-editor__swatch {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.diagram-editor__swatch--selected {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* El lienzo y sus controles de zoom comparten caja para que los botones
+   floten sobre la esquina del lienzo, no debajo de él. */
+.diagram-editor__stage {
+  position: relative;
+}
+
+.diagram-editor__zoom {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.diagram-editor__zoom-level {
+  min-width: 40px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.diagram-editor__grid {
+  pointer-events: none;
+}
+
+#diagram-grid path {
+  stroke: var(--border);
+  opacity: 0.5;
 }
 
 .diagram-editor__seed {
@@ -576,31 +665,38 @@ body {
 }
 
 .diagram-editor__canvas {
+  display: block;
   width: 100%;
-  height: 320px;
+  height: 420px;
   background: var(--bg-tertiary);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   touch-action: none;
+  cursor: grab;
 }
 
-.diagram-node__rect {
-  fill: var(--bg-secondary);
-  stroke: var(--border);
+.diagram-editor__canvas:active {
+  cursor: grabbing;
+}
+
+/* El relleno y el trazo los pone el propio nodo (paleta del modelo), no el
+   tema: el color forma parte del diagrama y debe verse igual que saldrá
+   compilado, no adaptarse al tema claro/oscuro del editor. */
+.diagram-node__shape {
   stroke-width: 1.5;
   cursor: grab;
 }
 
-.diagram-node__rect--selected {
-  stroke: var(--accent);
-  stroke-width: 2;
+.diagram-node--selected .diagram-node__shape {
+  stroke-width: 3;
+  filter: drop-shadow(0 0 3px var(--accent));
 }
 
 .diagram-node__label {
   width: 100%;
   height: 100%;
   font-size: 12px;
-  color: var(--text-primary);
+  color: var(--diagram-label);
   text-align: center;
   display: flex;
   align-items: center;
@@ -809,6 +905,14 @@ body {
   justify-content: space-between;
   gap: 8px;
   flex: 0 0 auto;
+  /* Pegajosa porque ahora la lleva TODO diálogo, incluidos los que hacen
+     scroll (galería de símbolos, desplegable de citas): si se fuera con el
+     scroll, el "✕" y el asa de arrastre desaparecerían justo en los paneles
+     donde más falta hacen. */
+  position: sticky;
+  top: 0;
+  background: var(--bg-secondary);
+  cursor: move;
 }
 
 .help__body {

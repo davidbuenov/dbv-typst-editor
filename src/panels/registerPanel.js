@@ -9,8 +9,63 @@
 // adaptado de IIFE + `var` a módulo ESM. La semántica es la misma: un único
 // mecanismo de apertura/cierre para TODO panel flotante o modal de la app.
 
+import { t } from '../i18n/i18n.js';
+import { makeDraggable } from './draggablePanel.js';
+
 /** @type {Array<() => void>} Cierres registrados, para "cerrar todo" (p. ej. Escape). */
 const panelClosers = [];
+
+/**
+ * Cabeceras que ya existían en el HTML antes de que esto fuera automático.
+ * Cada panel las traía con su propio nombre de clase porque se fueron
+ * añadiendo una a una; se reconocen todas para no duplicar cabecera en los
+ * que ya tenían.
+ */
+const HEADER_SELECTOR = '.panel__header, .git-popover__header, .terminal__header, .python__header';
+
+/**
+ * Garantiza que un panel de tipo diálogo se pueda cerrar y mover.
+ *
+ * Petición explícita del usuario (2026-09-11): "haz que todas las ventanas
+ * puedan cerrarse y moverse". Se resuelve aquí, en la factoría por la que
+ * pasan TODOS los paneles, en vez de repetir cabecera y `makeDraggable` en
+ * cada uno: así un panel nuevo lo hereda sin que nadie se acuerde de pedirlo,
+ * que es justo como se coló la mitad de los que no lo tenían.
+ *
+ * Respeta lo que ya hubiera: si el panel trae cabecera propia, la usa como
+ * asa; si esa cabecera ya trae botón de cierre, no añade otro.
+ */
+function ensurePanelChrome(panelEl, close) {
+  let headerEl = panelEl.querySelector(HEADER_SELECTOR);
+
+  if (!headerEl) {
+    headerEl = document.createElement('div');
+    headerEl.className = 'panel__header';
+    // El título que ya estuviera suelto en el panel pasa a la cabecera, para
+    // que el asa de arrastre no quede como una franja vacía encima de él.
+    const title = panelEl.querySelector(':scope > .floating-panel__title');
+    if (title) headerEl.append(title);
+    panelEl.prepend(headerEl);
+  }
+
+  const hasClose = headerEl.querySelector('[data-panel-close], [data-i18n-title="action.close"]');
+  if (!hasClose) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'icon-button icon-button--small';
+    button.dataset.panelClose = '';
+    // El `data-i18n-title` lo recoge el siguiente cambio de idioma, pero
+    // `applyTranslations()` ya ha corrido cuando se cablean los paneles — de
+    // ahí el título puesto también a mano, o el botón nacería sin tooltip.
+    button.dataset.i18nTitle = 'action.close';
+    button.title = t('action.close');
+    button.textContent = '✕';
+    button.addEventListener('click', close);
+    headerEl.append(button);
+  }
+
+  makeDraggable(panelEl, headerEl);
+}
 
 /**
  * Registra un panel y devuelve sus controles de apertura/cierre.
@@ -68,6 +123,11 @@ export function registerPanel(panelEl, opts = {}) {
       if (isOpen && !clickedInside && !clickedTrigger) close();
     });
   }
+
+  // Los menús desplegables (`role="menu"`) quedan fuera a propósito: se
+  // cierran solos al elegir o al pulsar fuera, y una cabecera con "✕" encima
+  // de un menú de tres opciones estorba más de lo que ayuda.
+  if (panelEl.getAttribute('role') === 'dialog') ensurePanelChrome(panelEl, close);
 
   panelClosers.push(close);
   return { open, close };

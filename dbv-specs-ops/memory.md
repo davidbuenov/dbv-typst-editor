@@ -354,6 +354,41 @@
 - **Segundo hallazgo del feedback, ya resuelto de paso:** "no están asociadas a ningún tipo de diagrama" — un lienzo vacío sin pistas. Se añadieron dos plantillas de arranque ("Diagrama de flujo"/"Diagrama de bloques") con el MISMO contenido que ya ofrecía el asistente CeTZ (⬡) — Inicio→Procesar→Fin y Cliente→Servidor→Base de Datos —, que se ocultan solas en cuanto el lienzo tiene algún nodo. También: un clic simple (sin arrastre) enfoca el texto del nodo directamente, para no obligar a un segundo gesto solo para escribir.
 - **Decisión de NO retirar el botón** pese a que el usuario dio esa salida ("si es muy complicado lo dejamos, lo mejor es quitar el lápiz"): la causa era un bug concreto y localizado, no una limitación de diseño — quitar la función habría sido más barato en el momento pero habría dejado RF-31 sin resolver por una entrada de código que ya estaba identificada.
 
+## 🎨 Quinta ronda: el editor de diagramas "más simple que un botijo", y las ventanas que no se cerraban (2026-09-11)
+
+*Con el arrastre ya arreglado, el usuario volvió con dos cosas distintas en el mismo mensaje: el editor "solo permite añadir cuadros, sin colores", y "tiene el mismo problema que me he encontrado en otras ventanas emergentes — por favor haz que todas las ventanas puedan cerrarse y moverse". Además señaló dbv-eer-studio (`D:\Programacion\github-davidbuenov\eer-studio`) como referencia explícita: "tiene un editor impresionante… copia todo lo que pueda servirte pues es nuestro también".*
+
+### Lo que se adoptó de dbv-eer-studio
+
+Es React + TypeScript y este proyecto es JS de vainilla, así que no se copió código: se copió su **modelo de interacción**, que ya está rodado.
+
+- **`<g transform="translate(offset) scale(zoom)">` como único punto de zoom/paneo** (`Canvas.tsx`), en vez de recalcular cada coordenada. Todo el dibujo se hace en coordenadas del diagrama y el navegador aplica la transformación — el arrastre solo necesita dividir el delta de pantalla por la escala combinada (`viewBox` × zoom), que es exactamente lo que hace `screenToCanvasCoordinates` allí.
+- **Paleta de formas que INSERTAN con un clic** (`Toolbar.tsx`), no un modo que se activa y luego hay que aplicar.
+- **Arrastrar el fondo del lienzo = panear**, con `stopPropagation()` en el nodo para que arrastrar una caja no mueva además todo lo que hay debajo.
+- **Controles de zoom flotando sobre la esquina del lienzo** (±, porcentaje, encajar), no en una barra aparte.
+- **Encajar el contenido** (`fitToContent`) — aquí se aplica solo al REABRIR un diagrama existente, cuyo tamaño no se conoce; las plantillas de arranque están dibujadas a la medida del lienzo y reencuadrarlas nada más sembrarlas parecería un fallo.
+
+### Hallazgos contra el compilador real (no por lectura de la documentación)
+
+El usuario aportó la API oficial de CeTZ (<https://cetz-package.github.io/docs/api/overview>), que resolvió una duda que las pruebas a ciegas no habrían encontrado, pero las dos decisiones finales salieron de compilar y **mirar el PNG**:
+
+- **`content()` acepta DOS coordenadas para encajar el texto en una caja**, no solo un ancla. Con `content("n1", [...])` —lo que hacía la primera versión— una etiqueta larga ("Validar credenciales del usuario") **se sale del rectángulo por ambos lados**; con dos coordenadas se parte en líneas dentro de la caja. Pero encajado sin más queda pegado arriba a la izquierda: hace falta envolverlo en `align(center + horizon)` para recentrarlo. Ninguna de las dos cosas se ve en el código, solo en el render.
+- **CeTZ no tiene primitiva de rombo**: se genera como `line(...4 puntos..., close: true)`. Sí tiene `rect(..., radius:)` para esquinas redondeadas y `circle(..., radius: (rx, ry))` para elipses.
+- **Las flechas se recortan solas al borde de la forma con nombre**, sea cual sea — `line("n1", "n2")` conecta igual de bien un rombo o una elipse que un rectángulo, sin calcular intersecciones a mano.
+- Para el texto dentro de elipses y rombos, la caja se encoge al rectángulo inscrito (0,7/0,75 y 0,6/0,5 de la caja del nodo): en esas formas las esquinas no existen.
+
+### Las ventanas que no se cerraban: arreglarlo en la factoría, no panel a panel
+
+Solo 6 de los 14 diálogos flotantes tenían cabecera con "✕", y solo 3 eran arrastrables (Terminal, Python, Git, cada uno con su `makeDraggable()` suelto en `main.js`). El resto —símbolos, tabla, citas, imágenes, entrada bibliográfica, asistente CeTZ, editor de diagramas, clonar repositorio— no se podían ni cerrar con un botón ni recolocar.
+
+- **Se resolvió en `registerPanel()`**, la factoría por la que pasan TODOS los paneles, no repitiendo cabecera en cada uno: si el panel es `role="dialog"` y no trae cabecera propia, se le añade una (mudándole el título que tuviera suelto, para que el asa no quede como una franja vacía), con botón de cierre si no lo tenía ya, y se hace arrastrable. Los tres `makeDraggable()` sueltos de `main.js` se retiraron por redundantes.
+- **Motivo de fondo:** los paneles se fueron añadiendo uno a uno durante tres versiones y la cabecera dependía de que quien lo añadiera se acordara. Ponerlo en la pieza compartida es lo que hace que un panel nuevo lo herede sin pedirlo — exactamente el mismo razonamiento que ya resolvió el bug de `closeOnOutsideClick` de la primera pasada manual de Beta (ver la entrada de 2026-09-05 más abajo): **cuando el mismo defecto aparece en varios sitios "independientes" que comparten infraestructura, la causa y el arreglo van en la infraestructura.**
+- La cabecera se declara `position: sticky` porque ahora la llevan también paneles con scroll (galería de símbolos, desplegable de citas): si se fuera con el scroll, el "✕" y el asa desaparecerían justo en los paneles donde más falta hacen.
+
+### Otro bug encontrado de paso, que nadie había reportado
+
+El `render()` anterior hacía `svgEl.replaceChildren()` directamente sobre el `<svg>`, lo que **se llevaba por delante el `<defs>` con la punta de flecha declarado en el HTML** — las flechas perdían la punta tras el primer dibujado. Al pasar a dibujar dentro de un `<g>` contenedor (necesario para el zoom) desapareció solo. Corolario: `replaceChildren()` sobre un contenedor que además lleva declaraciones estáticas del HTML es una trampa; dibujar siempre en un grupo propio.
+
 ## ⚠️ Lecciones Aprendidas
 
 - **2026-09-08 — Al cambiar el fichero activo en el editor dentro de un proyecto, la vista previa no debe reiniciarse si el documento objetivo sigue siendo el mismo.** Cuando la vista previa compila a nivel de documento (`main.typ`), cambiar de capítulo (o navegar a una línea mediante doble clic en la vista previa) emitía `documentOpened` en `main.js` y llamaba incondicionalmente a `preview.restart()` y `outline.restart()`. Eso borraba el DOM de páginas y reseteaba `scrollTop` a la página 1, arruinando la navegación interactiva. Al condicionar el reinicio a que `target.document` realmente haya cambiado respecto al `lastTargetDocument`, el scroll y el zoom se mantienen intactos.

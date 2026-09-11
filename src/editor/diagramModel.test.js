@@ -100,9 +100,37 @@ describe('diagramToCetzCode', () => {
     const code = diagramToCetzCode(diagram);
     expect(code).toContain('cetz.canvas');
     expect(code).toContain('rect(');
-    expect(code).toContain('content("n1", [Inicio])');
-    expect(code).toContain('content("n2", [Fin])');
+    expect(code).toContain('align(center + horizon)[Inicio]');
+    expect(code).toContain('align(center + horizon)[Fin]');
     expect(code).toContain('line("n1", "n2", mark: (end: ">"))');
+  });
+
+  // La etiqueta se encaja entre DOS coordenadas, no anclada al nombre de la
+  // forma: comprobado contra el compilador real, anclarla al nombre deja que
+  // un texto largo se salga de la caja por ambos lados.
+  it('encaja la etiqueta dentro de la caja del nodo, centrada', () => {
+    const diagram = addNode(createEmptyDiagram(), { label: 'Texto largo', x: 0, y: 0, w: 140, h: 60 });
+    const code = diagramToCetzCode(diagram);
+    expect(code).toContain('content((0, 0), (3.5, 1.5), padding: 0.1, align(center + horizon)[Texto largo])');
+  });
+
+  it('cada forma emite su primitiva de CeTZ, con el color de la paleta', () => {
+    const code = (shape, color) => diagramToCetzCode(addNode(createEmptyDiagram(), { shape, color, x: 0, y: 0 }));
+
+    expect(code('rect', 'blue')).toContain('rect((0, 0), (3.5, 1.5), name: "n1", fill: rgb("#dbeafe"), stroke: rgb("#1d4ed8"))');
+    expect(code('round', 'green')).toContain('radius: 0.3');
+    expect(code('ellipse', 'amber')).toContain('circle((1.75, 0.75), radius: (1.75, 0.75)');
+    // Sin primitiva de rombo en CeTZ: cuatro puntos cerrados sobre sí mismos.
+    expect(code('diamond', 'purple')).toContain('close: true');
+  });
+
+  // Un diagrama guardado antes de que existieran formas y colores debe
+  // reabrirse igual, no romper el generador.
+  it('un nodo sin forma ni color se dibuja con los valores por defecto', () => {
+    const legacy = { nodes: [{ id: 'n1', x: 0, y: 0, w: 140, h: 60, label: 'Viejo' }], edges: [], nextId: 2 };
+    const code = diagramToCetzCode(legacy);
+    expect(code).toContain('rect((0, 0), (3.5, 1.5)');
+    expect(code).toContain('fill: rgb("#dbeafe")');
   });
 
   it('escapa corchetes en la etiqueta de un nodo', () => {

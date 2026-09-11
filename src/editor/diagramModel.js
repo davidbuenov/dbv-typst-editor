@@ -24,6 +24,46 @@
 /** Constante de escala: 40px de lienzo = 1 unidad CeTZ (coordenadas razonables sin decimales largos). */
 const CETZ_UNIT = 40;
 
+/**
+ * Formas disponibles para un nodo. Los cuatro nombres se corresponden con
+ * primitivas distintas de `cetz.draw` (ver `shapeToCetz`), no con variantes
+ * de estilo de la misma: el rombo, por ejemplo, es un `line(..., close: true)`
+ * de cuatro puntos porque CeTZ no trae una primitiva de rombo.
+ */
+export const NODE_SHAPES = ['rect', 'round', 'ellipse', 'diamond'];
+
+/**
+ * Paleta de colores. Cada entrada lleva su pareja relleno/trazo ya emparejada
+ * en vez de dejar elegir los dos por separado: un selector libre de color
+ * produce diagramas ilegibles (relleno oscuro con trazo oscuro), y una paleta
+ * corta de parejas con contraste comprobado no.
+ */
+export const NODE_COLORS = [
+  { id: 'blue', fill: '#dbeafe', stroke: '#1d4ed8' },
+  { id: 'green', fill: '#dcfce7', stroke: '#15803d' },
+  { id: 'amber', fill: '#fef3c7', stroke: '#b45309' },
+  { id: 'purple', fill: '#f3e8ff', stroke: '#7e22ce' },
+  { id: 'rose', fill: '#ffe4e6', stroke: '#be123c' },
+  { id: 'plain', fill: '#ffffff', stroke: '#334155' },
+];
+
+const DEFAULT_COLOR = 'blue';
+const DEFAULT_SHAPE = 'rect';
+
+/**
+ * Resuelve el color de un nodo, tolerando modelos antiguos (sin campo
+ * `color`) y valores desconocidos — un diagrama guardado con una versión
+ * anterior se reabre igual, con el color por defecto, en vez de romperse.
+ */
+export function colorOf(node) {
+  return NODE_COLORS.find((c) => c.id === node.color) ?? NODE_COLORS.find((c) => c.id === DEFAULT_COLOR);
+}
+
+/** Misma tolerancia que `colorOf`, para la forma. */
+export function shapeOf(node) {
+  return NODE_SHAPES.includes(node.shape) ? node.shape : DEFAULT_SHAPE;
+}
+
 /** @returns {{nodes: Array, edges: Array, nextId: number}} */
 export function createEmptyDiagram() {
   return { nodes: [], edges: [], nextId: 1 };
@@ -31,7 +71,7 @@ export function createEmptyDiagram() {
 
 /**
  * @param {object} diagram
- * @param {{x?: number, y?: number, w?: number, h?: number, label?: string}} [opts]
+ * @param {{x?: number, y?: number, w?: number, h?: number, label?: string, shape?: string, color?: string}} [opts]
  */
 export function addNode(diagram, opts = {}) {
   const id = `n${diagram.nextId}`;
@@ -42,6 +82,8 @@ export function addNode(diagram, opts = {}) {
     w: opts.w ?? 140,
     h: opts.h ?? 60,
     label: opts.label ?? 'Nodo',
+    shape: NODE_SHAPES.includes(opts.shape) ? opts.shape : DEFAULT_SHAPE,
+    color: NODE_COLORS.some((c) => c.id === opts.color) ? opts.color : DEFAULT_COLOR,
   };
   return { ...diagram, nodes: [...diagram.nodes, node], nextId: diagram.nextId + 1 };
 }
@@ -52,6 +94,18 @@ export function moveNode(diagram, id, x, y) {
 
 export function renameNode(diagram, id, label) {
   return { ...diagram, nodes: diagram.nodes.map((node) => (node.id === id ? { ...node, label } : node)) };
+}
+
+/** Cambia la forma de un nodo; un nombre desconocido deja el diagrama intacto. */
+export function setNodeShape(diagram, id, shape) {
+  if (!NODE_SHAPES.includes(shape)) return diagram;
+  return { ...diagram, nodes: diagram.nodes.map((node) => (node.id === id ? { ...node, shape } : node)) };
+}
+
+/** Cambia el color de un nodo; un color fuera de la paleta deja el diagrama intacto. */
+export function setNodeColor(diagram, id, color) {
+  if (!NODE_COLORS.some((c) => c.id === color)) return diagram;
+  return { ...diagram, nodes: diagram.nodes.map((node) => (node.id === id ? { ...node, color } : node)) };
 }
 
 /** Retira un nodo y cualquier conexión que lo mencionara — nunca deja una flecha colgando de un nodo borrado. */
@@ -80,6 +134,70 @@ function escapeTypstContent(label) {
 }
 
 /**
+ * Traduce un nodo a la primitiva de `cetz.draw` que le toca. Las coordenadas
+ * llegan ya convertidas a unidades CeTZ y con la Y invertida — aquí solo se
+ * decide la forma. Verificado compilando las cuatro contra typst 0.15.1 +
+ * `@preview/cetz:0.5.2`: las flechas se recortan solas al borde de la forma
+ * con nombre, sea cual sea, así que el rombo y la elipse conectan igual de
+ * bien que el rectángulo.
+ */
+function shapeToCetz(node, { x0, x1, y0, y1 }) {
+  const { fill, stroke } = colorOf(node);
+  const style = `name: "${node.id}", fill: rgb("${fill}"), stroke: rgb("${stroke}")`;
+  const cx = Math.round(((x0 + x1) / 2) * 100) / 100;
+  const cy = Math.round(((y0 + y1) / 2) * 100) / 100;
+
+  switch (shapeOf(node)) {
+    case 'round':
+      return `rect((${x0}, ${y0}), (${x1}, ${y1}), radius: 0.3, ${style})`;
+    case 'ellipse':
+      return `circle((${cx}, ${cy}), radius: (${Math.round(((x1 - x0) / 2) * 100) / 100}, ${Math.round(((y1 - y0) / 2) * 100) / 100}), ${style})`;
+    case 'diamond':
+      // CeTZ no trae primitiva de rombo: cuatro puntos (arriba, derecha,
+      // abajo, izquierda) cerrados sobre sí mismos.
+      return `line((${cx}, ${y1}), (${x1}, ${cy}), (${cx}, ${y0}), (${x0}, ${cy}), close: true, ${style})`;
+    default:
+      return `rect((${x0}, ${y0}), (${x1}, ${y1}), ${style})`;
+  }
+}
+
+/**
+ * Fracción de la caja del nodo en la que cabe el texto sin salirse de la
+ * silueta: un rectángulo la aprovecha entera, pero en una elipse o un rombo
+ * las esquinas no existen, así que el texto se encaja en el rectángulo
+ * inscrito. Valores comprobados compilando etiquetas largas contra el
+ * compilador real.
+ */
+const LABEL_INSET = {
+  rect: { w: 1, h: 1 },
+  round: { w: 0.94, h: 0.94 },
+  ellipse: { w: 0.7, h: 0.75 },
+  diamond: { w: 0.6, h: 0.5 },
+};
+
+/**
+ * Coloca la etiqueta de un nodo.
+ *
+ * Se le pasan DOS coordenadas, no el nombre de la forma: con el nombre, CeTZ
+ * centra el texto en el ancla y lo deja desbordarse por los lados en cuanto es
+ * largo (comprobado: "Validar credenciales del usuario" se salía del
+ * rectángulo por ambos extremos). Con dos coordenadas lo encaja dentro de la
+ * caja, partiéndolo en líneas; el `align(center + horizon)` es lo que lo
+ * vuelve a centrar dentro de esa caja, porque encajado sin más queda pegado
+ * arriba a la izquierda.
+ */
+function labelToCetz(node, { x0, x1, y0, y1 }) {
+  const inset = LABEL_INSET[shapeOf(node)] ?? LABEL_INSET.rect;
+  const round = (value) => Math.round(value * 100) / 100;
+  const cx = (x0 + x1) / 2;
+  const cy = (y0 + y1) / 2;
+  const halfW = ((x1 - x0) / 2) * inset.w;
+  const halfH = ((y1 - y0) / 2) * inset.h;
+  const body = `align(center + horizon)[${escapeTypstContent(node.label)}]`;
+  return `content((${round(cx - halfW)}, ${round(cy - halfH)}), (${round(cx + halfW)}, ${round(cy + halfH)}), padding: 0.1, ${body})`;
+}
+
+/**
  * Traduce el modelo a un bloque `cetz.canvas` legible, con el modelo
  * serializado en un comentario propio para poder reabrirlo (ver
  * `extractDiagramModelNear`). Coordenadas convertidas a unidades CeTZ e
@@ -94,7 +212,8 @@ export function diagramToCetzCode(diagram) {
     const x1 = toUnit(node.x + node.w);
     const y0 = toUnit(maxY - (node.y + node.h));
     const y1 = toUnit(maxY - node.y);
-    return `    rect((${x0}, ${y0}), (${x1}, ${y1}), name: "${node.id}")\n    content("${node.id}", [${escapeTypstContent(node.label)}])`;
+    const shape = shapeToCetz(node, { x0, x1, y0, y1 });
+    return `    ${shape}\n    ${labelToCetz(node, { x0, x1, y0, y1 })}`;
   });
 
   const lines = diagram.edges.map((edge) => `    line("${edge.from}", "${edge.to}", mark: (end: ">"))`);

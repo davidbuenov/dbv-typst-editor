@@ -585,25 +585,52 @@
            idea de qué hacer. Dos plantillas de arranque con el MISMO
            contenido que ya ofrece el asistente CeTZ (⬡) — se ocultan solas
            en cuanto el lienzo tiene algún nodo. -->
-      <div class="diagram-editor__seed" id="diagram-seed-row">
+      <div class="diagram-editor__seed" data-diagram="seed-row">
         <span class="diagram-editor__hint" data-i18n="diagram.seedHint"></span>
-        <button id="diagram-seed-flowchart" type="button" class="button button--compact button--ghost" data-i18n="diagram.seedFlowchart"></button>
-        <button id="diagram-seed-block" type="button" class="button button--compact button--ghost" data-i18n="diagram.seedBlock"></button>
+        <button data-diagram="seed-flowchart" type="button" class="button button--compact button--ghost" data-i18n="diagram.seedFlowchart"></button>
+        <button data-diagram="seed-block" type="button" class="button button--compact button--ghost" data-i18n="diagram.seedBlock"></button>
+      </div>
+      <!-- Paleta de formas: cada botón INSERTA esa forma, no cambia un modo
+           (patrón adoptado de dbv-eer-studio). Los glifos son la propia
+           silueta, así que no necesitan etiqueta de texto al lado. -->
+      <div class="diagram-editor__toolbar">
+        <span class="diagram-editor__group-label" data-i18n="diagram.insertLabel"></span>
+        <button data-diagram-shape="rect" type="button" class="diagram-editor__shape" data-i18n-title="diagram.shapeRect">▭</button>
+        <button data-diagram-shape="round" type="button" class="diagram-editor__shape" data-i18n-title="diagram.shapeRound">▢</button>
+        <button data-diagram-shape="ellipse" type="button" class="diagram-editor__shape" data-i18n-title="diagram.shapeEllipse">⬭</button>
+        <button data-diagram-shape="diamond" type="button" class="diagram-editor__shape" data-i18n-title="diagram.shapeDiamond">◇</button>
+        <span class="diagram-editor__separator" aria-hidden="true"></span>
+        <button data-diagram="connect" type="button" class="button button--compact button--ghost" data-i18n="diagram.connect"></button>
+        <button data-diagram="delete" type="button" class="button button--compact button--ghost" data-i18n="diagram.delete"></button>
       </div>
       <div class="diagram-editor__toolbar">
-        <button id="diagram-add-node" type="button" class="button button--compact" data-i18n="diagram.addNode"></button>
-        <button id="diagram-connect" type="button" class="button button--compact button--ghost" data-i18n="diagram.connect"></button>
-        <button id="diagram-delete" type="button" class="button button--compact button--ghost" data-i18n="diagram.delete"></button>
-        <span class="diagram-editor__hint" id="diagram-hint"></span>
+        <span class="diagram-editor__group-label" data-i18n="diagram.colorLabel"></span>
+        <span class="diagram-editor__colors" data-diagram="colors"></span>
+        <span class="diagram-editor__hint" data-diagram="hint"></span>
       </div>
-      <svg id="diagram-canvas" class="diagram-editor__canvas" viewBox="0 0 440 320">
-        <defs>
-          <marker id="diagram-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-            <path d="M0 0 L10 5 L0 10 z" />
-          </marker>
-        </defs>
-      </svg>
-      <button id="diagram-insert" type="button" class="button button--primary" data-i18n="diagram.insert"></button>
+      <div class="diagram-editor__stage">
+        <svg data-diagram="canvas" class="diagram-editor__canvas" viewBox="0 0 640 420">
+          <defs>
+            <marker id="diagram-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0 0 L10 5 L0 10 z" />
+            </marker>
+            <pattern id="diagram-grid" width="20" height="20" patternUnits="userSpaceOnUse">
+              <path d="M20 0 L0 0 L0 20" fill="none" stroke-width="1" />
+            </pattern>
+          </defs>
+          <!-- La rejilla no entra en el grupo con zoom: es una referencia
+               visual del lienzo, no parte del diagrama. -->
+          <rect class="diagram-editor__grid" x="0" y="0" width="100%" height="100%" fill="url(#diagram-grid)" />
+          <g data-diagram="viewport"></g>
+        </svg>
+        <div class="diagram-editor__zoom">
+          <button data-diagram="zoom-out" type="button" class="icon-button icon-button--small" data-i18n-title="diagram.zoomOut">−</button>
+          <span class="diagram-editor__zoom-level" data-diagram="zoom-level">100%</span>
+          <button data-diagram="zoom-in" type="button" class="icon-button icon-button--small" data-i18n-title="diagram.zoomIn">+</button>
+          <button data-diagram="zoom-fit" type="button" class="icon-button icon-button--small" data-i18n-title="diagram.zoomFit">⤢</button>
+        </div>
+      </div>
+      <button data-diagram="insert" type="button" class="button button--primary" data-i18n="diagram.insert"></button>
     </div>
 
     <!-- Desplegable de citas (Beta, ARCHITECTURE.md §7.7.4). -->

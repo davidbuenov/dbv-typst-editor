@@ -5,64 +5,78 @@
 // Built with dbv-specs-ops · https://github.com/davidbuenov/dbv-specs-ops
 // =============================================================================
 //
-// Manipulación directa sobre un lienzo SVG: arrastrar nodos, conectarlos con
-// un clic en modo "Conectar", editar su texto in situ. `diagramModel.js` tiene
-// toda la lógica pura (modelo, traducción a CeTZ, reapertura); este módulo es
-// solo el cableado DOM/SVG sobre ese modelo — mismo reparto de responsabilidad
-// que el resto del editor (`toolbarActions.js` puro + `toolbar.js` que aplica).
+// Manipulación directa sobre un lienzo SVG: insertar nodos de cuatro formas,
+// arrastrarlos, colorearlos, conectarlos y editar su texto in situ, con zoom y
+// paneo sobre el lienzo. `diagramModel.js` tiene toda la lógica pura (modelo,
+// traducción a CeTZ, reapertura); este módulo es solo el cableado DOM/SVG
+// sobre ese modelo — mismo reparto de responsabilidad que el resto del editor
+// (`toolbarActions.js` puro + `toolbar.js` que aplica).
 //
-// Coexiste con el asistente de plantillas CeTZ (RF-23, `cetzAssistant.js`)
-// hasta que cubra sin regresión sus 4 tipos — entonces se retira (Slice 49).
-// Alcance de esta primera pasada: lienzo genérico de nodos y flechas (cubre
-// "flujo" y "bloques"); gráficas 2D y lienzo libre quedan para después.
+// La segunda pasada (feedback del usuario, 2026-09-11: "el editor es más
+// simple que un botijo y solo permite añadir cuadros, sin colores") se apoya
+// en dbv-eer-studio, el otro editor de diagramas de la casa, del que se
+// adopta su modelo de interacción ya rodado: paleta de formas que se insertan
+// con un clic, transformación `translate(offset) scale(zoom)` sobre un grupo
+// contenedor en vez de recalcular cada coordenada, arrastre del propio lienzo
+// para panear, y controles de zoom flotando sobre la esquina del lienzo.
 //
-// LECCIÓN de la primera versión (2026-09-11, feedback real del usuario: "no
-// se pueden mover ni arrastrar"): `render()` reconstruía TODO el SVG
-// (`svgEl.replaceChildren()`) en cada `pointerdown` (para marcar la
-// selección) y en cada `pointermove` del arrastre (para reflejar la nueva
-// posición). Eso destruye y sustituye el propio `<g>` que acaba de capturar
-// el puntero (`setPointerCapture`) — el arrastre se rompía en el primer
-// píxel de movimiento porque el elemento que lo empezó ya no existía. La
-// solución: `render()` completo SOLO cuando cambia la lista de nodos/aristas
-// (añadir, borrar, conectar); mover y seleccionar actualizan el DOM que ya
-// existe, sin reconstruir nada.
+// LECCIÓN de la primera versión (feedback real: "no se pueden mover ni
+// arrastrar"): `render()` reconstruía TODO el SVG en cada `pointerdown` y en
+// cada `pointermove` del arrastre, destruyendo el propio `<g>` que acababa de
+// capturar el puntero. La solución, que se mantiene: `render()` completo SOLO
+// cuando cambia qué nodos/aristas existen; mover y seleccionar parchean el DOM
+// que ya existe. Corolario descubierto al reescribir: el `render()` antiguo
+// hacía `svgEl.replaceChildren()`, que se llevaba por delante el `<defs>` con
+// la punta de flecha declarado en el HTML — las flechas perdían la punta tras
+// el primer dibujado. Por eso ahora se dibuja dentro de un `<g>` contenedor y
+// nunca directamente sobre el `<svg>`.
 
 import { t } from '../i18n/i18n.js';
 import { hasCetzImport } from './toolbarActions.js';
 import {
+  NODE_COLORS,
+  NODE_SHAPES,
   addEdge,
   addNode,
+  colorOf,
   createEmptyDiagram,
   diagramToCetzCode,
   extractDiagramModelNear,
   moveNode,
   removeNode,
   renameNode,
+  setNodeColor,
+  shapeOf,
 } from './diagramModel.js';
 import { registerPanel } from '../panels/registerPanel.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
+
+const MIN_ZOOM = 0.3;
+const MAX_ZOOM = 2.5;
 
 /**
  * Plantillas de arranque (RF-31, feedback del usuario: "sería bueno que
  * aparecieran con algún contenido como idea, al menos el contenido de los
  * diagramas que aparecen cuando se pulsa el hexágono") — mismo contenido que
  * `getCetzSnippet('flowchart'|'block')` en `toolbarActions.js`, pero como
- * modelo de nodos editable en vez de código de texto fijo.
+ * modelo de nodos editable en vez de código de texto fijo. Cada plantilla
+ * estrena forma y color propios para que se vea de un vistazo que el lienzo
+ * no es un único tipo de caja.
  */
 const SEED_TEMPLATES = {
   flowchart: () => {
-    let diagram = addNode(createEmptyDiagram(), { x: 40, y: 40, label: 'Inicio' });
-    diagram = addNode(diagram, { x: 40, y: 140, label: 'Procesar' });
-    diagram = addNode(diagram, { x: 40, y: 240, label: 'Fin' });
+    let diagram = addNode(createEmptyDiagram(), { x: 60, y: 30, label: 'Inicio', shape: 'round', color: 'green' });
+    diagram = addNode(diagram, { x: 60, y: 140, label: 'Procesar', shape: 'rect', color: 'blue' });
+    diagram = addNode(diagram, { x: 60, y: 250, label: 'Fin', shape: 'round', color: 'rose' });
     diagram = addEdge(diagram, 'n1', 'n2');
     diagram = addEdge(diagram, 'n2', 'n3');
     return diagram;
   },
   block: () => {
-    let diagram = addNode(createEmptyDiagram(), { x: 20, y: 40, label: 'Cliente' });
-    diagram = addNode(diagram, { x: 200, y: 40, label: 'Servidor' });
-    diagram = addNode(diagram, { x: 380, y: 40, label: 'Base de Datos' });
+    let diagram = addNode(createEmptyDiagram(), { x: 30, y: 60, label: 'Cliente', shape: 'rect', color: 'blue' });
+    diagram = addNode(diagram, { x: 240, y: 60, label: 'Servidor', shape: 'rect', color: 'purple' });
+    diagram = addNode(diagram, { x: 450, y: 60, label: 'Base de Datos', shape: 'ellipse', color: 'amber' });
     diagram = addEdge(diagram, 'n1', 'n2');
     diagram = addEdge(diagram, 'n2', 'n3');
     return diagram;
@@ -70,43 +84,38 @@ const SEED_TEMPLATES = {
 };
 
 /**
+ * El editor busca sus propios controles dentro del panel por `data-diagram`,
+ * en vez de recibir quince elementos sueltos desde `workspace.js`: los botones
+ * del lienzo son parte del panel, no del cableado de la aplicación, y así
+ * añadir uno nuevo no obliga a tocar tres ficheros.
+ *
  * @param {object} deps
- * @param {HTMLElement} deps.panelEl Panel flotante que contiene el lienzo.
- * @param {SVGSVGElement} deps.svgEl Lienzo SVG donde se dibujan los nodos.
- * @param {HTMLElement} deps.seedRowEl Fila de plantillas de arranque, oculta cuando el lienzo ya tiene nodos.
- * @param {HTMLButtonElement} deps.seedFlowchartBtn
- * @param {HTMLButtonElement} deps.seedBlockBtn
- * @param {HTMLButtonElement} deps.addNodeButtonEl
- * @param {HTMLButtonElement} deps.connectButtonEl Alterna el modo "Conectar".
- * @param {HTMLButtonElement} deps.deleteButtonEl Borra el nodo seleccionado.
- * @param {HTMLButtonElement} deps.insertButtonEl
- * @param {HTMLElement} deps.hintEl Pista de estado (modo conectar, nodo elegido...).
+ * @param {HTMLElement} deps.panelEl Panel flotante que contiene el lienzo y sus controles.
  * @param {() => import('@codemirror/view').EditorView | null} deps.getView
  */
-export function createDiagramEditor({
-  panelEl,
-  svgEl,
-  seedRowEl,
-  seedFlowchartBtn,
-  seedBlockBtn,
-  addNodeButtonEl,
-  connectButtonEl,
-  deleteButtonEl,
-  insertButtonEl,
-  hintEl,
-  getView,
-}) {
+export function createDiagramEditor({ panelEl, getView }) {
+  const find = (name) => panelEl.querySelector(`[data-diagram="${name}"]`);
+
+  const svgEl = find('canvas');
+  const viewportEl = find('viewport') ?? svgEl.appendChild(document.createElementNS(SVG_NS, 'g'));
+  const seedRowEl = find('seed-row');
+  const colorsEl = find('colors');
+  const hintEl = find('hint');
+  const zoomLevelEl = find('zoom-level');
+
   let diagram = createEmptyDiagram();
   let connectMode = false;
   let connectFrom = null;
   let selectedId = null;
+  let zoom = 1;
+  let offset = { x: 0, y: 0 };
 
   function setHint(text) {
-    hintEl.textContent = text;
+    if (hintEl) hintEl.textContent = text;
   }
 
   function updateSeedVisibility() {
-    if (seedRowEl) seedRowEl.classList.toggle('hidden', diagram.nodes.length > 0);
+    seedRowEl?.classList.toggle('hidden', diagram.nodes.length > 0);
   }
 
   /** Coordenadas del centro de un nodo, para el punto de anclaje de sus flechas. */
@@ -115,12 +124,106 @@ export function createDiagramEditor({
   }
 
   /**
+   * Factor entre píxeles de pantalla y unidades del lienzo, combinando el
+   * escalado del `viewBox` (el SVG se estira al ancho disponible) con el zoom
+   * del usuario. Sin esto, arrastrar con zoom al 50% movería el nodo el doble
+   * de lo que se ve.
+   */
+  function pointerScale() {
+    const viewBoxScale = svgEl.clientWidth ? svgEl.viewBox.baseVal.width / svgEl.clientWidth : 1;
+    return viewBoxScale / zoom;
+  }
+
+  function applyViewport() {
+    viewportEl.setAttribute('transform', `translate(${offset.x}, ${offset.y}) scale(${zoom})`);
+    if (zoomLevelEl) zoomLevelEl.textContent = `${Math.round(zoom * 100)}%`;
+  }
+
+  function setZoom(next) {
+    zoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Math.round(next * 100) / 100));
+    applyViewport();
+  }
+
+  /** Encuadra todo el diagrama en el lienzo — el "fit to content" de eer-studio. */
+  function fitToContent() {
+    if (diagram.nodes.length === 0) {
+      zoom = 1;
+      offset = { x: 0, y: 0 };
+      applyViewport();
+      return;
+    }
+    const minX = Math.min(...diagram.nodes.map((n) => n.x));
+    const minY = Math.min(...diagram.nodes.map((n) => n.y));
+    const maxX = Math.max(...diagram.nodes.map((n) => n.x + n.w));
+    const maxY = Math.max(...diagram.nodes.map((n) => n.y + n.h));
+    const box = svgEl.viewBox.baseVal;
+    const margin = 24;
+    const scale = Math.min(
+      (box.width - margin * 2) / Math.max(1, maxX - minX),
+      (box.height - margin * 2) / Math.max(1, maxY - minY),
+    );
+    zoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Math.round(scale * 100) / 100));
+    offset = {
+      x: Math.round(margin - minX * zoom + (box.width - margin * 2 - (maxX - minX) * zoom) / 2),
+      y: Math.round(margin - minY * zoom + (box.height - margin * 2 - (maxY - minY) * zoom) / 2),
+    };
+    applyViewport();
+  }
+
+  /** Dibuja la silueta de un nodo con la primitiva SVG que le toca por forma. */
+  function createShapeElement(node) {
+    const { fill, stroke } = colorOf(node);
+    const shape = shapeOf(node);
+    let el;
+
+    if (shape === 'ellipse') {
+      el = document.createElementNS(SVG_NS, 'ellipse');
+    } else if (shape === 'diamond') {
+      el = document.createElementNS(SVG_NS, 'polygon');
+    } else {
+      el = document.createElementNS(SVG_NS, 'rect');
+      el.setAttribute('rx', shape === 'round' ? '14' : '3');
+    }
+
+    el.setAttribute('class', 'diagram-node__shape');
+    el.setAttribute('fill', fill);
+    el.setAttribute('stroke', stroke);
+    positionShapeElement(el, node);
+    return el;
+  }
+
+  /** Coloca la silueta ya creada; separado de la creación para poder reusarlo en el arrastre. */
+  function positionShapeElement(el, node) {
+    const cx = node.x + node.w / 2;
+    const cy = node.y + node.h / 2;
+
+    if (el.tagName === 'ellipse') {
+      el.setAttribute('cx', String(cx));
+      el.setAttribute('cy', String(cy));
+      el.setAttribute('rx', String(node.w / 2));
+      el.setAttribute('ry', String(node.h / 2));
+    } else if (el.tagName === 'polygon') {
+      el.setAttribute(
+        'points',
+        `${cx},${node.y} ${node.x + node.w},${cy} ${cx},${node.y + node.h} ${node.x},${cy}`,
+      );
+    } else {
+      el.setAttribute('x', String(node.x));
+      el.setAttribute('y', String(node.y));
+      el.setAttribute('width', String(node.w));
+      el.setAttribute('height', String(node.h));
+    }
+  }
+
+  /**
    * Reconstrucción completa del lienzo — SOLO cuando cambia qué nodos/aristas
-   * existen (añadir, borrar, conectar) o al abrir el panel. Nunca durante un
-   * arrastre en curso: ver la lección al principio del fichero.
+   * existen (insertar, borrar, conectar, recolorear) o al abrir el panel.
+   * Nunca durante un arrastre en curso: ver la lección al principio del
+   * fichero. Dibuja dentro de `viewportEl`, jamás sobre el `<svg>`, para no
+   * borrar el `<defs>` con la punta de flecha y la rejilla.
    */
   function render() {
-    svgEl.replaceChildren();
+    viewportEl.replaceChildren();
     updateSeedVisibility();
 
     for (const edge of diagram.edges) {
@@ -138,27 +241,21 @@ export function createDiagramEditor({
       line.dataset.from = edge.from;
       line.dataset.to = edge.to;
       line.setAttribute('marker-end', 'url(#diagram-arrow)');
-      svgEl.append(line);
+      viewportEl.append(line);
     }
 
     for (const node of diagram.nodes) {
       const g = document.createElementNS(SVG_NS, 'g');
-      g.setAttribute('class', 'diagram-node');
+      g.setAttribute('class', node.id === selectedId ? 'diagram-node diagram-node--selected' : 'diagram-node');
       g.dataset.nodeId = node.id;
 
-      const rect = document.createElementNS(SVG_NS, 'rect');
-      rect.setAttribute('x', String(node.x));
-      rect.setAttribute('y', String(node.y));
-      rect.setAttribute('width', String(node.w));
-      rect.setAttribute('height', String(node.h));
-      rect.setAttribute('rx', '6');
-      rect.setAttribute('class', node.id === selectedId ? 'diagram-node__rect diagram-node__rect--selected' : 'diagram-node__rect');
+      const shapeEl = createShapeElement(node);
 
       const text = document.createElementNS(SVG_NS, 'foreignObject');
-      text.setAttribute('x', String(node.x + 4));
-      text.setAttribute('y', String(node.y + 4));
-      text.setAttribute('width', String(Math.max(0, node.w - 8)));
-      text.setAttribute('height', String(Math.max(0, node.h - 8)));
+      text.setAttribute('x', String(node.x + 6));
+      text.setAttribute('y', String(node.y + 6));
+      text.setAttribute('width', String(Math.max(0, node.w - 12)));
+      text.setAttribute('height', String(Math.max(0, node.h - 12)));
       const label = document.createElement('div');
       label.className = 'diagram-node__label';
       label.contentEditable = 'true';
@@ -170,19 +267,19 @@ export function createDiagramEditor({
       });
       text.append(label);
 
-      g.append(rect, text);
-      wireNodeInteraction(g, rect, text, node.id);
-      svgEl.append(g);
+      g.append(shapeEl, text);
+      wireNodeInteraction(g, shapeEl, text, node.id);
+      viewportEl.append(g);
     }
   }
 
   /** Marca visualmente el nodo seleccionado sin tocar el resto del DOM. */
   function applySelection(nodeId) {
     selectedId = nodeId;
-    for (const rect of svgEl.querySelectorAll('.diagram-node__rect')) {
-      const isSelected = rect.closest('.diagram-node')?.dataset.nodeId === nodeId;
-      rect.classList.toggle('diagram-node__rect--selected', isSelected);
+    for (const g of viewportEl.querySelectorAll('.diagram-node')) {
+      g.classList.toggle('diagram-node--selected', g.dataset.nodeId === nodeId);
     }
+    syncColorSelection();
   }
 
   /**
@@ -190,14 +287,13 @@ export function createDiagramEditor({
    * que lo tocan — nunca reconstruye el lienzo (eso es lo que rompía el
    * arrastre, ver la nota al principio del fichero).
    */
-  function patchNodePosition(node, rectEl, textEl) {
-    rectEl.setAttribute('x', String(node.x));
-    rectEl.setAttribute('y', String(node.y));
-    textEl.setAttribute('x', String(node.x + 4));
-    textEl.setAttribute('y', String(node.y + 4));
+  function patchNodePosition(node, shapeEl, textEl) {
+    positionShapeElement(shapeEl, node);
+    textEl.setAttribute('x', String(node.x + 6));
+    textEl.setAttribute('y', String(node.y + 6));
 
     const center = nodeCenter(node);
-    for (const line of svgEl.querySelectorAll('.diagram-edge')) {
+    for (const line of viewportEl.querySelectorAll('.diagram-edge')) {
       if (line.dataset.from === node.id) {
         line.setAttribute('x1', String(center.x));
         line.setAttribute('y1', String(center.y));
@@ -209,7 +305,7 @@ export function createDiagramEditor({
     }
   }
 
-  function wireNodeInteraction(g, rectEl, textEl, nodeId) {
+  function wireNodeInteraction(g, shapeEl, textEl, nodeId) {
     let dragging = false;
     let startX = 0;
     let startY = 0;
@@ -218,6 +314,10 @@ export function createDiagramEditor({
     let moved = false;
 
     g.addEventListener('pointerdown', (event) => {
+      // Frena el paneo del lienzo: sin esto, arrastrar un nodo movería además
+      // todo el fondo bajo él.
+      event.stopPropagation();
+
       if (connectMode) {
         if (connectFrom === null) {
           connectFrom = nodeId;
@@ -247,12 +347,12 @@ export function createDiagramEditor({
     g.addEventListener('pointermove', (event) => {
       if (!dragging) return;
       moved = true;
-      const scale = svgEl.clientWidth ? svgEl.viewBox.baseVal.width / svgEl.clientWidth : 1;
+      const scale = pointerScale();
       const dx = (event.clientX - startX) * scale;
       const dy = (event.clientY - startY) * scale;
       diagram = moveNode(diagram, nodeId, Math.max(0, nodeStartX + dx), Math.max(0, nodeStartY + dy));
       const node = diagram.nodes.find((n) => n.id === nodeId);
-      patchNodePosition(node, rectEl, textEl);
+      patchNodePosition(node, shapeEl, textEl);
     });
 
     const stopDrag = (event) => {
@@ -267,22 +367,118 @@ export function createDiagramEditor({
     g.addEventListener('pointercancel', stopDrag);
   }
 
+  // --- Paneo del lienzo -------------------------------------------------
+  // Arrastrar sobre el fondo mueve la vista, no los nodos (igual que en
+  // eer-studio): con diagramas que no caben en el panel es la única forma de
+  // llegar a lo que queda fuera sin reducir el zoom.
+  let panning = false;
+  let panStart = { x: 0, y: 0 };
+  let panOrigin = { x: 0, y: 0 };
+
+  svgEl.addEventListener('pointerdown', (event) => {
+    panning = true;
+    panStart = { x: event.clientX, y: event.clientY };
+    panOrigin = { ...offset };
+    svgEl.setPointerCapture?.(event.pointerId);
+    applySelection(null);
+  });
+
+  svgEl.addEventListener('pointermove', (event) => {
+    if (!panning) return;
+    const viewBoxScale = svgEl.clientWidth ? svgEl.viewBox.baseVal.width / svgEl.clientWidth : 1;
+    offset = {
+      x: panOrigin.x + (event.clientX - panStart.x) * viewBoxScale,
+      y: panOrigin.y + (event.clientY - panStart.y) * viewBoxScale,
+    };
+    applyViewport();
+  });
+
+  const stopPan = (event) => {
+    panning = false;
+    svgEl.releasePointerCapture?.(event.pointerId);
+  };
+  svgEl.addEventListener('pointerup', stopPan);
+  svgEl.addEventListener('pointercancel', stopPan);
+
+  svgEl.addEventListener('wheel', (event) => {
+    event.preventDefault();
+    setZoom(zoom * (event.deltaY < 0 ? 1.1 : 1 / 1.1));
+  });
+
+  // --- Paleta de colores ------------------------------------------------
+  /** Construye los botones de color una sola vez, desde la paleta del modelo. */
+  function buildColorSwatches() {
+    if (!colorsEl) return;
+    colorsEl.replaceChildren();
+    for (const color of NODE_COLORS) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'diagram-editor__swatch';
+      button.dataset.color = color.id;
+      button.style.background = color.fill;
+      button.style.borderColor = color.stroke;
+      button.title = t(`diagram.color.${color.id}`);
+      button.addEventListener('click', () => {
+        if (!selectedId) {
+          setHint(t('diagram.colorNeedsSelection'));
+          return;
+        }
+        diagram = setNodeColor(diagram, selectedId, color.id);
+        render();
+        applySelection(selectedId);
+      });
+      colorsEl.append(button);
+    }
+  }
+
+  /** Resalta el color del nodo seleccionado, o ninguno si no hay selección. */
+  function syncColorSelection() {
+    if (!colorsEl) return;
+    const node = diagram.nodes.find((n) => n.id === selectedId);
+    for (const button of colorsEl.querySelectorAll('.diagram-editor__swatch')) {
+      button.classList.toggle('diagram-editor__swatch--selected', Boolean(node) && button.dataset.color === colorOf(node).id);
+    }
+  }
+
+  // --- Controles --------------------------------------------------------
+  function insertShape(shape) {
+    // Escalonar la posición evita que dos nodos seguidos salgan exactamente
+    // uno encima de otro, lo que parecería que el botón no ha hecho nada.
+    const step = (diagram.nodes.length % 6) * 26;
+    diagram = addNode(diagram, {
+      x: 40 + step,
+      y: 40 + step,
+      w: shape === 'ellipse' || shape === 'diamond' ? 150 : 140,
+      h: shape === 'diamond' ? 80 : 60,
+      shape,
+      label: t('diagram.newNodeLabel'),
+    });
+    const created = diagram.nodes[diagram.nodes.length - 1].id;
+    render();
+    applySelection(created);
+  }
+
+  for (const button of panelEl.querySelectorAll('[data-diagram-shape]')) {
+    const shape = button.dataset.diagramShape;
+    if (!NODE_SHAPES.includes(shape)) continue;
+    button.addEventListener('click', () => insertShape(shape));
+  }
+
+  find('seed-flowchart')?.addEventListener('click', () => seedWith(SEED_TEMPLATES.flowchart));
+  find('seed-block')?.addEventListener('click', () => seedWith(SEED_TEMPLATES.block));
+
+  // Las plantillas están dibujadas a la medida del lienzo, así que NO se
+  // reencuadran: hacerlo movería y escalaría el diagrama nada más sembrarlo,
+  // que parece un fallo. El encuadre automático se reserva para reabrir un
+  // diagrama existente, cuyo tamaño no se conoce de antemano.
   function seedWith(templateFn) {
     diagram = templateFn();
     selectedId = null;
     render();
   }
 
-  seedFlowchartBtn?.addEventListener('click', () => seedWith(SEED_TEMPLATES.flowchart));
-  seedBlockBtn?.addEventListener('click', () => seedWith(SEED_TEMPLATES.block));
-
-  addNodeButtonEl.addEventListener('click', () => {
-    const offset = (diagram.nodes.length % 5) * 24;
-    diagram = addNode(diagram, { x: 40 + offset, y: 40 + offset });
-    render();
-  });
-
-  connectButtonEl.addEventListener('click', () => {
+  const connectButtonEl = find('connect');
+  connectButtonEl?.addEventListener('click', () => {
     connectMode = !connectMode;
     connectFrom = null;
     // Sin modificador `--active` propio: reutiliza `--primary`/`--ghost`, ya
@@ -292,14 +488,29 @@ export function createDiagramEditor({
     setHint(connectMode ? t('diagram.connectHint') : t('diagram.defaultHint'));
   });
 
-  deleteButtonEl.addEventListener('click', () => {
+  function deleteSelected() {
     if (!selectedId) return;
     diagram = removeNode(diagram, selectedId);
     selectedId = null;
     render();
+    syncColorSelection();
+  }
+
+  find('delete')?.addEventListener('click', deleteSelected);
+
+  // Suprimir borra el nodo elegido, salvo mientras se escribe dentro de una
+  // etiqueta — ahí la tecla es para el texto, no para el nodo.
+  panelEl.addEventListener('keydown', (event) => {
+    if (event.key !== 'Delete' || event.target.closest('.diagram-node__label')) return;
+    event.preventDefault();
+    deleteSelected();
   });
 
-  insertButtonEl.addEventListener('click', () => {
+  find('zoom-in')?.addEventListener('click', () => setZoom(zoom * 1.2));
+  find('zoom-out')?.addEventListener('click', () => setZoom(zoom / 1.2));
+  find('zoom-fit')?.addEventListener('click', fitToContent);
+
+  find('insert')?.addEventListener('click', () => {
     const view = getView();
     if (!view || diagram.nodes.length === 0) return;
 
@@ -311,20 +522,22 @@ export function createDiagramEditor({
 
     const insertion = (from === 0 ? '' : docText[from - 1] === '\n' ? '\n' : '\n\n') + code + '\n';
     const changes = [];
-    let offset = 0;
+    let offsetChars = 0;
     if (needsImport && from === 0) {
       changes.push({ from: 0, to, insert: importText + code + '\n\n' });
     } else {
       if (needsImport) {
         changes.push({ from: 0, to: 0, insert: importText });
-        offset = importText.length;
+        offsetChars = importText.length;
       }
       changes.push({ from, to, insert: insertion });
     }
-    view.dispatch({ changes, selection: { anchor: from + offset + insertion.length } });
+    view.dispatch({ changes, selection: { anchor: from + offsetChars + insertion.length } });
     view.focus();
     panel.close();
   });
+
+  buildColorSwatches();
 
   const panel = registerPanel(panelEl, {
     closeOnOutsideClick: false,
@@ -339,15 +552,21 @@ export function createDiagramEditor({
       selectedId = null;
       connectMode = false;
       connectFrom = null;
-      connectButtonEl.classList.add('button--ghost');
-      connectButtonEl.classList.remove('button--primary');
+      zoom = 1;
+      offset = { x: 0, y: 0 };
+      connectButtonEl?.classList.add('button--ghost');
+      connectButtonEl?.classList.remove('button--primary');
       setHint(existing ? t('diagram.editingExisting') : t('diagram.defaultHint'));
 
       const rect = triggerEl.getBoundingClientRect();
       panelEl.style.top = `${rect.bottom + 6}px`;
-      panelEl.style.left = `${Math.max(10, Math.min(window.innerWidth - 480, rect.left))}px`;
+      panelEl.style.left = `${Math.max(10, Math.min(window.innerWidth - 680, rect.left))}px`;
       panelEl.style.right = 'auto';
+      panelEl.style.transform = 'none';
       render();
+      applyViewport();
+      syncColorSelection();
+      if (existing) fitToContent();
       panel.open();
     },
     close: panel.close,

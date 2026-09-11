@@ -455,6 +455,15 @@ export function hasCetzImport(docText) {
 }
 
 /**
+ * Comprueba si el documento ya importa `cetz-plot`, el paquete hermano donde
+ * vive el módulo de gráficas desde cetz 0.4 (§`getCetzSnippet`, caso `plot`).
+ * @param {string} docText
+ */
+export function hasCetzPlotImport(docText) {
+  return /#import\s+["']@preview\/cetz-plot[:0-9.]*["']/.test(docText);
+}
+
+/**
  * Devuelve el código Typst con CeTZ para el tipo de diagrama pedido.
  * @param {'flowchart'|'block'|'plot'|'canvas'} type
  * @returns {string}
@@ -481,9 +490,12 @@ export function getCetzSnippet(type) {
 )`;
 
     case 'plot':
+      // Desde cetz 0.4, el módulo de gráficas ya no vive dentro de `cetz`
+      // (`import cetz.plot` revienta con "module `cetz` does not contain
+      // `plot`", verificado contra el binario real) — se movió a un paquete
+      // hermano, `@preview/cetz-plot`, que `cetzAction()` importa aparte.
       return `#figure(
   cetz.canvas({
-    import cetz.plot
     plot.plot(size: (8, 5), x-tick-step: 1, y-tick-step: 1, {
       plot.add(
         domain: (-3, 3),
@@ -606,19 +618,30 @@ export function jogsAction() {
 
 /**
  * Genera la transacción para insertar un diagrama CeTZ, inyectando el
- * #import "@preview/cetz:0.3.1" en la cabecera si el documento no lo tiene ya.
+ * #import "@preview/cetz:0.5.2" en la cabecera si el documento no lo tiene ya
+ * — y, para `type: 'plot'`, también `@preview/cetz-plot:0.1.4` (paquete
+ * hermano desde cetz 0.4, ver `getCetzSnippet`). Las dos versiones y el
+ * emparejamiento entre paquetes están verificados contra el binario `typst`
+ * real, no solo contra la documentación (`spikes/cetz-block-bug/`): cetz
+ * 0.3.1 revienta con `rect((0,0), ...)`, y `cetz-plot` no es compatible con
+ * cualquier versión de `cetz` sin más.
  * @param {'flowchart'|'block'|'plot'|'canvas'} type
  */
 export function cetzAction(type = 'flowchart') {
   return function buildTransaction(state) {
     const docText = state.doc.toString();
-    const needsImport = !hasCetzImport(docText);
-    const importText = '#import "@preview/cetz:0.3.1"\n\n';
+    const needsCetzImport = !hasCetzImport(docText);
+    const needsPlotImport = type === 'plot' && !hasCetzPlotImport(docText);
+    const importLines = [
+      needsCetzImport ? '#import "@preview/cetz:0.5.2"' : null,
+      needsPlotImport ? '#import "@preview/cetz-plot:0.1.4": plot' : null,
+    ].filter(Boolean);
+    const importText = importLines.length > 0 ? `${importLines.join('\n')}\n\n` : '';
     const snippet = getCetzSnippet(type);
     const { from, to } = state.selection.main;
 
     if (from === 0) {
-      const fullText = (needsImport ? importText : '') + snippet + '\n\n';
+      const fullText = importText + snippet + '\n\n';
       return {
         changes: { from: 0, to, insert: fullText },
         selection: { anchor: fullText.length },
@@ -630,7 +653,7 @@ export function cetzAction(type = 'flowchart') {
     const changes = [];
     let offset = 0;
 
-    if (needsImport) {
+    if (importText) {
       changes.push({ from: 0, to: 0, insert: importText });
       offset = importText.length;
     }

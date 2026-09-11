@@ -299,30 +299,56 @@ describe('cetzAction', () => {
     }
   });
 
-  it('inyecta #import "@preview/cetz:0.3.1" en la cabecera si no existe', () => {
+  it('inyecta #import "@preview/cetz:0.5.2" en la cabecera si no existe', () => {
+    // 0.5.2, no 0.3.1: verificado contra el binario real
+    // (`spikes/cetz-block-bug/`) que 0.3.1 revienta con
+    // `rect((0,0), ...)` — "Failed to resolve coordinate" — contra el
+    // Typst vendorizado. 0.5.2 sí compila los 4 tipos.
     const state = stateWithSelection('= Documento\n\n', 13);
     const spec = cetzAction('flowchart')(state);
     const next = state.update(spec).state;
     const doc = next.doc.toString();
-    expect(doc.startsWith('#import "@preview/cetz:0.3.1"')).toBe(true);
+    expect(doc.startsWith('#import "@preview/cetz:0.5.2"')).toBe(true);
     expect(doc).toContain('cetz.canvas');
     expect(doc).toContain('Diagrama de flujo');
   });
 
-  it('no duplica el #import si ya está presente en el documento', () => {
-    const initial = '#import "@preview/cetz:0.3.1"\n\n= Documento\n';
+  it('no duplica el #import de cetz si ya está presente en el documento', () => {
+    const initial = '#import "@preview/cetz:0.5.2"\n\n= Documento\n';
+    const state = stateWithSelection(initial, initial.length);
+    const spec = cetzAction('canvas')(state);
+    const next = state.update(spec).state;
+    const doc = next.doc.toString();
+    const matches = doc.match(/#import\s+"@preview\/cetz:/g);
+    expect(matches?.length).toBe(1);
+  });
+
+  it('el tipo "plot" inyecta cetz Y cetz-plot (paquete hermano desde cetz 0.4)', () => {
+    // "import cetz.plot" ya no existe dentro de cetz — verificado contra el
+    // binario real que revienta con "module `cetz` does not contain `plot`".
+    const state = stateWithSelection('= Documento\n\n', 13);
+    const spec = cetzAction('plot')(state);
+    const next = state.update(spec).state;
+    const doc = next.doc.toString();
+    expect(doc).toContain('#import "@preview/cetz:0.5.2"');
+    expect(doc).toContain('#import "@preview/cetz-plot:0.1.4": plot');
+    expect(doc).toContain('plot.plot');
+    expect(doc).not.toContain('import cetz.plot');
+  });
+
+  it('el tipo "plot" no duplica ninguno de los dos imports si ya están presentes', () => {
+    const initial = '#import "@preview/cetz:0.5.2"\n#import "@preview/cetz-plot:0.1.4": plot\n\n= Documento\n';
     const state = stateWithSelection(initial, initial.length);
     const spec = cetzAction('plot')(state);
     const next = state.update(spec).state;
     const doc = next.doc.toString();
-    const matches = doc.match(/#import\s+"@preview\/cetz/g);
-    expect(matches?.length).toBe(1);
-    expect(doc).toContain('plot.plot');
+    expect(doc.match(/#import\s+"@preview\/cetz:/g)?.length).toBe(1);
+    expect(doc.match(/#import\s+"@preview\/cetz-plot:/g)?.length).toBe(1);
   });
 
   it('la acción cetz en TOOLBAR_ACTIONS funciona como fallback por defecto', () => {
     const res = apply('cetz', '', 0);
-    expect(res.doc).toContain('#import "@preview/cetz:0.3.1"');
+    expect(res.doc).toContain('#import "@preview/cetz:0.5.2"');
     expect(res.doc).toContain('cetz.canvas');
   });
 });

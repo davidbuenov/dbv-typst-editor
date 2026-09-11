@@ -193,7 +193,7 @@ export function createDiagramEditor({
 
     const docText = view.state.doc.toString();
     const needsImport = !hasCetzImport(docText);
-    const importText = '#import "@preview/cetz:0.3.1"\n\n';
+    const importText = '#import "@preview/cetz:0.5.2"\n\n';
     const code = diagramToCetzCode(diagram);
     const { from, to } = view.state.selection.main;
 

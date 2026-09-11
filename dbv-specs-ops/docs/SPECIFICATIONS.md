@@ -392,6 +392,7 @@ clonó por su cuenta. Se cubre en v0.6.0 con **RF-33** (§5f).
     2. *Template Explorer* sobre el mismo catálogo, filtrado por plantillas: pestañas Instaladas/Comunidad/Favoritas/Recientes/Actualizaciones, integrado en la galería unificada de RF-26 como ampliación de su pestaña "Typst Universe", no como una cuarta puerta de entrada — ver `ADR-UNIVERSE-001`.
     3. *Transición de "whitelist curada" a "catálogo completo"* con un criterio de confianza visible (p. ej. badge de verificado/curado vs. comunidad sin filtrar) — el tamaño exacto de la whitelist inicial y el criterio de expansión se cierran en `/plan`, no aquí (pregunta ya abierta en §9).
     4. *El aviso de código de terceros de RF-26.4/RF-26.5 se mantiene* para cualquier paquete o plantilla fuera de la lista curada original.
+    5. *Hover enriquecido sobre un identificador en el editor* (`editor/universeHover.js`, construido en v0.5.0 pero nunca documentado aquí hasta ahora — hallazgo de la pasada manual de v0.6.0, 2026-09-11): al pasar el ratón sobre `@preview/nombre:version` dentro del código Typst, una tarjeta flotante muestra metadatos del paquete y un enlace directo para abrirlo en `typst.app/universe`, sin salir del editor.
 
 - [ ] **RF-35 Gestión Visual de Bibliografía Completa.**
   Cierra la deuda de Beta descrita en §6: hoy la cita del editor solo escanea claves del `.bib` con un

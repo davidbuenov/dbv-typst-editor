@@ -39,6 +39,7 @@ import { getUniversePackageIcon } from './universeThumbnails.js';
  * @param {HTMLElement} [deps.searchResultsEl] Rejilla de resultados de esa búsqueda.
  * @param {HTMLElement} [deps.searchStatusEl] Mensaje de estado de la búsqueda (cargando/error/vacío).
  * @param {(spec: string) => void} deps.onUsePackage
+ * @param {(spec: string) => void} [deps.onUseTemplate] Una entrada del catálogo completo resultó ser plantilla, no paquete (RF-34).
  * @param {(spec: string) => void} deps.onViewPackage Abre la ficha en typst.app, sin instalar nada.
  */
 export function createUniversePanel({
@@ -50,6 +51,7 @@ export function createUniversePanel({
   searchResultsEl,
   searchStatusEl,
   onUsePackage,
+  onUseTemplate,
   onViewPackage,
 }) {
 
@@ -63,7 +65,7 @@ export function createUniversePanel({
     errorEl.classList.add('hidden');
   }
 
-  function renderGrid(container, entries, onUse) {
+  function renderGrid(container, entries) {
     const language = getLanguage();
     const fragment = document.createDocumentFragment();
 
@@ -110,11 +112,18 @@ export function createUniversePanel({
       // (RF-34): la rejilla curada de arriba no lo necesita, porque TODA
       // ella ya es la lista verificada — mostrar el badge ahí sería ruido.
       const badge = entry.verified === undefined ? '' : entry.verified ? `${t('universe.badgeVerified')} · ` : `${t('universe.badgeCommunity')} · `;
-      meta.textContent = `${badge}${entry.spec} · ${entry.license}`;
+      // Una plantilla se crea (`typst init`), no se importa — el catálogo
+      // completo mezcla las dos cosas en la misma lista (RF-34), así que hace
+      // falta decirlo antes de que el usuario pulse esperando un `#import`.
+      const kind = entry.isTemplate ? `${t('universe.badgeTemplate')} · ` : '';
+      meta.textContent = `${kind}${badge}${entry.spec} · ${entry.license}`;
 
       content.append(title, description, meta);
       body.append(visualEl, content);
-      body.addEventListener('click', () => onUse(entry.spec));
+      body.addEventListener('click', () => {
+        if (entry.isTemplate) onUseTemplate?.(entry.spec);
+        else onUsePackage(entry.spec);
+      });
 
       const link = document.createElement('button');
       link.type = 'button';
@@ -138,7 +147,7 @@ export function createUniversePanel({
   }
 
   function render() {
-    renderGrid(packagesEl, CURATED_PACKAGES, onUsePackage);
+    renderGrid(packagesEl, CURATED_PACKAGES);
   }
 
   // RF-34: catálogo completo de Typst Universe, detrás de una búsqueda — no
@@ -182,7 +191,7 @@ export function createUniversePanel({
     }
 
     searchStatusEl.classList.add('hidden');
-    renderGrid(searchResultsEl, matches, onUsePackage);
+    renderGrid(searchResultsEl, matches);
   }
 
   if (searchInputEl) {

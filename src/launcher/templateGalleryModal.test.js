@@ -322,6 +322,7 @@ describe('galería unificada de tres pestañas (RF-26)', () => {
       specPreviewBtnEl,
       useBtnEl,
       previewEl,
+      metaEl,
       sidebarEl,
       specPanelEl,
     };
@@ -424,6 +425,76 @@ describe('galería unificada de tres pestañas (RF-26)', () => {
 
     specPreviewBtnEl.click();
     await vi.waitFor(() => expect(useBtnEl.disabled).toBe(true));
+  });
+
+  // Bug real (2026-09-12): el usuario eligió "Artículo académico" en la
+  // pestaña Local, luego escribió y descargó "@preview/campanile:0.1.0" en
+  // "Dirección" — el lienzo mostraba correctamente la maquetación de
+  // campanile, pero el pie de abajo (título/versión/ficheros) seguía
+  // anunciando "Artículo académico", sin relación ninguna con lo descargado.
+  describe('el pie de metadatos no se queda con la plantilla de otra pestaña (RF-26.6)', () => {
+    it('cambia en cuanto se escribe un identificador válido, sin esperar la descarga', () => {
+      const { gallery, specInputEl, metaEl } = montar();
+      gallery.open(null, catalogoMixto);
+      // Como en el reporte real: primero se elige una plantilla LOCAL.
+      gallery.setActiveTab('local');
+      gallery.selectTemplate(catalogoMixto[1]); // dbv-articulo
+      expect(metaEl.textContent).toContain('dbv-articulo');
+
+      gallery.setActiveTab('spec');
+      specInputEl.value = '@preview/campanile:0.1.0';
+      specInputEl.dispatchEvent(new Event('input'));
+
+      expect(metaEl.textContent).not.toContain('dbv-articulo');
+      expect(metaEl.textContent).toContain('@preview/campanile:0.1.0');
+    });
+
+    it('tras la descarga real, el pie sigue hablando del identificador descargado, no de otra plantilla', async () => {
+      const onPreviewSpec = vi.fn().mockResolvedValue({ ok: true, value: '<svg>campanile</svg>' });
+      const { gallery, specInputEl, specPreviewBtnEl, previewEl, metaEl } = montar({ onPreviewSpec });
+      gallery.open(null, catalogoMixto);
+      gallery.setActiveTab('local');
+      gallery.selectTemplate(catalogoMixto[1]); // dbv-articulo
+
+      gallery.setActiveTab('spec');
+      specInputEl.value = '@preview/campanile:0.1.0';
+      specInputEl.dispatchEvent(new Event('input'));
+      specPreviewBtnEl.click();
+
+      await vi.waitFor(() => expect(previewEl.innerHTML).toContain('campanile'));
+      expect(metaEl.textContent).not.toContain('dbv-articulo');
+      expect(metaEl.textContent).toContain('@preview/campanile:0.1.0');
+    });
+
+    it('entrar en la pestaña Dirección con el campo vacío no arrastra el pie de la pestaña anterior', () => {
+      const { gallery, metaEl } = montar();
+      gallery.open(null, catalogoMixto);
+      gallery.setActiveTab('universe');
+      expect(metaEl.textContent).toContain('charged-ieee');
+
+      gallery.setActiveTab('spec');
+
+      expect(metaEl.textContent).not.toContain('charged-ieee');
+    });
+  });
+
+  // El buscador del catálogo completo de Typst Universe (RF-34) puede
+  // encontrar una PLANTILLA, no solo un paquete — y una plantilla no se
+  // importa en el documento abierto, se crea como proyecto nuevo. Por eso
+  // "Usar" sobre ella redirige aquí en vez de tocar el editor.
+  it('openWithSpec abre directamente en Dirección con el identificador ya puesto, sin descargar solo', () => {
+    const onPreviewSpec = vi.fn();
+    const { gallery, specInputEl, tabsEl } = montar({ onPreviewSpec });
+
+    gallery.openWithSpec('@preview/campanile:0.1.0', catalogoMixto);
+
+    expect(gallery.getActiveTab()).toBe('spec');
+    expect(specInputEl.value).toBe('@preview/campanile:0.1.0');
+    expect(tabsEl.querySelector('[data-gallery-tab="spec"]').classList.contains('is-active')).toBe(true);
+    // Solo escribe el identificador — RF-26.6 exige un clic aparte para
+    // descargar y ejecutar código de terceros, incluso viniendo ya del
+    // buscador de Universe.
+    expect(onPreviewSpec).not.toHaveBeenCalled();
   });
 
   it('el buscador filtra dentro de la pestaña abierta, no en todo el catálogo', () => {

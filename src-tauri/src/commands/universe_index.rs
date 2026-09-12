@@ -43,6 +43,34 @@ pub struct UniverseIndexEntry {
     pub categories: Vec<String>,
     #[serde(default)]
     pub keywords: Vec<String>,
+    /// True si esta entrada es una PLANTILLA (se crea con `typst init`), no un
+    /// paquete para `#import`. Typst Universe no separa paquetes y plantillas
+    /// en dos listas: es la MISMA entrada de `index.json`, y lo único que la
+    /// distingue es que trae —o no— una clave `template` (con
+    /// `path`/`entrypoint`/`thumbnail`, que aquí no hace falta leer, solo
+    /// saber si existe).
+    ///
+    /// Hasta este campo, ese dato se descartaba en el `#[derive(Deserialize)]`
+    /// de serde sin más (ver el test `deserializa_...campos_de_plantilla`, que
+    /// ya documentaba el hallazgo sin actuar sobre él) — y el buscador del
+    /// catálogo completo (RF-34) insertaba `#import "@preview/campanile:..."`
+    /// en el documento abierto para una plantilla de tesis, que no se importa,
+    /// se crea. Hallazgo del usuario, 2026-09-12, verificado contra una
+    /// descarga real del índice completo (`campanile` trae `template`, `cetz`
+    /// no).
+    #[serde(default, rename(deserialize = "template"), deserialize_with = "deserialize_is_template")]
+    pub is_template: bool,
+}
+
+/// Solo importa si la clave `template` existe y no es `null` — su contenido
+/// (`path`/`entrypoint`/`thumbnail`) no hace falta aquí, así que se
+/// deserializa a un valor JSON desechable en vez de a una `struct` propia.
+fn deserialize_is_template<'de, D>(deserializer: D) -> Result<bool, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let value: Option<serde_json::Value> = Option::deserialize(deserializer)?;
+    Ok(value.is_some_and(|v| !v.is_null()))
 }
 
 /// Caché en memoria del índice completo: se descarga una sola vez por sesión
@@ -134,13 +162,21 @@ mod tests {
         assert_eq!(entries[0].license, "MIT");
         assert!(entries[0].categories.is_empty());
         assert_eq!(entries[0].authors, vec!["Zhuo Nengwen <soarowl@yeah.net>".to_string()]);
+        // Sin clave `template` en el JSON de origen: un paquete normal.
+        assert!(!entries[0].is_template);
     }
 
     #[test]
-    fn deserializa_una_entrada_con_categories_y_campos_de_plantilla_ignorados() {
+    fn deserializa_una_entrada_con_categories_y_reconoce_que_es_una_plantilla() {
+        // Antes de `is_template`, este mismo test se llamaba
+        // "...campos_de_plantilla_ignorados": documentaba el hallazgo sin
+        // actuar sobre él. `abiding-ifacconf` es justo el caso real que hizo
+        // saltar el fallo (2026-09-12) — una plantilla que el buscador del
+        // catálogo completo insertaba como si fuera un paquete para `#import`.
         let entries: Vec<UniverseIndexEntry> = serde_json::from_str(SAMPLE).unwrap();
         assert_eq!(entries[1].name, "abiding-ifacconf");
         assert_eq!(entries[1].categories, vec!["paper".to_string()]);
+        assert!(entries[1].is_template);
     }
 
     #[test]

@@ -101,6 +101,8 @@ export function createTemplateGalleryModal({
   let activeTab = 'local';
   /** @type {object|null} Entrada sintética de la pestaña "Dirección", si ya se validó. */
   let typedTemplate = null;
+  /** @type {string|null} Identificador cuyo lienzo se ve ahora mismo en la pestaña "Dirección". */
+  let previewedSpec = null;
 
   function isOpen() {
     return !dialogEl.classList.contains('hidden');
@@ -176,11 +178,56 @@ export function createTemplateGalleryModal({
     listEl.replaceChildren(fragment);
   }
 
+  /**
+   * Metadatos informativos (título, versión, ficheros, licencia) de la
+   * plantilla activa — separado de `renderPreview()` porque la pestaña
+   * "Dirección" necesita refrescar SOLO esto tras descargar (ver
+   * `previewTypedSpec`): su lienzo ya lo pinta la respuesta real del
+   * servidor, y volver a llamar a `renderPreview()` lo sustituiría por el
+   * SVG sintético de `getTemplateFullPreviewSvg`, que no sabe nada de un
+   * identificador escrito a mano.
+   *
+   * Bug real (2026-09-12): al no llamarse desde ningún sitio de la pestaña
+   * "Dirección", este panel se quedaba con los datos de la ÚLTIMA plantilla
+   * elegida en OTRA pestaña — el usuario descargaba y previsualizaba
+   * `@preview/campanile:0.1.0` y el pie seguía mostrando "Articulo
+   * académico", una plantilla local sin relación ninguna.
+   */
+  function renderMeta(template) {
+    if (!metaEl) return;
+    if (!template) {
+      metaEl.innerHTML = '';
+      return;
+    }
+
+    const language = getLanguage();
+    const { name, description } = localizeTemplate(template, language);
+    const templateIdentifier = template.id || template.universeSpec || template.name;
+    const category = template.dbv?.dbvCategory || template.category || 'General';
+    const version = template.version ? `v${template.version}` : '';
+    const entrypoint = template.entrypoint || 'main.typ';
+    const licenseChip = template.license ? `<span class="template-gallery__meta-chip">⚖️ ${template.license}</span>` : '';
+
+    metaEl.innerHTML = `
+      <div class="template-gallery__meta-row">
+        <span class="template-gallery__meta-title">${name}</span>
+        <span class="template-gallery__meta-badge">${category}</span>
+        ${version ? `<span class="template-gallery__meta-version">${version}</span>` : ''}
+      </div>
+      <p class="template-gallery__meta-desc">${description}</p>
+      <div class="template-gallery__meta-chips">
+        <span class="template-gallery__meta-chip">📄 ${entrypoint}</span>
+        <span class="template-gallery__meta-chip">🏷️ ${templateIdentifier}</span>
+        ${licenseChip}
+      </div>
+    `;
+  }
+
   function renderPreview() {
     if (!selectedTemplate || !previewEl) return;
 
     const language = getLanguage();
-    const { name, description } = localizeTemplate(selectedTemplate, language);
+    const { name } = localizeTemplate(selectedTemplate, language);
 
     // Renderizar la página maquetada completa en SVG
     const templateIdentifier = selectedTemplate.id || selectedTemplate.universeSpec || selectedTemplate.name;
@@ -193,27 +240,7 @@ export function createTemplateGalleryModal({
       </div>
     `;
 
-    // Actualizar metadatos informativos si existe el contenedor
-    if (metaEl) {
-      const category = selectedTemplate.dbv?.dbvCategory || selectedTemplate.category || 'General';
-      const version = selectedTemplate.version ? `v${selectedTemplate.version}` : '';
-      const entrypoint = selectedTemplate.entrypoint || 'main.typ';
-      const licenseChip = selectedTemplate.license ? `<span class="template-gallery__meta-chip">⚖️ ${selectedTemplate.license}</span>` : '';
-
-      metaEl.innerHTML = `
-        <div class="template-gallery__meta-row">
-          <span class="template-gallery__meta-title">${name}</span>
-          <span class="template-gallery__meta-badge">${category}</span>
-          ${version ? `<span class="template-gallery__meta-version">${version}</span>` : ''}
-        </div>
-        <p class="template-gallery__meta-desc">${description}</p>
-        <div class="template-gallery__meta-chips">
-          <span class="template-gallery__meta-chip">📄 ${entrypoint}</span>
-          <span class="template-gallery__meta-chip">🏷️ ${templateIdentifier}</span>
-          ${licenseChip}
-        </div>
-      `;
-    }
+    renderMeta(selectedTemplate);
 
     // Actualizar botón de acción principal
     if (useBtnEl) {
@@ -276,6 +303,21 @@ export function createTemplateGalleryModal({
 
     typedTemplate = parsed.ok ? syntheticTemplate(parsed.spec) : null;
     selectedTemplate = typedTemplate;
+    // El pie tiene que reflejar el identificador escrito desde el primer
+    // carácter válido — no solo tras pulsar "Descargar y previsualizar" —
+    // para que nunca se quede mostrando la plantilla de OTRA pestaña.
+    renderMeta(typedTemplate);
+
+    // El lienzo, en cambio, SÍ se deja vacío hasta que se pulse el botón: es
+    // el único punto de esta pestaña con permiso para tocar la red (RF-26.6).
+    // Pero si ya había un lienzo de un identificador ANTERIOR, dejarlo puesto
+    // mientras el pie ya habla de uno distinto sería el mismo problema que
+    // esto arregla, solo que al revés — así que se limpia en cuanto deja de
+    // corresponder a lo escrito.
+    if (previewEl && typedTemplate?.universeSpec !== previewedSpec) {
+      previewEl.replaceChildren();
+      previewedSpec = null;
+    }
   }
 
   /** Entrada de catálogo mínima para un identificador escrito a mano. */
@@ -317,6 +359,12 @@ export function createTemplateGalleryModal({
           <div class="template-gallery__page-canvas">${result.value}</div>
         </div>
       `;
+      // Bug real (2026-09-12): esta rama nunca tocaba el pie de metadatos, así
+      // que se quedaba con el de la plantilla elegida en OTRA pestaña antes de
+      // llegar aquí — el lienzo mostraba correctamente la maquetación
+      // descargada mientras el pie seguía anunciando una plantilla distinta.
+      renderMeta(typedTemplate);
+      previewedSpec = spec;
       return;
     }
 
@@ -554,6 +602,7 @@ export function createTemplateGalleryModal({
     closeZoom();
     activeTab = selectedTemplate ? templateSource(selectedTemplate) : 'local';
     typedTemplate = null;
+    previewedSpec = null;
     setActiveTab(activeTab);
     if (selectedTemplate) selectTemplate(selectedTemplate);
 
@@ -567,8 +616,25 @@ export function createTemplateGalleryModal({
     dialogEl.classList.add('hidden');
   }
 
+  /**
+   * Abre la galería directamente en la pestaña "Dirección" con `spec` ya
+   * escrito, sin descargarlo — la política de RF-26.6 (nada de red sin un
+   * control que lo declare) sigue en pie, así que hace falta un segundo
+   * clic en "Descargar y previsualizar". Es la puerta de entrada de una
+   * plantilla encontrada en el buscador del catálogo completo de Typst
+   * Universe (RF-34): ese buscador vive en el panel de PAQUETES, y una
+   * plantilla no se importa, se crea — de ahí que "Usar" sobre una de ellas
+   * no dispare `onUsePackage`, sino este redirigido.
+   */
+  function openWithSpec(spec, availableCatalog = []) {
+    open(null, availableCatalog);
+    if (specInputEl) specInputEl.value = spec;
+    setActiveTab('spec');
+  }
+
   return {
     open,
+    openWithSpec,
     close,
     isOpen,
     selectTemplate,

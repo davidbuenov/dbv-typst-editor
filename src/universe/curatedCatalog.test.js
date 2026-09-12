@@ -48,6 +48,26 @@ describe('universeIndexEntryToCard', () => {
     const card = universeIndexEntryToCard({ name: 'sin-descripcion', version: '1.0.0', license: 'MIT' });
     expect(card.description).toBe('');
   });
+
+  // RF-34, hallazgo real (2026-09-12): el catálogo completo mezcla paquetes y
+  // plantillas en la MISMA lista de `index.json` — sin propagar `isTemplate`,
+  // `universePanel.js` no tenía forma de saber que una entrada como
+  // `campanile` (tesis de Berkeley) se crea con `typst init`, no se importa.
+  it('propaga isTemplate cuando la entrada trae la clave `template`', () => {
+    const card = universeIndexEntryToCard({
+      name: 'campanile',
+      version: '0.1.0',
+      description: "Master's thesis",
+      license: 'MIT-0',
+      isTemplate: true,
+    });
+    expect(card.isTemplate).toBe(true);
+  });
+
+  it('isTemplate es false por defecto, para un paquete normal', () => {
+    const card = universeIndexEntryToCard({ name: 'cetz', version: '0.5.2', license: 'LGPL-3.0-or-later' });
+    expect(card.isTemplate).toBe(false);
+  });
 });
 
 describe('filterUniverseIndexEntries', () => {

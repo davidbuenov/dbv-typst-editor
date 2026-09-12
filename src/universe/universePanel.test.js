@@ -10,9 +10,13 @@
 // es la parte fácil de deshacer sin darse cuenta — un `renderGrid` de más y el
 // panel vuelve a ofrecer plantillas desde el sitio equivocado.
 
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CURATED_PACKAGES, CURATED_TEMPLATES } from './curatedCatalog.js';
 import { createUniversePanel } from './universePanel.js';
+import { fetchUniverseIndex } from '../services/backend.js';
+import { t } from '../i18n/i18n.js';
+
+vi.mock('../services/backend.js', () => ({ fetchUniverseIndex: vi.fn() }));
 
 function montar() {
   const packagesEl = document.createElement('div');
@@ -20,17 +24,44 @@ function montar() {
   const specButtonEl = document.createElement('button');
   const errorEl = document.createElement('p');
   errorEl.className = 'hidden';
+  const searchInputEl = document.createElement('input');
+  const searchResultsEl = document.createElement('div');
+  const searchStatusEl = document.createElement('p');
+  searchStatusEl.className = 'hidden';
 
   const contenedor = document.createElement('div');
-  contenedor.append(packagesEl, specInputEl, specButtonEl, errorEl);
+  contenedor.append(packagesEl, specInputEl, specButtonEl, errorEl, searchInputEl, searchResultsEl, searchStatusEl);
   document.body.append(contenedor);
 
   const onUsePackage = vi.fn();
+  const onUseTemplate = vi.fn();
   const onViewPackage = vi.fn();
 
-  createUniversePanel({ packagesEl, specInputEl, specButtonEl, errorEl, onUsePackage, onViewPackage });
+  createUniversePanel({
+    packagesEl,
+    specInputEl,
+    specButtonEl,
+    errorEl,
+    searchInputEl,
+    searchResultsEl,
+    searchStatusEl,
+    onUsePackage,
+    onUseTemplate,
+    onViewPackage,
+  });
 
-  return { packagesEl, specInputEl, specButtonEl, errorEl, onUsePackage, onViewPackage };
+  return {
+    packagesEl,
+    specInputEl,
+    specButtonEl,
+    errorEl,
+    searchInputEl,
+    searchResultsEl,
+    searchStatusEl,
+    onUsePackage,
+    onUseTemplate,
+    onViewPackage,
+  };
 }
 
 describe('panel de paquetes de Typst Universe', () => {
@@ -121,5 +152,72 @@ describe('panel de paquetes de Typst Universe', () => {
 
     expect(onViewPackage).toHaveBeenCalledWith(CURATED_PACKAGES[0].spec);
     expect(onUsePackage).not.toHaveBeenCalled();
+  });
+});
+
+// RF-34: el catálogo completo (`index.json`) mezcla paquetes y plantillas en
+// la MISMA lista — casi la mitad son plantillas. Sin distinguirlas, "Usar"
+// sobre una plantilla como `campanile` (tesis de Berkeley) insertaba un
+// `#import` en el documento abierto, que no es cómo se usa una plantilla.
+// Hallazgo del usuario contra la app real, 2026-09-12.
+describe('buscador del catálogo completo — paquete vs plantilla', () => {
+  beforeEach(() => {
+    vi.mocked(fetchUniverseIndex).mockReset();
+  });
+
+  async function buscar(query) {
+    const escenario = montar();
+    fetchUniverseIndex.mockResolvedValue({
+      ok: true,
+      value: [
+        { name: 'cetz', version: '0.5.2', description: 'Drawing with Typst', license: 'LGPL-3.0', isTemplate: false },
+        {
+          name: 'campanile',
+          version: '0.1.0',
+          description: "Master's thesis and PhD dissertation",
+          license: 'MIT-0',
+          isTemplate: true,
+        },
+      ],
+    });
+    escenario.searchInputEl.value = query;
+    escenario.searchInputEl.dispatchEvent(new Event('input'));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    return escenario;
+  }
+
+  it('un paquete real (sin isTemplate) importa en el documento, como siempre', async () => {
+    const { searchResultsEl, onUsePackage, onUseTemplate } = await buscar('cetz');
+
+    const tarjeta = [...searchResultsEl.querySelectorAll('.universe-card')].find((c) =>
+      c.textContent.includes('@preview/cetz:0.5.2'),
+    );
+    tarjeta.querySelector('.universe-card__body').click();
+
+    expect(onUsePackage).toHaveBeenCalledWith('@preview/cetz:0.5.2');
+    expect(onUseTemplate).not.toHaveBeenCalled();
+  });
+
+  it('una plantilla (isTemplate) NO se importa: llama a onUseTemplate, no a onUsePackage', async () => {
+    const { searchResultsEl, onUsePackage, onUseTemplate } = await buscar('campanile');
+
+    const tarjeta = [...searchResultsEl.querySelectorAll('.universe-card')].find((c) =>
+      c.textContent.includes('@preview/campanile:0.1.0'),
+    );
+    tarjeta.querySelector('.universe-card__body').click();
+
+    expect(onUseTemplate).toHaveBeenCalledWith('@preview/campanile:0.1.0');
+    expect(onUsePackage).not.toHaveBeenCalled();
+  });
+
+  it('la tarjeta de una plantilla lo dice, para no esperar un `#import`', async () => {
+    const { searchResultsEl } = await buscar('campanile');
+
+    const tarjeta = [...searchResultsEl.querySelectorAll('.universe-card')].find((c) =>
+      c.textContent.includes('@preview/campanile:0.1.0'),
+    );
+
+    expect(tarjeta.querySelector('.universe-card__meta').textContent).toContain(t('universe.badgeTemplate'));
   });
 });

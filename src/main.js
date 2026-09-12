@@ -823,6 +823,18 @@ async function bootstrap() {
       universePanel.close();
       toast.show(`${t('universe.imported')} ${spec}`);
     },
+    // El buscador del catálogo completo (RF-34) mezcla paquetes y plantillas
+    // en la misma lista de Typst Universe — casi la mitad son plantillas. Una
+    // plantilla no se importa, se CREA (`typst init`), así que "Usar" sobre
+    // una de ellas no toca el documento abierto: cierra este panel y abre la
+    // Galería en la pestaña "Dirección" con el identificador ya puesto,
+    // listo para "Descargar y previsualizar" (hallazgo del usuario,
+    // 2026-09-12 — antes se insertaba como `#import`, que no es cómo se usa).
+    onUseTemplate: (spec) => {
+      universePanel.close();
+      toast.show(`${t('universe.templateRedirected')} ${spec}`);
+      templateGallery.openWithSpec(spec, getFullGalleryCatalog());
+    },
     onViewPackage: async (spec) => {
       const result = await openUniversePackagePage(spec);
       if (!result.ok) toast.show(t('universe.viewOnlineFailed'), 'error');

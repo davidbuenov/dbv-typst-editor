@@ -223,6 +223,13 @@ export function universeIndexEntryToCard(entry) {
     descriptionEn: entry.description || '',
     license: entry.license || '—',
     verified: isCuratedPackageName(entry.name),
+    // El catálogo completo mezcla paquetes y plantillas en la MISMA lista de
+    // `index.json` (casi la mitad son plantillas — ver la cabecera del
+    // fichero). `isTemplate` decide en `universePanel.js` si "Usar" importa
+    // el paquete en el documento abierto o crea un proyecto nuevo — sin esto,
+    // una plantilla como `campanile` (tesis de Berkeley) se insertaba como
+    // `#import`, que no es cómo se usa (hallazgo del usuario, 2026-09-12).
+    isTemplate: Boolean(entry.isTemplate),
   };
 }
 

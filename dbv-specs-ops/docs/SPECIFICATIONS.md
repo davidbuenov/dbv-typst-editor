@@ -432,6 +432,28 @@ clonó por su cuenta. Se cubre en v0.6.0 con **RF-33** (§5f).
     3. *Precompilación opcional* vía `compile-js`, documentada en el asistente para scripts que se reutilizan varias veces en el mismo documento (evita recompilar en cada render).
     4. *Confirmación exacta del mecanismo de invocación* (cómo se pasa el resultado de vuelta al documento, límites de `list-global-property`, comportamiento si el script lanza una excepción) se cierra en `/plan` con una prueba mínima contra el paquete real, mismo método que validó cada flag del CLI de `typst` en el Slice 2 — la página de Typst Universe no documenta sandboxing explícito y conviene verificarlo antes de exponerlo al usuario.
 
+- [x] **RF-39 Pegar una imagen desde el portapapeles.**
+  Hallazgo de la pasada manual (2026-09-12): recortar una zona de la pantalla y pegarla en el documento
+  **no hacía nada**. No era un fallo, era una ausencia — no existía ningún manejo de `paste` en la
+  aplicación. Completa el trío de vías de entrada de una imagen al proyecto, junto al arrastre (RF-18) y
+  al selector nativo del asistente "Fig" (RF-17), que hasta ahora eran las dos únicas.
+  - **Criterios de aceptación:**
+    1. *Se guarda en el proyecto, no se incrusta en el documento.* La imagen pegada se escribe en
+       `images/` del proyecto activo, igual que una arrastrada, y se inserta la figura con su ruta
+       relativa — nunca como `data:` URL dentro del `.typ`, que dejaría documentos ilegibles y enormes.
+    2. *Insertar solo si el foco está en el editor.* Sin foco en el editor la imagen se copia igual y se
+       avisa con su ruta, mismo criterio que RF-18 resolvió para el arrastre ("copiar siempre, insertar
+       solo donde hay un cursor con contexto"); un pegado no tiene coordenadas, así que el foco sustituye
+       a la posición del puntero.
+    3. *Pegar texto sigue intacto.* Solo se intercepta el pegado cuando el portapapeles trae un fichero de
+       imagen y **ningún** `text/plain`: copiar texto de una web arrastra a veces una imagen de adorno, y
+       ahí lo que se quiere pegar es el texto.
+    4. *Mismas extensiones que el resto de la app.* Se aceptan los formatos que Typst sabe incrustar y se
+       descarta el resto — en particular `image/bmp`, que Windows pone en el portapapeles con frecuencia y
+       que dejaría en `images/` un fichero que rompe la compilación.
+    5. *Sin duplicados.* Pegar dos veces el mismo recorte reutiliza el fichero ya guardado, misma
+       deduplicación por contenido que ya hacía el arrastre.
+
 ## 🚀 6. Funcionalidades — Beta y v1.0 (detalle del Spec Addendum)
 
 Estas funcionalidades están **descritas y arquitectónicamente resueltas** (ver `ARCHITECTURE.md` §7.6–§7.14 y `TYPST_ECOSYSTEM_RESEARCH.md`) pero **fuera del MVP v0.1** por decisión explícita de alcance del usuario. Nota de encuadre: el **Universe Browser** (Package Explorer + Template Explorer, ver árbol de navegación en `ARCHITECTURE.md` §7.6.0.1) se posiciona como punto de entrada de primer nivel de la aplicación (§2), no como un add-on menor — esto afecta a su importancia de diseño y visibilidad en Beta, no reabre el acuerdo de fases ya cerrado con el usuario (el Lanzador de plantillas curadas, MVP, ya adelanta esta experiencia — ver `ARCHITECTURE.md` §7.6):

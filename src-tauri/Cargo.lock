@@ -830,6 +830,7 @@ dependencies = [
 name = "dbv-typst-editor"
 version = "0.5.0"
 dependencies = [
+ "base64 0.22.1",
  "dunce",
  "hayagriva",
  "notify",

@@ -44,6 +44,11 @@ tauri-plugin-process = "2"
 # terminal avanzada o crear un proyecto desde plantilla). `dunce` da la misma
 # ruta canónica sin ese prefijo.
 dunce = "1"
+# v0.6.0: pegar una imagen del portapapeles (RF-39). Los bytes cruzan el IPC en
+# base64 porque un `Vec<u8>` viaja como JSON (`[137,80,78,71,…]`) y un recorte
+# de pantalla ronda el megabyte. Ya venía vendorizado como dependencia
+# transitiva, así que declararlo no añade descarga.
+base64 = "0.22"
 
 # v0.6.0: Universe Browser completo (RF-34) — descarga el índice público de
 # Typst Universe (`packages.typst.org/preview/index.json`, ~4.700 paquetes).

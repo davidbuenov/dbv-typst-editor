@@ -20,6 +20,8 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use base64::Engine as _;
+use base64::engine::general_purpose::STANDARD as BASE64;
 use serde::Serialize;
 use tauri::AppHandle;
 use tauri_plugin_dialog::DialogExt;
@@ -60,16 +62,21 @@ const FONT_EXTENSIONS: [&str; 4] = ["ttf", "otf", "ttc", "otc"];
 /// nombre de `unique_destination` no basta para detectar el duplicado.
 /// Compara primero por tamaño (barato) antes de leer el contenido entero.
 fn find_existing_copy(dir: &Path, source: &Path) -> Option<PathBuf> {
-    let source_len = fs::metadata(source).ok()?.len();
     let source_bytes = fs::read(source).ok()?;
+    find_existing_copy_of_bytes(dir, &source_bytes)
+}
+
+/// Igual que `find_existing_copy`, pero partiendo de los bytes ya en memoria:
+/// una imagen pegada desde el portapapeles no tiene fichero de origen que leer.
+fn find_existing_copy_of_bytes(dir: &Path, bytes: &[u8]) -> Option<PathBuf> {
     let entries = fs::read_dir(dir).ok()?;
     for entry in entries.flatten() {
         let path = entry.path();
         let Ok(metadata) = entry.metadata() else { continue };
-        if !metadata.is_file() || metadata.len() != source_len {
+        if !metadata.is_file() || metadata.len() != bytes.len() as u64 {
             continue;
         }
-        if fs::read(&path).ok().as_deref() == Some(source_bytes.as_slice()) {
+        if fs::read(&path).ok().as_deref() == Some(bytes) {
             return Some(path);
         }
     }
@@ -140,6 +147,58 @@ pub fn copy_asset_into_project(project_root: String, source_path: String) -> Res
     let destination = unique_destination(&images_dir, file_name);
 
     fs::copy(&source, &destination).map_err(|error| AppError::Io(error.to_string()))?;
+
+    let relative = destination.strip_prefix(&root).unwrap_or(&destination);
+    Ok(path_to_string(relative).replace('\\', "/"))
+}
+
+/// Nombre base de una imagen llegada del portapapeles. Un recorte de pantalla
+/// no trae nombre de fichero, así que hay que ponerle uno; `unique_destination`
+/// se encarga de los sufijos `-1`, `-2`… cuando se pega más de una.
+const PASTED_IMAGE_STEM: &str = "imagen-pegada";
+
+/// Guarda en `images/` una imagen llegada del portapapeles y devuelve su ruta
+/// relativa, igual que `copy_asset_into_project`.
+///
+/// Los bytes llegan en base64 y no como array de números: un recorte de
+/// pantalla ronda el megabyte, y `Vec<u8>` viaja por el IPC de Tauri como JSON
+/// (`[137,80,78,71,...]`), lo que multiplica por tres o cuatro el tamaño de lo
+/// que cruza el puente para nada.
+#[tauri::command]
+pub fn save_pasted_image(
+    project_root: String,
+    base64_data: String,
+    extension: String,
+) -> Result<String, AppError> {
+    let root = PathBuf::from(&project_root);
+    if !root.is_dir() {
+        return Err(AppError::InvalidPath(project_root));
+    }
+
+    let extension = extension.to_ascii_lowercase();
+    if !IMAGE_EXTENSIONS.contains(&extension.as_str()) {
+        return Err(AppError::InvalidPath(extension));
+    }
+
+    let bytes = BASE64
+        .decode(base64_data.as_bytes())
+        .map_err(|error| AppError::Io(error.to_string()))?;
+    if bytes.is_empty() {
+        return Err(AppError::Io("el portapapeles no traía datos de imagen".into()));
+    }
+
+    let images_dir = root.join(ASSETS_DIR);
+    fs::create_dir_all(&images_dir).map_err(|error| AppError::Io(error.to_string()))?;
+
+    // Misma deduplicación por contenido que al arrastrar: pegar dos veces el
+    // mismo recorte no debe dejar dos ficheros idénticos en el proyecto.
+    if let Some(existing) = find_existing_copy_of_bytes(&images_dir, &bytes) {
+        let relative = existing.strip_prefix(&root).unwrap_or(&existing);
+        return Ok(path_to_string(relative).replace('\\', "/"));
+    }
+
+    let destination = unique_destination(&images_dir, &format!("{PASTED_IMAGE_STEM}.{extension}"));
+    fs::write(&destination, &bytes).map_err(|error| AppError::Io(error.to_string()))?;
 
     let relative = destination.strip_prefix(&root).unwrap_or(&destination);
     Ok(path_to_string(relative).replace('\\', "/"))
@@ -318,6 +377,85 @@ mod tests {
         fs::write(dir.path().join("imagen"), "a").unwrap();
         let result = unique_destination(dir.path(), "imagen");
         assert_eq!(result, dir.path().join("imagen-1"));
+    }
+
+    // Pegar desde el portapapeles (RF-39). Un recorte de pantalla llega como
+    // bytes sin nombre ni ruta de origen, así que no puede pasar por
+    // `copy_asset_into_project`.
+    #[test]
+    fn save_pasted_image_escribe_los_bytes_y_devuelve_la_ruta_relativa() {
+        let project = tempfile::tempdir().unwrap();
+
+        let relative = save_pasted_image(
+            path_to_string(project.path()),
+            BASE64.encode(b"bytes de un png"),
+            "png".into(),
+        )
+        .unwrap();
+
+        assert_eq!(relative, "images/imagen-pegada.png");
+        assert_eq!(
+            fs::read(project.path().join("images/imagen-pegada.png")).unwrap(),
+            b"bytes de un png"
+        );
+    }
+
+    #[test]
+    fn save_pasted_image_no_duplica_el_mismo_recorte_pegado_dos_veces() {
+        let project = tempfile::tempdir().unwrap();
+        let datos = BASE64.encode(b"el mismo recorte");
+
+        let primera =
+            save_pasted_image(path_to_string(project.path()), datos.clone(), "png".into()).unwrap();
+        let segunda =
+            save_pasted_image(path_to_string(project.path()), datos, "png".into()).unwrap();
+
+        assert_eq!(primera, segunda);
+        assert_eq!(fs::read_dir(project.path().join("images")).unwrap().count(), 1);
+    }
+
+    #[test]
+    fn save_pasted_image_numera_dos_recortes_distintos() {
+        let project = tempfile::tempdir().unwrap();
+
+        save_pasted_image(
+            path_to_string(project.path()),
+            BASE64.encode(b"primero"),
+            "png".into(),
+        )
+        .unwrap();
+        let segunda = save_pasted_image(
+            path_to_string(project.path()),
+            BASE64.encode(b"segundo"),
+            "png".into(),
+        )
+        .unwrap();
+
+        assert_eq!(segunda, "images/imagen-pegada-1.png");
+    }
+
+    #[test]
+    fn save_pasted_image_rechaza_una_extension_que_typst_no_incrusta() {
+        let project = tempfile::tempdir().unwrap();
+
+        let result = save_pasted_image(
+            path_to_string(project.path()),
+            BASE64.encode(b"bmp"),
+            "bmp".into(),
+        );
+
+        assert!(matches!(result, Err(AppError::InvalidPath(_))));
+    }
+
+    // Un portapapeles sin imagen real no debe dejar un fichero vacío en
+    // `images/` que luego rompa la compilación.
+    #[test]
+    fn save_pasted_image_rechaza_datos_vacios() {
+        let project = tempfile::tempdir().unwrap();
+
+        let result = save_pasted_image(path_to_string(project.path()), String::new(), "png".into());
+
+        assert!(result.is_err());
     }
 
     #[test]

@@ -15,6 +15,7 @@ import { createUpdater } from './app/updater.js';
 import { PANELS, getPanelState, initPanels, togglePanel } from './app/workspacePanels.js';
 import { figureActionForPath, jogsAction } from './editor/toolbarActions.js';
 import { decideImageDrop, pathsWithExtension } from './app/dropTarget.js';
+import { pickImageFromClipboard, readFileAsBase64 } from './app/clipboardImage.js';
 import { applyTranslations, getLanguage, setLanguage, t } from './i18n/i18n.js';
 import { createHelp } from './help/help.js';
 import { createUniversePanel } from './universe/universePanel.js';
@@ -40,6 +41,7 @@ import {
   copyFontIntoProject,
   gitClone,
   getAppInfo,
+  savePastedImage,
   listDirectory,
   readFile,
   writeFile,
@@ -228,6 +230,56 @@ function wireImageDrop(workspace, editorHostEl, notify, getExtensions) {
     const { insert } = decideImageDrop(position, rect, window.devicePixelRatio);
     handleDrop(imagePath, insert);
   });
+}
+
+/**
+ * Pegar una imagen del portapapeles (RF-39).
+ *
+ * Hermano de `wireImageDrop`, con dos diferencias que obligan a un camino
+ * propio: un recorte de pantalla no tiene ruta de fichero (llega en bytes, de
+ * ahí `savePastedImage` en vez de `copyAssetIntoProject`), y el criterio de
+ * "insertar o solo copiar" no es dónde cayó el puntero sino dónde está el
+ * foco — un pegado no tiene coordenadas.
+ *
+ * El oyente va en `document` y en fase de captura para que un pegado sobre el
+ * editor no lo procese antes CodeMirror; se llama a `preventDefault()` solo
+ * cuando el portapapeles trae imagen de verdad, así que pegar texto sigue
+ * funcionando exactamente igual que antes.
+ */
+function wireImagePaste(workspace, editorHostEl, notify) {
+  async function handlePaste(file, extension, insert) {
+    const base64Data = await readFileAsBase64(file);
+    const result = await savePastedImage(workspace.state.project.root, base64Data, extension);
+    if (!result.ok) {
+      notify(`${t('asset.copyFailed')} — ${result.error.message}`, 'error');
+      return;
+    }
+    if (!insert) {
+      notify(`${t('asset.imageAdded')} ${result.value}`);
+      return;
+    }
+    const view = workspace.editor.getView();
+    view.dispatch(figureActionForPath(result.value)(view.state));
+    view.focus();
+  }
+
+  document.addEventListener(
+    'paste',
+    (event) => {
+      const image = pickImageFromClipboard(event.clipboardData);
+      if (!image) return;
+
+      event.preventDefault();
+      if (!workspace.state.project) {
+        notify(t('asset.needsProject'), 'error');
+        return;
+      }
+
+      const insert = Boolean(editorHostEl?.contains(document.activeElement));
+      handlePaste(image.file, image.extension, insert);
+    },
+    true,
+  );
 }
 
 /**
@@ -549,6 +601,7 @@ async function bootstrap() {
   const getAssetExtensions = () => assetExtensions;
 
   wireImageDrop(workspace, el('editor-host'), toast.show, getAssetExtensions);
+  wireImagePaste(workspace, el('editor-host'), toast.show);
   wireFontDrop(workspace, toast.show, getAssetExtensions);
 
   const staleEl = el('preview-stale');

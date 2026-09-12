@@ -84,6 +84,7 @@ pub fn run() {
             archive::import_project_archive,
             archive::pick_archive_dialog,
             assets::copy_asset_into_project,
+            assets::save_pasted_image,
             assets::copy_font_into_project,
             assets::pick_image_dialog,
             assets::project_images,

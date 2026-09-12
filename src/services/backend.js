@@ -173,6 +173,9 @@ export const getBibliographyEntries = (root) => call('bibliography_entries', { r
 export const copyAssetIntoProject = (projectRoot, sourcePath) =>
   call('copy_asset_into_project', { projectRoot, sourcePath });
 export const pickImageFile = () => call('pick_image_dialog');
+/** Imagen pegada desde el portapapeles (RF-39): llega en bytes, no como ruta. */
+export const savePastedImage = (projectRoot, base64Data, extension) =>
+  call('save_pasted_image', { projectRoot, base64Data, extension });
 /** Arrastrar una fuente al proyecto (Beta, §7.10): copia a `fonts/`. */
 export const copyFontIntoProject = (projectRoot, sourcePath) =>
   call('copy_font_into_project', { projectRoot, sourcePath });

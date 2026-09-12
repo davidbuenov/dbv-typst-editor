@@ -660,6 +660,22 @@ body {
   pointer-events: none;
 }
 
+/* Un `<marker>` de SVG NO hereda el color de la línea que lo usa: se pinta con
+   su propio relleno, y sin declararlo ese relleno es NEGRO por defecto. Sobre
+   el lienzo del tema oscuro (`--bg-tertiary`, casi negro) la punta era
+   invisible mientras se editaba, aunque sí saliera en el PDF compilado —
+   exactamente lo que reportó el usuario (2026-09-12).
+
+   `context-stroke` hace que la punta tome el trazo de SU PROPIA línea, así que
+   además la flecha seleccionada cambia a color de acento sin necesitar un
+   segundo marcador. Comprobado en Chrome/WebView2 con captura de pantalla, no
+   solo con el valor calculado; el relleno de antes queda como respaldo por si
+   algún motor no lo entiende. */
+#diagram-arrow path {
+  fill: var(--text-secondary);
+  fill: context-stroke;
+}
+
 #diagram-grid path {
   stroke: var(--border);
   opacity: 0.5;

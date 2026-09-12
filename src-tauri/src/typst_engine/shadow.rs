@@ -134,7 +134,7 @@ pub fn seed_anchors(source: &str, file: &str) -> String {
         // reconociera la valla de comillas invertidas, la línea sembrada se
         // colaba como texto LITERAL dentro del listado — visible en el PDF, y
         // encima desplazando el resto del documento una página entera.
-        if after_blank && depth.at_top_level() && !line.trim().is_empty() {
+        if after_blank && depth.at_top_level() && !line.trim().is_empty() && !is_invisible(line) {
             let anchor = format!("#metadata((f: \"{safe_file}\", l: {}))<{SYNC_LABEL}>", index + 1);
             if is_heading(line) {
                 // Encabezado: el texto no se toca, el ancla es un hermano que
@@ -157,6 +157,45 @@ pub fn seed_anchors(source: &str, file: &str) -> String {
         depth.consume(line);
     }
     seeded
+}
+
+/// True si `line`, tal cual está, no puede producir NI UN PÍXEL en el render:
+/// un comentario, o un `#import`. Ninguno de los dos tiene un clic posible al
+/// que corresponder, y son precisamente el patrón de "preámbulo" que trae
+/// CADA capítulo de esta plantilla (cabecera de comentario + `#import` antes
+/// del `= Título`) — así que sin esto vuelve a aparecer la misma familia de
+/// fallo que el encabezado "después" de arriba, por una vía distinta:
+///
+/// **Hallazgo real (2026-09-12, el mismo TFG, un capítulo más adentro): un
+/// doble clic sobre el bloque de ecuaciones de "2.2 Métricas" —al final del
+/// capítulo 2— saltaba al capítulo 3.** El encabezado `= Métodos` del
+/// capítulo 3 ya aterrizaba bien (con el arreglo de arriba), pero las CINCO
+/// líneas de comentario y el `#import` que lo PRECEDEN dentro de
+/// `03-metodos.typ` seguían anclándose ANTES de ellas mismas — el patrón
+/// normal, correcto para contenido visible. Como esas líneas no producen
+/// ningún trazo, Typst las compone en la posición que hubiera antes de
+/// llegar al `pagebreak(weak: true)` del encabezado: la ÚLTIMA posición de
+/// la página anterior, EXACTAMENTE igual que le pasaba al encabezado mismo.
+/// Esa página anterior es la página 7, donde también vive el final del
+/// capítulo 2 — y el bloque de ecuaciones de "Métricas" es lo bastante alto
+/// como para alcanzar esa posición fantasma. La solución no es "después",
+/// como con el encabezado (no tiene sentido posponer un comentario: no hay
+/// ningún contenido después de él dentro del que insertarlo con seguridad
+/// sin arriesgarse a acabar DENTRO del propio encabezado) — es no anclarlo
+/// en absoluto.
+fn is_invisible(line: &str) -> bool {
+    let trimmed = line.trim_start();
+    trimmed.starts_with("//") || trimmed.starts_with("/*") || is_import_statement(trimmed)
+}
+
+/// True si `trimmed` (ya sin espacio inicial) es el principio de un
+/// `#import ...`. Comprueba que sea la palabra completa, no un prefijo
+/// casual de otra función (`#importante(..)` no cuenta, aunque sea un caso
+/// improbable).
+fn is_import_statement(trimmed: &str) -> bool {
+    trimmed
+        .strip_prefix("#import")
+        .is_some_and(|rest| rest.is_empty() || rest.starts_with(|c: char| c.is_whitespace() || c == '"'))
 }
 
 /// True si `line` es un encabezado (`=`, `==`... seguido de espacio o
@@ -748,8 +787,66 @@ mod tests {
 
         // Si las llaves de la cadena o del comentario contaran, el nivel se
         // quedaría abierto y el resto del fichero no recibiría ni un ancla.
-        assert_eq!(seeded.matches("<dbv-sync>").count(), 3, "{seeded}");
+        // Dos, no tres: el comentario de la línea 3 ya no se ancla (ver
+        // `is_invisible`) — sigue demostrando que sus llaves no cierran nada,
+        // el encabezado de la línea 5 recibe su ancla igual.
+        assert_eq!(seeded.matches("<dbv-sync>").count(), 2, "{seeded}");
         assert!(seeded.contains("l: 5))"), "{seeded}");
+    }
+
+    #[test]
+    fn seed_anchors_un_comentario_o_import_no_recibe_ancla() {
+        // Segundo fallo del mismo TFG real (2026-09-12), un capítulo más
+        // adentro: CADA capítulo de la plantilla empieza con una cabecera de
+        // comentario y un `#import` antes del `= Título`. Ninguno de los dos
+        // produce ni un píxel, así que anclarlos ANTES los deja compuestos en
+        // la posición vieja, previa al `pagebreak` del encabezado que viene
+        // detrás — exactamente el mismo síntoma que el encabezado sin
+        // arreglar, pero un paso antes en el fichero. Un doble clic sobre el
+        // final visible del capítulo ANTERIOR (que comparte esa página física)
+        // resolvía al capítulo siguiente.
+        let source = concat!(
+            "// Cabecera del capítulo.\n",
+            "// Segunda línea de la cabecera.\n",
+            "\n",
+            "#import \"../estilo.typ\": (\n",
+            "  definicion, teorema,\n",
+            ")\n",
+            "\n",
+            "= Métodos\n",
+            "\n",
+            "Cuerpo real.\n",
+        );
+
+        let seeded = seed_anchors(source, "cap.typ");
+
+        // Solo dos anclas: el encabezado (después de él) y el cuerpo. Nada
+        // para el comentario ni para el `#import`, multilínea incluido.
+        assert_eq!(seeded.matches("<dbv-sync>").count(), 2, "{seeded}");
+        assert!(seeded.contains("l: 8))"), "{seeded}"); // "= Métodos"
+        assert!(seeded.contains("l: 10))"), "{seeded}"); // "Cuerpo real."
+        assert!(!seeded.contains("l: 1))"), "{seeded}");
+        assert!(!seeded.contains("l: 4))"), "{seeded}");
+        // Y el encabezado sigue yendo DESPUÉS, no antes.
+        let heading_at = seeded.find("= Métodos").unwrap();
+        let anchor_at = seeded.find("l: 8))").unwrap();
+        assert!(anchor_at > heading_at, "{seeded}");
+    }
+
+    #[test]
+    fn seed_anchors_un_import_de_una_sola_linea_tampoco_se_ancla() {
+        let seeded = seed_anchors("#import \"a.typ\": cosa\n\nTexto.\n", "cap.typ");
+
+        assert_eq!(seeded.matches("<dbv-sync>").count(), 1, "{seeded}");
+        assert!(seeded.contains("l: 3))"), "{seeded}");
+    }
+
+    #[test]
+    fn seed_anchors_una_funcion_que_empieza_como_import_no_se_confunde() {
+        // "#importante(...)" no es un `#import`: la palabra completa importa.
+        let seeded = seed_anchors("#importante(true)\n", "cap.typ");
+
+        assert!(seeded.contains("l: 1))"), "{seeded}");
     }
 
     #[test]

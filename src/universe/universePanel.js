@@ -28,11 +28,17 @@
 // ninguna búsqueda en curso, cortando tarjetas por la mitad. Con pestañas de
 // verdad, cada rejilla tiene el panel entero para ella sola y nunca compiten
 // por espacio — mismo patrón que Archivos/Esquema del panel lateral.
+//
+// RF-34.7 (2026-09-12): el motor de la pestaña "Buscar" se extrajo a
+// `universeSearch.js` para poder montar el MISMO buscador en la Galería de
+// plantillas, filtrado a solo plantillas — petición explícita del usuario.
+// Aquí solo queda la rejilla curada (que NUNCA usa ese buscador: es una
+// lista fija, sin red) y el cableado de las pestañas.
 
 import { getLanguage, t } from '../i18n/i18n.js';
-import { fetchUniverseIndex } from '../services/backend.js';
-import { CURATED_PACKAGES, filterUniverseIndexEntries, universeIndexEntryToCard } from './curatedCatalog.js';
+import { CURATED_PACKAGES } from './curatedCatalog.js';
 import { parseUniverseSpec } from './universeSpec.js';
+import { createUniverseSearch } from './universeSearch.js';
 import { getUniversePackageIcon } from './universeThumbnails.js';
 
 /**
@@ -68,7 +74,6 @@ export function createUniversePanel({
   onUseTemplate,
   onViewPackage,
 }) {
-
   function showError(key) {
     errorEl.textContent = t(key);
     errorEl.classList.remove('hidden');
@@ -79,15 +84,16 @@ export function createUniversePanel({
     errorEl.classList.add('hidden');
   }
 
-  function renderGrid(container, entries) {
-    const language = getLanguage();
+  /**
+   * Solo para la rejilla curada: a diferencia del buscador (`universeSearch.js`),
+   * aquí nunca hay `verified`/`isTemplate` que anunciar — TODA la lista ya es
+   * la verificada, y ninguna entrada curada es una plantilla (esas viven en
+   * `CURATED_TEMPLATES`, en la Galería). Mostrar esos badges aquí sería ruido.
+   */
+  function renderCurated() {
     const fragment = document.createDocumentFragment();
 
-    for (const entry of entries) {
-      // La tarjeta ya NO es el propio botón: un botón dentro de otro botón
-      // (el enlace "ver en typst.app" frente al cuerpo que instala) no es
-      // válido en HTML ni accesible, así que la tarjeta es un contenedor y
-      // cada acción es su propio botón, hermano del otro.
+    for (const entry of CURATED_PACKAGES) {
       const card = document.createElement('div');
       card.className = 'universe-card';
 
@@ -95,16 +101,11 @@ export function createUniversePanel({
       body.type = 'button';
       body.className = 'universe-card__body';
 
-      // Thumbnail de documento o Icono temático de paquete
       const visualEl = document.createElement('div');
       visualEl.className = 'universe-card__visual';
-
-      // Aquí ya solo hay paquetes, así que siempre toca el icono temático: las
-      // miniaturas de documento se fueron con la pestaña de plantillas.
       const icon = document.createElement('div');
       icon.className = 'universe-card__icon-fallback';
-      const pkgName = entry.spec?.split('/')?.[1]?.split(':')?.[0] || 'default';
-      icon.innerHTML = getUniversePackageIcon(pkgName);
+      icon.innerHTML = getUniversePackageIcon(entry.spec.split('/')[1]?.split(':')[0] || 'default');
       visualEl.append(icon);
 
       const content = document.createElement('div');
@@ -112,32 +113,20 @@ export function createUniversePanel({
 
       const title = document.createElement('span');
       title.className = 'universe-card__title';
+      const language = getLanguage();
       title.textContent = language === 'en' ? entry.titleEn : entry.title;
 
       const description = document.createElement('span');
       description.className = 'universe-card__description';
       description.textContent = language === 'en' ? entry.descriptionEn : entry.description;
 
-      // Identificador y licencia siempre a la vista: es código de terceros y
-      // el usuario tiene derecho a saber qué instala y bajo qué condiciones.
       const meta = document.createElement('span');
       meta.className = 'universe-card__meta';
-      // `verified` solo llega en los resultados del catálogo completo
-      // (RF-34): la rejilla curada de arriba no lo necesita, porque TODA
-      // ella ya es la lista verificada — mostrar el badge ahí sería ruido.
-      const badge = entry.verified === undefined ? '' : entry.verified ? `${t('universe.badgeVerified')} · ` : `${t('universe.badgeCommunity')} · `;
-      // Una plantilla se crea (`typst init`), no se importa — el catálogo
-      // completo mezcla las dos cosas en la misma lista (RF-34), así que hace
-      // falta decirlo antes de que el usuario pulse esperando un `#import`.
-      const kind = entry.isTemplate ? `${t('universe.badgeTemplate')} · ` : '';
-      meta.textContent = `${kind}${badge}${entry.spec} · ${entry.license}`;
+      meta.textContent = `${entry.spec} · ${entry.license}`;
 
       content.append(title, description, meta);
       body.append(visualEl, content);
-      body.addEventListener('click', () => {
-        if (entry.isTemplate) onUseTemplate?.(entry.spec);
-        else onUsePackage(entry.spec);
-      });
+      body.addEventListener('click', () => onUsePackage(entry.spec));
 
       const link = document.createElement('button');
       link.type = 'button';
@@ -145,9 +134,6 @@ export function createUniversePanel({
       link.title = t('universe.viewOnline');
       link.setAttribute('aria-label', t('universe.viewOnline'));
       link.textContent = '↗';
-      // `stopPropagation` no bastaría por sí solo (el body es hermano, no
-      // ancestro), pero evita que un futuro cambio de estructura reintroduzca
-      // el disparo doble si alguien anida esto de nuevo.
       link.addEventListener('click', (event) => {
         event.stopPropagation();
         onViewPackage(entry.spec);
@@ -157,60 +143,22 @@ export function createUniversePanel({
       fragment.append(card);
     }
 
-    container.replaceChildren(fragment);
+    packagesEl.replaceChildren(fragment);
   }
 
-  function render() {
-    renderGrid(packagesEl, CURATED_PACKAGES);
-  }
-
-  // RF-34: catálogo completo de Typst Universe, detrás de una búsqueda — no
-  // se pinta sin escribir nada, tanto por volumen (~4.700 entradas) como
-  // porque la whitelist curada de arriba ya cubre el caso de "no sé qué
-  // busco". El índice se descarga una sola vez por sesión: `fetchUniverseIndex`
-  // ya cachea en el backend, y aquí se cachea también el resultado para no
-  // repetir el `await` en cada tecla.
-  let fullIndexCache = null;
-  let searchToken = 0;
-
-  async function runSearch(rawQuery) {
-    const query = rawQuery.trim();
-    if (!searchResultsEl || !searchStatusEl) return;
-
-    if (query === '') {
-      searchResultsEl.replaceChildren();
-      searchStatusEl.classList.add('hidden');
-      return;
-    }
-
-    const token = ++searchToken;
-    searchStatusEl.textContent = t('universe.searchLoading');
-    searchStatusEl.classList.remove('hidden');
-
-    if (!fullIndexCache) {
-      const result = await fetchUniverseIndex();
-      if (token !== searchToken) return; // una búsqueda posterior ya la sustituyó
-      if (!result.ok) {
-        searchStatusEl.textContent = t('universe.searchFailed');
-        return;
-      }
-      fullIndexCache = result.value;
-    }
-
-    const matches = filterUniverseIndexEntries(fullIndexCache, query).slice(0, 60).map(universeIndexEntryToCard);
-    if (matches.length === 0) {
-      searchResultsEl.replaceChildren();
-      searchStatusEl.textContent = t('universe.searchEmpty');
-      return;
-    }
-
-    searchStatusEl.classList.add('hidden');
-    renderGrid(searchResultsEl, matches);
-  }
-
-  if (searchInputEl) {
-    searchInputEl.addEventListener('input', () => {
-      runSearch(searchInputEl.value);
+  if (searchInputEl && searchResultsEl && searchStatusEl) {
+    createUniverseSearch({
+      inputEl: searchInputEl,
+      resultsEl: searchResultsEl,
+      statusEl: searchStatusEl,
+      onViewOnline: onViewPackage,
+      // Aquí sí se buscan las dos cosas: es el mismo sitio donde ya vive la
+      // rejilla curada de paquetes. La Galería, en cambio, filtra a solo
+      // plantillas — ver `templateGalleryModal.js`.
+      onSelect: (spec, card) => {
+        if (card.isTemplate) onUseTemplate?.(spec);
+        else onUsePackage(spec);
+      },
     });
   }
 
@@ -247,8 +195,8 @@ export function createUniversePanel({
   tabPackagesEl?.addEventListener('click', () => setActiveTab('packages'));
   tabSearchEl?.addEventListener('click', () => setActiveTab('search'));
 
-  render();
-  document.addEventListener('dbv-lang-changed', render);
+  renderCurated();
+  document.addEventListener('dbv-lang-changed', renderCurated);
 
-  return { render, showError, hideError };
+  return { render: renderCurated, showError, hideError };
 }

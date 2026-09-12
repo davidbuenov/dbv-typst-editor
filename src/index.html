@@ -355,10 +355,31 @@
             <div class="template-gallery__list" id="template-gallery-list"></div>
           </aside>
 
-          <!-- Sustituye a la lista en la pestaña "Dirección". El aviso es más
+          <!-- Sustituye a la lista en la pestaña "Buscar". El aviso es más
                fuerte que en la pestaña de Universe a propósito: aquí no hay
-               lista revisada detrás (RF-26.5). -->
+               lista revisada detrás (RF-26.5).
+
+               RF-34.7: mismo buscador que el panel de Typst Universe (✦,
+               `universeSearch.js`), aquí filtrado a solo plantillas — una
+               plantilla se CREA (`typst init`), un paquete se importa, y
+               esta pantalla solo crea proyectos. Elegir un resultado no
+               descarga nada por sí solo (RF-26.6): solo rellena la dirección
+               de abajo, que sigue siendo la vía para quien ya sabe el
+               identificador exacto. -->
           <aside class="template-gallery__spec hidden" id="template-gallery-spec">
+            <input
+              id="template-gallery-spec-search"
+              class="form-row__input"
+              type="search"
+              autocomplete="off"
+              spellcheck="false"
+              data-i18n-placeholder="gallery.specSearchPlaceholder"
+            />
+            <p class="universe__notice hidden" id="template-gallery-spec-search-status"></p>
+            <div class="universe__grid" id="template-gallery-spec-search-results"></div>
+
+            <p class="template-gallery__spec-divider" data-i18n="gallery.specOr"></p>
+
             <p class="template-gallery__spec-notice" data-i18n="gallery.specNotice"></p>
 
             <label class="template-gallery__spec-label" for="template-gallery-spec-input" data-i18n="gallery.specLabel"></label>

@@ -186,7 +186,9 @@ const DICTIONARIES = {
     'gallery.zoomClose': 'Cerrar la vista ampliada (Esc)',
     'gallery.tabLocal': 'Plantillas locales',
     'gallery.tabUniverse': 'Typst Universe',
-    'gallery.tabSpec': 'Dirección',
+    'gallery.tabSpec': 'Buscar',
+    'gallery.specSearchPlaceholder': 'Buscar una plantilla en todo Typst Universe…',
+    'gallery.specOr': 'o escribe la dirección exacta',
     'gallery.specLabel': 'Dirección de la plantilla',
     'gallery.specNotice':
       'Lo que escribas aquí se descarga y se ejecuta en tu equipo sin pasar por la lista revisada. Úsalo solo con plantillas que conozcas.',
@@ -576,7 +578,9 @@ const DICTIONARIES = {
     'gallery.zoomClose': 'Close the enlarged view (Esc)',
     'gallery.tabLocal': 'Local templates',
     'gallery.tabUniverse': 'Typst Universe',
-    'gallery.tabSpec': 'Address',
+    'gallery.tabSpec': 'Search',
+    'gallery.specSearchPlaceholder': 'Search for a template across all of Typst Universe…',
+    'gallery.specOr': 'or type the exact address',
     'gallery.specLabel': 'Template address',
     'gallery.specNotice':
       'Whatever you type here is downloaded and run on your machine without going through the reviewed list. Only use it with templates you know.',

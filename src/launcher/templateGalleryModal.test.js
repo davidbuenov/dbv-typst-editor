@@ -11,6 +11,9 @@ import {
   createTemplateGalleryModal,
   templateSource,
 } from './templateGalleryModal.js';
+import { fetchUniverseIndex } from '../services/backend.js';
+
+vi.mock('../services/backend.js', () => ({ fetchUniverseIndex: vi.fn() }));
 
 describe('templateGalleryModal', () => {
   let dialogEl;
@@ -279,6 +282,10 @@ describe('galería unificada de tres pestañas (RF-26)', () => {
     const specErrorEl = document.createElement('p');
     specErrorEl.className = 'hidden';
     const specPreviewBtnEl = document.createElement('button');
+    const specSearchInputEl = document.createElement('input');
+    const specSearchResultsEl = document.createElement('div');
+    const specSearchStatusEl = document.createElement('p');
+    specSearchStatusEl.className = 'hidden';
 
     const tabsEl = document.createElement('div');
     for (const tab of ['local', 'universe', 'spec']) {
@@ -291,7 +298,14 @@ describe('galería unificada de tres pestañas (RF-26)', () => {
     }
 
     sidebarEl.append(listEl);
-    specPanelEl.append(specInputEl, specErrorEl, specPreviewBtnEl);
+    specPanelEl.append(
+      specSearchInputEl,
+      specSearchStatusEl,
+      specSearchResultsEl,
+      specInputEl,
+      specErrorEl,
+      specPreviewBtnEl,
+    );
     dialogEl.append(tabsEl, searchWrap, sidebarEl, specPanelEl, previewEl, metaEl, useBtnEl, cancelBtnEl);
     document.body.append(dialogEl);
 
@@ -310,6 +324,9 @@ describe('galería unificada de tres pestañas (RF-26)', () => {
       specInputEl,
       specErrorEl,
       specPreviewBtnEl,
+      specSearchInputEl,
+      specSearchResultsEl,
+      specSearchStatusEl,
       onPreviewSpec,
     });
 
@@ -320,6 +337,9 @@ describe('galería unificada de tres pestañas (RF-26)', () => {
       specInputEl,
       specErrorEl,
       specPreviewBtnEl,
+      specSearchInputEl,
+      specSearchResultsEl,
+      specSearchStatusEl,
       useBtnEl,
       previewEl,
       metaEl,
@@ -495,6 +515,77 @@ describe('galería unificada de tres pestañas (RF-26)', () => {
     // descargar y ejecutar código de terceros, incluso viniendo ya del
     // buscador de Universe.
     expect(onPreviewSpec).not.toHaveBeenCalled();
+  });
+
+  // RF-34.7: mismo buscador que el panel de Typst Universe (✦), montado
+  // aquí con `filterEntries: (card) => card.isTemplate` — esta pantalla solo
+  // CREA proyectos, así que un paquete normal (cetz) no tiene nada que hacer
+  // en sus resultados. Petición explícita del usuario: "esta búsqueda...
+  // sería genial que se pudiera integrar... la ventana de búsqueda podría
+  // ser la misma que vamos a generar para la otra parte".
+  describe('buscador de plantillas dentro de la pestaña "Buscar" (RF-34.7)', () => {
+    const indice = [
+      { name: 'cetz', version: '0.5.2', description: 'Drawing with Typst', license: 'LGPL-3.0', isTemplate: false },
+      {
+        name: 'campanile',
+        version: '0.1.0',
+        description: "Master's thesis and PhD dissertation",
+        license: 'MIT-0',
+        isTemplate: true,
+      },
+    ];
+
+    beforeEach(() => {
+      vi.mocked(fetchUniverseIndex).mockReset();
+      vi.mocked(fetchUniverseIndex).mockResolvedValue({ ok: true, value: indice });
+    });
+
+    async function buscar(escenario, query) {
+      escenario.specSearchInputEl.value = query;
+      escenario.specSearchInputEl.dispatchEvent(new Event('input'));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+
+    it('solo ofrece plantillas, nunca un paquete normal', async () => {
+      const escenario = montar();
+      escenario.gallery.open(null, catalogoMixto);
+      escenario.gallery.setActiveTab('spec');
+
+      await buscar(escenario, 'e'); // está en los dos nombres: cetz, campanile
+
+      const specs = [...escenario.specSearchResultsEl.querySelectorAll('.universe-card__meta')].map(
+        (el) => el.textContent,
+      );
+      expect(specs.some((s) => s.includes('campanile'))).toBe(true);
+      expect(specs.some((s) => s.includes('@preview/cetz'))).toBe(false);
+    });
+
+    it('elegir un resultado rellena la dirección, sin descargar nada por sí solo (RF-26.6)', async () => {
+      const onPreviewSpec = vi.fn();
+      const escenario = montar({ onPreviewSpec });
+      escenario.gallery.open(null, catalogoMixto);
+      escenario.gallery.setActiveTab('spec');
+
+      await buscar(escenario, 'campanile');
+      escenario.specSearchResultsEl.querySelector('.universe-card__body').click();
+
+      expect(escenario.specInputEl.value).toBe('@preview/campanile:0.1.0');
+      expect(onPreviewSpec).not.toHaveBeenCalled();
+    });
+
+    it('reabrir la galería limpia la búsqueda anterior', async () => {
+      const escenario = montar();
+      escenario.gallery.open(null, catalogoMixto);
+      escenario.gallery.setActiveTab('spec');
+      await buscar(escenario, 'campanile');
+      expect(escenario.specSearchResultsEl.children.length).toBeGreaterThan(0);
+
+      escenario.gallery.open(null, catalogoMixto);
+
+      expect(escenario.specSearchInputEl.value).toBe('');
+      expect(escenario.specSearchResultsEl.children).toHaveLength(0);
+    });
   });
 
   it('el buscador filtra dentro de la pestaña abierta, no en todo el catálogo', () => {

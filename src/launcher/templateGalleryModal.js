@@ -13,6 +13,7 @@
 
 import { getLanguage, t } from '../i18n/i18n.js';
 import { parseUniverseSpec } from '../universe/universeSpec.js';
+import { createUniverseSearch } from '../universe/universeSearch.js';
 import { localizeTemplate } from './launcher.js';
 import { getTemplateFullPreviewSvg, getTemplateThumbnailSvg } from './templateThumbnails.js';
 
@@ -61,11 +62,14 @@ export function countBySource(catalog) {
  * @param {HTMLElement} [deps.metaEl] Contenedor de metadatos de la plantilla activa
  * @param {(template: object) => void} deps.onSelectTemplate Callback al confirmar una plantilla
  * @param {HTMLElement} [deps.tabsEl] Barra de las tres pestañas (RF-26)
- * @param {HTMLElement} [deps.sidebarEl] Columna de la lista, que la pestaña "Dirección" sustituye
+ * @param {HTMLElement} [deps.sidebarEl] Columna de la lista, que la pestaña "Buscar" sustituye
  * @param {HTMLElement} [deps.specPanelEl] Panel del identificador libre
  * @param {HTMLInputElement} [deps.specInputEl] Campo del identificador libre
  * @param {HTMLElement} [deps.specErrorEl] Mensaje de error del identificador
  * @param {HTMLButtonElement} [deps.specPreviewBtnEl] Control que descarga y previsualiza
+ * @param {HTMLInputElement} [deps.specSearchInputEl] Buscador sobre el catálogo completo, filtrado a plantillas (RF-34.7).
+ * @param {HTMLElement} [deps.specSearchResultsEl] Rejilla de resultados de ese buscador.
+ * @param {HTMLElement} [deps.specSearchStatusEl] Estado del buscador (cargando/error/vacío).
  * @param {((spec: string) => Promise<{ok: boolean, value?: string, error?: {kind: string}}>)|null} [deps.onPreviewSpec]
  * @param {HTMLElement} [deps.zoomEl] Capa de vista ampliada (RF-29)
  * @param {HTMLElement} [deps.zoomContentEl] Contenedor de la página ampliada
@@ -86,6 +90,9 @@ export function createTemplateGalleryModal({
   specInputEl,
   specErrorEl,
   specPreviewBtnEl,
+  specSearchInputEl,
+  specSearchResultsEl,
+  specSearchStatusEl,
   onPreviewSpec,
   zoomEl,
   zoomContentEl,
@@ -279,6 +286,7 @@ export function createTemplateGalleryModal({
     if (searchEl) searchEl.value = '';
     if (isSpec) {
       renderSpecState();
+      specSearchInputEl?.focus();
     } else {
       applyFilter('');
     }
@@ -564,6 +572,30 @@ export function createTemplateGalleryModal({
     specPreviewBtnEl.addEventListener('click', previewTypedSpec);
   }
 
+  // RF-34.7: mismo buscador que el panel de Typst Universe (✦), aquí
+  // filtrado a solo plantillas — petición explícita del usuario ("esta
+  // búsqueda... sería genial que se pudiera integrar... la ventana de
+  // búsqueda podría ser la misma"). Elegir un resultado NO descarga nada por
+  // sí solo (RF-26.6): solo rellena la dirección de abajo, exactamente como
+  // si el usuario la hubiera escrito a mano, y deja el clic en "Descargar y
+  // previsualizar" como el único punto que toca la red.
+  const universeSearch =
+    specSearchInputEl && specSearchResultsEl && specSearchStatusEl
+      ? createUniverseSearch({
+          inputEl: specSearchInputEl,
+          resultsEl: specSearchResultsEl,
+          statusEl: specSearchStatusEl,
+          filterEntries: (card) => card.isTemplate,
+          onSelect: (spec) => {
+            if (specInputEl) {
+              specInputEl.value = spec;
+              specInputEl.dispatchEvent(new Event('input'));
+              specInputEl.focus();
+            }
+          },
+        })
+      : null;
+
   // Cerrar al pulsar sobre el fondo oscuro del modal
   dialogEl?.addEventListener('click', (event) => {
     if (event.target === dialogEl) {
@@ -603,6 +635,7 @@ export function createTemplateGalleryModal({
     activeTab = selectedTemplate ? templateSource(selectedTemplate) : 'local';
     typedTemplate = null;
     previewedSpec = null;
+    universeSearch?.clear();
     setActiveTab(activeTab);
     if (selectedTemplate) selectTemplate(selectedTemplate);
 
@@ -630,6 +663,11 @@ export function createTemplateGalleryModal({
     open(null, availableCatalog);
     if (specInputEl) specInputEl.value = spec;
     setActiveTab('spec');
+    // `setActiveTab` enfoca el buscador por defecto (es lo normal al pulsar
+    // la pestaña a mano), pero aquí ya se llega con una dirección puesta —
+    // el foco vuelve a ella, no a un buscador vacío que distraería de lo que
+    // ya está listo para previsualizar.
+    specInputEl?.focus();
   }
 
   return {

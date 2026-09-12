@@ -1498,6 +1498,38 @@
   line-height: 1.5;
 }
 
+/* RF-34.7: separador entre el buscador de Typst Universe (arriba) y la
+   dirección exacta escrita a mano (abajo) — dos caminos al mismo sitio, no
+   dos secciones distintas, de ahí una línea con texto en vez de otra caja
+   con su propio borde. */
+.template-gallery__spec-divider {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.template-gallery__spec-divider::before,
+.template-gallery__spec-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* Esta columna mide 340px (`.template-gallery__body`): a una sola tarjeta
+   por fila le sobra sitio de todos modos, pero fijarla evita depender de que
+   `minmax(300px, 1fr)` decida bien el número de columnas en un contenedor tan
+   estrecho — la misma rejilla, en el panel de Typst Universe, sí tiene
+   espacio de sobra para dos. */
+#template-gallery-spec-search-results {
+  grid-template-columns: 1fr;
+}
+
 /* Estado de la vista previa mientras se descarga, o cuando no se ha podido. */
 .template-gallery__spec-status {
   display: grid;

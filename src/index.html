@@ -707,37 +707,51 @@
       </div>
     </div>
 
-    <!-- Typst Universe (Beta, ARCHITECTURE.md §7.6): lista curada + identificador libre. -->
+    <!-- Typst Universe (Beta, ARCHITECTURE.md §7.6; pestañas RF-34.6):
+         "Paquetes" es la lista revisada, punto de entrada por defecto
+         (ADR-UNIVERSE-001); "Buscar" es el catálogo completo sin filtrar,
+         más el identificador libre para quien sabe lo que busca. Antes las
+         dos convivían apiladas en la misma pantalla —una rejilla curada, la
+         barra de búsqueda en medio, otra rejilla de resultados debajo— y
+         confundía: dos rejillas repartiéndose la mitad de la altura cada
+         una SIEMPRE, sin importar si había una búsqueda en curso, cortaban
+         tarjetas por la mitad y encajaban el campo de búsqueda justo en el
+         centro de la ventana. Mismo patrón de pestañas que Archivos/Esquema
+         del panel lateral (`#sidebar-tabs`). -->
     <div id="universe-panel" class="floating-panel floating-panel--universe hidden" role="dialog" aria-modal="false">
       <div class="panel__header">
         <h2 class="floating-panel__title" data-i18n="universe.title"></h2>
         <button id="btn-universe-close" class="icon-button icon-button--small" type="button" data-i18n-title="action.close">✕</button>
       </div>
       <div class="sidebar-tabs" role="tablist">
-        <span class="sidebar-tab active" data-i18n="universe.tabPackages"></span>
+        <button id="universe-tab-packages" class="sidebar-tab active" type="button" role="tab" data-i18n="universe.tabPackages"></button>
+        <button id="universe-tab-search" class="sidebar-tab" type="button" role="tab" data-i18n="universe.tabSearch"></button>
       </div>
-      <p class="universe__notice" data-i18n="universe.notice"></p>
-      <div class="universe__body universe__body--curated">
-        <div class="universe__grid" id="universe-packages"></div>
+
+      <div id="universe-view-packages">
+        <p class="universe__notice" data-i18n="universe.notice"></p>
+        <div class="universe__body">
+          <div class="universe__grid" id="universe-packages"></div>
+        </div>
       </div>
 
       <!-- RF-34: catálogo completo de Typst Universe (~4.700 paquetes), sin
-           filtrar y detrás de una búsqueda — la whitelist de arriba sigue
-           siendo el punto de entrada por defecto (ADR-UNIVERSE-001). El
-           propio placeholder explica qué es, en vez de un título nuevo con
-           una talla de fuente propia sin clase — ver DESIGN.md sobre no
-           añadir excepciones sueltas al sistema visual. -->
-      <input id="universe-search" class="form-row__input" type="search" autocomplete="off" spellcheck="false" data-i18n-placeholder="universe.searchPlaceholder" />
-      <p class="universe__notice hidden" id="universe-search-status"></p>
-      <div class="universe__body">
-        <div class="universe__grid" id="universe-search-results"></div>
-      </div>
+           filtrar. El propio placeholder explica qué es, en vez de un título
+           nuevo con una talla de fuente propia sin clase — ver DESIGN.md
+           sobre no añadir excepciones sueltas al sistema visual. -->
+      <div id="universe-view-search" class="hidden">
+        <input id="universe-search" class="form-row__input" type="search" autocomplete="off" spellcheck="false" data-i18n-placeholder="universe.searchPlaceholder" />
+        <p class="universe__notice hidden" id="universe-search-status"></p>
+        <div class="universe__body">
+          <div class="universe__grid" id="universe-search-results"></div>
+        </div>
 
-      <div class="universe__spec">
-        <input id="universe-spec" class="form-row__input" type="text" autocomplete="off" spellcheck="false" />
-        <button id="universe-spec-apply" class="button button--primary button--compact" type="button" data-i18n="universe.apply"></button>
+        <div class="universe__spec">
+          <input id="universe-spec" class="form-row__input" type="text" autocomplete="off" spellcheck="false" />
+          <button id="universe-spec-apply" class="button button--primary button--compact" type="button" data-i18n="universe.apply"></button>
+        </div>
+        <p class="form__error hidden" id="universe-error"></p>
       </div>
-      <p class="form__error hidden" id="universe-error"></p>
     </div>
 
     <!-- Ayuda (ES/EN, contenido en `help/helpContent.js`). -->

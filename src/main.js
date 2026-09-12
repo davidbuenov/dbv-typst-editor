@@ -807,6 +807,10 @@ async function bootstrap() {
     searchInputEl: el('universe-search'),
     searchResultsEl: el('universe-search-results'),
     searchStatusEl: el('universe-search-status'),
+    tabPackagesEl: el('universe-tab-packages'),
+    tabSearchEl: el('universe-tab-search'),
+    viewPackagesEl: el('universe-view-packages'),
+    viewSearchEl: el('universe-view-search'),
     onUsePackage: (spec) => {
       const view = workspace.editor.getView();
       if (!workspace.state.document || !view) {

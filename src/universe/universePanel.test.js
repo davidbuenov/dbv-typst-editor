@@ -28,9 +28,28 @@ function montar() {
   const searchResultsEl = document.createElement('div');
   const searchStatusEl = document.createElement('p');
   searchStatusEl.className = 'hidden';
+  const tabPackagesEl = document.createElement('button');
+  tabPackagesEl.className = 'sidebar-tab active';
+  const tabSearchEl = document.createElement('button');
+  tabSearchEl.className = 'sidebar-tab';
+  const viewPackagesEl = document.createElement('div');
+  const viewSearchEl = document.createElement('div');
+  viewSearchEl.className = 'hidden';
 
   const contenedor = document.createElement('div');
-  contenedor.append(packagesEl, specInputEl, specButtonEl, errorEl, searchInputEl, searchResultsEl, searchStatusEl);
+  contenedor.append(
+    tabPackagesEl,
+    tabSearchEl,
+    viewPackagesEl,
+    viewSearchEl,
+    packagesEl,
+    specInputEl,
+    specButtonEl,
+    errorEl,
+    searchInputEl,
+    searchResultsEl,
+    searchStatusEl,
+  );
   document.body.append(contenedor);
 
   const onUsePackage = vi.fn();
@@ -45,6 +64,10 @@ function montar() {
     searchInputEl,
     searchResultsEl,
     searchStatusEl,
+    tabPackagesEl,
+    tabSearchEl,
+    viewPackagesEl,
+    viewSearchEl,
     onUsePackage,
     onUseTemplate,
     onViewPackage,
@@ -58,6 +81,10 @@ function montar() {
     searchInputEl,
     searchResultsEl,
     searchStatusEl,
+    tabPackagesEl,
+    tabSearchEl,
+    viewPackagesEl,
+    viewSearchEl,
     onUsePackage,
     onUseTemplate,
     onViewPackage,
@@ -141,6 +168,41 @@ describe('panel de paquetes de Typst Universe', () => {
     specInputEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
 
     expect(onUsePackage).toHaveBeenCalledWith('@preview/quick-maths:0.2.1');
+  });
+
+  // RF-34.6: "Paquetes" y "Buscar" son pestañas de verdad — antes convivían
+  // apiladas en la misma pantalla, repartiéndose la mitad de la altura cada
+  // una SIEMPRE, lo que el usuario describió como "confunde mucho".
+  it('empieza en la pestaña Paquetes, con Buscar oculta', () => {
+    const { tabPackagesEl, tabSearchEl, viewPackagesEl, viewSearchEl } = montar();
+
+    expect(tabPackagesEl.classList.contains('active')).toBe(true);
+    expect(tabSearchEl.classList.contains('active')).toBe(false);
+    expect(viewPackagesEl.classList.contains('hidden')).toBe(false);
+    expect(viewSearchEl.classList.contains('hidden')).toBe(true);
+  });
+
+  it('pulsar "Buscar" cambia de pestaña y enfoca el campo', () => {
+    const { tabPackagesEl, tabSearchEl, viewPackagesEl, viewSearchEl, searchInputEl } = montar();
+
+    tabSearchEl.click();
+
+    expect(tabSearchEl.classList.contains('active')).toBe(true);
+    expect(tabPackagesEl.classList.contains('active')).toBe(false);
+    expect(viewSearchEl.classList.contains('hidden')).toBe(false);
+    expect(viewPackagesEl.classList.contains('hidden')).toBe(true);
+    expect(document.activeElement).toBe(searchInputEl);
+  });
+
+  it('volver a "Paquetes" no borra lo que ya se había escrito en la búsqueda', () => {
+    const { tabSearchEl, tabPackagesEl, searchInputEl } = montar();
+
+    tabSearchEl.click();
+    searchInputEl.value = 'campanile';
+    tabPackagesEl.click();
+    tabSearchEl.click();
+
+    expect(searchInputEl.value).toBe('campanile');
   });
 
   it('el enlace a typst.app no dispara también la importación', () => {

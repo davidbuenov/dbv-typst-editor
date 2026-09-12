@@ -9,11 +9,6 @@
 // La de Plantillas se absorbió en la galería, que es ahora la única puerta de
 // entrada a la creación de documentos, y aquí queda solo la rama de Paquetes.
 //
-// No se dejó una barra de pestañas con una sola llena a propósito: una pestaña
-// que nunca cambia de sitio es una pregunta que la interfaz le hace al usuario
-// sin necesidad, y esa acumulación es justo lo que llevó a tener tres formas de
-// elegir plantilla.
-//
 // La separación no es organizativa, es de trabajo: una plantilla CREA un
 // proyecto y pertenece al lanzador; un paquete se importa en el documento YA
 // abierto y pertenece al editor. Por eso este panel vive detrás del botón ✦ de
@@ -22,6 +17,17 @@
 // Se conservan las dos vías acordadas con el usuario (ADR-UNIVERSE-001): la
 // lista revisada, para quien quiere fiarse, y un campo donde pegar cualquier
 // `@preview/nombre:version`, para quien sabe lo que busca.
+//
+// RF-34.6 (2026-09-12): "Paquetes" y "Buscar" volvieron a ser dos pestañas de
+// verdad — la nota de arriba sobre "no dejar una sola pestaña llena" seguía
+// siendo cierta mientras solo había un camino, pero desde RF-34 hay DOS
+// (la lista revisada y el catálogo completo) apilados en la misma pantalla, y
+// el usuario lo describió con precisión: "divides la pantalla en 2 partes...
+// pero confunde mucho". Con las dos rejillas SIEMPRE visibles a la vez,
+// cada una se llevaba la mitad de la altura del panel aunque no hubiera
+// ninguna búsqueda en curso, cortando tarjetas por la mitad. Con pestañas de
+// verdad, cada rejilla tiene el panel entero para ella sola y nunca compiten
+// por espacio — mismo patrón que Archivos/Esquema del panel lateral.
 
 import { getLanguage, t } from '../i18n/i18n.js';
 import { fetchUniverseIndex } from '../services/backend.js';
@@ -38,6 +44,10 @@ import { getUniversePackageIcon } from './universeThumbnails.js';
  * @param {HTMLInputElement} [deps.searchInputEl] Búsqueda sobre el catálogo completo (RF-34).
  * @param {HTMLElement} [deps.searchResultsEl] Rejilla de resultados de esa búsqueda.
  * @param {HTMLElement} [deps.searchStatusEl] Mensaje de estado de la búsqueda (cargando/error/vacío).
+ * @param {HTMLButtonElement} [deps.tabPackagesEl] Pestaña "Paquetes" (RF-34.6).
+ * @param {HTMLButtonElement} [deps.tabSearchEl] Pestaña "Buscar".
+ * @param {HTMLElement} [deps.viewPackagesEl] Panel que la pestaña "Paquetes" muestra.
+ * @param {HTMLElement} [deps.viewSearchEl] Panel que la pestaña "Buscar" muestra.
  * @param {(spec: string) => void} deps.onUsePackage
  * @param {(spec: string) => void} [deps.onUseTemplate] Una entrada del catálogo completo resultó ser plantilla, no paquete (RF-34).
  * @param {(spec: string) => void} deps.onViewPackage Abre la ficha en typst.app, sin instalar nada.
@@ -50,6 +60,10 @@ export function createUniversePanel({
   searchInputEl,
   searchResultsEl,
   searchStatusEl,
+  tabPackagesEl,
+  tabSearchEl,
+  viewPackagesEl,
+  viewSearchEl,
   onUsePackage,
   onUseTemplate,
   onViewPackage,
@@ -217,6 +231,21 @@ export function createUniversePanel({
     if (event.key === 'Enter') applyTypedSpec();
   });
   specInputEl.addEventListener('input', hideError);
+
+  // RF-34.6: mismo patrón que Archivos/Esquema (`wireSidebarTabs` en
+  // `main.js`) — un único interruptor que alterna clase `active` y `hidden`,
+  // sin tocar el estado de ninguna de las dos vistas al cambiar entre ellas
+  // (una búsqueda ya escrita sigue ahí si se vuelve a "Buscar").
+  function setActiveTab(tab) {
+    tabPackagesEl?.classList.toggle('active', tab === 'packages');
+    tabSearchEl?.classList.toggle('active', tab === 'search');
+    viewPackagesEl?.classList.toggle('hidden', tab !== 'packages');
+    viewSearchEl?.classList.toggle('hidden', tab !== 'search');
+    if (tab === 'search') searchInputEl?.focus();
+  }
+
+  tabPackagesEl?.addEventListener('click', () => setActiveTab('packages'));
+  tabSearchEl?.addEventListener('click', () => setActiveTab('search'));
 
   render();
   document.addEventListener('dbv-lang-changed', render);

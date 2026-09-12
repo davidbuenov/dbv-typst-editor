@@ -846,17 +846,16 @@ body {
   padding-right: 6px;
 }
 
-/* La rejilla curada NO reparte el alto a partes iguales con la de resultados
-   de búsqueda (RF-34, hallazgo del usuario 2026-09-12): con dos `flex: 1 1
-   auto` seguidos, cada una se lleva la mitad del panel SIEMPRE, exista o no
-   una búsqueda en curso — la curada quedaba recortada a dos filas de tarjetas
-   y el campo de búsqueda, encajado justo en medio de las dos mitades,
-   parecía "flotar en el centro" de la ventana. Con un tope de altura aquí, la
-   curada ocupa solo lo que necesita (con su propio scroll si hiciera falta) y
-   la de resultados es la única que se lleva el espacio que sobra. */
-.universe__body--curated {
-  flex: 0 1 auto;
-  max-height: 190px;
+/* RF-34.6: "Paquetes" y "Buscar" son pestañas separadas (antes vivían
+   apiladas en la misma pantalla — ver la nota en index.html), así que cada
+   rejilla vuelve a tener el panel entero para ella sola: no hace falta ya el
+   tope de altura que necesitaba cuando competían por el mismo espacio. */
+#universe-view-packages,
+#universe-view-search {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .universe__grid {

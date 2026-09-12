@@ -260,10 +260,10 @@
   - [x] **RF-32** Menú "Herramientas" en la cabecera (Terminal, Python, Git, y punto de entrada de RF-33/RF-38).
   - [x] **RF-33** Clonar repositorio por URL — decisión del usuario (2026-09-11) entre las 5 alternativas de integración con GitHub evaluadas en §9: **clonar por URL**, sin custodiar credenciales. Ver `ADR-GITHUB-001`.
   - [x] **RF-34** Universe Browser completo (Package Explorer + Template Explorer sobre el catálogo sin filtrar) — deuda de Beta. **Validado en ventana real (2026-09-12)**: el usuario probó la búsqueda, encontró 3 fallos reales (plantilla insertada como paquete, layout, pestañas apiladas) y las correcciones que siguieron — confirmó "funciona perfecto" tras la decimocuarta ronda.
-  - [x] **RF-35** Bibliografía visual completa — deuda de Beta; `hayagriva` como motor. **Sigue sin validar en ventana real.**
+  - [x] **RF-35** Bibliografía visual completa — deuda de Beta; `hayagriva` como motor. **Validado en ventana real por el usuario (2026-09-12).**
   - [x] **RF-36** Empaquetado macOS — deuda de Beta/roadmap. Bundle y CI completos; firma condicionada a que el usuario configure su cuenta de Apple Developer (sin bloquear el resto).
   - [x] **RF-37** Auto-actualizador (`tauri-plugin-updater`) — ya estaba completo desde la Beta.
-  - [x] **RF-38** Ejecución de módulos JavaScript con `jogs` — plugin WASM con QuickJS embebido, con límite de 45s ante un script colgado. Ver `ADR-JOGS-001`.
+  - [x] **RF-38** Ejecución de módulos JavaScript con `jogs` — plugin WASM con QuickJS embebido, con límite de 45s ante un script colgado. Ver `ADR-JOGS-001`. **Validado en ventana real por el usuario (2026-09-12)**, con el ejemplo recursivo de la primera pasada manual.
   - [x] **RF-39** Pegar una imagen del portapapeles — no estaba en el `/spec` original; hallazgo de la pasada manual (2026-09-12), añadido como requisito nuevo con sus propios criterios de aceptación.
   - **Próximo paso:** `/plan` de v0.6.0 (Modo Orquestador, Adversarial Architect Review, desglose en `implementation_plan.md`).
 
@@ -282,7 +282,7 @@
   - [x] **Decimocuarta ronda (2026-09-12): "Paquetes"/"Buscar" como pestañas de verdad, y ese buscador reutilizado también en "Crear documento a partir de plantilla" (RF-34.6, RF-34.7).** Tras el arreglo anterior el usuario pidió "algo más limpio, como otra pestaña" y, en el mismo mensaje, integrar la misma búsqueda en el flujo de crear documento ("la ventana de búsqueda podría ser la misma"). Confirmado el alcance ("vamos paso a paso pero a por todo"), se construyeron las dos cosas antes de que el usuario probara nada. (1) El panel de Typst Universe gana dos pestañas de verdad (mismo patrón que Archivos/Esquema del panel lateral) — cada rejilla tiene el panel entero, ya no compiten por altura. (2) El motor de búsqueda se extrajo a `universe/universeSearch.js` (`createUniverseSearch`), montado en DOS sitios: el panel de Universe (sin filtro) y una nueva pestaña "Buscar" de la Galería de plantillas que sustituye a "Dirección" (filtrada a solo plantillas vía `filterEntries`). Elegir un resultado en la Galería solo rellena la dirección, sin tocar la red (RF-26.6 intacto). Corregido de paso un roce de foco: `openWithSpec()` (de la ronda anterior) heredaba el nuevo autofoco del buscador y se lo robaba al campo ya relleno. 402 Vitest (19 nuevos, incluido `universeSearch.test.js`) + `verify:frontend` 11/11 + `verify:layout` 15/15. Detalle en `memory.md`.
   - [x] **Segunda ronda de la pasada manual (2026-09-11): conflicto de fusión REAL, corregido en la misma sesión.** El usuario reprodujo un `pull` con cambios divergentes de verdad y se encontró las marcas `<<<<<<<`/`=======`/`>>>>>>>` crudas dentro del documento, sin nada en la interfaz para resolverlo. Causa: `git status --porcelain=v2` reporta un fichero en conflicto en una línea `u ` que el parser no reconocía — desaparecía de la lista por completo. 3 piezas nuevas: `conflicted_files` en `GitStatusResult` (Rust, 2 tests con una reproducción real), `app/conflictParser.js` (puro, 11 tests) y `app/conflictResolver.js` (modal "Mío"/"Remoto" por bloque, mismo patrón que `diffModal.js`). Alcance deliberado: resolución por bloque completo, no edición línea a línea — quien necesite mezclar a mano sigue pudiendo editar el fichero directamente. Detalle en `memory.md`. 329 Vitest + 210 Rust + `verify:frontend` 11/11 + `verify:layout` 15/15.
   - [x] **Primera pasada manual en ventana real (2026-09-11), 4 hallazgos, corregidos en la misma sesión.** El usuario probó el flujo de clonado (RF-33) y encontró: (1) un proyecto recién clonado de un repo vacío no tenía ninguna forma de crear el primer fichero — nuevo botón "+" junto al filtro del árbol, fila de creación inline; (2) el popover de Git (RF-19, ya existente) no se podía arrastrar ni cerrar — añadidos ambos, mismo patrón que Terminal/Python; (3) un `pull` bloqueado por cambios locales sin confirmar mostraba el error crudo de Git en vez de una explicación accionable — detectado por texto y traducido a un mensaje claro; (4) el ejemplo por defecto del asistente `jogs` era una suma trivial — sustituido por una función recursiva, verificada dos veces contra el binario real. 317 Vitest (2 tests nuevos) + `verify:frontend` 11/11 + `verify:layout` 15/15 en verde. Detalle completo en `memory.md`, sección "Primera pasada manual de v0.6.0".
-  - [ ] **Sigue pendiente (actualizado 2026-09-12):** validar en ventana real la **bibliografía visual (RF-35)** y el **asistente `jogs`** con el ejemplo nuevo, antes de dar `/build` por cerrado del todo. El editor de diagramas (RF-31, catorce rondas) y el Universe Browser completo (RF-34, con sus propias rondas 13-14) ya están validados y cerrados — ver más abajo.
+  - [x] **Pasada manual de v0.6.0 CERRADA (2026-09-12): los 9 RF, sin ningún hueco de validación pendiente.** Bibliografía visual (RF-35) y asistente `jogs` (RF-38) confirmados por el usuario, completando la validación en ventana real de toda la versión — el resto (editor de diagramas RF-31, Universe Browser RF-34, sincronización RF-16, pegado de imagen RF-39) ya se había cerrado en las catorce rondas de más abajo. **Próximo paso: `/test` → `/code-simplify` → `/ship`.**
   - [x] **Slice 41 — Clonar repositorio por URL (RF-33) — COMPLETADO (2026-09-11).** `commands::git::git_clone` (nuevo `GitCloneResult`, `derive_clone_destination_name`) reutiliza el wrapper no interactivo existente; nombre de destino derivado de la URL, nunca sobrescribe una carpeta no vacía. UI: botón "Clonar repositorio" en el lanzador y en el menú Archivo, panel `#clone-panel` (reutiliza `.floating-panel`/`.universe__spec`/`.form-row__input` ya existentes, sin CSS nuevo). 280 Vitest + 200 Rust + `verify:frontend` 11/11 en verde.
   - [x] **Slices 50-52 — Auto-actualizador (RF-37) y macOS (RF-36) — COMPLETADO (2026-09-11).** Hallazgo: RF-37 y la parte 1 de RF-36 (bundle universal + CI) ya estaban completos desde la Beta, sin nada que programar — `app/updater.js` (comprobar/descargar/instalar/reiniciar, degradación en Store) y `release-macos.yml` (`.dmg`/`.app` universal Intel+Apple Silicon con sidecars fundidos por `lipo`, verificación funcional) ya existían. Lo único real: **Slice 52**, firma condicionada — `release-macos.yml` pasa 6 variables `APPLE_*` desde `secrets.*`; sin esos secretos (hoy no existen) llegan vacías y el build sale sin firmar exactamente como antes, sin fallar. El día que el usuario configure la cuenta de Apple Developer, el mismo workflow empieza a firmar sin tocarlo de nuevo. Ver `ADR-RELEASE-002` (`memory.md`). **v0.6.0 puede considerarse funcionalmente completa en estos dos RF sin esperar a la cuenta.**
   - [x] **Slice 47 — Investigar el bug actual del asistente CeTZ (RF-23) — COMPLETADO (2026-09-11), sin hallazgo verificable.** Revisión estática de `cetzAssistant.js`/`toolbar.js`/`workspace.js`: wiring correcto, mismo patrón que los otros asistentes, sin defecto encontrado por lectura. Sin ventana real no se puede reproducir el fallo que mencionó el usuario. No bloquea RF-31 (lo sustituye igualmente). Ver `ADR-DIAGRAMA-001` (`memory.md`).
@@ -298,53 +298,56 @@
 
 ## 🔄 Context Snapshot / Snapshot de Contexto
 
-> ### 👉 CÓMO RETOMAR ESTE PROYECTO (leer esto primero) — actualizado 2026-09-12, v0.6.0 en pasada manual avanzada
+> ### 👉 CÓMO RETOMAR ESTE PROYECTO (leer esto primero) — actualizado 2026-09-12, v0.6.0 lista para `/test`
 >
-> **v0.6.0 está funcionalmente completa (los 9 RF, RF-31 a RF-39) y con CATORCE rondas de pasada manual
-> del usuario ya cerradas.** Todavía no se ha hecho `/ship`: quedan dos huecos de validación y luego
-> tocaría `/test` formal → `/ship`. **v0.5.0 SIGUE sin empujarse** (`git push origin master --tags`) —
-> arrastrado desde la sesión anterior, sin relación con v0.6.0, revisar si sigue siendo cierto.
+> **v0.6.0 está funcionalmente completa (los 9 RF, RF-31 a RF-39) y con la pasada manual del usuario
+> CERRADA DEL TODO — catorce rondas de fallos reales encontrados y corregidos, más la confirmación final
+> de bibliografía visual y `jogs`.** No queda ningún hueco de validación conocido. **Próximo paso:
+> `/test` → `/code-simplify` → `/ship`.**
 >
 > **Qué trae v0.6.0 (detalle completo en `memory.md`, catorce entradas fechadas 2026-09-11/12):**
 > editor WYSIWYG de diagramas (reemplaza al asistente CeTZ; seis formas, colores, zoom/paneo, dirección
 > de flechas, pie de figura citable); menú "Herramientas"; clonar repositorio por URL; Universe Browser
-> completo con buscador sobre el catálogo real (~4.700 paquetes/plantillas), ahora en pestañas
+> completo con buscador sobre el catálogo real (~4.700 paquetes/plantillas), en pestañas
 > "Paquetes"/"Buscar" y con ese mismo buscador reutilizado en "Crear documento → Buscar"; bibliografía
 > visual con `hayagriva`; empaquetado macOS (bundle+CI listos, firma condicionada a que el usuario active
 > su cuenta de Apple Developer); auto-actualizador (ya estaba); runner de JavaScript con `jogs`; y RF-39
 > (pegar imagen del portapapeles), que no estaba en el `/spec` original — salió de la propia pasada manual.
 >
-> **Dos huecos de validación explícitos antes de `/test`:**
-> 1. **Bibliografía visual (RF-35)** — construida (`bibliography_entries`, `hayagriva`), con 5 tests de
->    Rust verificados contra la API real, pero el usuario todavía no la ha probado en la ventana real.
-> 2. **Asistente `jogs` (RF-38)** con el ejemplo nuevo (función recursiva, sustituyó a una suma trivial
->    en la primera pasada manual) — tampoco probado desde entonces.
+> **Todo validado en ventana real, nada pendiente de probar:** el editor de diagramas (rondas 4ª-10ª:
+> arrastre, formas/colores/zoom, dirección de flechas, puntas invisibles ×2, etiqueta `<fig:...>` de las
+> imágenes), el Universe Browser completo (rondas 13ª-14ª: distinción paquete/plantilla, layout, pestañas,
+> buscador compartido — cerrado con "me encanta, funciona perfecto"), la sincronización render↔editor
+> RF-16 (rondas 11ª-12ª, verificada contra un TFG real de la universidad), el pegado de imagen RF-39
+> ("ahora funciona perfectamente"), y la bibliografía visual (RF-35) y `jogs` (RF-38), confirmados el
+> 2026-09-12 en el mismo mensaje que cerró la pasada manual.
 >
-> **Lo que YA está validado y cerrado, para no volver a preguntarlo:** el editor de diagramas (rondas
-> 4ª-10ª: arrastre, formas/colores/zoom, dirección de flechas, puntas invisibles ×2, etiqueta `<fig:...>`
-> de las imágenes), el Universe Browser completo (rondas 13ª-14ª: distinción paquete/plantilla, layout,
-> pestañas, buscador compartido — el usuario cerró con "me encanta, funciona perfecto"), la sincronización
-> render↔editor RF-16 (rondas 11ª-12ª, verificada contra un TFG real de la universidad), y el pegado de
-> imagen RF-39 (confirmado "ahora funciona perfectamente").
+> **v0.5.0 ya está publicada del todo — heredado como pendiente de la sesión anterior, YA RESUELTO:**
+> el usuario empujó el tag: release en
+> `https://github.com/davidbuenov/dbv-typst-editor/releases/tag/v0.5.0` (Linux `.AppImage`/`.deb`,
+> macOS `.dmg`/`.app.tar.gz`) y **v0.5.0 ya está publicada en Microsoft Store**. El release de GitHub
+> **no lleva ejecutable de Windows** — es lo esperado, no un fallo: no hay `release-windows.yml`, el
+> build de Windows firmado lo genera el usuario en local con su clave de firma (`TAURI_SIGNING_*` +
+> `npm run updater:manifest`), nunca la IA. Si hace falta, es una acción manual del usuario, no algo que
+> arreglar en el repositorio.
 >
-> **Patrón de trabajo de esta sesión, por si se repite:** el usuario prueba en la ventana real (o contra
-> un proyecto real suyo, no el de demo), reporta el síntoma con precisión ("pincho aquí, va allí"), se
-> reproduce con una sonda en Chrome real o contra el proyecto real antes de tocar código, se corrige, se
-> documenta en `memory.md` con la causa raíz y se hace commit por ronda. Varias rondas encontraron un
-> SEGUNDO fallo relacionado al verificar el primero (RF-16: encabezado → comentario/import; RF-34:
-> plantilla-como-paquete → layout → pestañas → buscador compartido) — merece la pena preguntarse "qué más
-> encaja en esta misma causa" antes de dar una ronda por cerrada.
+> **Patrón de trabajo de esta sesión, por si se repite en la siguiente:** el usuario prueba en la ventana
+> real (o contra un proyecto real suyo, no el de demo), reporta el síntoma con precisión ("pincho aquí,
+> va allí"), se reproduce con una sonda en Chrome real o contra el proyecto real antes de tocar código, se
+> corrige, se documenta en `memory.md` con la causa raíz y se hace commit por ronda. Varias rondas
+> encontraron un SEGUNDO fallo relacionado al verificar el primero (RF-16: encabezado → comentario/import;
+> RF-34: plantilla-como-paquete → layout → pestañas → buscador compartido) — merece la pena preguntarse
+> "qué más encaja en esta misma causa" antes de dar una ronda por cerrada.
 >
 > **Diferido a propósito, no lo reabras sin que el usuario lo pida:** retirar el asistente CeTZ viejo (⬡,
 > `cetzAssistant.js`) — el editor nuevo no cubre plot/canvas libre todavía, así que quitarlo sería una
-> regresión (Slice 49, deliberadamente pospuesto).
+> regresión (Slice 49, deliberadamente pospuesto). Decidir si se retira lo toca `/code-simplify`, no antes.
 >
-> **Acciones que dependen del usuario, no de código (heredadas de v0.5.0, sin tocar):**
-> 1. **`git push origin master --tags`** de v0.5.0 — confirmar si sigue pendiente.
-> 2. **Compilar Windows con las variables `TAURI_SIGNING_*` y ejecutar `npm run updater:manifest`** —
->    la clave de firma la genera el usuario en su terminal, nunca la IA.
-> 3. **Microsoft Store:** contrastar si el `.msix` corregido sigue pendiente de reenviar o ya se resolvió.
-> 4. **Cuenta de Apple Developer** para RF-36 (macOS) — revisar su estado antes de dar la firma por bloqueada.
+> **Acciones que siguen dependiendo del usuario, no de código:**
+> 1. **Microsoft Store de v0.6.0**, cuando llegue el momento de publicarla — el checklist está en
+>    `docs/MICROSOFT_STORE.md`.
+> 2. **Cuenta de Apple Developer** para que `release-macos.yml` empiece a firmar RF-36 — revisar su
+>    estado si no ha llegado todavía (la esperaba "en unos días" a fecha de 2026-09-11).
 >
 > **Sigue pendiente, sin relación con v0.6.0:**
 > - Bug reportado sin reproducir, arrastrado desde hace sesiones: al escribir dentro de una ecuación, el
@@ -352,8 +355,8 @@
 > - `macos_menu.rs` sin cobertura y sin compilar jamás en un Mac — se compilará de verdad al construir RF-36.
 >
 > **Última sesión:** 2026-09-12 · **Rama:** `master` · remoto `origin` = `github.com/davidbuenov/dbv-typst-editor`
-> (público) · commits de v0.6.0 hasta `bb7e7cc` inclusive · verificación en verde: 402 Vitest · 224 Rust ·
-> `verify:frontend` 11/11 · `verify:layout` 15/15.
+> (público) · v0.5.0 publicada (GitHub Releases + Microsoft Store) · commits de v0.6.0 hasta `bb7e7cc`
+> inclusive · verificación en verde: 402 Vitest · 224 Rust · `verify:frontend` 11/11 · `verify:layout` 15/15.
 
 ### ✅ Qué funciona hoy (MVP v0.1 completo)
 

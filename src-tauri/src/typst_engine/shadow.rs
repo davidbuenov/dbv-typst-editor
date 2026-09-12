@@ -87,6 +87,31 @@ impl ShadowRoot {
 /// Las anclas van **entre bloques** —la primera línea no vacía tras una línea en
 /// blanco— porque el Spike S-2 midió que ahí el SVG sale byte a byte idéntico:
 /// sembrar no cambia una coma de lo que ve el usuario.
+///
+/// **Excepción, encontrada con un TFG real (2026-09-12): un encabezado de
+/// nivel 1 va DESPUÉS, en su propia línea, no antes.** Muchas plantillas de
+/// tesis llevan `show heading.where(level: 1): it => { pagebreak(weak: true)
+/// .. }` para que cada capítulo empiece en página nueva. Un ancla insertada
+/// como hermano ANTERIOR al encabezado se compone (con posición y todo) antes
+/// de que ese salto de página se dispare — el salto vive dentro del propio
+/// `show` del encabezado, así que solo afecta a lo que viene DESPUÉS de él.
+/// El síntoma en la aplicación: el ancla de "Introducción" reportaba la
+/// ÚLTIMA página del capítulo anterior, y como esa es la búsqueda por
+/// "ancla más cercana por delante", un doble clic en cualquier parte del
+/// primer capítulo (toda la mitad inferior de esa página) resolvía al
+/// encabezado del capítulo SIGUIENTE en vez de quedarse en el que se veía.
+/// Comprobado contra el TFG real que lo reportó: moviendo el ancla a
+/// DESPUÉS del encabezado (todavía como hermano suyo, no dentro de su
+/// cuerpo — ver la nota de `<label>` más abajo) aterriza ya en la página
+/// nueva, y las 19 páginas del documento salen byte a byte idénticas.
+///
+/// Nota aparte, del mismo hallazgo: un `<dbv-sync>` puesto DENTRO del cuerpo
+/// de un encabezado (`= #metadata(..)<dbv-sync>Título`) NO etiqueta el
+/// `metadata` — Typst reasigna esa etiqueta al propio encabezado, que es la
+/// forma oficial de escribir `= Título <label>`. La consulta pierde entonces
+/// el valor `f`/`l` ("heading does not have field \"value\""). Por eso el
+/// ancla de un encabezado tiene que ser un hermano SEPARADO, nunca texto
+/// inyectado en su interior.
 pub fn seed_anchors(source: &str, file: &str) -> String {
     // La ruta viaja dentro de una cadena Typst: se normaliza a `/` y se quitan
     // las comillas, que la cerrarían a media construcción.
@@ -102,18 +127,52 @@ pub fn seed_anchors(source: &str, file: &str) -> String {
         // (`#let documento(..) = { .. }`), que es justo lo que traen las 8
         // plantillas curadas. Descubierto compilando `testfiles/demo-proyecto`
         // contra el binario real, no en el spike, cuyos fixtures eran markup puro.
+        //
+        // Ídem dentro de un bloque de código fuente (```` ``` ````, típico de
+        // un apéndice con listados): el mismo TFG real que destapó el fallo
+        // del encabezado trae uno con Python/R/C++/SQL/Bash, y sin que `Depth`
+        // reconociera la valla de comillas invertidas, la línea sembrada se
+        // colaba como texto LITERAL dentro del listado — visible en el PDF, y
+        // encima desplazando el resto del documento una página entera.
         if after_blank && depth.at_top_level() && !line.trim().is_empty() {
-            seeded.push_str(&format!(
-                "#metadata((f: \"{safe_file}\", l: {}))<{SYNC_LABEL}>\n",
-                index + 1
-            ));
+            let anchor = format!("#metadata((f: \"{safe_file}\", l: {}))<{SYNC_LABEL}>", index + 1);
+            if is_heading(line) {
+                // Encabezado: el texto no se toca, el ancla es un hermano que
+                // va JUSTO DESPUÉS — ver la nota de arriba.
+                seeded.push_str(line);
+                seeded.push('\n');
+                seeded.push_str(&anchor);
+                seeded.push('\n');
+            } else {
+                seeded.push_str(&anchor);
+                seeded.push('\n');
+                seeded.push_str(line);
+                seeded.push('\n');
+            }
+        } else {
+            seeded.push_str(line);
+            seeded.push('\n');
         }
         after_blank = line.trim().is_empty();
-        seeded.push_str(line);
-        seeded.push('\n');
         depth.consume(line);
     }
     seeded
+}
+
+/// True si `line` es un encabezado (`=`, `==`... seguido de espacio o
+/// tabulador). No valida que sea un encabezado "de verdad" (un `=` escapado
+/// al principio de un párrafo también lo daría, un caso tan raro que no
+/// compensa complicar el escaneo por él) — mismo criterio que `Depth`: un
+/// escaneo ligero, no un parser completo.
+fn is_heading(line: &str) -> bool {
+    let trimmed = line.trim_start();
+    let marker_len = trimmed.bytes().take_while(|&b| b == b'=').count();
+    if marker_len == 0 {
+        return false;
+    }
+    // Typst exige al menos un espacio (o tabulador) tras los "=" para que
+    // cuente como encabezado; sin él, "==foo" es solo texto.
+    matches!(trimmed.as_bytes().get(marker_len), Some(b' ' | b'\t'))
 }
 
 /// Profundidad de anidamiento de un fichero Typst, contada por líneas.
@@ -127,11 +186,23 @@ pub fn seed_anchors(source: &str, file: &str) -> String {
 struct Depth {
     open: i32,
     in_block_comment: bool,
+    /// Nº de comillas invertidas que abrieron el tramo `raw` en curso —
+    /// inline (`` `code` ``) o de bloque (```` ```lang ````) — o 0 si no hay
+    /// ninguno abierto. Hace falta el número, no solo un booleano: Typst
+    /// cierra un tramo `raw` con una tanda de AL MENOS ese mismo número de
+    /// comillas, nunca con menos.
+    ///
+    /// Encontrado con un TFG real (2026-09-12): un apéndice de "fragmentos de
+    /// código" con listados ```` ```python ```` no lo tenía en cuenta, así
+    /// que una línea cualquiera DENTRO del listado (código, no markup) se
+    /// tomaba por markup de nivel superior — el ancla sembrada se colaba
+    /// como texto LITERAL dentro del código, visible en el PDF.
+    raw_fence_len: usize,
 }
 
 impl Depth {
     fn at_top_level(&self) -> bool {
-        self.open <= 0 && !self.in_block_comment
+        self.open <= 0 && !self.in_block_comment && self.raw_fence_len == 0
     }
 
     fn consume(&mut self, line: &str) {
@@ -142,6 +213,18 @@ impl Depth {
             let current = bytes[index];
             let next = bytes.get(index + 1).copied();
 
+            if self.raw_fence_len > 0 {
+                if current == '`' {
+                    let run = run_length(&bytes, index, '`');
+                    if run >= self.raw_fence_len {
+                        self.raw_fence_len = 0;
+                    }
+                    index += run;
+                    continue;
+                }
+                index += 1;
+                continue;
+            }
             if self.in_block_comment {
                 if current == '*' && next == Some('/') {
                     self.in_block_comment = false;
@@ -163,6 +246,11 @@ impl Depth {
                 index += 1;
                 continue;
             }
+            if current == '`' {
+                self.raw_fence_len = run_length(&bytes, index, '`');
+                index += self.raw_fence_len;
+                continue;
+            }
             match (current, next) {
                 ('/', Some('/')) => break, // Comentario de línea: el resto no cuenta.
                 ('/', Some('*')) => {
@@ -178,6 +266,11 @@ impl Depth {
             index += 1;
         }
     }
+}
+
+/// Cuántos caracteres `target` seguidos hay en `chars` a partir de `start`.
+fn run_length(chars: &[char], start: usize, target: char) -> usize {
+    chars[start..].iter().take_while(|&&c| c == target).count()
 }
 
 /// True si `name` debe copiarse en vez de enlazarse.
@@ -536,6 +629,109 @@ mod tests {
         // Nada dentro del cuerpo del `#let`.
         assert!(!seeded.contains("l: 3))"), "{seeded}");
         assert!(!seeded.contains("l: 5))"), "{seeded}");
+    }
+
+    #[test]
+    fn seed_anchors_ancla_un_encabezado_despues_no_antes() {
+        // El fallo real (2026-09-12, TFG con `show heading.where(level: 1):
+        // it => { pagebreak(weak: true) .. }`): un ancla ANTES del
+        // encabezado se compone antes de que su propio salto de página se
+        // dispare, así que reporta la página VIEJA. Puesta después, hereda
+        // la página nueva. Aquí solo se comprueba el orden en el texto
+        // sembrado — la página real solo se ve compilando (verificado a
+        // mano contra el TFG del usuario, no reproducible en un test unitario
+        // sin el binario).
+        let seeded = seed_anchors("= Introducción\n\nTexto.\n", "cap.typ");
+
+        let heading_at = seeded.find("= Introducción").unwrap();
+        let anchor_at = seeded.find("<dbv-sync>").unwrap();
+        assert!(anchor_at > heading_at, "{seeded}");
+    }
+
+    #[test]
+    fn seed_anchors_encabezado_no_se_confunde_con_una_asignacion() {
+        // "=" sin espacio detrás no es un encabezado Typst — no debe activar
+        // el camino "después".
+        let seeded = seed_anchors("=x\n\nSiguiente.\n", "cap.typ");
+
+        let heading_at = seeded.find("=x").unwrap();
+        let anchor_at = seeded.find("<dbv-sync>").unwrap();
+        assert!(anchor_at < heading_at, "{seeded}");
+    }
+
+    #[test]
+    fn seed_anchors_encabezado_de_cualquier_nivel_va_despues() {
+        let seeded = seed_anchors("=== Subsección\n\nTexto.\n", "cap.typ");
+
+        let heading_at = seeded.find("=== Subsección").unwrap();
+        let anchor_at = seeded.find("<dbv-sync>").unwrap();
+        assert!(anchor_at > heading_at, "{seeded}");
+    }
+
+    #[test]
+    fn seed_anchors_no_entra_en_un_bloque_de_codigo_con_vallas() {
+        // El segundo fallo del mismo TFG real: un apéndice de "fragmentos de
+        // código" con listados ```python ...``` no estaba cubierto por
+        // `Depth`, así que una línea de código cualquiera se tomaba por
+        // markup de nivel superior — el ancla sembrada se colaba como texto
+        // LITERAL dentro del listado, visible en el PDF compilado.
+        let source = concat!(
+            "Antes del listado.\n",
+            "\n",
+            "```python\n",
+            "# esto es código, no un comentario Typst\n",
+            "\n",
+            "from typing import Tuple\n",
+            "```\n",
+            "\n",
+            "Después del listado.\n",
+        );
+
+        let seeded = seed_anchors(source, "cap.typ");
+
+        // La línea que ABRE la valla sí recibe ancla — es markup de nivel
+        // superior de verdad, el principio del bloque de código, ni distinto
+        // ni más peligroso que anclar delante de un `#figure(`. Lo único que
+        // no debe pasar es que algo de DENTRO reciba una.
+        assert_eq!(seeded.matches("<dbv-sync>").count(), 3, "{seeded}");
+        assert!(seeded.contains("l: 1))"), "{seeded}"); // "Antes del listado."
+        assert!(seeded.contains("l: 3))"), "{seeded}"); // "```python"
+        assert!(seeded.contains("l: 9))"), "{seeded}"); // "Después del listado."
+        // Nada dentro de la valla, ni en la línea en blanco de en medio.
+        assert!(!seeded.contains("l: 4))"), "{seeded}");
+        assert!(!seeded.contains("l: 6))"), "{seeded}");
+        // Y el propio listado no se ha tocado ni una coma.
+        assert!(seeded.contains("from typing import Tuple\n```"), "{seeded}");
+    }
+
+    #[test]
+    fn seed_anchors_una_valla_que_no_se_cierra_en_la_misma_linea_sigue_abierta() {
+        // La guarda que hace falta de verdad: una línea en blanco DENTRO del
+        // listado, seguida de una línea de código — sin recordar cuántas
+        // comillas invertidas siguen abiertas entre líneas, esa combinación
+        // (línea en blanco + no vacía) es indistinguible de un bloque nuevo.
+        let source = "```\nprimera\n\nsegunda\n```\n\nFuera.\n";
+
+        let seeded = seed_anchors(source, "cap.typ");
+
+        assert_eq!(seeded.matches("<dbv-sync>").count(), 2, "{seeded}");
+        assert!(seeded.contains("l: 1))"), "{seeded}"); // "```" (abre la valla)
+        assert!(seeded.contains("l: 7))"), "{seeded}"); // "Fuera."
+        assert!(!seeded.contains("l: 2))"), "{seeded}");
+        assert!(!seeded.contains("l: 4))"), "{seeded}"); // la línea tras el hueco en blanco
+    }
+
+    #[test]
+    fn seed_anchors_un_codigo_en_linea_no_desbalancea_los_corchetes_de_despues() {
+        // `` `array[i` `` con un corchete sin cerrar, DENTRO de comillas
+        // invertidas, no debe dejar `Depth` creyendo que sigue dentro de un
+        // corchete para el resto del fichero.
+        let source = "Con `array[i` código en línea.\n\nSiguiente bloque.\n";
+
+        let seeded = seed_anchors(source, "cap.typ");
+
+        assert_eq!(seeded.matches("<dbv-sync>").count(), 2, "{seeded}");
+        assert!(seeded.contains("l: 3))"), "{seeded}");
     }
 
     #[test]

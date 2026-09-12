@@ -202,7 +202,7 @@ describe('figureActionForPath (arrastrar y soltar una imagen, Beta §7.10)', () 
     const spec = figureActionForPath('images/diagrama-1.png')(state);
     const next = state.update(spec).state;
     expect(next.doc.toString()).toBe(
-      '#figure(\n  image("/images/diagrama-1.png"),\n  caption: [pie de figura],\n)'
+      '#figure(\n  image("/images/diagrama-1.png"),\n  caption: [pie de figura],\n) <fig:diagrama-1>'
     );
     const { from, to } = next.selection.main;
     expect(next.sliceDoc(from, to)).toBe('pie de figura');
@@ -213,8 +213,36 @@ describe('figureActionForPath (arrastrar y soltar una imagen, Beta §7.10)', () 
     const spec = figureActionForPath('/images/diagrama-1.png')(state);
     const next = state.update(spec).state;
     expect(next.doc.toString()).toBe(
-      '#figure(\n  image("/images/diagrama-1.png"),\n  caption: [pie de figura],\n)'
+      '#figure(\n  image("/images/diagrama-1.png"),\n  caption: [pie de figura],\n) <fig:diagrama-1>'
     );
+  });
+
+  // Petición del usuario (2026-09-12): que la imagen llegue ya referenciable.
+  // Repetir una etiqueta es un ERROR de compilación en Typst, así que insertar
+  // dos veces la misma imagen tenía que numerar la segunda o romper el
+  // documento entero.
+  it('numera la etiqueta si esa imagen ya está referenciada en el documento', () => {
+    const doc = '#figure(\n  image("/images/foto.png"),\n  caption: [Una],\n) <fig:foto>\n';
+    const state = stateWithSelection(doc, doc.length);
+    const spec = figureActionForPath('images/foto.png')(state);
+    const next = state.update(spec).state;
+    expect(next.doc.toString()).toContain('<fig:foto-2>');
+  });
+
+  it('quita tildes y espacios del nombre, que una etiqueta de Typst no admite', () => {
+    const state = stateWithSelection('', 0);
+    const spec = figureActionForPath('images/Diseño del Árbol.png')(state);
+    const next = state.update(spec).state;
+    expect(next.doc.toString()).toContain('<fig:diseno-del-arbol>');
+  });
+
+  // Un nombre que al limpiarlo se queda sin nada no puede producir `<fig:>`,
+  // que no compila.
+  it('un nombre sin caracteres utilizables cae en una etiqueta de reserva', () => {
+    const state = stateWithSelection('', 0);
+    const spec = figureActionForPath('images/---.png')(state);
+    const next = state.update(spec).state;
+    expect(next.doc.toString()).toContain('<fig:imagen>');
   });
 });
 

@@ -142,7 +142,10 @@ function inlineTemplate(build) {
 function blockTemplate(build) {
   return function buildTransaction(state) {
     const { from, to } = state.selection.main;
-    const { text, holeStart, holeLength } = build(state.sliceDoc(from, to));
+    // El `state` va como segundo argumento porque la figura necesita mirar el
+    // documento entero para no repetir una etiqueta `<fig:...>` que ya exista;
+    // el resto de plantillas lo ignoran.
+    const { text, holeStart, holeLength } = build(state.sliceDoc(from, to), state);
 
     const atLineStart = state.doc.lineAt(from).from === from;
     const atLineEnd = state.doc.lineAt(to).to === to;
@@ -172,11 +175,61 @@ function blockTemplate(build) {
  * `chapters/images/foto.png` y el documento no compila. Anteponer `/` la
  * ancla siempre a la raíz, sin importar desde qué fichero se use.
  */
+/**
+ * Etiqueta `fig:...` para una imagen, derivada de su nombre de fichero y
+ * libre dentro de `docText`.
+ *
+ * Petición del usuario (2026-09-12): que insertar una imagen deje ya la parte
+ * `<...>` para poder referenciarla con `@fig:...`, en vez de tener que
+ * escribirla a mano después. Se deriva del nombre porque es lo único que
+ * describe la imagen en ese momento — el pie todavía está sin escribir.
+ *
+ * Dos cosas que no son cosméticas:
+ * - Se quitan tildes y cualquier carácter que no sea letra, dígito o guion:
+ *   una etiqueta de Typst no los admite, y `<fig:diseño árbol>` no compila.
+ * - Se comprueba que no exista ya en el documento, añadiendo `-2`, `-3`…
+ *   Repetir una etiqueta es un ERROR de compilación en Typst, así que insertar
+ *   dos veces la misma imagen habría roto el documento.
+ */
+export function figureLabelForPath(path, docText = '') {
+  const fileName = path.split('/').pop() ?? '';
+  const stem =
+    fileName
+      .replace(/\.[^.]+$/, '')
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'imagen';
+
+  let candidate = `fig:${stem}`;
+  let attempt = 2;
+  while (docText.includes(`<${candidate}>`)) {
+    candidate = `fig:${stem}-${attempt}`;
+    attempt += 1;
+  }
+  return candidate;
+}
+
+/**
+ * Bloque `#figure` de una imagen, con su etiqueta ya puesta. Compartido por la
+ * ruta ya conocida (arrastrar, pegar) y por el botón "Fig" de la barra, para
+ * que los dos produzcan exactamente la misma forma.
+ *
+ * La etiqueta va en la MISMA línea que el cierre del `#figure`: con un salto
+ * en medio, Typst la toma como etiqueta del párrafo siguiente y `@fig:...`
+ * deja de resolver.
+ */
+function figureBlock(imagePath, caption, label) {
+  return `#figure(\n  image("${imagePath}"),\n  caption: [${caption}],\n) <${label}>`;
+}
+
 export function figureActionForPath(path) {
   const rootPath = path.startsWith('/') ? path : `/${path}`;
-  return blockTemplate((selected) => {
+  return blockTemplate((selected, state) => {
     const caption = selected || 'pie de figura';
-    const text = `#figure(\n  image("${rootPath}"),\n  caption: [${caption}],\n)`;
+    const label = figureLabelForPath(rootPath, state?.doc.toString() ?? '');
+    const text = figureBlock(rootPath, caption, label);
     const captionStart = text.indexOf('[', text.indexOf('caption')) + 1;
     return { text, holeStart: captionStart, holeLength: caption.length };
   });
@@ -276,14 +329,18 @@ export const TOOLBAR_ACTIONS = [
     group: 'content',
     glyph: 'Fig',
     i18nKey: 'toolbar.figure',
-    buildTransaction: blockTemplate((selected) => {
+    buildTransaction: blockTemplate((selected, state) => {
       // Con `/` inicial: se resuelve contra la raíz del proyecto pase lo que
       // pase, en vez de contra la carpeta del fichero donde se escriba —
       // importa en cuanto el documento vive en una subcarpeta (capítulos de
       // una tesis o TFG), ver figureActionForPath más arriba.
       const path = '/images/...';
       const caption = selected || 'pie de figura';
-      const text = `#figure(\n  image("${path}"),\n  caption: [${caption}],\n)`;
+      // Aquí la ruta es un hueco por rellenar, así que la etiqueta no puede
+      // salir de ella: cae en el `fig:imagen` de reserva, numerado si ya hay
+      // otro. Queda lista para renombrar junto con la ruta.
+      const label = figureLabelForPath(path, state?.doc.toString() ?? '');
+      const text = figureBlock(path, caption, label);
       return { text, holeStart: text.indexOf(path), holeLength: path.length };
     }),
   },

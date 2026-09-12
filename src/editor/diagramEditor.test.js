@@ -34,12 +34,23 @@ const PANEL_HTML = `
     <button data-diagram-shape="round" type="button">▢</button>
     <button data-diagram-shape="ellipse" type="button">⬭</button>
     <button data-diagram-shape="diamond" type="button">◇</button>
+    <button data-diagram-shape="triangle" type="button">△</button>
+    <button data-diagram-shape="hexagon" type="button">⬡</button>
     <button data-diagram="connect" type="button"></button>
     <button data-diagram="delete" type="button"></button>
   </div>
   <div class="diagram-editor__toolbar">
     <span class="diagram-editor__colors" data-diagram="colors"></span>
     <span class="diagram-editor__hint" data-diagram="hint"></span>
+  </div>
+  <div class="diagram-editor__toolbar hidden" data-diagram="edge-row">
+    <button data-diagram-dir="end" type="button">→</button>
+    <button data-diagram-dir="start" type="button">←</button>
+    <button data-diagram-dir="both" type="button">↔</button>
+    <button data-diagram-dir="none" type="button">─</button>
+    <button data-diagram-edge-style="solid" type="button">━</button>
+    <button data-diagram-edge-style="dashed" type="button">┅</button>
+    <input data-diagram="edge-label" type="text" />
   </div>
   <div class="diagram-editor__stage">
     <svg data-diagram="canvas" class="diagram-editor__canvas" viewBox="0 0 640 420">
@@ -51,6 +62,10 @@ const PANEL_HTML = `
       <button data-diagram="zoom-in" type="button">+</button>
       <button data-diagram="zoom-fit" type="button">⤢</button>
     </div>
+  </div>
+  <div class="diagram-editor__toolbar">
+    <input data-diagram="caption" type="text" />
+    <input data-diagram="label" type="text" />
   </div>
   <button data-diagram="insert" type="button"></button>
 `;
@@ -142,7 +157,7 @@ describe('createDiagramEditor', () => {
     find('seed-block').click();
 
     const firstNode = viewportEl.querySelector('.diagram-node');
-    const edge = viewportEl.querySelector('.diagram-edge[data-from="n1"]');
+    const edge = viewportEl.querySelector('.diagram-edge[data-from="n1"] .diagram-edge__line');
     const startX = Number(edge.getAttribute('x1'));
 
     firstNode.dispatchEvent(pointerEvent('pointerdown', { clientX: 0, clientY: 0 }));
@@ -234,6 +249,94 @@ describe('createDiagramEditor', () => {
 
     expect(viewportEl.querySelectorAll('.diagram-node').length).toBe(2);
     expect(viewportEl.querySelectorAll('.diagram-edge').length).toBe(1);
+  });
+
+  // Dirección de las flechas: la petición concreta del usuario tras ver el
+  // editor de hilbert-editor (2026-09-12).
+  it('pulsar una flecha la elige y abre su fila de propiedades', () => {
+    setup();
+    find('seed-block').click();
+
+    const edge = viewportEl.querySelector('.diagram-edge');
+    edge.dispatchEvent(pointerEvent('pointerdown', { clientX: 0, clientY: 0 }));
+
+    expect(edge.classList.contains('diagram-edge--selected')).toBe(true);
+    expect(find('edge-row').classList.contains('hidden')).toBe(false);
+  });
+
+  it('cambiar la dirección a "los dos extremos" pone punta en ambos lados', () => {
+    setup();
+    find('seed-block').click();
+    viewportEl.querySelector('.diagram-edge').dispatchEvent(pointerEvent('pointerdown'));
+
+    panelEl.querySelector('[data-diagram-dir="both"]').click();
+
+    const line = viewportEl.querySelector('.diagram-edge .diagram-edge__line');
+    expect(line.getAttribute('marker-start')).toBe('url(#diagram-arrow)');
+    expect(line.getAttribute('marker-end')).toBe('url(#diagram-arrow)');
+  });
+
+  it('quitar la dirección deja la línea sin ninguna punta', () => {
+    setup();
+    find('seed-block').click();
+    viewportEl.querySelector('.diagram-edge').dispatchEvent(pointerEvent('pointerdown'));
+
+    panelEl.querySelector('[data-diagram-dir="none"]').click();
+
+    const line = viewportEl.querySelector('.diagram-edge .diagram-edge__line');
+    expect(line.getAttribute('marker-end')).toBeNull();
+    expect(line.getAttribute('marker-start')).toBeNull();
+  });
+
+  it('el trazo discontinuo se ve en el lienzo, no solo al compilar', () => {
+    setup();
+    find('seed-block').click();
+    viewportEl.querySelector('.diagram-edge').dispatchEvent(pointerEvent('pointerdown'));
+
+    panelEl.querySelector('[data-diagram-edge-style="dashed"]').click();
+
+    expect(viewportEl.querySelector('.diagram-edge .diagram-edge__line').getAttribute('stroke-dasharray')).toBeTruthy();
+  });
+
+  it('el texto de una flecha se dibuja sobre ella', () => {
+    setup();
+    find('seed-block').click();
+    viewportEl.querySelector('.diagram-edge').dispatchEvent(pointerEvent('pointerdown'));
+
+    const input = find('edge-label');
+    input.value = 'sí';
+    input.dispatchEvent(new Event('change'));
+
+    expect(viewportEl.querySelector('.diagram-edge__label').textContent).toBe('sí');
+  });
+
+  it('borrar con una flecha elegida retira la flecha, no un nodo', () => {
+    setup();
+    find('seed-block').click();
+    viewportEl.querySelector('.diagram-edge').dispatchEvent(pointerEvent('pointerdown'));
+
+    find('delete').click();
+
+    expect(viewportEl.querySelectorAll('.diagram-edge').length).toBe(1);
+    expect(viewportEl.querySelectorAll('.diagram-node').length).toBe(3);
+  });
+
+  it('el pie y la etiqueta de la figura llegan al código insertado', () => {
+    setup();
+    find('seed-block').click();
+
+    find('caption').value = 'Arquitectura';
+    find('caption').dispatchEvent(new Event('input'));
+    find('label').value = 'fig:arq';
+    find('label').dispatchEvent(new Event('input'));
+    find('insert').click();
+
+    const inserted = dispatched.changes.at(-1).insert;
+    expect(inserted).toContain('caption: [Arquitectura]');
+    // En la MISMA línea que el cierre del `#figure`: con un salto en medio,
+    // Typst toma la etiqueta como del párrafo siguiente y `@fig:arq` deja de
+    // resolver. Un espacio sí vale (comprobado compilando).
+    expect(inserted).toContain(') <fig:arq>');
   });
 
   it('insertar sin ningún nodo no hace nada (botón inerte, no un documento vacío)', () => {

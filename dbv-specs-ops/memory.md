@@ -401,6 +401,29 @@ El `render()` anterior hacía `svgEl.replaceChildren()` directamente sobre el `<
 - **El oyente va en `document` y en fase de captura**, para que un pegado sobre el editor no lo procese antes CodeMirror; `preventDefault()` solo se llama cuando hay imagen de verdad, así que pegar texto sigue exactamente igual que antes.
 - **Pendiente de la prueba real:** todo lo verificable sin ventana está verificado (215 tests de Rust, 363 de Vitest, `verify:frontend` 11/11), pero que WebView2 entregue el recorte en `clipboardData.items` como `kind: 'file'` solo se confirma pegando de verdad. Es exactamente la clase de hueco que ya dejó pasar tres fallos en este proyecto — ver las lecciones de abajo.
 
+## ➡️ Séptima ronda: dirección de las flechas, y qué NO copiar de hilbert-editor (2026-09-12)
+
+*El usuario mandó una captura del lienzo de [hilbert-editor](https://github.com/aburousan/hilbert-editor) ("el editor de este repositorio es mucho más potente") y pidió "que las flechas puedan tener dirección y sea un poco más completo".*
+
+### Los dos editores resuelven problemas distintos, y eso decidió el alcance
+
+Hilbert es un **apilador de primitivas**: 13 formas sueltas que se colocan con x/y/tamaño/rotación/color, con una lista de escena. El nuestro es un **grafo de nodos y conexiones**: se arrastran cajas y se conectan, y el generador emite formas CON NOMBRE que CeTZ enlaza recortando la flecha al borde de cada silueta.
+
+- **Lo suyo es mejor para dibujo libre; lo nuestro para diagramas de flujo y bloques**, que es lo que un documento Typst suele necesitar. Copiar su modelo habría sido cambiar de herramienta, no mejorar la nuestra: perderíamos el enlace automático entre nodos, que es lo que hace que arrastrar una caja arrastre sus flechas.
+- **Lo que sí se trajo**, porque encaja en el modelo de grafo: dirección y estilo por conexión, texto sobre la flecha, dos formas más (triángulo, hexágono) y pie de figura + etiqueta editables (esto último, de su casilla "Wrap in a numbered figure").
+- **Lo que se descartó a propósito:** rotación por elemento (no significa nada en un nodo de grafo) y la lista de escena editable (con seis propiedades por nodo, la manipulación directa sobre el lienzo gana; una tabla de números es justo lo que RF-31 vino a sustituir).
+
+### El hallazgo que solo aparece compilando
+
+- **La etiqueta de una flecha se coloca con un PORCENTAJE, no con un número.** `content(("n1", 0.5, "n2"), ...)` parece "a mitad de camino" y no lo es: CeTZ interpreta un número plano como una **distancia en unidades de lienzo**, así que el texto salía a medio centímetro del origen, encima de la propia caja. Con `50%` sí interpola por proporción. Los dos compilan sin error — la diferencia solo se ve en el PNG. Tercera vez en este proyecto que un fallo de diagramas solo aparece mirando el render, no leyendo el código.
+- **El `box(fill: white)` alrededor del texto no es decorativo**: abre el hueco en la línea para que la etiqueta se lea encima en vez de cruzada por la flecha.
+- **El `<fig:...>` va en la MISMA línea que el cierre del `#figure`.** Un espacio vale; un salto de línea hace que Typst la tome como etiqueta del párrafo siguiente y `@fig:...` deja de resolver.
+- **Ni el triángulo ni el hexágono existen como primitiva en CeTZ**, igual que el rombo: los tres son `line(..., close: true)`. Y el rectángulo inscrito en un triángulo vive pegado a la base, no centrado — de ahí el `shiftY` en `LABEL_INSET`, que no hace falta en ninguna otra forma.
+
+### Detalle de interacción que costó decidir
+
+Una flecha de 1,5 px es prácticamente imposible de acertar con el ratón, y sin poder elegirla no hay forma de cambiarle la dirección. La solución es una **segunda línea transparente y gruesa** (`.diagram-edge__hit`, 14 px) debajo de la visible. Sin eso, toda la funcionalidad de dirección habría quedado inalcanzable aunque el modelo la soportara.
+
 ## ⚠️ Lecciones Aprendidas
 
 - **2026-09-08 — Al cambiar el fichero activo en el editor dentro de un proyecto, la vista previa no debe reiniciarse si el documento objetivo sigue siendo el mismo.** Cuando la vista previa compila a nivel de documento (`main.typ`), cambiar de capítulo (o navegar a una línea mediante doble clic en la vista previa) emitía `documentOpened` en `main.js` y llamaba incondicionalmente a `preview.restart()` y `outline.restart()`. Eso borraba el DOM de páginas y reseteaba `scrollTop` a la página 1, arruinando la navegación interactiva. Al condicionar el reinicio a que `target.document` realmente haya cambiado respecto al `lastTargetDocument`, el scroll y el zoom se mantienen intactos.

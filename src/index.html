@@ -599,6 +599,8 @@
         <button data-diagram-shape="round" type="button" class="diagram-editor__shape" data-i18n-title="diagram.shapeRound">▢</button>
         <button data-diagram-shape="ellipse" type="button" class="diagram-editor__shape" data-i18n-title="diagram.shapeEllipse">⬭</button>
         <button data-diagram-shape="diamond" type="button" class="diagram-editor__shape" data-i18n-title="diagram.shapeDiamond">◇</button>
+        <button data-diagram-shape="triangle" type="button" class="diagram-editor__shape" data-i18n-title="diagram.shapeTriangle">△</button>
+        <button data-diagram-shape="hexagon" type="button" class="diagram-editor__shape" data-i18n-title="diagram.shapeHexagon">⬡</button>
         <span class="diagram-editor__separator" aria-hidden="true"></span>
         <button data-diagram="connect" type="button" class="button button--compact button--ghost" data-i18n="diagram.connect"></button>
         <button data-diagram="delete" type="button" class="button button--compact button--ghost" data-i18n="diagram.delete"></button>
@@ -607,6 +609,20 @@
         <span class="diagram-editor__group-label" data-i18n="diagram.colorLabel"></span>
         <span class="diagram-editor__colors" data-diagram="colors"></span>
         <span class="diagram-editor__hint" data-diagram="hint"></span>
+      </div>
+      <!-- Propiedades de una conexión: oculta hasta que se pulsa una flecha.
+           Siempre visible sería una fila muerta la mayor parte del tiempo,
+           porque lo normal es tener un nodo elegido, no una flecha. -->
+      <div class="diagram-editor__toolbar hidden" data-diagram="edge-row">
+        <span class="diagram-editor__group-label" data-i18n="diagram.edgeLabelGroup"></span>
+        <button data-diagram-dir="end" type="button" class="diagram-editor__shape" data-i18n-title="diagram.dirEnd">→</button>
+        <button data-diagram-dir="start" type="button" class="diagram-editor__shape" data-i18n-title="diagram.dirStart">←</button>
+        <button data-diagram-dir="both" type="button" class="diagram-editor__shape" data-i18n-title="diagram.dirBoth">↔</button>
+        <button data-diagram-dir="none" type="button" class="diagram-editor__shape" data-i18n-title="diagram.dirNone">─</button>
+        <span class="diagram-editor__separator" aria-hidden="true"></span>
+        <button data-diagram-edge-style="solid" type="button" class="diagram-editor__shape" data-i18n-title="diagram.edgeSolid">━</button>
+        <button data-diagram-edge-style="dashed" type="button" class="diagram-editor__shape" data-i18n-title="diagram.edgeDashed">┅</button>
+        <input data-diagram="edge-label" type="text" class="diagram-editor__input" data-i18n-placeholder="diagram.edgeTextPlaceholder" />
       </div>
       <div class="diagram-editor__stage">
         <svg data-diagram="canvas" class="diagram-editor__canvas" viewBox="0 0 640 420">
@@ -629,6 +645,13 @@
           <button data-diagram="zoom-in" type="button" class="icon-button icon-button--small" data-i18n-title="diagram.zoomIn">+</button>
           <button data-diagram="zoom-fit" type="button" class="icon-button icon-button--small" data-i18n-title="diagram.zoomFit">⤢</button>
         </div>
+      </div>
+      <!-- Pie y etiqueta de la figura. La etiqueta es opcional y solo sirve
+           para poder citar el diagrama con `@fig:...` desde el texto. -->
+      <div class="diagram-editor__toolbar">
+        <span class="diagram-editor__group-label" data-i18n="diagram.captionLabel"></span>
+        <input data-diagram="caption" type="text" class="diagram-editor__input diagram-editor__input--grow" data-i18n-placeholder="diagram.captionPlaceholder" />
+        <input data-diagram="label" type="text" class="diagram-editor__input" data-i18n-placeholder="diagram.labelPlaceholder" />
       </div>
       <button data-diagram="insert" type="button" class="button button--primary" data-i18n="diagram.insert"></button>
     </div>

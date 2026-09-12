@@ -41,12 +41,20 @@ import {
   colorOf,
   createEmptyDiagram,
   diagramToCetzCode,
+  directionOf,
   extractDiagramModelNear,
   moveNode,
+  removeEdge,
   removeNode,
   renameNode,
+  setCaption,
+  setEdgeDirection,
+  setEdgeLabel,
+  setEdgeStyle,
+  setLabel,
   setNodeColor,
   shapeOf,
+  styleOf,
 } from './diagramModel.js';
 import { registerPanel } from '../panels/registerPanel.js';
 
@@ -103,10 +111,21 @@ export function createDiagramEditor({ panelEl, getView }) {
   const hintEl = find('hint');
   const zoomLevelEl = find('zoom-level');
 
+  const captionInputEl = find('caption');
+  const labelInputEl = find('label');
+  const edgeRowEl = find('edge-row');
+  const edgeLabelInputEl = find('edge-label');
+
   let diagram = createEmptyDiagram();
   let connectMode = false;
   let connectFrom = null;
   let selectedId = null;
+  // Una conexión elegida, `{from, to}`. Separada de `selectedId` en vez de un
+  // único "elemento seleccionado" con tipo: lo que se puede hacer con un nodo
+  // (color, texto, arrastre) y con una flecha (dirección, trazo, etiqueta) no
+  // se solapa en nada, así que unificarlos solo obligaría a preguntar el tipo
+  // en cada operación.
+  let selectedEdge = null;
   let zoom = 1;
   let offset = { x: 0, y: 0 };
 
@@ -178,7 +197,7 @@ export function createDiagramEditor({ panelEl, getView }) {
 
     if (shape === 'ellipse') {
       el = document.createElementNS(SVG_NS, 'ellipse');
-    } else if (shape === 'diamond') {
+    } else if (shape === 'diamond' || shape === 'triangle' || shape === 'hexagon') {
       el = document.createElementNS(SVG_NS, 'polygon');
     } else {
       el = document.createElementNS(SVG_NS, 'rect');
@@ -192,6 +211,25 @@ export function createDiagramEditor({ panelEl, getView }) {
     return el;
   }
 
+  /**
+   * Vértices de las formas que se dibujan como polígono. Los mismos que emite
+   * `diagramModel.js` para CeTZ, pero en coordenadas de pantalla (Y hacia
+   * abajo) — el lienzo tiene que enseñar exactamente lo que se va a compilar.
+   */
+  function polygonPoints(node, cx, cy) {
+    const right = node.x + node.w;
+    const bottom = node.y + node.h;
+
+    if (shapeOf(node) === 'triangle') {
+      return `${cx},${node.y} ${right},${bottom} ${node.x},${bottom}`;
+    }
+    if (shapeOf(node) === 'hexagon') {
+      const inset = node.w / 4;
+      return `${node.x + inset},${node.y} ${right - inset},${node.y} ${right},${cy} ${right - inset},${bottom} ${node.x + inset},${bottom} ${node.x},${cy}`;
+    }
+    return `${cx},${node.y} ${right},${cy} ${cx},${bottom} ${node.x},${cy}`;
+  }
+
   /** Coloca la silueta ya creada; separado de la creación para poder reusarlo en el arrastre. */
   function positionShapeElement(el, node) {
     const cx = node.x + node.w / 2;
@@ -203,10 +241,7 @@ export function createDiagramEditor({ panelEl, getView }) {
       el.setAttribute('rx', String(node.w / 2));
       el.setAttribute('ry', String(node.h / 2));
     } else if (el.tagName === 'polygon') {
-      el.setAttribute(
-        'points',
-        `${cx},${node.y} ${node.x + node.w},${cy} ${cx},${node.y + node.h} ${node.x},${cy}`,
-      );
+      el.setAttribute('points', polygonPoints(node, cx, cy));
     } else {
       el.setAttribute('x', String(node.x));
       el.setAttribute('y', String(node.y));
@@ -230,18 +265,7 @@ export function createDiagramEditor({ panelEl, getView }) {
       const from = diagram.nodes.find((node) => node.id === edge.from);
       const to = diagram.nodes.find((node) => node.id === edge.to);
       if (!from || !to) continue;
-      const line = document.createElementNS(SVG_NS, 'line');
-      const a = nodeCenter(from);
-      const b = nodeCenter(to);
-      line.setAttribute('x1', String(a.x));
-      line.setAttribute('y1', String(a.y));
-      line.setAttribute('x2', String(b.x));
-      line.setAttribute('y2', String(b.y));
-      line.setAttribute('class', 'diagram-edge');
-      line.dataset.from = edge.from;
-      line.dataset.to = edge.to;
-      line.setAttribute('marker-end', 'url(#diagram-arrow)');
-      viewportEl.append(line);
+      viewportEl.append(createEdgeElement(edge, nodeCenter(from), nodeCenter(to)));
     }
 
     for (const node of diagram.nodes) {
@@ -273,13 +297,115 @@ export function createDiagramEditor({ panelEl, getView }) {
     }
   }
 
+  /**
+   * Una conexión: dos líneas superpuestas y, si la tiene, su etiqueta.
+   *
+   * La línea de abajo es invisible y gruesa, y existe solo para poder
+   * pulsarla: una flecha de un píxel y medio es prácticamente imposible de
+   * acertar con el ratón, y sin poder elegirla no hay forma de cambiarle la
+   * dirección. La punta reutiliza el MISMO marcador para los dos extremos —
+   * está declarado con `orient="auto-start-reverse"`, así que en `marker-start`
+   * se dibuja girado él solo.
+   */
+  function createEdgeElement(edge, a, b) {
+    const g = document.createElementNS(SVG_NS, 'g');
+    g.setAttribute('class', 'diagram-edge');
+    g.dataset.from = edge.from;
+    g.dataset.to = edge.to;
+
+    const hit = document.createElementNS(SVG_NS, 'line');
+    hit.setAttribute('class', 'diagram-edge__hit');
+
+    const visible = document.createElementNS(SVG_NS, 'line');
+    visible.setAttribute('class', 'diagram-edge__line');
+    const direction = directionOf(edge);
+    if (direction === 'end' || direction === 'both') visible.setAttribute('marker-end', 'url(#diagram-arrow)');
+    if (direction === 'start' || direction === 'both') visible.setAttribute('marker-start', 'url(#diagram-arrow)');
+    if (styleOf(edge) === 'dashed') visible.setAttribute('stroke-dasharray', '6 4');
+
+    g.append(hit, visible);
+
+    if (edge.label?.trim()) {
+      const text = document.createElementNS(SVG_NS, 'text');
+      text.setAttribute('class', 'diagram-edge__label');
+      text.textContent = edge.label.trim();
+      g.append(text);
+    }
+
+    positionEdgeElement(g, a, b);
+    g.addEventListener('pointerdown', (event) => {
+      event.stopPropagation();
+      selectEdge(edge.from, edge.to);
+    });
+    return g;
+  }
+
+  /** Coloca las dos líneas de una conexión y su etiqueta, sin recrearlas. */
+  function positionEdgeElement(g, a, b) {
+    for (const line of g.querySelectorAll('line')) {
+      line.setAttribute('x1', String(a.x));
+      line.setAttribute('y1', String(a.y));
+      line.setAttribute('x2', String(b.x));
+      line.setAttribute('y2', String(b.y));
+    }
+    const label = g.querySelector('.diagram-edge__label');
+    if (label) {
+      label.setAttribute('x', String((a.x + b.x) / 2));
+      label.setAttribute('y', String((a.y + b.y) / 2));
+    }
+  }
+
   /** Marca visualmente el nodo seleccionado sin tocar el resto del DOM. */
   function applySelection(nodeId) {
     selectedId = nodeId;
+    selectedEdge = null;
     for (const g of viewportEl.querySelectorAll('.diagram-node')) {
       g.classList.toggle('diagram-node--selected', g.dataset.nodeId === nodeId);
     }
+    for (const g of viewportEl.querySelectorAll('.diagram-edge')) {
+      g.classList.remove('diagram-edge--selected');
+    }
     syncColorSelection();
+    syncEdgeControls();
+  }
+
+  /** Elige una conexión y abre su fila de propiedades. */
+  function selectEdge(from, to) {
+    selectedId = null;
+    selectedEdge = { from, to };
+    for (const g of viewportEl.querySelectorAll('.diagram-node')) {
+      g.classList.remove('diagram-node--selected');
+    }
+    for (const g of viewportEl.querySelectorAll('.diagram-edge')) {
+      g.classList.toggle('diagram-edge--selected', g.dataset.from === from && g.dataset.to === to);
+    }
+    syncColorSelection();
+    syncEdgeControls();
+    setHint(t('diagram.edgeHint'));
+  }
+
+  function currentEdge() {
+    return selectedEdge
+      ? diagram.edges.find((edge) => edge.from === selectedEdge.from && edge.to === selectedEdge.to)
+      : null;
+  }
+
+  /** Muestra la fila de propiedades de conexión y refleja en ella la elegida. */
+  function syncEdgeControls() {
+    const edge = currentEdge();
+    edgeRowEl?.classList.toggle('hidden', !edge);
+    if (!edge) return;
+
+    for (const button of panelEl.querySelectorAll('[data-diagram-dir]')) {
+      button.classList.toggle('diagram-editor__shape--active', button.dataset.diagramDir === directionOf(edge));
+    }
+    for (const button of panelEl.querySelectorAll('[data-diagram-edge-style]')) {
+      button.classList.toggle(
+        'diagram-editor__shape--active',
+        button.dataset.diagramEdgeStyle === styleOf(edge),
+      );
+    }
+    if (edgeLabelInputEl) edgeLabelInputEl.value = edge.label ?? '';
   }
 
   /**
@@ -292,16 +418,11 @@ export function createDiagramEditor({ panelEl, getView }) {
     textEl.setAttribute('x', String(node.x + 6));
     textEl.setAttribute('y', String(node.y + 6));
 
-    const center = nodeCenter(node);
-    for (const line of viewportEl.querySelectorAll('.diagram-edge')) {
-      if (line.dataset.from === node.id) {
-        line.setAttribute('x1', String(center.x));
-        line.setAttribute('y1', String(center.y));
-      }
-      if (line.dataset.to === node.id) {
-        line.setAttribute('x2', String(center.x));
-        line.setAttribute('y2', String(center.y));
-      }
+    for (const g of viewportEl.querySelectorAll('.diagram-edge')) {
+      if (g.dataset.from !== node.id && g.dataset.to !== node.id) continue;
+      const from = diagram.nodes.find((n) => n.id === g.dataset.from);
+      const to = diagram.nodes.find((n) => n.id === g.dataset.to);
+      if (from && to) positionEdgeElement(g, nodeCenter(from), nodeCenter(to));
     }
   }
 
@@ -488,7 +609,50 @@ export function createDiagramEditor({ panelEl, getView }) {
     setHint(connectMode ? t('diagram.connectHint') : t('diagram.defaultHint'));
   });
 
+  // --- Propiedades de una conexión (dirección, trazo, etiqueta) ----------
+  /** Aplica un cambio a la conexión elegida y la vuelve a dejar elegida. */
+  function updateSelectedEdge(change) {
+    const edge = currentEdge();
+    if (!edge) return;
+    diagram = change(diagram, edge.from, edge.to);
+    render();
+    selectEdge(edge.from, edge.to);
+  }
+
+  for (const button of panelEl.querySelectorAll('[data-diagram-dir]')) {
+    const dir = button.dataset.diagramDir;
+    button.addEventListener('click', () =>
+      updateSelectedEdge((d, from, to) => setEdgeDirection(d, from, to, dir)),
+    );
+  }
+
+  for (const button of panelEl.querySelectorAll('[data-diagram-edge-style]')) {
+    const style = button.dataset.diagramEdgeStyle;
+    button.addEventListener('click', () =>
+      updateSelectedEdge((d, from, to) => setEdgeStyle(d, from, to, style)),
+    );
+  }
+
+  // `change`, no `input`: redibujar en cada tecla perdería el foco del campo.
+  edgeLabelInputEl?.addEventListener('change', () => {
+    updateSelectedEdge((d, from, to) => setEdgeLabel(d, from, to, edgeLabelInputEl.value));
+  });
+
+  captionInputEl?.addEventListener('input', () => {
+    diagram = setCaption(diagram, captionInputEl.value);
+  });
+  labelInputEl?.addEventListener('input', () => {
+    diagram = setLabel(diagram, labelInputEl.value);
+  });
+
   function deleteSelected() {
+    if (selectedEdge) {
+      diagram = removeEdge(diagram, selectedEdge.from, selectedEdge.to);
+      selectedEdge = null;
+      render();
+      syncEdgeControls();
+      return;
+    }
     if (!selectedId) return;
     diagram = removeNode(diagram, selectedId);
     selectedId = null;
@@ -498,10 +662,12 @@ export function createDiagramEditor({ panelEl, getView }) {
 
   find('delete')?.addEventListener('click', deleteSelected);
 
-  // Suprimir borra el nodo elegido, salvo mientras se escribe dentro de una
-  // etiqueta — ahí la tecla es para el texto, no para el nodo.
+  // Suprimir borra lo que esté elegido, salvo mientras se escribe: dentro de
+  // la etiqueta de un nodo o de cualquier campo de texto la tecla es para el
+  // texto, no para el diagrama.
   panelEl.addEventListener('keydown', (event) => {
-    if (event.key !== 'Delete' || event.target.closest('.diagram-node__label')) return;
+    const escribiendo = event.target.closest('.diagram-node__label, input, textarea');
+    if (event.key !== 'Delete' || escribiendo) return;
     event.preventDefault();
     deleteSelected();
   });
@@ -550,10 +716,13 @@ export function createDiagramEditor({ panelEl, getView }) {
       const existing = view ? extractDiagramModelNear(view.state.doc.toString(), view.state.selection.main.from) : null;
       diagram = existing ?? createEmptyDiagram();
       selectedId = null;
+      selectedEdge = null;
       connectMode = false;
       connectFrom = null;
       zoom = 1;
       offset = { x: 0, y: 0 };
+      if (captionInputEl) captionInputEl.value = diagram.caption ?? '';
+      if (labelInputEl) labelInputEl.value = diagram.label ?? '';
       connectButtonEl?.classList.add('button--ghost');
       connectButtonEl?.classList.remove('button--primary');
       setHint(existing ? t('diagram.editingExisting') : t('diagram.defaultHint'));
@@ -566,6 +735,7 @@ export function createDiagramEditor({ panelEl, getView }) {
       render();
       applyViewport();
       syncColorSelection();
+      syncEdgeControls();
       if (existing) fitToContent();
       panel.open();
     },

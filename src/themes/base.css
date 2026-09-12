@@ -589,6 +589,28 @@ body {
   color: var(--accent);
 }
 
+/* Marca el valor vigente de la conexión elegida (dirección, trazo). Los
+   botones de forma no la usan: insertan, no fijan un estado. */
+.diagram-editor__shape--active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--bg-tertiary);
+}
+
+.diagram-editor__input {
+  min-width: 0;
+  padding: 4px 8px;
+  font-size: 12px;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.diagram-editor__input--grow {
+  flex: 1 1 auto;
+}
+
 .diagram-editor__colors {
   display: inline-flex;
   gap: 4px;
@@ -706,9 +728,35 @@ body {
   cursor: text;
 }
 
-.diagram-edge {
+.diagram-edge__line {
   stroke: var(--text-secondary);
   stroke-width: 1.5;
+  pointer-events: none;
+}
+
+/* Línea invisible y gruesa bajo cada flecha: sin ella, acertar con el ratón
+   en un trazo de 1,5 px es cuestión de suerte, y sin poder elegir la flecha
+   no hay forma de cambiarle la dirección. */
+.diagram-edge__hit {
+  stroke: transparent;
+  stroke-width: 14;
+  cursor: pointer;
+}
+
+.diagram-edge--selected .diagram-edge__line {
+  stroke: var(--accent);
+  stroke-width: 2.5;
+}
+
+.diagram-edge__label {
+  font-size: 11px;
+  fill: var(--text-primary);
+  text-anchor: middle;
+  dominant-baseline: middle;
+  paint-order: stroke;
+  stroke: var(--bg-tertiary);
+  stroke-width: 4;
+  pointer-events: none;
 }
 
 .cetz-dialog__grid {

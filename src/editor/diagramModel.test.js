@@ -57,7 +57,9 @@ describe('moveNode / renameNode', () => {
 describe('addEdge / removeEdge', () => {
   it('conecta dos nodos', () => {
     const diagram = addEdge(createEmptyDiagram(), 'n1', 'n2');
-    expect(diagram.edges).toEqual([{ from: 'n1', to: 'n2' }]);
+    // Una conexión nace dirigida hacia el destino y de trazo continuo: es lo
+    // que espera quien dibuja un diagrama de flujo sin tocar nada más.
+    expect(diagram.edges).toEqual([{ from: 'n1', to: 'n2', dir: 'end', style: 'solid', label: '' }]);
   });
 
   it('no duplica la misma conexión', () => {
@@ -75,7 +77,7 @@ describe('addEdge / removeEdge', () => {
     let diagram = addEdge(createEmptyDiagram(), 'n1', 'n2');
     diagram = addEdge(diagram, 'n2', 'n3');
     diagram = removeEdge(diagram, 'n1', 'n2');
-    expect(diagram.edges).toEqual([{ from: 'n2', to: 'n3' }]);
+    expect(diagram.edges.map(({ from, to }) => ({ from, to }))).toEqual([{ from: 'n2', to: 'n3' }]);
   });
 });
 
@@ -147,7 +149,7 @@ describe('diagramToCetzCode', () => {
     const code = diagramToCetzCode(diagram);
     const extracted = extractDiagramModelNear(code, code.length);
     expect(extracted.nodes.map((n) => n.label)).toEqual(['A', 'B']);
-    expect(extracted.edges).toEqual([{ from: 'n1', to: 'n2' }]);
+    expect(extracted.edges.map(({ from, to }) => ({ from, to }))).toEqual([{ from: 'n1', to: 'n2' }]);
   });
 });
 

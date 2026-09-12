@@ -142,6 +142,113 @@ export function removeEdge(diagram, from, to) {
   return { ...diagram, edges: diagram.edges.filter((edge) => !(edge.from === from && edge.to === to)) };
 }
 
+/** Centro de un nodo, en las mismas coordenadas de lienzo que `x`/`y`. */
+export function nodeCenter(node) {
+  return { x: node.x + node.w / 2, y: node.y + node.h / 2 };
+}
+
+/**
+ * Vértices de la silueta de un nodo, o `null` si es una elipse (que no tiene).
+ *
+ * Una sola definición para los dos usos que tiene: dibujar el polígono en el
+ * lienzo y recortar contra él el extremo de las flechas. Tenerla por duplicado
+ * es justo lo que haría que el lienzo dejara de parecerse a lo compilado.
+ */
+export function shapeOutline(node) {
+  const { x: cx, y: cy } = nodeCenter(node);
+  const right = node.x + node.w;
+  const bottom = node.y + node.h;
+
+  switch (shapeOf(node)) {
+    case 'ellipse':
+      return null;
+    case 'diamond':
+      return [
+        { x: cx, y: node.y },
+        { x: right, y: cy },
+        { x: cx, y: bottom },
+        { x: node.x, y: cy },
+      ];
+    case 'triangle':
+      return [
+        { x: cx, y: node.y },
+        { x: right, y: bottom },
+        { x: node.x, y: bottom },
+      ];
+    case 'hexagon': {
+      const inset = node.w / 4;
+      return [
+        { x: node.x + inset, y: node.y },
+        { x: right - inset, y: node.y },
+        { x: right, y: cy },
+        { x: right - inset, y: bottom },
+        { x: node.x + inset, y: bottom },
+        { x: node.x, y: cy },
+      ];
+    }
+    default:
+      return [
+        { x: node.x, y: node.y },
+        { x: right, y: node.y },
+        { x: right, y: bottom },
+        { x: node.x, y: bottom },
+      ];
+  }
+}
+
+const cross = (a, b) => a.x * b.y - a.y * b.x;
+
+/**
+ * Punto donde la línea que va del centro de `node` hacia `target` corta el
+ * BORDE de `node`.
+ *
+ * Existe por un fallo real (2026-09-12): el lienzo dibujaba cada flecha de
+ * centro a centro, y como los nodos se pintan por encima de las flechas, la
+ * punta quedaba escondida DEBAJO de la caja de destino. El usuario lo describió
+ * como "las puntas se ven en el resultado final pero no mientras se edita", y
+ * era exacto: CeTZ sí recorta la línea al borde de la forma con nombre, así que
+ * el PDF salía bien y solo fallaba la vista previa. Recortar aquí igual hace
+ * que el lienzo enseñe lo que se va a compilar, que es el punto de un WYSIWYG.
+ *
+ * Si los nodos se solapan y no hay corte, devuelve el centro: una flecha rara
+ * es mejor que una excepción a mitad de un arrastre.
+ */
+export function boundaryPointToward(node, target) {
+  const center = nodeCenter(node);
+  const direction = { x: target.x - center.x, y: target.y - center.y };
+  if (direction.x === 0 && direction.y === 0) return center;
+
+  const outline = shapeOutline(node);
+
+  if (!outline) {
+    // Elipse: se resuelve su ecuación sobre la dirección, sin iterar.
+    const rx = node.w / 2;
+    const ry = node.h / 2;
+    const denominator = Math.hypot(direction.x / rx, direction.y / ry);
+    if (denominator === 0) return center;
+    const t = 1 / denominator;
+    return { x: center.x + direction.x * t, y: center.y + direction.y * t };
+  }
+
+  let closest = null;
+  for (let i = 0; i < outline.length; i += 1) {
+    const a = outline[i];
+    const b = outline[(i + 1) % outline.length];
+    const edge = { x: b.x - a.x, y: b.y - a.y };
+    const denominator = cross(direction, edge);
+    if (denominator === 0) continue; // paralelos: no cortan
+
+    const w = { x: a.x - center.x, y: a.y - center.y };
+    const t = cross(w, edge) / denominator;
+    const s = cross(w, direction) / denominator;
+    if (t <= 0 || s < 0 || s > 1) continue;
+    if (closest === null || t < closest) closest = t;
+  }
+
+  if (closest === null) return center;
+  return { x: center.x + direction.x * closest, y: center.y + direction.y * closest };
+}
+
 /** Misma tolerancia con modelos antiguos que `colorOf`/`shapeOf`, para las conexiones. */
 export function directionOf(edge) {
   return EDGE_DIRECTIONS.includes(edge.dir) ? edge.dir : 'end';

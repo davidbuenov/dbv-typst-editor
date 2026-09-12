@@ -166,6 +166,18 @@ describe('createDiagramEditor', () => {
     expect(Number(edge.getAttribute('x1'))).toBe(startX + 60);
   });
 
+  // El bug de la punta invisible, visto desde el lienzo: si el extremo de la
+  // flecha cae en el CENTRO del nodo de destino, la punta queda debajo de la
+  // caja (los nodos se pintan sobre las flechas) y no se ve.
+  it('la flecha acaba en el borde del nodo de destino, no en su centro', () => {
+    setup();
+    find('seed-block').click();
+
+    const line = viewportEl.querySelector('.diagram-edge[data-from="n1"] .diagram-edge__line');
+    // Semilla "bloques": n2 ocupa x 240..380, así que su centro está en 310.
+    expect(Number(line.getAttribute('x2'))).toBe(240);
+  });
+
   it('un clic sin arrastre pone el foco en el texto del nodo para editarlo', () => {
     setup();
     find('seed-block').click();

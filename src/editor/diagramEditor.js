@@ -39,11 +39,13 @@ import {
   addEdge,
   addNode,
   colorOf,
+  boundaryPointToward,
   createEmptyDiagram,
   diagramToCetzCode,
   directionOf,
   extractDiagramModelNear,
   moveNode,
+  nodeCenter,
   removeEdge,
   removeNode,
   renameNode,
@@ -54,6 +56,7 @@ import {
   setLabel,
   setNodeColor,
   shapeOf,
+  shapeOutline,
   styleOf,
 } from './diagramModel.js';
 import { registerPanel } from '../panels/registerPanel.js';
@@ -137,9 +140,18 @@ export function createDiagramEditor({ panelEl, getView }) {
     seedRowEl?.classList.toggle('hidden', diagram.nodes.length > 0);
   }
 
-  /** Coordenadas del centro de un nodo, para el punto de anclaje de sus flechas. */
-  function nodeCenter(node) {
-    return { x: node.x + node.w / 2, y: node.y + node.h / 2 };
+  /**
+   * Los dos extremos de una conexión, recortados al BORDE de cada nodo — no a
+   * su centro. Con los extremos en el centro, la punta de la flecha queda
+   * debajo de la caja de destino (los nodos se pintan sobre las flechas) y es
+   * invisible; en el PDF no pasaba porque CeTZ recorta solo al borde de la
+   * forma con nombre. Ver `boundaryPointToward` en `diagramModel.js`.
+   */
+  function edgeEnds(from, to) {
+    return {
+      a: boundaryPointToward(from, nodeCenter(to)),
+      b: boundaryPointToward(to, nodeCenter(from)),
+    };
   }
 
   /**
@@ -216,18 +228,8 @@ export function createDiagramEditor({ panelEl, getView }) {
    * `diagramModel.js` para CeTZ, pero en coordenadas de pantalla (Y hacia
    * abajo) — el lienzo tiene que enseñar exactamente lo que se va a compilar.
    */
-  function polygonPoints(node, cx, cy) {
-    const right = node.x + node.w;
-    const bottom = node.y + node.h;
-
-    if (shapeOf(node) === 'triangle') {
-      return `${cx},${node.y} ${right},${bottom} ${node.x},${bottom}`;
-    }
-    if (shapeOf(node) === 'hexagon') {
-      const inset = node.w / 4;
-      return `${node.x + inset},${node.y} ${right - inset},${node.y} ${right},${cy} ${right - inset},${bottom} ${node.x + inset},${bottom} ${node.x},${cy}`;
-    }
-    return `${cx},${node.y} ${right},${cy} ${cx},${bottom} ${node.x},${cy}`;
+  function polygonPoints(node) {
+    return (shapeOutline(node) ?? []).map((point) => `${point.x},${point.y}`).join(' ');
   }
 
   /** Coloca la silueta ya creada; separado de la creación para poder reusarlo en el arrastre. */
@@ -241,7 +243,7 @@ export function createDiagramEditor({ panelEl, getView }) {
       el.setAttribute('rx', String(node.w / 2));
       el.setAttribute('ry', String(node.h / 2));
     } else if (el.tagName === 'polygon') {
-      el.setAttribute('points', polygonPoints(node, cx, cy));
+      el.setAttribute('points', polygonPoints(node));
     } else {
       el.setAttribute('x', String(node.x));
       el.setAttribute('y', String(node.y));
@@ -265,7 +267,8 @@ export function createDiagramEditor({ panelEl, getView }) {
       const from = diagram.nodes.find((node) => node.id === edge.from);
       const to = diagram.nodes.find((node) => node.id === edge.to);
       if (!from || !to) continue;
-      viewportEl.append(createEdgeElement(edge, nodeCenter(from), nodeCenter(to)));
+      const { a, b } = edgeEnds(from, to);
+      viewportEl.append(createEdgeElement(edge, a, b));
     }
 
     for (const node of diagram.nodes) {
@@ -422,7 +425,9 @@ export function createDiagramEditor({ panelEl, getView }) {
       if (g.dataset.from !== node.id && g.dataset.to !== node.id) continue;
       const from = diagram.nodes.find((n) => n.id === g.dataset.from);
       const to = diagram.nodes.find((n) => n.id === g.dataset.to);
-      if (from && to) positionEdgeElement(g, nodeCenter(from), nodeCenter(to));
+      if (!from || !to) continue;
+      const { a, b } = edgeEnds(from, to);
+      positionEdgeElement(g, a, b);
     }
   }
 

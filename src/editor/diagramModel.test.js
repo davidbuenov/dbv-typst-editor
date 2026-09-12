@@ -9,6 +9,8 @@ import { describe, expect, it } from 'vitest';
 import {
   addEdge,
   addNode,
+  boundaryPointToward,
+  nodeCenter,
   createEmptyDiagram,
   diagramToCetzCode,
   extractDiagramModelNear,
@@ -78,6 +80,48 @@ describe('addEdge / removeEdge', () => {
     diagram = addEdge(diagram, 'n2', 'n3');
     diagram = removeEdge(diagram, 'n1', 'n2');
     expect(diagram.edges.map(({ from, to }) => ({ from, to }))).toEqual([{ from: 'n2', to: 'n3' }]);
+  });
+});
+
+// Existe por un fallo real (2026-09-12): el lienzo dibujaba cada flecha de
+// centro a centro y, como los nodos se pintan encima, la punta quedaba
+// escondida bajo la caja de destino. En el PDF no pasaba —CeTZ recorta al
+// borde de la forma— así que el síntoma fue "las puntas se ven en el
+// resultado final pero no mientras se edita".
+describe('boundaryPointToward', () => {
+  const rect = { id: 'n1', x: 0, y: 0, w: 100, h: 60, shape: 'rect' };
+
+  it('un rectángulo corta en el punto medio de su lado, no en su centro', () => {
+    const point = boundaryPointToward(rect, { x: 500, y: 30 });
+    expect(point).toEqual({ x: 100, y: 30 });
+    expect(point).not.toEqual(nodeCenter(rect));
+  });
+
+  it('corta también hacia arriba, no solo en horizontal', () => {
+    expect(boundaryPointToward(rect, { x: 50, y: -500 })).toEqual({ x: 50, y: 0 });
+  });
+
+  it('una elipse corta sobre su propia curva, no sobre su caja', () => {
+    const ellipse = { ...rect, shape: 'ellipse' };
+    const point = boundaryPointToward(ellipse, { x: 500, y: 30 });
+    expect(point).toEqual({ x: 100, y: 30 });
+    // En diagonal, el corte queda DENTRO de la esquina de la caja.
+    const diagonal = boundaryPointToward(ellipse, { x: 500, y: 500 });
+    expect(diagonal.x).toBeLessThan(100);
+    expect(diagonal.y).toBeLessThan(60);
+  });
+
+  it('un rombo corta en su vértice, más adentro que la caja', () => {
+    const diamond = { ...rect, shape: 'diamond' };
+    expect(boundaryPointToward(diamond, { x: 500, y: 30 })).toEqual({ x: 100, y: 30 });
+    // Hacia la esquina, el rombo no llega: el corte queda muy por dentro.
+    expect(boundaryPointToward(diamond, { x: 500, y: 500 }).x).toBeLessThan(100);
+  });
+
+  // Dos nodos superpuestos no tienen corte: antes que lanzar a mitad de un
+  // arrastre, se devuelve el centro y la flecha queda rara pero viva.
+  it('sin corte posible devuelve el centro, no lanza', () => {
+    expect(boundaryPointToward(rect, nodeCenter(rect))).toEqual(nodeCenter(rect));
   });
 });
 

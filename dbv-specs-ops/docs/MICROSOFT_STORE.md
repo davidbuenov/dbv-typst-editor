@@ -1,7 +1,7 @@
 # 🏬 Publicación en Microsoft Store: DBV Typst Editor
 
-> **Estado:** 🟢 **Publicada en Microsoft Store.** ⚠️ El primer paquete publicado salió **sin el compilador Typst ni el catálogo de plantillas dentro** (ver §6) — corregido en `v0.3.1`, pendiente de reenvío a Partner Center.
-> **Última revisión:** 2026-09-07
+> **Estado:** 🟢 **Publicada en Microsoft Store, v0.5.0 verificada en producción (2026-09-10).** El incidente del primer paquete (sin el compilador Typst ni el catálogo de plantillas dentro, ver §6) quedó corregido en `v0.3.1` y reenviado; desde entonces cada envío pasa el checklist de verificación de §6 antes de subirlo. El usuario ha confirmado que la v0.5.0 (con los dos sidecars, Typst + tinymist) funciona perfectamente instalada desde la propia Store.
+> **Última revisión:** 2026-09-10
 
 Documento operativo (no una especificación de producto): checklist accionable para publicar `dbv-typst-editor` en la Microsoft Store, y registro de las decisiones técnicas que llevaron hasta aquí. Sigue el mismo modelo que [`dbv-md-reader`](https://github.com/davidbuenov/dbv-md-reader) (ya publicado, `9N7BMDZGCP0S`) y la guía general [`MARKETPLACE_PUBLISHING.md`](./MARKETPLACE_PUBLISHING.md) — este documento solo registra lo específico de este proyecto.
 

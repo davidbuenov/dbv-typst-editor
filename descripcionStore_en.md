@@ -32,7 +32,7 @@ No internet connection required to compile or edit. Typst Universe and the manua
 
 ## What's new in this version
 
-v0.3.0: three root-cause bugs fixed after real-world use (a compile-error message that didn't show Typst's real text, broken image paths in chapters inside subfolders, duplicate copies when dragging the same image more than once). New Sepia theme with a redesigned theme/language selector, a find-and-replace button in the editor toolbar, and a readable hint when a citation doesn't resolve while previewing a standalone chapter of a multi-file document.
+v0.4.0 and v0.5.0: semantic autocomplete, live diagnostics, and one-click formatting thanks to the official Typst Language Server now built in (tinymist); a redesigned template gallery with full-size rendered previews, now including Typst Universe templates; a new CeTZ diagram assistant, a Python runner for dynamic figures and data, and Git integration (commit/push/pull plus a side-by-side diff viewer for conflicts). Also: a pin to keep the window always on top, two-way editor↔preview sync with double-click, and the preview now compiles the whole project document — with real bibliography and cross-references — with automatic or manual refresh control.
 
 ---
 
@@ -41,24 +41,24 @@ v0.3.0: three root-cause bugs fixed after real-world use (a compile-error messag
 
 1. Native Typst editor with real-time PDF preview
 2. 100% local: no accounts, no telemetry, no ads
-3. 8 academic templates: bachelor thesis, master thesis, doctoral thesis, paper, technical report, presentation, CV, blank project
-4. Project creation assistant with a data form (title, author, institution...)
-5. Insertion toolbar: formatting, structure, tables, equations, and math symbols
-6. Citation assistant with autocomplete from your own .bib file
-7. Form to create new bibliography entries without leaving the editor
-8. Drag-and-drop image management, with no duplicate copies
-9. Outline panel with direct navigation to the preview
-10. Typst Universe: community templates and packages, with the license shown
-11. Find and replace in the editor (Ctrl+F)
-12. Export to PDF and PNG of the current page
-13. Packing the whole project into a single file (.dbvt) to share it
-14. Optional advanced terminal for the Typst CLI
-15. Project-embedded fonts: they travel with the project, nothing to install system-wide
-16. Three themes: Light, Dark, and Sepia
-17. Save with external change detection
-18. Optional automatic updates, never checked without asking
-19. Single instance and .typ file association
-20. Interface available in English and Spanish
+3. Semantic autocomplete and live diagnostics with the official Typst Language Server (tinymist)
+4. One-click code formatting (Typstyle)
+5. 8 academic templates: bachelor thesis, master thesis, doctoral thesis, paper, technical report, presentation, CV, blank project
+6. Visual template gallery with full-size rendered previews
+7. Built-in Typst Universe: browse, preview, and use community templates and packages
+8. Project creation assistant with a data form (title, author, institution...)
+9. Insertion toolbar: formatting, structure, tables, equations, and math symbols
+10. CeTZ diagram assistant: flowcharts, block diagrams, math plots, and canvases
+11. Built-in Python runner for dynamic figures and data (Matplotlib, NumPy, pandas)
+12. Git integration: status, commit, push, and pull without leaving the editor
+13. Conflict resolution with a side-by-side diff viewer
+14. Citation assistant with autocomplete from your own .bib file
+15. Drag-and-drop image management, with no duplicate copies
+16. Outline panel with direct navigation to the preview
+17. Two-way editor↔preview sync with double-click
+18. A pin to keep the window always on top
+19. Export to PDF and PNG, and packing the project into a single file (.dbvt)
+20. Three themes (Light, Dark, Sepia) and an English/Spanish interface
 
 ---
 

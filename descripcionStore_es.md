@@ -32,7 +32,7 @@ Sin conexión a internet requerida para compilar ni editar. Typst Universe y la 
 
 ## Novedades de esta versión
 
-v0.3.0: tres bugs de raíz corregidos tras uso real (mensaje de error de compilación que no mostraba el texto real de Typst, rutas de imagen rotas en capítulos dentro de subcarpetas, copias duplicadas al arrastrar la misma imagen varias veces). Nuevo tema Sepia con selector de tema/idioma rediseñado, botón de búsqueda y reemplazo en la barra del editor, y una pista legible cuando una cita no se resuelve al previsualizar un capítulo suelto de un documento con varios ficheros.
+v0.4.0 y v0.5.0: autocompletado semántico, diagnósticos en vivo y formateo con un clic gracias al Language Server oficial de Typst integrado (tinymist); galería de plantillas rediseñada con previsualización maquetada a tamaño completo, también para las plantillas de Typst Universe; nuevo asistente de diagramas CeTZ, runner de Python para figuras y datos dinámicos, e integración con Git (commit/push/pull y comparador de diferencias lado a lado ante cualquier conflicto). Además: chincheta para mantener la ventana siempre encima, sincronización bidireccional entre editor y vista previa con doble clic, y la vista previa pasa a compilar el documento completo del proyecto —con bibliografía y referencias cruzadas reales— y control de refresco automático o manual.
 
 ---
 
@@ -41,24 +41,24 @@ v0.3.0: tres bugs de raíz corregidos tras uso real (mensaje de error de compila
 
 1. Editor Typst nativo con vista previa PDF en tiempo real
 2. 100% local: sin cuentas, sin telemetría, sin publicidad
-3. 8 plantillas académicas: TFG, TFM, tesis doctoral, artículo, informe técnico, presentación, CV, proyecto en blanco
-4. Asistente de creación de proyecto con formulario de datos (título, autor, institución...)
-5. Barra de herramientas de inserción: formato, estructura, tablas, ecuaciones y símbolos matemáticos
-6. Asistente de citas con autocompletado desde tu propio fichero .bib
-7. Formulario para crear entradas bibliográficas nuevas sin salir del editor
-8. Gestión de imágenes por arrastrar y soltar, sin copias duplicadas
-9. Panel de esquema con navegación directa a la vista previa
-10. Typst Universe: plantillas y paquetes de la comunidad, con licencia visible
-11. Búsqueda y reemplazo en el editor (Ctrl+F)
-12. Exportación a PDF y PNG de la página actual
-13. Empaquetado del proyecto completo en un solo fichero (.dbvt) para compartirlo
-14. Terminal avanzado opcional para el CLI de Typst
-15. Fuentes propias del proyecto: viajan con él, sin instalar nada en el sistema
-16. Tres temas: Claro, Oscuro y Sepia
-17. Guardado con detección de cambios externos
-18. Actualizaciones automáticas opcionales, nunca comprobadas sin pedirlo
-19. Instancia única y asociación de fichero .typ
-20. Interfaz disponible en español e inglés
+3. Autocompletado semántico y diagnósticos en vivo con el Language Server oficial de Typst (tinymist)
+4. Formateo de código con un clic (Typstyle)
+5. 8 plantillas académicas: TFG, TFM, tesis doctoral, artículo, informe técnico, presentación, CV, proyecto en blanco
+6. Galería visual de plantillas con previsualización maquetada a tamaño completo
+7. Typst Universe integrado: explora, previsualiza y usa plantillas y paquetes de la comunidad
+8. Asistente de creación de proyecto con formulario de datos (título, autor, institución...)
+9. Barra de herramientas de inserción: formato, estructura, tablas, ecuaciones y símbolos matemáticos
+10. Asistente de diagramas CeTZ: diagramas de flujo, de bloques, gráficas matemáticas y lienzos
+11. Runner de Python integrado para figuras y datos dinámicos (Matplotlib, NumPy, pandas)
+12. Integración con Git: estado, commit, push y pull sin salir del editor
+13. Resolución de conflictos con comparador de diferencias lado a lado
+14. Asistente de citas con autocompletado desde tu propio fichero .bib
+15. Gestión de imágenes por arrastrar y soltar, sin copias duplicadas
+16. Panel de esquema con navegación directa a la vista previa
+17. Sincronización bidireccional editor↔vista previa con doble clic
+18. Chincheta para mantener la ventana siempre encima
+19. Exportación a PDF y PNG, y empaquetado del proyecto en un solo fichero (.dbvt)
+20. Tres temas (Claro, Oscuro, Sepia) e interfaz en español e inglés
 
 ---
 

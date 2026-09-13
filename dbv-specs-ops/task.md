@@ -4,9 +4,10 @@
 
 * **Objetivo**: Construir "el entorno de escritorio más accesible para el ecosistema Typst" (posicionamiento oficial) — no un editor de código con soporte Typst — orientado a documento/proyecto ("para Typst lo que Obsidian es para Markdown"), ligero, offline-first y multiplataforma, reutilizando al máximo la arquitectura de [DBV Markdown Reader](https://github.com/davidbuenov/dbv-md-reader).
 * **Ubicación**: `d:/Programacion/github-davidbuenov/dbv-typst-editor`.
-* **Estado actual**: **`v0.6.0` PUBLICADA (2026-09-13)** — `/test` → `/code-simplify` (9 bugs Críticos corregidos) → `/ship` cerrados en la misma sesión, a petición explícita del usuario. Commit `2c2b9fe` y tag anotado `v0.6.0` **empujados a `origin`** (`git push origin master --tags`): arrancan `ci.yml`, `release-linux.yml` y `release-macos.yml`. Suite en verde: **405 Vitest · 226 Rust · `verify:frontend` 11/11 · `verify:layout` 15/15 · `verify:templates` 40/40 · `verify:typst` 8/8.**
+* **Estado actual**: **`v0.6.0` PUBLICADA DEL TODO (2026-09-13)** — https://github.com/davidbuenov/dbv-typst-editor/releases/tag/v0.6.0, con los 7 artefactos completos (Linux `.AppImage`/`.deb`, macOS `.dmg`/`.app.tar.gz` sin firmar, Windows `.exe`/`.sig`, `latest.json`). `/test` → `/code-simplify` (9 bugs Críticos corregidos) → `/ship` → release de GitHub publicada, todo en la misma sesión a petición explícita del usuario. De paso: corregido un bug real en `release-macos.yml` (el paso de firma intentaba importar un certificado vacío con los secretos `APPLE_*` sin configurar — separado en dos steps mutuamente excluyentes) y subido a mano el `.exe`/`.sig` que le faltaba a la Release `v0.5.0` desde su publicación. Suite en verde: **405 Vitest · 226 Rust · `verify:frontend` 11/11 · `verify:layout` 15/15 · `verify:templates` 40/40 · `verify:typst` 8/8.**
 * **v0.6.0 trae 9 RF (RF-31 a RF-39)** — ver Fase 12/13/16 y "CÓMO RETOMAR" más abajo: editor WYSIWYG de diagramas (sustituye a RF-23), menú Herramientas, clonar repo por URL, Universe Browser completo, bibliografía visual con `hayagriva`, empaquetado macOS (firma pendiente de la cuenta de Apple Developer del usuario), auto-actualizador, runner de JavaScript con `jogs`, y RF-39 (pegar imagen del portapapeles). Validados en ventana real por el usuario durante la pasada manual (catorce rondas, 2026-09-11/12). Ver `ADR-V060-001`, `ADR-GITHUB-001`, `ADR-JOGS-001` en `memory.md`.
-* **Próximo paso al retomar**: vigilar que `ci.yml`/`release-linux.yml`/`release-macos.yml` terminen en verde tras el push del tag. Acciones que solo puede hacer el usuario: generar el build de Windows firmado en local (`TAURI_SIGNING_*` + `npm run updater:manifest`) y subirlo a la Release de GitHub, publicar v0.6.0 en Microsoft Store (checklist en `docs/MICROSOFT_STORE.md`), y configurar su cuenta de Apple Developer para que `release-macos.yml` empiece a firmar el bundle universal.
+* **Regla nueva fijada en `.claude/commands/ship.md` (2026-09-13):** cada `/ship` de este proyecto genera `notasActualizacionStore_vX.Y.Z.md` SIEMPRE, exista o no intención inmediata de publicar en la Store — se había olvidado para v0.6.0 y se corrigió a petición del usuario.
+* **Próximo paso al retomar**: acciones que solo puede hacer el usuario — publicar v0.6.0 en Microsoft Store (checklist y textos ya listos en `notasActualizacionStore_v0.6.0.md` + `docs/MICROSOFT_STORE.md`), y avisar cuando tenga la cuenta de Apple Developer para activar la firma de `release-macos.yml` (hoy publica sin firmar a propósito, ver `docs/NATIVE_APPS_RELEASE_CI.md` §8).
 
 ## Checklist de Tareas
 
@@ -307,34 +308,40 @@
 
 ## 🔄 Context Snapshot / Snapshot de Contexto
 
-> ### 👉 CÓMO RETOMAR ESTE PROYECTO (leer esto primero) — actualizado 2026-09-13, v0.6.0 PUBLICADA
+> ### 👉 CÓMO RETOMAR ESTE PROYECTO (leer esto primero) — actualizado 2026-09-13, v0.6.0 PUBLICADA DEL TODO
 >
-> **v0.6.0 completó el ciclo entero en esta sesión: `/test` (Fase 14) → `/code-simplify` (Fase 15, 9 bugs
-> Críticos corregidos) → `/ship` (Fase 16) → commit `2c2b9fe` + tag `v0.6.0` EMPUJADOS a `origin`.** No
-> queda ningún hueco de validación conocido ni ninguna suite en rojo: **405 Vitest · 226 Rust ·
-> `verify:frontend` 11/11 · `verify:layout` 15/15 · `verify:templates` 40/40.** El push del tag dispara
-> `ci.yml`, `release-linux.yml` y `release-macos.yml` — **próximo paso al retomar: comprobar que las tres
-> ejecuciones terminaron en verde** (primera vez que corren con las correcciones de `/code-simplify`, en
-> particular el `cancel_if_current` del timeout de compilación).
+> **v0.6.0 completó el ciclo entero en esta sesión y ya está publicada:** `/test` (Fase 14) →
+> `/code-simplify` (Fase 15, 9 bugs Críticos corregidos) → `/ship` (Fase 16) → tag `v0.6.0` empujado →
+> **Release de GitHub publicada** (no borrador):
+> https://github.com/davidbuenov/dbv-typst-editor/releases/tag/v0.6.0, con los 7 artefactos completos
+> (Linux `.AppImage`/`.deb`, macOS `.dmg`/`.app.tar.gz` sin firmar, Windows `.exe`/`.sig`, `latest.json`).
+> No queda ningún hueco de validación conocido ni ninguna suite en rojo: **405 Vitest · 226 Rust ·
+> `verify:frontend` 11/11 · `verify:layout` 15/15 · `verify:templates` 40/40.**
 >
-> **`ci.yml` y `release-linux.yml` terminaron en verde. `release-macos.yml` FALLÓ (2026-09-13,
-> run `34744807502`)** — y no es una regresión de esta sesión (el workflow no se ha tocado hoy, último
-> cambio en `7b0cdae`, previo a `/code-simplify`). El build compila bien; falla al firmar:
-> `security: SecKeychainItemImport: One or more parameters passed to a function were not valid.` /
-> `failed to bundle project: failed codesign application: failed to run command security import: failed
-> to import keychain certificate`. **Lectura:** los secretos `APPLE_*` del repositorio, que hasta v0.5.0
-> estaban vacíos (por eso el build salía sin firmar, sin fallar — ver el propio comentario de cabecera del
-> workflow, que sigue diciendo "hoy no existen"), YA EXISTEN pero con el certificado o su contraseña mal
-> formados. Solo el usuario puede revisarlos (Settings → Secrets del repo) — la IA no tiene ni debe tener
-> acceso. El `.dmg`/`.app` de v0.6.0 sigue sin publicarse en la Release de GitHub hasta que esto se
-> resuelva y se relance el job (o se vuelva a taguear).
+> **Dos bugs de infraestructura reales encontrados y corregidos DESPUÉS del primer push del tag** (no
+> están en `/code-simplify`, aparecieron al ejecutar los workflows de verdad):
+> 1. `release-macos.yml` fallaba al firmar (`SecKeychainItemImport: ... not valid` / `failed to import
+>    keychain certificate`) aunque el repositorio no tiene NINGÚN secreto `APPLE_*` configurado
+>    (confirmado con `gh secret list`, 0 secretos). Causa real: `env: APPLE_CERTIFICATE: ${{ secrets.X }}`
+>    en un único step deja la variable de entorno EXISTIR con valor `""` cuando el secreto está vacío, y
+>    el bundler de Tauri decide si firmar comprobando si la variable existe, no si tiene contenido —
+>    v0.5.0 nunca lo sufrió porque ese bloque `env:` se añadió después de su release. **Corregido**
+>    separando en dos steps mutuamente excluyentes (`if:` sobre si el secreto llega no vacío), así las
+>    variables `APPLE_*` no existen en absoluto en el entorno del step sin firmar. Relanzado con
+>    `gh workflow run release-macos.yml --ref master -f draft=true` y esta vez sí publicó el `.dmg`/`.app`.
+> 2. La Release `v0.5.0` llevaba desde su publicación (2026-09-09) sin el ejecutable de Windows — el
+>    usuario ya lo tenía compilado en local (`src-tauri/target/release/bundle/nsis/`) y se subió a mano
+>    con `gh release upload v0.5.0`.
 >
-> **Acciones que siguen dependiendo del usuario, no de la IA, para terminar de publicar v0.6.0:**
-> revisar el secreto `APPLE_CERTIFICATE`/`APPLE_CERTIFICATE_PASSWORD` que está fallando al importarse (ver
-> párrafo de arriba); generar en local el build de Windows firmado (`TAURI_SIGNING_*` +
-> `npm run updater:manifest`) y subirlo a mano a la Release de GitHub — el workflow no genera ejecutable
-> de Windows, eso es esperado; y publicar v0.6.0 en Microsoft Store (checklist en
-> `docs/MICROSOFT_STORE.md`).
+> **Regla nueva, para que no se repita:** `.claude/commands/ship.md` ahora exige generar
+> `notasActualizacionStore_vX.Y.Z.md` en CADA `/ship`, sin esperar a que se pida — se había olvidado para
+> v0.6.0 (ya generado a posteriori, `notasActualizacionStore_v0.6.0.md`).
+>
+> **Acciones que siguen dependiendo del usuario, no de la IA:** publicar v0.6.0 en Microsoft Store (textos
+> y checklist ya listos en `notasActualizacionStore_v0.6.0.md` + `docs/MICROSOFT_STORE.md`); y avisar
+> cuando tenga la cuenta de Apple Developer real para poder cargar los secretos `APPLE_*` de verdad y que
+> `release-macos.yml` empiece a firmar el bundle universal (hoy publica sin firmar a propósito, decisión
+> legítima documentada en `docs/NATIVE_APPS_RELEASE_CI.md` §8).
 >
 > **Qué trae v0.6.0 (detalle completo en `memory.md`, catorce entradas fechadas 2026-09-11/12):**
 > editor WYSIWYG de diagramas (reemplaza al asistente CeTZ; seis formas, colores, zoom/paneo, dirección

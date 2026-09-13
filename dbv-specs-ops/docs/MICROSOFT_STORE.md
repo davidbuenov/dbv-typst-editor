@@ -5,6 +5,11 @@
 
 Documento operativo (no una especificación de producto): checklist accionable para publicar `dbv-typst-editor` en la Microsoft Store, y registro de las decisiones técnicas que llevaron hasta aquí. Sigue el mismo modelo que [`dbv-md-reader`](https://github.com/davidbuenov/dbv-md-reader) (ya publicado, `9N7BMDZGCP0S`) y la guía general [`MARKETPLACE_PUBLISHING.md`](./MARKETPLACE_PUBLISHING.md) — este documento solo registra lo específico de este proyecto.
 
+> **Regla fijada el 2026-09-13, en `.claude/commands/ship.md`:** cada `/ship` de este proyecto genera
+> `notasActualizacionStore_vX.Y.Z.md` en la raíz del repositorio (novedades ES/EN, Submission Notes y
+> checklist de §6), exista o no intención inmediata de enviar esa versión a Partner Center — así no hay
+> que pedirlo aparte ni reconstruirlo de memoria cuando llegue el momento de publicar.
+
 ---
 
 ## 1. Vía elegida: MSIX subido directamente a Partner Center

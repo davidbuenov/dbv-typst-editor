@@ -4,9 +4,9 @@
 
 * **Objetivo**: Construir "el entorno de escritorio más accesible para el ecosistema Typst" (posicionamiento oficial) — no un editor de código con soporte Typst — orientado a documento/proyecto ("para Typst lo que Obsidian es para Markdown"), ligero, offline-first y multiplataforma, reutilizando al máximo la arquitectura de [DBV Markdown Reader](https://github.com/davidbuenov/dbv-md-reader).
 * **Ubicación**: `d:/Programacion/github-davidbuenov/dbv-typst-editor`.
-* **Estado actual**: **`/test` de v0.6.0 CERRADO (2026-09-13)** — sin tests nuevos que escribir: los 9 RF (RF-31 a RF-39) ya llegaban con su cobertura por slice (diagrama, Universe Browser, `jogs`, clonar por URL, pegado de portapapeles, bibliografía visual, etc.), y la suite completa está en verde: **402 Vitest · 224 Rust · `verify:frontend` 11/11 · `verify:layout` 15/15 · `verify:templates` 40/40 · `verify:typst` 8/8.** Siguiente paso: `/code-simplify` → `/ship`.
-* **v0.6.0 funcionalmente completa desde el 2026-09-12** (ver Fase 12/13 y "CÓMO RETOMAR" más abajo): editor WYSIWYG de diagramas (sustituye a RF-23), menú Herramientas, clonar repo por URL, Universe Browser completo, bibliografía visual con `hayagriva`, empaquetado macOS (firma pendiente de la cuenta de Apple Developer del usuario), auto-actualizador, runner de JavaScript con `jogs`, y RF-39 (pegar imagen del portapapeles). Los 9 RF, validados en ventana real por el usuario durante la pasada manual (catorce rondas, 2026-09-11/12). Ver `ADR-V060-001`, `ADR-GITHUB-001`, `ADR-JOGS-001` en `memory.md`.
-* **Próximo paso al retomar**: `/code-simplify` de v0.6.0 (revisión de calidad + pase `REVIEW.md`), después `/ship` (versionado 0.5.0 → 0.6.0, changelog bilingüe ES/EN, tag y push). El usuario ha pedido avanzar sin parar por las tres fases y hacer el push; la firma del ejecutable de Windows queda para cuando él vuelva.
+* **Estado actual**: **`v0.6.0` PUBLICADA (2026-09-13)** — `/test` → `/code-simplify` (9 bugs Críticos corregidos) → `/ship` cerrados en la misma sesión, a petición explícita del usuario. Commit `2c2b9fe` y tag anotado `v0.6.0` **empujados a `origin`** (`git push origin master --tags`): arrancan `ci.yml`, `release-linux.yml` y `release-macos.yml`. Suite en verde: **405 Vitest · 226 Rust · `verify:frontend` 11/11 · `verify:layout` 15/15 · `verify:templates` 40/40 · `verify:typst` 8/8.**
+* **v0.6.0 trae 9 RF (RF-31 a RF-39)** — ver Fase 12/13/16 y "CÓMO RETOMAR" más abajo: editor WYSIWYG de diagramas (sustituye a RF-23), menú Herramientas, clonar repo por URL, Universe Browser completo, bibliografía visual con `hayagriva`, empaquetado macOS (firma pendiente de la cuenta de Apple Developer del usuario), auto-actualizador, runner de JavaScript con `jogs`, y RF-39 (pegar imagen del portapapeles). Validados en ventana real por el usuario durante la pasada manual (catorce rondas, 2026-09-11/12). Ver `ADR-V060-001`, `ADR-GITHUB-001`, `ADR-JOGS-001` en `memory.md`.
+* **Próximo paso al retomar**: vigilar que `ci.yml`/`release-linux.yml`/`release-macos.yml` terminen en verde tras el push del tag. Acciones que solo puede hacer el usuario: generar el build de Windows firmado en local (`TAURI_SIGNING_*` + `npm run updater:manifest`) y subirlo a la Release de GitHub, publicar v0.6.0 en Microsoft Store (checklist en `docs/MICROSOFT_STORE.md`), y configurar su cuenta de Apple Developer para que `release-macos.yml` empiece a firmar el bundle universal.
 
 ## Checklist de Tareas
 
@@ -301,20 +301,28 @@
   6. `main.js`: pegar o soltar una imagen (RF-18/RF-39) podía fallar en silencio — ningún `try/catch` alrededor del `FileReader`/IPC.
   7. Los menús "Archivo"/"Herramientas" de la cabecera no se cerraban al pulsar fuera, pese a que su propio comentario decía que sí (`closeOnOutsideClick: true` ausente).
   8. `universeSearch.js` (RF-34/RF-34.7): sin debounce, cada tecla filtraba el catálogo completo (~4.700 entradas) de forma síncrona; de paso, vaciar el campo mientras la primera descarga seguía pendiente no cancelaba esa búsqueda. Debounce de 200ms + fix de la carrera. 2 tests nuevos, más 2 ficheros de test existentes (`universePanel.test.js`, `templateGalleryModal.test.js`) adaptados a temporizador real.
-  **5 hallazgos Importantes, registrados en `CHANGELOG.md`/`.en.md` sin corregir en esta pasada** (no bloquean `/ship`): el asistente de citas pierde tolerancia por entrada tras migrar a `hayagriva` (una entrada `.bib` mal formada oculta TODAS las citas del fichero), el badge "✓ Verificado" de Universe se asigna por nombre de paquete sin comprobar versión, `fetch_universe_index` sin timeout HTTP, el resolutor de conflictos no reconoce el marcador `diff3` (`|||||||`), y `derive_clone_destination_name` no maneja una ruta local de Windows como "URL". **11 Nits de reutilización/eficiencia** (duplicación `wireImageDrop`/`wireImagePaste`, reconstrucción evitable en el arrastre de nodos, `universe_index.rs` clonando el índice completo en cada llamada, etc.) resumidos como recuento, sin corregir — no afectan corrección. Verificación final: **405/405 Vitest · 226/226 Rust · `verify:frontend` 11/11 · `verify:layout` 15/15 · `verify:templates` 40/40 · `build:vite`**, todo en verde. Siguiente paso: `/ship` (versionado 0.5.0 → 0.6.0, changelog ya escrito arriba, tag y push).
+  **5 hallazgos Importantes, registrados en `CHANGELOG.md`/`.en.md` sin corregir en esta pasada** (no bloquean `/ship`): el asistente de citas pierde tolerancia por entrada tras migrar a `hayagriva` (una entrada `.bib` mal formada oculta TODAS las citas del fichero), el badge "✓ Verificado" de Universe se asigna por nombre de paquete sin comprobar versión, `fetch_universe_index` sin timeout HTTP, el resolutor de conflictos no reconoce el marcador `diff3` (`|||||||`), y `derive_clone_destination_name` no maneja una ruta local de Windows como "URL". **11 Nits de reutilización/eficiencia** (duplicación `wireImageDrop`/`wireImagePaste`, reconstrucción evitable en el arrastre de nodos, `universe_index.rs` clonando el índice completo en cada llamada, etc.) resumidos como recuento, sin corregir — no afectan corrección. Verificación final: **405/405 Vitest · 226/226 Rust · `verify:frontend` 11/11 · `verify:layout` 15/15 · `verify:templates` 40/40 · `build:vite`**, todo en verde.
+
+- [x] **Fase 16: `/ship` v0.6.0 — cerrada el 2026-09-13.** Versión Minor (0.5.0 → 0.6.0) en los cuatro sitios (`package.json`, `tauri.conf.json`, `Cargo.toml`, `Cargo.lock`). `CHANGELOG.md`/`.en.md`: sección `[0.6.0] - 2026-09-13` cerrada en los dos ficheros (incluye los 9 bugs Críticos de `/code-simplify`), `[Sin publicar]`/`[Unreleased]` vacías para lo siguiente. `README.md`/`README.en.md`: insignias, versión actual, contador de tests (405 Vitest + 226 Rust = 631) y lista de "Funcionalidades destacadas" reescrita con los 9 RF de esta versión (antes describía solo hasta v0.4.0). `walkthrough.md` reescrito (no versionado, `dbv-specs-ops/.gitignore`). **Commit `2c2b9fe` (`chore(release): v0.6.0`) y tag anotado `v0.6.0` creados, y AMBOS empujados a `origin`** (`git push origin master --tags`, a petición explícita del usuario de completar todo el ciclo sin pausas) — arrancan `ci.yml`, `release-linux.yml` y `release-macos.yml`. **Pendiente, sin bloquear nada:** vigilar que las tres ejecuciones terminen en verde; el build de Windows firmado y la publicación en Microsoft Store son acciones manuales del usuario (clave de firma propia), para cuando vuelva — checklist en `docs/MICROSOFT_STORE.md`.
 
 ## 🔄 Context Snapshot / Snapshot de Contexto
 
-> ### 👉 CÓMO RETOMAR ESTE PROYECTO (leer esto primero) — actualizado 2026-09-13, v0.6.0 en `/ship`
+> ### 👉 CÓMO RETOMAR ESTE PROYECTO (leer esto primero) — actualizado 2026-09-13, v0.6.0 PUBLICADA
 >
-> **v0.6.0 está funcionalmente completa (los 9 RF, RF-31 a RF-39), con la pasada manual del usuario
-> CERRADA DEL TODO, `/test` cerrado sin tests nuevos (Fase 14) y `/code-simplify` cerrado con 9 bugs
-> Críticos corregidos (Fase 15 — ver detalle ahí, incluye una carrera real en el timeout de compilación
-> y una regresión del ancla de sincronización RF-16 por una tercera vía).** No queda ningún hueco de
-> validación conocido ni ninguna suite en rojo: **405 Vitest · 226 Rust · `verify:frontend` 11/11 ·
-> `verify:layout` 15/15 · `verify:templates` 40/40.** **Próximo paso: `/ship` (versionado 0.5.0 → 0.6.0,
-> tag y push) — en curso, a petición del usuario de avanzar sin parar; la firma del ejecutable de Windows
-> queda para cuando él vuelva.**
+> **v0.6.0 completó el ciclo entero en esta sesión: `/test` (Fase 14) → `/code-simplify` (Fase 15, 9 bugs
+> Críticos corregidos) → `/ship` (Fase 16) → commit `2c2b9fe` + tag `v0.6.0` EMPUJADOS a `origin`.** No
+> queda ningún hueco de validación conocido ni ninguna suite en rojo: **405 Vitest · 226 Rust ·
+> `verify:frontend` 11/11 · `verify:layout` 15/15 · `verify:templates` 40/40.** El push del tag dispara
+> `ci.yml`, `release-linux.yml` y `release-macos.yml` — **próximo paso al retomar: comprobar que las tres
+> ejecuciones terminaron en verde** (primera vez que corren con las correcciones de `/code-simplify`, en
+> particular el `cancel_if_current` del timeout de compilación).
+>
+> **Acciones que siguen dependiendo del usuario, no de la IA, para terminar de publicar v0.6.0:**
+> generar en local el build de Windows firmado (`TAURI_SIGNING_*` + `npm run updater:manifest`) y subirlo
+> a mano a la Release de GitHub — el workflow no genera ejecutable de Windows, eso es esperado; publicar
+> v0.6.0 en Microsoft Store (checklist en `docs/MICROSOFT_STORE.md`); y activar su cuenta de Apple
+> Developer para que `release-macos.yml` empiece a firmar el `.dmg`/`.app` universal (RF-36, hoy sale sin
+> firmar sin fallar).
 >
 > **Qué trae v0.6.0 (detalle completo en `memory.md`, catorce entradas fechadas 2026-09-11/12):**
 > editor WYSIWYG de diagramas (reemplaza al asistente CeTZ; seis formas, colores, zoom/paneo, dirección

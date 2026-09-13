@@ -127,12 +127,45 @@ jobs:
 
       # RF-36 (v0.6.0, Slice 52): firma/notarización condicionada a que estos
       # secretos EXISTAN en el repositorio — hoy no existen (el usuario aún no
-      # tiene la cuenta de Apple Developer, ARCHITECTURE.md §7.16.6), así que
-      # llegan vacíos y `tauri-action` construye sin firmar, exactamente como
-      # hasta ahora. El día que se configuren, este mismo workflow empieza a
-      # firmar sin tocarlo de nuevo — evita el riesgo R-36 del plan (CI en rojo
-      # permanente si el paso de firma se activara antes de tener la cuenta).
-      - name: Build y Release (macOS universal)
+      # tiene la cuenta de Apple Developer, ARCHITECTURE.md §7.16.6).
+      #
+      # CORREGIDO (2026-09-13, hallazgo del primer run real de v0.6.0): la
+      # primera versión de este paso ponía las seis variables `APPLE_*` en el
+      # mismo bloque `env:` de un único step, con `${{ secrets.APPLE_CERTIFICATE }}`
+      # etc. — con los secretos vacíos, eso NO omite la variable de entorno,
+      # la deja EXISTIR con valor "". El bundler de Tauri decide si firmar
+      # comprobando si `APPLE_CERTIFICATE` existe en el entorno, no si tiene
+      # contenido, así que intentaba importar un certificado vacío y fallaba:
+      # "SecKeychainItemImport: ... not valid" / "failed to import keychain
+      # certificate". v0.5.0 no tenía este bloque todavía, por eso nunca lo
+      # sufrió. Ahora son DOS steps mutuamente excluyentes (`if:` sobre si el
+      # secreto llega no vacío) para que las variables `APPLE_*` NO EXISTAN en
+      # absoluto en el entorno del step sin firmar — evita el riesgo R-36 del
+      # plan (CI en rojo permanente) sin necesitar que el secreto exista.
+      - name: Comprobar si hay secretos de firma de Apple configurados
+        id: apple_signing
+        run: |
+          if [ -n "${{ secrets.APPLE_CERTIFICATE }}" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build y Release (macOS universal, sin firmar)
+        if: steps.apple_signing.outputs.enabled == 'false'
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          args: --target universal-apple-darwin
+          tagName: ${{ steps.version.outputs.tag }}
+          releaseName: ${{ steps.version.outputs.tag }}
+          releaseDraft: ${{ steps.draft.outputs.value }}
+          prerelease: false
+          includeUpdaterJson: false
+
+      - name: Build y Release (macOS universal, firmado)
+        if: steps.apple_signing.outputs.enabled == 'true'
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

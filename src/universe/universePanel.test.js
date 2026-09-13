@@ -244,7 +244,10 @@ describe('buscador del catálogo completo — paquete vs plantilla', () => {
     });
     escenario.searchInputEl.value = query;
     escenario.searchInputEl.dispatchEvent(new Event('input'));
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    // El buscador compartido debounce-a 200ms (revisión /code-simplify de
+    // v0.6.0): hay que esperar de verdad a que dispare, más un tic extra
+    // para que se asiente la promesa de `fetchUniverseIndex`.
+    await new Promise((resolve) => setTimeout(resolve, 220));
     await new Promise((resolve) => setTimeout(resolve, 0));
     return escenario;
   }

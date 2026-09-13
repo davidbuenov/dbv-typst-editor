@@ -22,6 +22,7 @@
 import { EditorState } from '@codemirror/state';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createDiagramEditor } from './diagramEditor.js';
+import { addNode, createEmptyDiagram, diagramToCetzCode } from './diagramModel.js';
 
 const PANEL_HTML = `
   <h2 class="floating-panel__title"></h2>
@@ -367,5 +368,34 @@ describe('createDiagramEditor', () => {
 
     expect(dispatched).not.toBeNull();
     expect(panelEl.classList.contains('hidden')).toBe(true);
+  });
+
+  it('reabrir un diagrama existente y pulsar Insertar SUSTITUYE su bloque, no lo duplica (RF-31.3)', () => {
+    // Regresión encontrada en la revisión /code-simplify de v0.6.0: antes,
+    // "Insertar" siempre escribía en la posición actual del cursor, así que
+    // reeditar un diagrama ya insertado dejaba el original intacto y añadía
+    // una copia nueva al lado en vez de sustituirlo.
+    const importText = '#import "@preview/cetz:0.5.2"\n\n';
+    let seedDiagram = addNode(createEmptyDiagram(), { label: 'Único' });
+    const originalCode = diagramToCetzCode(seedDiagram);
+    const docText = importText + originalCode + '\nTexto después.\n';
+    // Cursor en medio del bloque, no al final — si el bug reapareciera,
+    // "Insertar" escribiría aquí en vez de sustituir el bloque completo.
+    const midCursor = importText.length + Math.floor(originalCode.length / 2);
+
+    viewMock.state = EditorState.create({ doc: docText, selection: { anchor: midCursor } });
+
+    const editor = createDiagramEditor({ panelEl, getView: () => viewMock });
+    editor.openNear(document.createElement('button'));
+
+    find('insert').click();
+
+    expect(dispatched).not.toBeNull();
+    expect(dispatched.changes).toHaveLength(1);
+    const [change] = dispatched.changes;
+    expect(change.from).toBe(importText.length);
+    expect(change.to).toBe(importText.length + originalCode.length);
+    // El texto que sigue al bloque (fuera del rango sustituido) sobrevive.
+    expect(docText.slice(change.to)).toBe('\nTexto después.\n');
   });
 });

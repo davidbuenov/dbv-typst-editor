@@ -175,6 +175,25 @@ impl EngineState {
         }
     }
 
+    /// Mata el proceso en curso solo si sigue siendo el de `generation`.
+    ///
+    /// A diferencia de `cancel_running()` (usado para desalojar SIEMPRE al
+    /// anterior antes de arrancar uno nuevo), esta variante la usa el propio
+    /// timeout de una compilación para matar SU hijo — sin esta comprobación,
+    /// una generación que agota el margen justo cuando otra posterior ya ha
+    /// arrancado (y ya sustituyó la entrada de `running`) mataría por error el
+    /// proceso nuevo en vez de no hacer nada.
+    fn cancel_if_current(&self, generation: u64) {
+        let Ok(mut guard) = self.running.lock() else {
+            return;
+        };
+        if guard.as_ref().is_some_and(|(id, _)| *id == generation) {
+            if let Some((_, child)) = guard.take() {
+                let _ = child.kill();
+            }
+        }
+    }
+
     fn set_running(&self, generation: u64, child: CommandChild) {
         if let Ok(mut guard) = self.running.lock() {
             *guard = Some((generation, child));
@@ -372,8 +391,7 @@ async fn run_cancelable(
         // que una cancelación normal, y se informa con un mensaje propio en
         // vez de dejar `code` en `None`, que el resto del código lee como
         // "el sidecar no arrancó" — aquí sí arrancó, solo que no ha vuelto.
-        state.cancel_running();
-        state.clear_running(generation);
+        state.cancel_if_current(generation);
         return Err(TypstError::TimedOut(format!(
             "El proceso no terminó en {}s (posible bucle infinito en un script embebido)",
             COMPILE_TIMEOUT.as_secs()
@@ -645,6 +663,13 @@ mod tests {
         let state = EngineState::default();
         state.cancel_running();
         state.cancel_running();
+    }
+
+    #[test]
+    fn cancel_if_current_sin_proceso_no_falla_para_ninguna_generacion() {
+        let state = EngineState::default();
+        state.cancel_if_current(1);
+        state.cancel_if_current(0);
     }
 
     #[test]

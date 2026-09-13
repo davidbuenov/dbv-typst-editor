@@ -39,6 +39,7 @@ import { createWizard } from './project-wizard/wizard.js';
 import {
   copyAssetIntoProject,
   copyFontIntoProject,
+  gitAdd,
   gitClone,
   getAppInfo,
   savePastedImage,
@@ -200,18 +201,26 @@ function wireSidebarTabs(workspaceEl) {
  */
 function wireImageDrop(workspace, editorHostEl, notify, getExtensions) {
   async function handleDrop(imagePath, insert) {
-    const result = await copyAssetIntoProject(workspace.state.project.root, imagePath);
-    if (!result.ok) {
-      notify(`${t('asset.copyFailed')} — ${result.error.message}`, 'error');
-      return;
+    try {
+      const result = await copyAssetIntoProject(workspace.state.project.root, imagePath);
+      if (!result.ok) {
+        notify(`${t('asset.copyFailed')} — ${result.error.message}`, 'error');
+        return;
+      }
+      if (!insert) {
+        notify(`${t('asset.imageAdded')} ${result.value}`);
+        return;
+      }
+      const view = workspace.editor.getView();
+      view.dispatch(figureActionForPath(result.value)(view.state));
+      view.focus();
+    } catch (error) {
+      // handleDrop se llama sin `await` desde el oyente de `onDragDropEvent`
+      // (no puede ser async): sin este `catch`, un fallo aquí (p. ej. el
+      // `FileReader`/IPC de `copyAssetIntoProject`) sería una promesa
+      // rechazada sin capturar, silenciosa para el usuario.
+      notify(`${t('asset.copyFailed')} — ${error.message}`, 'error');
     }
-    if (!insert) {
-      notify(`${t('asset.imageAdded')} ${result.value}`);
-      return;
-    }
-    const view = workspace.editor.getView();
-    view.dispatch(figureActionForPath(result.value)(view.state));
-    view.focus();
   }
 
   getCurrentWebview().onDragDropEvent((event) => {
@@ -248,19 +257,27 @@ function wireImageDrop(workspace, editorHostEl, notify, getExtensions) {
  */
 function wireImagePaste(workspace, editorHostEl, notify) {
   async function handlePaste(file, extension, insert) {
-    const base64Data = await readFileAsBase64(file);
-    const result = await savePastedImage(workspace.state.project.root, base64Data, extension);
-    if (!result.ok) {
-      notify(`${t('asset.copyFailed')} — ${result.error.message}`, 'error');
-      return;
+    try {
+      const base64Data = await readFileAsBase64(file);
+      const result = await savePastedImage(workspace.state.project.root, base64Data, extension);
+      if (!result.ok) {
+        notify(`${t('asset.copyFailed')} — ${result.error.message}`, 'error');
+        return;
+      }
+      if (!insert) {
+        notify(`${t('asset.imageAdded')} ${result.value}`);
+        return;
+      }
+      const view = workspace.editor.getView();
+      view.dispatch(figureActionForPath(result.value)(view.state));
+      view.focus();
+    } catch (error) {
+      // handlePaste se llama sin `await` desde el oyente de `paste`: sin
+      // este `catch`, un fallo del `FileReader` (`readFileAsBase64`) al leer
+      // un recorte del portapapeles era una promesa rechazada sin capturar
+      // — el pegado parecía no hacer nada, sin ningún aviso al usuario.
+      notify(`${t('asset.copyFailed')} — ${error.message}`, 'error');
     }
-    if (!insert) {
-      notify(`${t('asset.imageAdded')} ${result.value}`);
-      return;
-    }
-    const view = workspace.editor.getView();
-    view.dispatch(figureActionForPath(result.value)(view.state));
-    view.focus();
   }
 
   document.addEventListener(
@@ -574,6 +591,12 @@ async function bootstrap() {
         toast.show(`${t('tree.newFileError')} — ${written.error.message}`, 'error');
         return;
       }
+
+      // Sin esto, git status sigue reportando el fichero como "en conflicto"
+      // (viene del índice, no del árbol de trabajo) hasta el próximo commit
+      // -- el popover no reflejaría que ya se ha resuelto. Best-effort: si
+      // falla, el commit posterior lo arregla igual con su propio `add -A`.
+      await gitAdd({ projectPath: root, relativePath });
 
       toast.show(t('git.conflictResolved'));
       await gitManager.refresh();
@@ -930,6 +953,7 @@ async function bootstrap() {
   const fileMenu = registerPanel(el('file-menu'), {
     trigger: el('btn-file-menu'),
     toggle: true,
+    closeOnOutsideClick: true,
   });
   el('file-menu').addEventListener('click', (event) => {
     if (event.target.closest('.menu-item')) fileMenu.close();
@@ -942,6 +966,7 @@ async function bootstrap() {
   const toolsMenu = registerPanel(el('tools-menu'), {
     trigger: el('btn-tools-menu'),
     toggle: true,
+    closeOnOutsideClick: true,
   });
   el('tools-menu').addEventListener('click', (event) => {
     if (event.target.closest('.menu-item')) toolsMenu.close();

@@ -23,6 +23,12 @@ import { fetchUniverseIndex } from '../services/backend.js';
 import { filterUniverseIndexEntries, universeIndexEntryToCard } from './curatedCatalog.js';
 import { getUniversePackageIcon } from './universeThumbnails.js';
 
+// Mismo margen que `outline.js`/`preview.js` para su propio debounce de
+// tecleo. Sin él, cada pulsación filtraba de golpe el catálogo COMPLETO
+// (~4.700 entradas) de forma síncrona — hallazgo de la revisión
+// `/code-simplify` de v0.6.0, confirmado por varios ángulos de revisión.
+const DEBOUNCE_MS = 200;
+
 /**
  * @param {object} deps
  * @param {HTMLInputElement} deps.inputEl Campo de búsqueda.
@@ -118,13 +124,17 @@ export function createUniverseSearch({ inputEl, resultsEl, statusEl, onSelect, o
 
   async function runSearch(rawQuery) {
     const query = rawQuery.trim();
+    // Incrementa el token también al vaciar el campo: si no, una búsqueda
+    // anterior que seguía esperando la primera descarga del índice (o su
+    // propio debounce) podía resolver DESPUÉS y repintar resultados sobre
+    // un campo que el usuario ya había vaciado.
+    const token = ++searchToken;
     if (query === '') {
       resultsEl.replaceChildren();
       statusEl.classList.add('hidden');
       return;
     }
 
-    const token = ++searchToken;
     statusEl.textContent = t('universe.searchLoading');
     statusEl.classList.remove('hidden');
 
@@ -152,7 +162,17 @@ export function createUniverseSearch({ inputEl, resultsEl, statusEl, onSelect, o
     renderGrid(matches);
   }
 
-  inputEl.addEventListener('input', () => runSearch(inputEl.value));
+  let debounceTimer = null;
+  inputEl.addEventListener('input', () => {
+    if (debounceTimer) clearTimeout(debounceTimer);
+    // Vaciar el campo limpia al instante — solo una búsqueda con texto
+    // justifica esperar a que el usuario deje de teclear.
+    if (inputEl.value.trim() === '') {
+      runSearch(inputEl.value);
+      return;
+    }
+    debounceTimer = setTimeout(() => runSearch(inputEl.value), DEBOUNCE_MS);
+  });
 
   return {
     /** Vacía el campo y los resultados — para cuando el contenedor que lo monta se reinicia. */

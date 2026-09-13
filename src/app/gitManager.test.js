@@ -281,4 +281,41 @@ describe('gitManager', () => {
     items[0].querySelector('button').click();
     expect(resolved).toEqual(['main.typ']);
   });
+
+  it('shows the conflict count in the summary, not "clean", when a conflict is the only pending change', async () => {
+    vi.spyOn(backend, 'gitStatus').mockResolvedValue({
+      ok: true,
+      value: {
+        isRepo: true,
+        branch: 'main',
+        ahead: 0,
+        behind: 0,
+        modifiedFiles: [],
+        untrackedFiles: [],
+        conflictedFiles: ['main.typ'],
+      },
+    });
+
+    const manager = createGitManager({
+      indicatorEl,
+      triggerBtn,
+      branchEl,
+      summaryEl,
+      panelEl,
+      popoverBranchEl,
+      popoverAbEl,
+      filesEl,
+      commitInputEl,
+      commitBtn,
+      pushBtn,
+      pullBtn,
+      getProjectPath: () => '/mi/repo',
+      notify: () => {},
+    });
+
+    await manager.refresh();
+
+    expect(summaryEl.textContent).toContain('1');
+    expect(summaryEl.textContent).not.toContain('Limpio');
+  });
 });

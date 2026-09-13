@@ -12,7 +12,7 @@
 // mismo índice, mismo filtro por substring, misma tarjeta — lo único que
 // cambia entre ellos es `onSelect`/`filterEntries`, que cada uno pasa el suyo.
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createUniverseSearch } from './universeSearch.js';
 import { fetchUniverseIndex } from '../services/backend.js';
 
@@ -42,17 +42,27 @@ function montar(overrides = {}) {
   return { inputEl, resultsEl, statusEl, onSelect, search };
 }
 
+// El buscador debounce-a 200ms (RF-34, revisión /code-simplify de v0.6.0):
+// avanzar temporizadores falsos en vez de esperar de verdad mantiene el test
+// rápido y determinista, mismo patrón que `refreshMode.test.js`.
+const DEBOUNCE_MS = 200;
+
 async function escribir(inputEl, texto) {
   inputEl.value = texto;
   inputEl.dispatchEvent(new Event('input'));
-  await new Promise((resolve) => setTimeout(resolve, 0));
-  await new Promise((resolve) => setTimeout(resolve, 0));
+  await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
+  await vi.advanceTimersByTimeAsync(0);
 }
 
 describe('createUniverseSearch', () => {
   beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     vi.mocked(fetchUniverseIndex).mockReset();
     vi.mocked(fetchUniverseIndex).mockResolvedValue({ ok: true, value: INDICE });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('no pinta nada con el campo vacío', async () => {
@@ -133,5 +143,33 @@ describe('createUniverseSearch', () => {
     await escribir(inputEl, 'campanile');
 
     expect(fetchUniverseIndex).toHaveBeenCalledTimes(1);
+  });
+
+  it('vaciar el campo mientras la primera descarga sigue pendiente no repinta resultados obsoletos', async () => {
+    // Regresión encontrada en la revisión /code-simplify de v0.6.0: antes,
+    // vaciar el campo devolvía sin incrementar el token de carrera, así que
+    // una búsqueda anterior que seguía esperando `fetchUniverseIndex()`
+    // podía resolver DESPUÉS y repintar la rejilla sobre un campo ya vacío.
+    let resolveFetch;
+    vi.mocked(fetchUniverseIndex).mockReturnValue(
+      new Promise((resolve) => {
+        resolveFetch = resolve;
+      }),
+    );
+    const { inputEl, resultsEl, statusEl } = montar();
+
+    inputEl.value = 'cetz';
+    inputEl.dispatchEvent(new Event('input'));
+    await vi.advanceTimersByTimeAsync(DEBOUNCE_MS); // dispara runSearch('cetz'), que se queda esperando el fetch
+
+    inputEl.value = '';
+    inputEl.dispatchEvent(new Event('input')); // se ejecuta al instante, sin debounce
+    await vi.advanceTimersByTimeAsync(0);
+
+    resolveFetch({ ok: true, value: INDICE }); // la búsqueda de 'cetz' resuelve tarde
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(resultsEl.children).toHaveLength(0);
+    expect(statusEl.classList.contains('hidden')).toBe(true);
   });
 });

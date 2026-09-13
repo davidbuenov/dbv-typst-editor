@@ -80,7 +80,9 @@ export function createGitManager({
 
       const totalMod = status.modifiedFiles.length + status.untrackedFiles.length;
       let summaryText = '';
-      if (totalMod > 0) {
+      if (status.conflictedFiles.length > 0) {
+        summaryText = `${status.conflictedFiles.length} ${t('git.conflicted')}`;
+      } else if (totalMod > 0) {
         summaryText = `${totalMod} ${t('git.modified')}`;
       } else {
         summaryText = t('git.clean');

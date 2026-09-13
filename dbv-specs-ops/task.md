@@ -292,14 +292,29 @@
 
 - [x] **Fase 14: `/test` v0.6.0 — cerrada el 2026-09-13.** Sin tests nuevos que escribir: cada uno de los 9 RF (RF-31 a RF-39) ya llegó desde `/build` con su propia cobertura por slice (`diagramEditor.test.js`/`diagramModel.test.js`, `gitManager.test.js` + `commands/git.rs` con 16 tests, `universeSearch.test.js`/`universeSpec.test.js`/`universeThumbnails.test.js`, `clipboardImage.test.js`, `jogsAction` en `toolbarActions.test.js`). Se ejecutó la suite completa para confirmarlo, no para generarla: **402/402 Vitest · 224/224 Rust · `verify:frontend` 11/11 · `verify:layout` 15/15 · `verify:templates` 40/40 · `verify:typst` 8/8**, todo en verde sin tocar código. Sin componentes de IA no deterministas en el proyecto — no aplica Evals. Usuario pidió avanzar sin parar por `/code-simplify` → `/ship` (con push), dejando la firma del ejecutable de Windows para su vuelta.
 
+- [x] **Fase 15: `/code-simplify` v0.6.0 — cerrada el 2026-09-13.** 8 agentes en tres pases (Bugs/Seguridad/Cumplimiento, más reutilización/eficiencia/altitud) sobre el diff completo `v0.5.0..HEAD` (59 ficheros, ~7.900 líneas). **0 hallazgos de Cumplimiento y 0 de Seguridad** (slopsquatting, credenciales, `<coding_standards>`). **9 hallazgos Críticos corregidos, todos con test nuevo salvo donde ya es criterio del proyecto no testear wiring puro:**
+  1. `gitManager.js`: el resumen de Git mostraba "Limpio" con un conflicto de fusión sin resolver si no había además ficheros modificados/no seguidos (`totalMod` no contaba `conflictedFiles`). Test nuevo.
+  2. `compile.rs`: el timeout de 45s de una compilación colgada podía matar el proceso de la generación SIGUIENTE por una carrera de baja probabilidad (`cancel_running()` no comprobaba de quién era el proceso). Nuevo `cancel_if_current(generation)`. Test nuevo (caso sin proceso; la carrera en sí no es reproducible sin un `CommandChild` real).
+  3. `shadow.rs`: `seed_anchors` (RF-16) dejaba sin ancla un encabezado o párrafo pegado a un comentario/`#import` SIN línea en blanco entre los dos — tercera variante del mismo síntoma corregido dos veces ya en esta versión. Test nuevo.
+  4. RF-19.4 (resolución de conflictos): nunca hacía `git add` tras escribir el contenido resuelto, así que el fichero seguía "en conflicto" hasta el próximo commit. Nuevo comando `git_add` (`commands/git.rs` + `services/backend.js`), invocado desde `main.js`.
+  5. `diagramEditor.js` (RF-31.3): reabrir un diagrama existente y pulsar "Insertar" lo duplicaba en vez de sustituirlo (nuevo `findDiagramBlockRange` en `diagramModel.js`); de paso, insertar el PRIMER diagrama en un documento vacío dejaba el cursor dentro del propio código CeTZ (caso especial eliminado, la rama general ya lo cubría bien). 2 tests nuevos.
+  6. `main.js`: pegar o soltar una imagen (RF-18/RF-39) podía fallar en silencio — ningún `try/catch` alrededor del `FileReader`/IPC.
+  7. Los menús "Archivo"/"Herramientas" de la cabecera no se cerraban al pulsar fuera, pese a que su propio comentario decía que sí (`closeOnOutsideClick: true` ausente).
+  8. `universeSearch.js` (RF-34/RF-34.7): sin debounce, cada tecla filtraba el catálogo completo (~4.700 entradas) de forma síncrona; de paso, vaciar el campo mientras la primera descarga seguía pendiente no cancelaba esa búsqueda. Debounce de 200ms + fix de la carrera. 2 tests nuevos, más 2 ficheros de test existentes (`universePanel.test.js`, `templateGalleryModal.test.js`) adaptados a temporizador real.
+  **5 hallazgos Importantes, registrados en `CHANGELOG.md`/`.en.md` sin corregir en esta pasada** (no bloquean `/ship`): el asistente de citas pierde tolerancia por entrada tras migrar a `hayagriva` (una entrada `.bib` mal formada oculta TODAS las citas del fichero), el badge "✓ Verificado" de Universe se asigna por nombre de paquete sin comprobar versión, `fetch_universe_index` sin timeout HTTP, el resolutor de conflictos no reconoce el marcador `diff3` (`|||||||`), y `derive_clone_destination_name` no maneja una ruta local de Windows como "URL". **11 Nits de reutilización/eficiencia** (duplicación `wireImageDrop`/`wireImagePaste`, reconstrucción evitable en el arrastre de nodos, `universe_index.rs` clonando el índice completo en cada llamada, etc.) resumidos como recuento, sin corregir — no afectan corrección. Verificación final: **408/408 Vitest · 226/226 Rust · `verify:frontend` 11/11 · `verify:layout` 15/15 · `verify:templates` 40/40 · `build:vite`**, todo en verde. Siguiente paso: `/ship` (versionado 0.5.0 → 0.6.0, changelog ya escrito arriba, tag y push).
+
 ## 🔄 Context Snapshot / Snapshot de Contexto
 
-> ### 👉 CÓMO RETOMAR ESTE PROYECTO (leer esto primero) — actualizado 2026-09-13, v0.6.0 en `/code-simplify` → `/ship`
+> ### 👉 CÓMO RETOMAR ESTE PROYECTO (leer esto primero) — actualizado 2026-09-13, v0.6.0 en `/ship`
 >
 > **v0.6.0 está funcionalmente completa (los 9 RF, RF-31 a RF-39), con la pasada manual del usuario
-> CERRADA DEL TODO y con `/test` cerrado sin necesidad de tests nuevos (Fase 14).** No queda ningún hueco
-> de validación conocido ni ninguna suite en rojo. **Próximo paso: `/code-simplify` → `/ship` (versionado
-> 0.5.0 → 0.6.0, changelog bilingüe, tag y push) — en curso, a petición del usuario de avanzar sin parar.**
+> CERRADA DEL TODO, `/test` cerrado sin tests nuevos (Fase 14) y `/code-simplify` cerrado con 9 bugs
+> Críticos corregidos (Fase 15 — ver detalle ahí, incluye una carrera real en el timeout de compilación
+> y una regresión del ancla de sincronización RF-16 por una tercera vía).** No queda ningún hueco de
+> validación conocido ni ninguna suite en rojo: **408 Vitest · 226 Rust · `verify:frontend` 11/11 ·
+> `verify:layout` 15/15 · `verify:templates` 40/40.** **Próximo paso: `/ship` (versionado 0.5.0 → 0.6.0,
+> tag y push) — en curso, a petición del usuario de avanzar sin parar; la firma del ejecutable de Windows
+> queda para cuando él vuelva.**
 >
 > **Qué trae v0.6.0 (detalle completo en `memory.md`, catorce entradas fechadas 2026-09-11/12):**
 > editor WYSIWYG de diagramas (reemplaza al asistente CeTZ; seis formas, colores, zoom/paneo, dirección

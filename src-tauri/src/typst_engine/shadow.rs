@@ -153,7 +153,20 @@ pub fn seed_anchors(source: &str, file: &str) -> String {
             seeded.push_str(line);
             seeded.push('\n');
         }
-        after_blank = line.trim().is_empty();
+        // Una línea invisible (comentario/import de nivel superior) no
+        // produce ningún píxel y nunca recibe ancla, así que no debe
+        // "gastar" el `after_blank` de la línea visible que la precedía: si
+        // se la deja marcar `after_blank = false`, un encabezado o párrafo
+        // pegado justo debajo de ella (sin línea en blanco de por medio) se
+        // queda sin ancla del todo — la misma familia de fallo (doble clic
+        // aterriza en el capítulo equivocado) que el resto de esta función
+        // ya corrige, por una tercera vía: "invisible seguido de visible sin
+        // blanco", no cubierta por los dos casos de arriba.
+        after_blank = if depth.at_top_level() && is_invisible(line) {
+            after_blank
+        } else {
+            line.trim().is_empty()
+        };
         depth.consume(line);
     }
     seeded
@@ -831,6 +844,24 @@ mod tests {
         let heading_at = seeded.find("= Métodos").unwrap();
         let anchor_at = seeded.find("l: 8))").unwrap();
         assert!(anchor_at > heading_at, "{seeded}");
+    }
+
+    #[test]
+    fn seed_anchors_un_encabezado_pegado_a_un_comentario_sin_linea_en_blanco_si_recibe_ancla() {
+        // Variante del hallazgo de 2026-09-12 no cubierta por el test de
+        // arriba: allí el comentario y el `#import` tenían una línea en
+        // blanco antes del encabezado. Sin ella, el comentario dejaba
+        // `after_blank = false` para la línea siguiente y el encabezado se
+        // quedaba sin ancla — el mismo síntoma (doble clic cae en el
+        // capítulo anterior) por una vía distinta.
+        let source = "// nota pegada\n= Introducción\n\nTexto.\n";
+
+        let seeded = seed_anchors(source, "cap.typ");
+
+        assert_eq!(seeded.matches("<dbv-sync>").count(), 2, "{seeded}");
+        assert!(seeded.contains("l: 2))"), "{seeded}"); // "= Introducción"
+        assert!(seeded.contains("l: 4))"), "{seeded}"); // "Texto."
+        assert!(!seeded.contains("l: 1))"), "{seeded}");
     }
 
     #[test]

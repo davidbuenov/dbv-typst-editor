@@ -268,6 +268,36 @@ pub async fn git_commit(
     Ok(GitCommandResult { success, message })
 }
 
+/// Marca un fichero como resuelto en el índice de Git (`git add -- <ruta>`).
+///
+/// Sin esto, aplicar la resolución de un conflicto (RF-19.4) escribe el
+/// contenido correcto en disco pero dos líneas `u ` de `git status
+/// --porcelain=v2` (Slice de esta misma sesión, hallazgo de la revisión de
+/// `/code-simplify`) siguen viniendo del ÍNDICE, no del árbol de trabajo: el
+/// fichero se queda marcado "en conflicto" en el popover de Git hasta que el
+/// usuario hace commit (que sí ejecuta `add -A` primero) — un ciclo confuso
+/// donde pulsar "Resolver" otra vez no hace nada visible. Etiquetar el
+/// fichero en el índice en cuanto se aplica la resolución cierra ese hueco.
+#[tauri::command]
+pub async fn git_add(project_path: String, relative_path: String) -> Result<GitCommandResult, AppError> {
+    let root = PathBuf::from(&project_path);
+    if !root.is_dir() {
+        return Err(AppError::InvalidPath(project_path));
+    }
+
+    let add_out = git_command(&root)
+        .args(["add", "--", &relative_path])
+        .output()
+        .map_err(|e| AppError::Io(format!("Fallo al ejecutar git add: {e}")))?;
+
+    let stdout = String::from_utf8_lossy(&add_out.stdout);
+    let stderr = String::from_utf8_lossy(&add_out.stderr);
+    let success = add_out.status.success();
+    let message = if success { stdout.to_string() } else { stderr.to_string() };
+
+    Ok(GitCommandResult { success, message })
+}
+
 /// Realiza un git push con flags no interactivos.
 #[tauri::command]
 pub async fn git_push(project_path: String) -> Result<GitCommandResult, AppError> {

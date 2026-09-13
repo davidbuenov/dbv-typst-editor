@@ -216,6 +216,8 @@ export const setupSharedPythonEnv = () => call('setup_shared_python_env');
 // ─── Control de versiones Git (RF-19) ────────────────────────────────────────
 
 export const gitStatus = (projectPath) => call('git_status', { projectPath });
+export const gitAdd = ({ projectPath, relativePath }) =>
+  call('git_add', { projectPath, relativePath });
 export const gitCommit = ({ projectPath, message }) =>
   call('git_commit', { projectPath, message });
 export const gitPush = (projectPath) => call('git_push', { projectPath });

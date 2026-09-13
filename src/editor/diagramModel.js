@@ -458,7 +458,7 @@ function edgeToCetz(edge) {
  * @param {number} cursorPos
  * @returns {object | null}
  */
-export function extractDiagramModelNear(docText, cursorPos) {
+function locateModelComment(docText, cursorPos) {
   const marker = '// dbv-diagram-model: ';
   const before = docText.slice(0, cursorPos);
   const after = docText.slice(cursorPos);
@@ -475,15 +475,71 @@ export function extractDiagramModelNear(docText, cursorPos) {
 
   if (candidates.length === 0) return null;
 
-  const closest = candidates.sort((a, b) => Math.abs(a - cursorPos) - Math.abs(b - cursorPos))[0];
-  const lineEnd = docText.indexOf('\n', closest);
-  const jsonText = docText.slice(closest + marker.length, lineEnd === -1 ? undefined : lineEnd).trim();
+  const markerPos = candidates.sort((a, b) => Math.abs(a - cursorPos) - Math.abs(b - cursorPos))[0];
+  const lineEnd = docText.indexOf('\n', markerPos);
+  const jsonText = docText.slice(markerPos + marker.length, lineEnd === -1 ? undefined : lineEnd).trim();
 
   try {
     const parsed = JSON.parse(jsonText);
     if (!Array.isArray(parsed.nodes) || !Array.isArray(parsed.edges)) return null;
-    return parsed;
+    return { markerPos, model: parsed };
   } catch {
     return null;
   }
+}
+
+export function extractDiagramModelNear(docText, cursorPos) {
+  return locateModelComment(docText, cursorPos)?.model ?? null;
+}
+
+/**
+ * Igual que `extractDiagramModelNear`, pero además devuelve el rango
+ * `[from, to)` del bloque `#figure(...)<etiqueta>` completo que contiene el
+ * modelo — no solo la línea del comentario — para que "Insertar" pueda
+ * SUSTITUIRLO en vez de insertar un duplicado al lado. Sin esto, reabrir un
+ * diagrama existente para editarlo y pulsar "Insertar" dejaba el original
+ * intacto y añadía una copia nueva justo al lado (hallazgo de la revisión
+ * `/code-simplify` de v0.6.0: RF-31.3 solo se había probado a mano cargando
+ * el modelo, no reinsertándolo).
+ * @param {string} docText
+ * @param {number} cursorPos
+ * @returns {{ model: object, from: number, to: number } | null}
+ */
+export function findDiagramBlockRange(docText, cursorPos) {
+  const located = locateModelComment(docText, cursorPos);
+  if (!located) return null;
+
+  const figureStart = docText.lastIndexOf('#figure(', located.markerPos);
+  if (figureStart === -1) return null;
+
+  // Empareja paréntesis desde el `(` de `#figure(` hasta su cierre real. Los
+  // únicos paréntesis que puede haber por en medio, aparte de los de CeTZ
+  // (siempre balanceados: se generan aquí mismo), son los que el usuario
+  // teclee dentro del pie de figura como texto plano — balanceados también
+  // en el caso normal ("Diagrama (v2)"); un paréntesis suelto sin cerrar en
+  // el pie es un caso límite que se acepta no cubrir.
+  const openParenAt = figureStart + '#figure'.length;
+  let depth = 0;
+  let closeAt = -1;
+  for (let i = openParenAt; i < docText.length; i += 1) {
+    if (docText[i] === '(') depth += 1;
+    else if (docText[i] === ')') {
+      depth -= 1;
+      if (depth === 0) {
+        closeAt = i;
+        break;
+      }
+    }
+  }
+  if (closeAt === -1) return null;
+
+  // La etiqueta `<fig:...>` va pegada al cierre, sin salto de línea de por
+  // medio (ver `diagramToCetzCode`) — si está, forma parte del bloque.
+  let end = closeAt + 1;
+  if (docText[end] === '<') {
+    const labelEnd = docText.indexOf('>', end);
+    if (labelEnd !== -1) end = labelEnd + 1;
+  }
+
+  return { model: located.model, from: figureStart, to: end };
 }

@@ -543,7 +543,9 @@ describe('galería unificada de tres pestañas (RF-26)', () => {
     async function buscar(escenario, query) {
       escenario.specSearchInputEl.value = query;
       escenario.specSearchInputEl.dispatchEvent(new Event('input'));
-      await new Promise((resolve) => setTimeout(resolve, 0));
+      // El buscador compartido debounce-a 200ms (revisión /code-simplify de
+      // v0.6.0): hay que esperar de verdad a que dispare.
+      await new Promise((resolve) => setTimeout(resolve, 220));
       await new Promise((resolve) => setTimeout(resolve, 0));
     }
 

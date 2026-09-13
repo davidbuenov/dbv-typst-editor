@@ -43,7 +43,7 @@ import {
   createEmptyDiagram,
   diagramToCetzCode,
   directionOf,
-  extractDiagramModelNear,
+  findDiagramBlockRange,
   moveNode,
   nodeCenter,
   removeEdge,
@@ -120,6 +120,10 @@ export function createDiagramEditor({ panelEl, getView }) {
   const edgeLabelInputEl = find('edge-label');
 
   let diagram = createEmptyDiagram();
+  // Rango `[from, to)` del bloque `#figure(...)` que se está reeditando, o
+  // `null` si el diagrama es nuevo. "Insertar" lo usa para SUSTITUIR el
+  // bloque en vez de insertar uno nuevo al lado del original (RF-31.3).
+  let editingRange = null;
   let connectMode = false;
   let connectFrom = null;
   let selectedId = null;
@@ -689,20 +693,42 @@ export function createDiagramEditor({ panelEl, getView }) {
     const needsImport = !hasCetzImport(docText);
     const importText = '#import "@preview/cetz:0.5.2"\n\n';
     const code = diagramToCetzCode(diagram);
-    const { from, to } = view.state.selection.main;
 
-    const insertion = (from === 0 ? '' : docText[from - 1] === '\n' ? '\n' : '\n\n') + code + '\n';
-    const changes = [];
-    let offsetChars = 0;
-    if (needsImport && from === 0) {
-      changes.push({ from: 0, to, insert: importText + code + '\n\n' });
-    } else {
+    if (editingRange) {
+      // Reeditar un diagrama existente SUSTITUYE su bloque, no añade uno
+      // nuevo al lado — antes de esto, "Insertar" siempre usaba la posición
+      // actual del cursor y duplicaba el diagrama original en cada edición.
+      const { from, to } = editingRange;
+      const changes = [];
+      let offsetChars = 0;
       if (needsImport) {
         changes.push({ from: 0, to: 0, insert: importText });
         offsetChars = importText.length;
       }
-      changes.push({ from, to, insert: insertion });
+      changes.push({ from, to, insert: code });
+      view.dispatch({ changes, selection: { anchor: from + offsetChars + code.length } });
+      view.focus();
+      panel.close();
+      return;
     }
+
+    const { from, to } = view.state.selection.main;
+
+    // Antes había un caso especial para `needsImport && from === 0` que
+    // insertaba `importText + code + '\n\n'` de una vez pero calculaba el
+    // cursor final con la longitud de `insertion` (sin `importText`) — el
+    // cursor quedaba dentro del propio código CeTZ recién insertado. La
+    // rama de abajo ya cubre `from === 0` sin ese caso especial: un insert
+    // de longitud cero para el import, más el reemplazo real, en el mismo
+    // orden de posiciones.
+    const insertion = (from === 0 ? '' : docText[from - 1] === '\n' ? '\n' : '\n\n') + code + '\n';
+    const changes = [];
+    let offsetChars = 0;
+    if (needsImport) {
+      changes.push({ from: 0, to: 0, insert: importText });
+      offsetChars = importText.length;
+    }
+    changes.push({ from, to, insert: insertion });
     view.dispatch({ changes, selection: { anchor: from + offsetChars + insertion.length } });
     view.focus();
     panel.close();
@@ -718,7 +744,9 @@ export function createDiagramEditor({ panelEl, getView }) {
     /** Abre el editor vacío, o cargando el diagrama existente bajo el cursor si lo hay (RF-31.3). */
     openNear(triggerEl) {
       const view = getView();
-      const existing = view ? extractDiagramModelNear(view.state.doc.toString(), view.state.selection.main.from) : null;
+      const found = view ? findDiagramBlockRange(view.state.doc.toString(), view.state.selection.main.from) : null;
+      const existing = found?.model ?? null;
+      editingRange = found ? { from: found.from, to: found.to } : null;
       diagram = existing ?? createEmptyDiagram();
       selectedId = null;
       selectedEdge = null;

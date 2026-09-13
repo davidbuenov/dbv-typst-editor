@@ -4,15 +4,9 @@
 
 * **Objetivo**: Construir "el entorno de escritorio más accesible para el ecosistema Typst" (posicionamiento oficial) — no un editor de código con soporte Typst — orientado a documento/proyecto ("para Typst lo que Obsidian es para Markdown"), ligero, offline-first y multiplataforma, reutilizando al máximo la arquitectura de [DBV Markdown Reader](https://github.com/davidbuenov/dbv-md-reader).
 * **Ubicación**: `d:/Programacion/github-davidbuenov/dbv-typst-editor`.
-* **Estado actual**: **/build v0.5.0 — Previsualizaciones Typst Universe de Alta Fidelidad en Modal Completo y Hover Enriquecido COMPLETADOS (2026-09-09)**.
-  1. **Previsualización de Alta Fidelidad en Modal Completo para Typst Universe (`templateGalleryModal.js`, `templateThumbnails.js`)**: Las plantillas de Typst Universe (`charged-ieee`, `faithful-acmart`, `springer-spaniel`, `ilm`, `modern-cv`, `appreciated-letter`) y cualquier plantilla comunitaria cuentan ahora con la misma previsualización maquetada completa que las plantillas locales: lienzo A4 renderizado a alta resolución en SVG con tipografía realista, fondos nítidos, sombreado de papel, fichas de metadatos (`📄 main.typ`, `🏷️ @preview/...`, `⚖️ licencia`) y botón de acción directa "Usar plantilla".
-  2. **Hover Enriquecido en CodeMirror 6 (`universeHover.js`)**: Detección interactiva de `@preview/nombre:version` con renderizado de tarjeta tooltip (`cm-universe-hover-tooltip`), miniaturas maquetadas de plantillas, icono temático para librerías/paquetes, metadatos y botón a `typst.app/universe`.
-  3. **Catálogo de Typst Universe con Miniaturas (`universePanel.js`, `base.css`)**: Tarjetas enriquecidas con vista previa visual de la maquetación del documento con carga lazy, sombras realistas y apertura directa del modal de galería completa.
-  4. **Tinymist LSP y Python Runner**: LSP en segundo plano con diagnósticos `@codemirror/lint` en vivo, atajos de autocompletado y entorno Python compartido multiplataforma.
-* **Última decisión técnica**: Mapeo estricto de rutas y mockups vectoriales completos en `templateThumbnails.js` y `universeThumbnails.js` con fallback SVG elegante offline; 414 tests en verde (176 Rust + 238 Vitest) + 48 verificaciones de frontend y plantillas (8/8 verify:frontend, 40/40 verify:templates).
-* **Alcance ampliado el 2026-09-09**: el usuario, tras abrir la aplicación construida, pidió simplificar la pantalla de inicio ("aparece compleja... demasiado enrevesado") y decidió que el rediseño entra **en la misma v0.5.0**, reabriendo el `/spec`. Diseño validado en un lienzo de 6 artboards (fuentes en `spikes/launcher-redesign/`) y congelado como RF-25 a RF-27 en `SPECIFICATIONS.md` v1.4 §5d, con `ADR-LANZADOR-001` en `memory.md`.
-* **v0.5.0 cerrado y publicado (2026-09-09/11).** `/spec` de **v0.6.0 CONGELADO v1.7 (2026-09-11)**: RF-31 a RF-38 en `docs/SPECIFICATIONS.md` §5f, en una sola pasada para evitar las tres reaperturas de v0.5.0 — editor WYSIWYG de diagramas (sustituye a RF-23), menú Herramientas, clonar repo por URL, Universe Browser completo, bibliografía visual completa, macOS, auto-actualizador, runner de JavaScript con `jogs`. Ver `ADR-V060-001`, `ADR-GITHUB-001`, `ADR-JOGS-001` en `memory.md`.
-* **Próximo paso al retomar**: `/plan` de v0.6.0 — Modo Orquestador (8 RF, afecta a muchos ficheros), Adversarial Architect Review citando términos concretos de §5f, y desglose en `implementation_plan.md`. Detalles de implementación diferidos a propósito desde el `/spec` (no reabren la pregunta de alcance): crate BibTeX de RF-35, tamaño/criterio de whitelist de RF-34, verificación de sandboxing de `jogs` para RF-38.
+* **Estado actual**: **`/test` de v0.6.0 CERRADO (2026-09-13)** — sin tests nuevos que escribir: los 9 RF (RF-31 a RF-39) ya llegaban con su cobertura por slice (diagrama, Universe Browser, `jogs`, clonar por URL, pegado de portapapeles, bibliografía visual, etc.), y la suite completa está en verde: **402 Vitest · 224 Rust · `verify:frontend` 11/11 · `verify:layout` 15/15 · `verify:templates` 40/40 · `verify:typst` 8/8.** Siguiente paso: `/code-simplify` → `/ship`.
+* **v0.6.0 funcionalmente completa desde el 2026-09-12** (ver Fase 12/13 y "CÓMO RETOMAR" más abajo): editor WYSIWYG de diagramas (sustituye a RF-23), menú Herramientas, clonar repo por URL, Universe Browser completo, bibliografía visual con `hayagriva`, empaquetado macOS (firma pendiente de la cuenta de Apple Developer del usuario), auto-actualizador, runner de JavaScript con `jogs`, y RF-39 (pegar imagen del portapapeles). Los 9 RF, validados en ventana real por el usuario durante la pasada manual (catorce rondas, 2026-09-11/12). Ver `ADR-V060-001`, `ADR-GITHUB-001`, `ADR-JOGS-001` en `memory.md`.
+* **Próximo paso al retomar**: `/code-simplify` de v0.6.0 (revisión de calidad + pase `REVIEW.md`), después `/ship` (versionado 0.5.0 → 0.6.0, changelog bilingüe ES/EN, tag y push). El usuario ha pedido avanzar sin parar por las tres fases y hacer el push; la firma del ejecutable de Windows queda para cuando él vuelva.
 
 ## Checklist de Tareas
 
@@ -296,14 +290,16 @@
 - [x] **Fase 13: `/plan` v0.6.0 — cerrado el 2026-09-11.** `implementation_plan.md` reescrito con 12 slices (41-52), Adversarial Architect Review (riesgo de `jogs` colgando la vista previa en vivo dentro del sidecar `typst`) y 5 riesgos resueltos (R-31 a R-36, ver frontmatter). Decisiones técnicas cerradas en esta fase, no diferidas más: **`hayagriva`** como crate BibTeX de RF-35 (el mismo motor que usa el propio compilador `typst`), **SVG interactivo a mano** para el lienzo de RF-31 (sin librería nueva), **modelo de dos niveles** (verificado/comunidad) para la whitelist de RF-34. RF-38 empieza por un spike de sandboxing (Slice 43) antes de construir el asistente. RF-37 y RF-36 (parte de firma) quedan aislados al final por depender de acciones externas del usuario (clave de firma, cuenta de Apple Developer) sin bloquear el resto de la versión.
   - **PENDIENTE: aprobación explícita del usuario antes de `/build`.**
 
+- [x] **Fase 14: `/test` v0.6.0 — cerrada el 2026-09-13.** Sin tests nuevos que escribir: cada uno de los 9 RF (RF-31 a RF-39) ya llegó desde `/build` con su propia cobertura por slice (`diagramEditor.test.js`/`diagramModel.test.js`, `gitManager.test.js` + `commands/git.rs` con 16 tests, `universeSearch.test.js`/`universeSpec.test.js`/`universeThumbnails.test.js`, `clipboardImage.test.js`, `jogsAction` en `toolbarActions.test.js`). Se ejecutó la suite completa para confirmarlo, no para generarla: **402/402 Vitest · 224/224 Rust · `verify:frontend` 11/11 · `verify:layout` 15/15 · `verify:templates` 40/40 · `verify:typst` 8/8**, todo en verde sin tocar código. Sin componentes de IA no deterministas en el proyecto — no aplica Evals. Usuario pidió avanzar sin parar por `/code-simplify` → `/ship` (con push), dejando la firma del ejecutable de Windows para su vuelta.
+
 ## 🔄 Context Snapshot / Snapshot de Contexto
 
-> ### 👉 CÓMO RETOMAR ESTE PROYECTO (leer esto primero) — actualizado 2026-09-12, v0.6.0 lista para `/test`
+> ### 👉 CÓMO RETOMAR ESTE PROYECTO (leer esto primero) — actualizado 2026-09-13, v0.6.0 en `/code-simplify` → `/ship`
 >
-> **v0.6.0 está funcionalmente completa (los 9 RF, RF-31 a RF-39) y con la pasada manual del usuario
-> CERRADA DEL TODO — catorce rondas de fallos reales encontrados y corregidos, más la confirmación final
-> de bibliografía visual y `jogs`.** No queda ningún hueco de validación conocido. **Próximo paso:
-> `/test` → `/code-simplify` → `/ship`.**
+> **v0.6.0 está funcionalmente completa (los 9 RF, RF-31 a RF-39), con la pasada manual del usuario
+> CERRADA DEL TODO y con `/test` cerrado sin necesidad de tests nuevos (Fase 14).** No queda ningún hueco
+> de validación conocido ni ninguna suite en rojo. **Próximo paso: `/code-simplify` → `/ship` (versionado
+> 0.5.0 → 0.6.0, changelog bilingüe, tag y push) — en curso, a petición del usuario de avanzar sin parar.**
 >
 > **Qué trae v0.6.0 (detalle completo en `memory.md`, catorce entradas fechadas 2026-09-11/12):**
 > editor WYSIWYG de diagramas (reemplaza al asistente CeTZ; seis formas, colores, zoom/paneo, dirección

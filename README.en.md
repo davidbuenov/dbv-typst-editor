@@ -3,9 +3,9 @@
 **[🇪🇸 Español](./README.md) · 🇬🇧 English**
 
 [![Website](https://img.shields.io/badge/Website-davidbuenov.github.io%2Fdbv--typst--editor-2563eb?style=flat&logo=googlechrome&logoColor=white)](https://davidbuenov.github.io/dbv-typst-editor/en/)
-[![Releases](https://img.shields.io/badge/Releases-v0.5.0-brightgreen?logo=github)](https://github.com/davidbuenov/dbv-typst-editor/releases)
+[![Releases](https://img.shields.io/badge/Releases-v0.6.0-brightgreen?logo=github)](https://github.com/davidbuenov/dbv-typst-editor/releases)
 [![Microsoft Store](https://img.shields.io/badge/Microsoft%20Store-9PCPSVTNJMP0-0078D6?logo=microsoft&logoColor=white)](https://apps.microsoft.com/store/detail/9PCPSVTNJMP0?cid=DevShareMCLPCB)
-![Status](https://img.shields.io/badge/status-stable%20%7C%20v0.5.0-success)
+![Status](https://img.shields.io/badge/status-stable%20%7C%20v0.6.0-success)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
 ![Windows](https://img.shields.io/badge/Windows-10%20%2F%2011%20(.exe%20%2B%20Store)-0078D6?logo=windows&logoColor=white)
 ![macOS](https://img.shields.io/badge/macOS-Universal%20(.dmg)-000000?logo=apple&logoColor=white)
@@ -57,26 +57,28 @@ It follows the same philosophy as its sibling project [DBV Markdown Reader](http
 
 ## 🚦 Current status
 
-**Current version:** `v0.5.0` · **Status:** 🟢 Stable and production ready
+**Current version:** `v0.6.0` · **Status:** 🟢 Stable and production ready
 
 - 🌐 **Official Website:** [https://davidbuenov.github.io/dbv-typst-editor/en/](https://davidbuenov.github.io/dbv-typst-editor/en/) (featuring full-resolution interactive screenshot gallery and bilingual ES/EN switch).
-- 📦 **Installers available on Releases:** [GitHub Releases v0.5.0](https://github.com/davidbuenov/dbv-typst-editor/releases):
+- 📦 **Installers available on Releases:** [GitHub Releases v0.6.0](https://github.com/davidbuenov/dbv-typst-editor/releases):
   - 🪟 **Windows**: Standalone `.exe` installer (no external dependencies).
   - 🍎 **macOS**: Universal `.dmg` (compatible with Apple Silicon & Intel).
   - 🐧 **Linux**: `.AppImage` (portable) and `.deb` (Debian/Ubuntu/Mint) packages.
 - 🏬 **Microsoft Store:** published on the official store. [🛒 Get it from Microsoft Store (ID 9PCPSVTNJMP0)](https://apps.microsoft.com/store/detail/9PCPSVTNJMP0?cid=DevShareMCLPCB). If you installed an earlier Store package, make sure you get `v0.3.1` or later (see [`CHANGELOG.en.md`](./dbv-specs-ops/CHANGELOG.en.md)).
-- 🧪 **Quality & Stability:** 313 automated tests passing at 100% (152 frontend tests + 161 Rust backend tests) and layout verification in real rendering engines.
+- 🧪 **Quality & Stability:** 631 automated tests passing at 100% (405 frontend tests + 226 Rust backend tests) and layout verification in real rendering engines.
 - 🚀 **Key Highlights:**
+  - WYSIWYG diagram editor: nodes, arrows with direction/stroke/label, colors, zoom and drag-and-drop — translates to readable `cetz.canvas` code and can be reopened for further editing.
+  - Git integration: status, commit, push, pull and clone by URL from the header, with a diff viewer and visual merge-conflict resolution.
+  - Full Universe Browser: search across the real Typst Universe catalog (~4,700 packages and templates), not just a curated list, with automatic package/template detection.
   - Bidirectional editor ↔ preview synchronization (double-click on preview jumps to source code and pin button takes preview to cursor).
   - Whole-document compilation (`main.typ`) preserving cross-references and chapters, with automatic/manual refresh control.
-  - Image insertion assistant with project images dropdown and universal drag-and-drop.
-  - Full loop with real-time automatic PDF preview as you type.
-  - Native Typst Universe integration (+1,500 community packages & templates).
+  - Visual bibliography with `hayagriva`: citation autocomplete with title/author/year and a warning for duplicate or incomplete entries.
+  - Official Typst Language Server (tinymist) built in: semantic autocomplete, live diagnostics, and one-click formatting.
+  - Built-in Python runner (Matplotlib, NumPy, pandas) and a JavaScript runner with `jogs` for dynamic figures and data.
+  - Paste an image straight from the clipboard, in addition to universal drag-and-drop.
   - 8 pre-configured academic templates with self-contained embedded fonts.
-  - BibTeX citation assistant with live autocomplete.
-  - Remove recent projects easily from the launcher.
   - Self-contained project archives in `.dbvt` format.
-  - 3 visual themes (Light, Dark, and warm Sepia) plus integrated Typst CLI terminal.
+  - 3 visual themes (Light, Dark, and warm Sepia) plus an integrated advanced Typst terminal.
 
 ---
 
@@ -92,7 +94,7 @@ It follows the same philosophy as its sibling project [DBV Markdown Reader](http
 
 The most seamless experience on Windows 10 and 11: packaged and signed directly by Microsoft Store (no SmartScreen warnings), one-click installation, and automatic background updates.
 
-*(Note: available with Store ID `9PCPSVTNJMP0`. If you previously installed an earlier build from the Store, ensure you update to `v0.3.1` or newer; the current Store version is `v0.5.0` with full embedded Typst compiler; see [`CHANGELOG.en.md`](./dbv-specs-ops/CHANGELOG.en.md)). If you prefer not to use the Store, use the standalone `.exe` installer below.*
+*(Note: available with Store ID `9PCPSVTNJMP0`. If you previously installed an earlier build from the Store, ensure you update to `v0.3.1` or newer; the current Store version is `v0.6.0` with full embedded Typst compiler; see [`CHANGELOG.en.md`](./dbv-specs-ops/CHANGELOG.en.md)). If you prefer not to use the Store, use the standalone `.exe` installer below.*
 
 #### 📦 Standalone Installer (.exe)
 
@@ -212,7 +214,7 @@ stop.cmd
 
 ## 📋 Changelog
 
-`v0.5.0` documented in [`dbv-specs-ops/CHANGELOG.en.md`](./dbv-specs-ops/CHANGELOG.en.md) — code intelligence through the Tinymist LSP, figure generation with Python, a CeTZ diagram assistant, Git integration with side-by-side diff, and a thorough interface overhaul: launcher and gallery consolidate into a single entry point with three routes (local templates, Typst Universe and a free identifier), the header groups its file actions into one menu, and the keep-on-top pin and enlarged template preview arrive.
+`v0.6.0` documented in [`dbv-specs-ops/CHANGELOG.en.md`](./dbv-specs-ops/CHANGELOG.en.md) — a WYSIWYG diagram editor (nodes, arrows with direction and stroke, drag and drop), a "Tools" menu in the header, cloning a Git repository by URL, a full Universe Browser with search over the real Typst Universe catalog (~4,700 packages and templates), a visual bibliography with duplicate detection, macOS packaging, a JavaScript runner with `jogs`, and pasting an image straight from the clipboard.
 
 The changelog is maintained in both languages: [English](./dbv-specs-ops/CHANGELOG.en.md) · [Español](./dbv-specs-ops/CHANGELOG.md).
 

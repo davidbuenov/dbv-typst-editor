@@ -3,9 +3,9 @@
 **🇪🇸 Español · [🇬🇧 English](./README.en.md)**
 
 [![Sitio Web](https://img.shields.io/badge/Sitio%20Web-davidbuenov.github.io%2Fdbv--typst--editor-2563eb?style=flat&logo=googlechrome&logoColor=white)](https://davidbuenov.github.io/dbv-typst-editor/)
-[![Releases](https://img.shields.io/badge/Releases-v0.5.0-brightgreen?logo=github)](https://github.com/davidbuenov/dbv-typst-editor/releases)
+[![Releases](https://img.shields.io/badge/Releases-v0.6.0-brightgreen?logo=github)](https://github.com/davidbuenov/dbv-typst-editor/releases)
 [![Microsoft Store](https://img.shields.io/badge/Microsoft%20Store-9PCPSVTNJMP0-0078D6?logo=microsoft&logoColor=white)](https://apps.microsoft.com/store/detail/9PCPSVTNJMP0?cid=DevShareMCLPCB)
-![Status](https://img.shields.io/badge/status-estable%20%7C%20v0.5.0-success)
+![Status](https://img.shields.io/badge/status-estable%20%7C%20v0.6.0-success)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
 ![Windows](https://img.shields.io/badge/Windows-10%20%2F%2011%20(.exe%20%2B%20Store)-0078D6?logo=windows&logoColor=white)
 ![macOS](https://img.shields.io/badge/macOS-Universal%20(.dmg)-000000?logo=apple&logoColor=white)
@@ -59,26 +59,28 @@ Sigue la misma filosofía que su proyecto hermano [DBV Markdown Reader](https://
 
 ## 🚦 Estado actual
 
-**Versión actual:** `v0.5.0` · **Estado:** 🟢 Estable y listo para producción
+**Versión actual:** `v0.6.0` · **Estado:** 🟢 Estable y listo para producción
 
 - 🌐 **Sitio Web Oficial:** [https://davidbuenov.github.io/dbv-typst-editor/](https://davidbuenov.github.io/dbv-typst-editor/) (con galería interactiva de capturas en alta resolución y selector bilingüe ES/EN).
-- 📦 **Instaladores disponibles en Releases:** [GitHub Releases v0.5.0](https://github.com/davidbuenov/dbv-typst-editor/releases):
+- 📦 **Instaladores disponibles en Releases:** [GitHub Releases v0.6.0](https://github.com/davidbuenov/dbv-typst-editor/releases):
   - 🪟 **Windows**: Instalador `.exe` autónomo (sin dependencias externas).
   - 🍎 **macOS**: Archivo `.dmg` universal (compatible con Apple Silicon e Intel).
   - 🐧 **Linux**: Paquetes `.AppImage` (portable) y `.deb` (Debian/Ubuntu/Mint).
 - 🏬 **Microsoft Store:** disponible en la tienda oficial. [🛒 Consíguelo en Microsoft Store (ID 9PCPSVTNJMP0)](https://apps.microsoft.com/store/detail/9PCPSVTNJMP0?cid=DevShareMCLPCB). Si instalaste una versión previa desde la Store, asegúrate de contar con `v0.3.1` o superior (ver [`CHANGELOG.md`](./dbv-specs-ops/CHANGELOG.md)).
-- 🧪 **Calidad y estabilidad:** 313 pruebas automatizadas pasando al 100% (152 tests unitarios de frontend + 161 tests de backend en Rust) y validación de layout en motor Chromium/WebKit real.
+- 🧪 **Calidad y estabilidad:** 631 pruebas automatizadas pasando al 100% (405 tests de frontend + 226 tests de backend en Rust) y validación de layout en motor Chromium/WebKit real.
 - 🚀 **Funcionalidades destacadas incluidas:**
+  - Editor WYSIWYG de diagramas: nodos, flechas con dirección/trazo/etiqueta, colores, zoom y arrastrar y soltar — traduce a código `cetz.canvas` legible y se puede reabrir para seguir editando.
+  - Integración con Git: estado, commit, push, pull y clonar por URL desde la cabecera, con comparador de diferencias y resolución visual de conflictos de fusión.
+  - Universe Browser completo: buscador sobre el catálogo real de Typst Universe (~4.700 paquetes y plantillas), no solo una lista curada, con distinción automática entre paquete y plantilla.
   - Sincronización bidireccional editor ↔ vista previa (doble clic en render para saltar al código fuente y botón chincheta para llevar la vista previa al cursor).
   - Compilación del documento completo (`main.typ`) con conservación de referencias cruzadas y capítulos, más control de refresco automático o manual.
-  - Asistente de imágenes con selector desplegable de imágenes del proyecto y arrastre universal de archivos.
-  - Bucle completo de edición y previsualización PDF en tiempo real.
-  - Integración nativa con Typst Universe (+1.500 paquetes y plantillas comunitarias).
+  - Bibliografía visual con `hayagriva`: autocompletado de citas con título/autor/año y aviso de entradas duplicadas o incompletas.
+  - Language Server oficial de Typst (tinymist) integrado: autocompletado semántico, diagnósticos en vivo y formateo con un clic.
+  - Runner de Python integrado (Matplotlib, NumPy, pandas) y runner de JavaScript con `jogs` para figuras y datos dinámicos.
+  - Pegar una imagen directamente desde el portapapeles, además del arrastre universal de archivos.
   - 8 plantillas académicas oficiales preconfiguradas con fuentes incrustadas.
-  - Asistente de citas bibliográficas BibTeX con autocompletado en vivo.
-  - Eliminación rápida de proyectos recientes desde el lanzador.
   - Empaquetado completo en un único archivo de proyecto `.dbvt`.
-  - 3 temas visuales (Claro, Oscuro y Sepia cálido) y terminal Typst integrado.
+  - 3 temas visuales (Claro, Oscuro y Sepia cálido) y terminal Typst avanzado integrado.
 
 ---
 
@@ -94,7 +96,7 @@ Sigue la misma filosofía que su proyecto hermano [DBV Markdown Reader](https://
 
 Es la vía más directa y cómoda para Windows: el paquete lo firma la propia Store (sin avisos de SmartScreen), se instala con un clic y se actualiza solo en segundo plano con cada nueva versión de la tienda.
 
-*(Nota: disponible con Store ID `9PCPSVTNJMP0`. Si descargaste una versión previa desde la Store, comprueba que tienes `v0.3.1` o superior —la versión actual es `v0.5.0` e incluye el compilador Typst embebido; ver [`CHANGELOG.md`](./dbv-specs-ops/CHANGELOG.md)). Si prefieres no usar la Store, usa el instalador `.exe` independiente de abajo.*
+*(Nota: disponible con Store ID `9PCPSVTNJMP0`. Si descargaste una versión previa desde la Store, comprueba que tienes `v0.3.1` o superior —la versión actual es `v0.6.0` e incluye el compilador Typst embebido; ver [`CHANGELOG.md`](./dbv-specs-ops/CHANGELOG.md)). Si prefieres no usar la Store, usa el instalador `.exe` independiente de abajo.*
 
 #### 📦 Instalador independiente (.exe)
 
@@ -304,7 +306,7 @@ Preparación para Microsoft Store documentada en [`dbv-specs-ops/docs/MICROSOFT_
 
 ## 📋 Changelog
 
-`v0.5.0` documentada en [`dbv-specs-ops/CHANGELOG.md`](./dbv-specs-ops/CHANGELOG.md) — inteligencia de código con el LSP Tinymist, generación de figuras con Python, asistente de diagramas CeTZ, integración con Git y diff lado a lado, y una revisión a fondo de la interfaz: el lanzador y la galería se consolidan en una sola puerta de entrada con tres vías (plantillas locales, Typst Universe e identificador libre), la cabecera agrupa sus acciones de fichero en un menú, y llegan la chincheta de ventana encima y la vista ampliada de plantillas.
+`v0.6.0` documentada en [`dbv-specs-ops/CHANGELOG.md`](./dbv-specs-ops/CHANGELOG.md) — editor WYSIWYG de diagramas (nodos, flechas con dirección y trazo, arrastrar y soltar), menú "Herramientas" en la cabecera, clonar repositorio de Git por URL, Universe Browser completo con buscador sobre el catálogo real de Typst Universe (~4.700 paquetes y plantillas), bibliografía visual con detección de duplicados, empaquetado macOS, runner de JavaScript con `jogs`, y pegar una imagen directamente del portapapeles.
 
 El changelog se mantiene en los dos idiomas: [Español](./dbv-specs-ops/CHANGELOG.md) · [English](./dbv-specs-ops/CHANGELOG.en.md).
 

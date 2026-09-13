@@ -317,12 +317,24 @@
 > ejecuciones terminaron en verde** (primera vez que corren con las correcciones de `/code-simplify`, en
 > particular el `cancel_if_current` del timeout de compilación).
 >
+> **`ci.yml` y `release-linux.yml` terminaron en verde. `release-macos.yml` FALLÓ (2026-09-13,
+> run `34744807502`)** — y no es una regresión de esta sesión (el workflow no se ha tocado hoy, último
+> cambio en `7b0cdae`, previo a `/code-simplify`). El build compila bien; falla al firmar:
+> `security: SecKeychainItemImport: One or more parameters passed to a function were not valid.` /
+> `failed to bundle project: failed codesign application: failed to run command security import: failed
+> to import keychain certificate`. **Lectura:** los secretos `APPLE_*` del repositorio, que hasta v0.5.0
+> estaban vacíos (por eso el build salía sin firmar, sin fallar — ver el propio comentario de cabecera del
+> workflow, que sigue diciendo "hoy no existen"), YA EXISTEN pero con el certificado o su contraseña mal
+> formados. Solo el usuario puede revisarlos (Settings → Secrets del repo) — la IA no tiene ni debe tener
+> acceso. El `.dmg`/`.app` de v0.6.0 sigue sin publicarse en la Release de GitHub hasta que esto se
+> resuelva y se relance el job (o se vuelva a taguear).
+>
 > **Acciones que siguen dependiendo del usuario, no de la IA, para terminar de publicar v0.6.0:**
-> generar en local el build de Windows firmado (`TAURI_SIGNING_*` + `npm run updater:manifest`) y subirlo
-> a mano a la Release de GitHub — el workflow no genera ejecutable de Windows, eso es esperado; publicar
-> v0.6.0 en Microsoft Store (checklist en `docs/MICROSOFT_STORE.md`); y activar su cuenta de Apple
-> Developer para que `release-macos.yml` empiece a firmar el `.dmg`/`.app` universal (RF-36, hoy sale sin
-> firmar sin fallar).
+> revisar el secreto `APPLE_CERTIFICATE`/`APPLE_CERTIFICATE_PASSWORD` que está fallando al importarse (ver
+> párrafo de arriba); generar en local el build de Windows firmado (`TAURI_SIGNING_*` +
+> `npm run updater:manifest`) y subirlo a mano a la Release de GitHub — el workflow no genera ejecutable
+> de Windows, eso es esperado; y publicar v0.6.0 en Microsoft Store (checklist en
+> `docs/MICROSOFT_STORE.md`).
 >
 > **Qué trae v0.6.0 (detalle completo en `memory.md`, catorce entradas fechadas 2026-09-11/12):**
 > editor WYSIWYG de diagramas (reemplaza al asistente CeTZ; seis formas, colores, zoom/paneo, dirección

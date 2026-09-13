@@ -1,7 +1,7 @@
 # 🏬 Publicación en Microsoft Store: DBV Typst Editor
 
-> **Estado:** 🟢 **Publicada en Microsoft Store, v0.5.0 verificada en producción (2026-09-10).** El incidente del primer paquete (sin el compilador Typst ni el catálogo de plantillas dentro, ver §6) quedó corregido en `v0.3.1` y reenviado; desde entonces cada envío pasa el checklist de verificación de §6 antes de subirlo. El usuario ha confirmado que la v0.5.0 (con los dos sidecars, Typst + tinymist) funciona perfectamente instalada desde la propia Store.
-> **Última revisión:** 2026-09-10
+> **Estado:** 🟡 **v0.6.0 enviada a certificación en Partner Center (2026-09-13), sin incidencias en el envío** — pendiente de que Microsoft complete la revisión y la publique. Textos usados: `notasActualizacionStore_v0.6.0.md`. Última versión **verificada en producción: v0.5.0 (2026-09-10)**. El incidente del primer paquete (sin el compilador Typst ni el catálogo de plantillas dentro, ver §6) quedó corregido en `v0.3.1` y reenviado; desde entonces cada envío pasa el checklist de verificación de §6 antes de subirlo.
+> **Última revisión:** 2026-09-13
 
 Documento operativo (no una especificación de producto): checklist accionable para publicar `dbv-typst-editor` en la Microsoft Store, y registro de las decisiones técnicas que llevaron hasta aquí. Sigue el mismo modelo que [`dbv-md-reader`](https://github.com/davidbuenov/dbv-md-reader) (ya publicado, `9N7BMDZGCP0S`) y la guía general [`MARKETPLACE_PUBLISHING.md`](./MARKETPLACE_PUBLISHING.md) — este documento solo registra lo específico de este proyecto.
 
@@ -137,8 +137,7 @@ ADDITIONAL TECHNICAL CONTEXT:
 ## 5. Pendiente, fuera del alcance de esta sesión
 
 1. **Capturas de pantalla de la aplicación real.** Ninguna sesión hasta ahora ha tenido acceso a una ventana real de Windows para capturarlas — necesarias para la ficha de Store y recomendable reutilizarlas también en la landing page (`docs/index.html`).
-2. **Build de Windows firmado + `.msix`** — pasos exactos en [`WINDOWS_RELEASE.md`](./WINDOWS_RELEASE.md) §3 y §6 (nunca en manos de la IA, regla ya registrada en `memory.md`).
-3. **Enviar a certificación en Partner Center**, siguiendo el checklist de `MARKETPLACE_PUBLISHING.md` §8, citando el Store ID (`9PCPSVTNJMP0`) si hace falta contactar soporte.
+2. **Resultado de la certificación de v0.6.0.** Enviada el 2026-09-13 sin incidencias en el envío (build firmado + `.msixbundle` generados con `WINDOWS_RELEASE.md` §3/§6, textos de `notasActualizacionStore_v0.6.0.md`). Falta que Microsoft complete la revisión y la publique — anotar aquí el resultado cuando llegue (aprobada / rechazada y por qué).
 
 ---
 

@@ -52,6 +52,10 @@ npx tauri-windows-bundle init                  # genera src-tauri/gen/windows/ (
 npm run tauri:windows:build                    # genera el .msix — necesita el .exe firmado ya compilado
 ```
 
+**Pasos completos y en orden desde cero** (vendorizar sidecars, variables de entorno de firma, compilar
+el `.exe`, generar el manifiesto de actualización y solo entonces el `.msix`): ver
+[`WINDOWS_RELEASE.md`](./WINDOWS_RELEASE.md) — documento único para no repetir esta secuencia de memoria.
+
 Archivos generados (trackeados en git completos, no gitignorados — ver `MARKETPLACE_PUBLISHING.md` §3, "la carpeta de empaquetado se trackea entera"):
 - `src-tauri/gen/windows/bundle.config.json` — identidad real ya rellenada (§2).
 - `src-tauri/gen/windows/AppxManifest.xml.template` — plantilla del manifiesto, sin tocar.
@@ -128,9 +132,8 @@ ADDITIONAL TECHNICAL CONTEXT:
 ## 5. Pendiente, fuera del alcance de esta sesión
 
 1. **Capturas de pantalla de la aplicación real.** Ninguna sesión hasta ahora ha tenido acceso a una ventana real de Windows para capturarlas — necesarias para la ficha de Store y recomendable reutilizarlas también en la landing page (`docs/index.html`).
-2. **Build de Windows firmado** (`npm run build`, requiere `TAURI_SIGNING_PRIVATE_KEY`/`_PASSWORD` en el terminal del usuario — nunca en manos de la IA, regla ya registrada en `memory.md` para el instalador NSIS y válida también aquí) — el `.msix` no puede generarse sin el `.exe` compilado.
-3. **Generar el `.msix` final** (`npm run tauri:windows:build`) sobre ese build ya compilado.
-4. **Enviar a certificación en Partner Center**, siguiendo el checklist de `MARKETPLACE_PUBLISHING.md` §8, citando el Store ID (`9PCPSVTNJMP0`) si hace falta contactar soporte.
+2. **Build de Windows firmado + `.msix`** — pasos exactos en [`WINDOWS_RELEASE.md`](./WINDOWS_RELEASE.md) §3 y §6 (nunca en manos de la IA, regla ya registrada en `memory.md`).
+3. **Enviar a certificación en Partner Center**, siguiendo el checklist de `MARKETPLACE_PUBLISHING.md` §8, citando el Store ID (`9PCPSVTNJMP0`) si hace falta contactar soporte.
 
 ---
 

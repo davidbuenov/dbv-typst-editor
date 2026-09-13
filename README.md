@@ -292,6 +292,9 @@ npm run updater:manifest
 npm run tauri:windows:build
 ```
 
+Pasos completos del build de Windows firmado (variables de entorno, orden exacto, qué sube a dónde):
+[`dbv-specs-ops/docs/WINDOWS_RELEASE.md`](./dbv-specs-ops/docs/WINDOWS_RELEASE.md).
+
 | Plataforma | Quién compila | Release |
 | --- | --- | --- |
 | **Windows** | El mantenedor, en local (`npm run build`, requiere la clave de firma del actualizador) | Sube el `.exe` + `.sig` + `latest.json` al borrador de Release a mano; el `.msix` se sube aparte a Partner Center |

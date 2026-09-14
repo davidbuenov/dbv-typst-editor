@@ -175,6 +175,9 @@
             <button id="btn-tools-kanban" class="menu-item" type="button" role="menuitem">
               <span class="menu-item__icon menu-item__icon--glyph" aria-hidden="true">▥</span><span data-i18n="action.kanbanEditor"></span>
             </button>
+            <button id="btn-tools-dot" class="menu-item" type="button" role="menuitem">
+              <span class="menu-item__icon menu-item__icon--glyph" aria-hidden="true">⌥</span><span data-i18n="action.dotEditor"></span>
+            </button>
             <div class="menu-separator" role="separator"></div>
             <button id="btn-jogs-insert" class="menu-item" type="button" role="menuitem" data-i18n-title="jogs.hint">
               <span class="menu-item__icon menu-item__icon--glyph" aria-hidden="true">JS</span><span data-i18n="action.jogsInsert"></span>
@@ -876,6 +879,22 @@
 
       <span class="diagram-editor__hint" data-kanban="hint"></span>
       <button data-kanban="insert" type="button" class="button button--primary" data-i18n="sequence.insert"></button>
+    </div>
+
+    <!-- Asistente de DOT/Graphviz (RF-51, paquete `diagraph`): sin ningún
+         catálogo de piezas — el propio texto DOT que escribe el usuario ES
+         el contenido (SPECIFICATIONS.md §5g RF-51.1). Vista previa en vivo
+         igual que el editor de ecuaciones (RF-46), reutilizando su mismo
+         patrón de "campo de texto grande + vista previa real debajo". -->
+    <div id="dot-panel" class="floating-panel floating-panel--diagram hidden" role="dialog" aria-modal="false">
+      <h2 class="floating-panel__title" data-i18n="dot.title"></h2>
+
+      <textarea data-dot="source" rows="4" class="diagram-editor__input diagram-editor__input--grow equation-editor__source" data-i18n-placeholder="dot.sourcePlaceholder"></textarea>
+
+      <div class="equation-editor__preview" data-dot="preview"></div>
+      <span class="diagram-editor__hint" data-dot="hint"></span>
+
+      <button data-dot="insert" type="button" class="button button--primary" data-i18n="equation.insert"></button>
     </div>
 
     <!-- Desplegable de citas (Beta, ARCHITECTURE.md §7.7.4). -->

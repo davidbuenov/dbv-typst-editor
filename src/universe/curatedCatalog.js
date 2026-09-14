@@ -115,6 +115,14 @@ export const CURATED_PACKAGES = [
     license: 'AGPL-3.0-only',
   },
   {
+    spec: '@preview/diagraph:0.3.7',
+    title: 'diagraph — render DOT/Graphviz',
+    titleEn: 'diagraph — DOT/Graphviz rendering',
+    description: 'Renderiza grafos DOT con Graphviz vía un plugin Wasm, sin depender de Graphviz instalado.',
+    descriptionEn: 'Renders DOT graphs with Graphviz via a Wasm plugin, no installed Graphviz needed.',
+    license: 'MIT',
+  },
+  {
     spec: '@preview/touying:0.7.4',
     title: 'touying — presentaciones',
     titleEn: 'touying — presentations',

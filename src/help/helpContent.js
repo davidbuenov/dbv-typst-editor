@@ -198,6 +198,16 @@ export const HELP_SECTIONS = [
     ],
   },
   {
+    id: 'dot',
+    title: { es: 'DOT / Graphviz', en: 'DOT / Graphviz' },
+    blocks: [
+      {
+        es: 'En el menú Herramientas → DOT/Graphviz: un campo de texto donde escribir o pegar un grafo en sintaxis DOT, con su vista previa REAL justo debajo — compilada por Typst en cada pausa, igual que el editor de ecuaciones. Útil para quien ya tiene un .dot exportado de otra herramienta. Al insertar, se genera con el paquete diagraph y se añade su import si hace falta.',
+        en: 'In the Tools menu → DOT/Graphviz: a text field where you write or paste a graph in DOT syntax, with its REAL preview right below — compiled by Typst on every pause, just like the equation editor. Useful for anyone who already has a .dot file exported from another tool. Inserting generates the graph with the diagraph package, adding its import if needed.',
+      },
+    ],
+  },
+  {
     id: 'vista-previa',
     title: { es: 'Vista previa', en: 'Preview' },
     blocks: [

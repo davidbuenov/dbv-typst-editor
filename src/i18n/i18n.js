@@ -80,6 +80,7 @@ const DICTIONARIES = {
     'action.sequenceEditor': 'Diagrama de secuencia',
     'action.ganttEditor': 'Diagrama de Gantt',
     'action.kanbanEditor': 'Tablero Kanban',
+    'action.dotEditor': 'DOT / Graphviz',
     'jogs.inserted': 'Script jogs insertado',
     'sidebar.tabFiles': 'Archivos',
     'sidebar.tabOutline': 'Esquema',
@@ -445,6 +446,14 @@ const DICTIONARIES = {
     'kanban.needCardName': 'Escribe un nombre antes de añadir la tarjeta.',
     'kanban.needOneColumn': 'Añade al menos una columna para insertar el tablero.',
 
+    // Asistente de DOT/Graphviz (RF-51).
+    'dot.title': 'DOT / Graphviz',
+    'dot.sourcePlaceholder': 'digraph { a -> b }',
+    'dot.needDocument': 'Abre un documento primero para insertar un grafo DOT.',
+    'dot.hintDefault': 'Escribe el grafo en sintaxis DOT — la vista previa se actualiza sola.',
+    'dot.hintEmpty': 'El grafo está vacío.',
+    'dot.hintError': 'No se pudo componer este grafo todavía.',
+
     'cetz.title': 'Asistente de Diagramas CeTZ',
     'cetz.desc': 'Inserta código listo para compilar con la biblioteca gráfica CeTZ.',
     'cetz.flowchart': 'Diagrama de Flujo',
@@ -574,6 +583,7 @@ const DICTIONARIES = {
     'action.sequenceEditor': 'Sequence diagram',
     'action.ganttEditor': 'Gantt chart',
     'action.kanbanEditor': 'Kanban board',
+    'action.dotEditor': 'DOT / Graphviz',
     'jogs.inserted': 'jogs script inserted',
     'sidebar.tabFiles': 'Files',
     'sidebar.tabOutline': 'Outline',
@@ -938,6 +948,14 @@ const DICTIONARIES = {
     'kanban.hintDefault': 'Add columns and, inside each one, its cards.',
     'kanban.needCardName': 'Type a name before adding the card.',
     'kanban.needOneColumn': 'Add at least one column to insert the board.',
+
+    // DOT/Graphviz assistant (RF-51).
+    'dot.title': 'DOT / Graphviz',
+    'dot.sourcePlaceholder': 'digraph { a -> b }',
+    'dot.needDocument': 'Open a document first to insert a DOT graph.',
+    'dot.hintDefault': 'Type the graph in DOT syntax — the preview updates on its own.',
+    'dot.hintEmpty': 'The graph is empty.',
+    'dot.hintError': "This graph couldn't be typeset yet.",
 
     'cetz.title': 'CeTZ Diagram Assistant',
     'cetz.desc': 'Insert ready-to-compile code using the CeTZ graphics library.',

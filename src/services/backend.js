@@ -250,5 +250,16 @@ export const compileEquation = (math, { root, fontSizePt, preamble } = {}) =>
     preamble: preamble ?? null,
   });
 
+// ─── Asistente de DOT/Graphviz (RF-51) ───────────────────────────────────────
+
+/**
+ * Compila `dot` (texto DOT crudo, sin escapar) a una "viñeta" SVG recortada
+ * al contenido, para la vista previa en vivo del asistente de DOT/Graphviz.
+ * Mismo patrón que `compileEquation`; `root` permite resolver las fuentes
+ * propias del proyecto abierto igual que el resto de vistas previas.
+ */
+export const compileDot = (dot, { root } = {}) =>
+  call('typst_compile_dot', { dot, root: root ?? null });
+
 
 

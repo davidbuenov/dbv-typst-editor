@@ -542,6 +542,7 @@ async function bootstrap() {
       sequencePanel: el('sequence-panel'),
       ganttPanel: el('gantt-panel'),
       kanbanPanel: el('kanban-panel'),
+      dotPanel: el('dot-panel'),
       documentName: el('document-name'),
       documentDirty: el('document-dirty'),
       documentPath: el('document-path'),
@@ -1036,6 +1037,14 @@ async function bootstrap() {
       return;
     }
     workspace.openKanbanEditor(el('btn-tools-kanban'));
+  });
+
+  el('btn-tools-dot').addEventListener('click', () => {
+    if (!workspace.state.document) {
+      toast.show(t('dot.needDocument'), 'error');
+      return;
+    }
+    workspace.openDotEditor(el('btn-tools-dot'));
   });
 
   el('btn-jogs-insert').addEventListener('click', () => {

@@ -26,6 +26,7 @@ import { createEquationEditor } from '../editor/equationEditor.js';
 import { createSequenceEditor } from '../editor/sequenceEditor.js';
 import { createGanttEditor } from '../editor/ganttEditor.js';
 import { createKanbanEditor } from '../editor/kanbanEditor.js';
+import { createDotEditor } from '../editor/dotEditor.js';
 import { createToolbar } from '../editor/toolbar.js';
 import { figureActionForPath } from '../editor/toolbarActions.js';
 import { posFromLsp } from '../editor/lspClient.js';
@@ -90,6 +91,7 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
   let sequenceEditor;
   let ganttEditor;
   let kanbanEditor;
+  let dotEditor;
   const editor = createEditor(elements.editorHost, {
     theme: getTheme(),
     lspClient,
@@ -282,6 +284,12 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
   kanbanEditor = createKanbanEditor({
     panelEl: elements.kanbanPanel,
     getView: editor.getView,
+  });
+
+  dotEditor = createDotEditor({
+    panelEl: elements.dotPanel,
+    getView: editor.getView,
+    getRoot: () => state.project?.root ?? null,
   });
 
   /** Ganchos que rellenan los slices posteriores (vista previa, guardado). */
@@ -754,6 +762,10 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     /** Abre el asistente de tableros Kanban (RF-50), mismo patrón que `openDiagramEditor`. */
     openKanbanEditor(triggerEl) {
       kanbanEditor?.openNear(triggerEl);
+    },
+    /** Abre el asistente de DOT/Graphviz (RF-51), mismo patrón que `openDiagramEditor`. */
+    openDotEditor(triggerEl) {
+      dotEditor?.openNear(triggerEl);
     },
     openProjectAt,
     openDocument,

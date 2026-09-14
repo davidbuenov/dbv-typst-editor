@@ -134,6 +134,7 @@ pub fn run() {
             typst_engine::compile::typst_export_png,
             typst_engine::compile::typst_preview_page,
             typst_engine::equation::typst_compile_equation,
+            typst_engine::dot::typst_compile_dot,
             typst_engine::outline::typst_outline,
             typst_engine::sync::typst_sync_anchors,
             typst_engine::typst_run_raw,

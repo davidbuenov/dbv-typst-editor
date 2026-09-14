@@ -546,7 +546,20 @@ async function bootstrap() {
       workspaceView: el('workspace-view'),
       emptyView: el('empty-view'),
       universeButton: el('btn-universe'),
-      projectMenuItems: [el('btn-export-archive'), el('btn-reveal'), el('btn-close-project')],
+      // RF-43: Guardar/Guardar como/Exportar PDF/Exportar PNG se unen aquí al
+      // moverse del `.document__bar` (siempre habilitado mientras hubiera un
+      // documento cargado, sin comprobación propia) al menú Archivo (visible
+      // incluso sin proyecto abierto, desde el lanzador) — sin esto, pulsarlos
+      // en el estado "Sin proyecto" no tendría documento sobre el que actuar.
+      projectMenuItems: [
+        el('btn-save'),
+        el('btn-save-as'),
+        el('btn-export-pdf'),
+        el('btn-export-png'),
+        el('btn-export-archive'),
+        el('btn-reveal'),
+        el('btn-close-project'),
+      ],
     },
   });
 
@@ -976,6 +989,17 @@ async function bootstrap() {
   // eval-js, mismo patrón que el asistente de diagramas CeTZ — no un runner
   // con proceso propio como el de Python (RF-22), porque jogs corre DENTRO
   // de la compilación (ver ADR-JOGS-001 en memory.md).
+  // RF-45: misma acción que el icono ✎ de la barra de inserción
+  // (`specialHandlers.diagram` en `toolbar.js`), ahora también accesible desde
+  // el menú Herramientas — dos vías, un solo editor (RF-31).
+  el('btn-tools-diagram').addEventListener('click', () => {
+    if (!workspace.state.document) {
+      toast.show(t('diagram.needDocument'), 'error');
+      return;
+    }
+    workspace.openDiagramEditor(el('btn-tools-diagram'));
+  });
+
   el('btn-jogs-insert').addEventListener('click', () => {
     const view = workspace.editor.getView();
     if (!workspace.state.document || !view) {

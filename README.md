@@ -42,6 +42,7 @@
 - [Probar la aplicación](#-probar-la-aplicación)
 - [Empaquetado y publicación](#-empaquetado-y-publicación)
 - [Changelog](#-changelog)
+- [Referencias](#-referencias)
 - [Licencia](#-licencia)
 - [Autor y Créditos](#-autor-y-créditos)
 
@@ -312,6 +313,12 @@ Preparación para Microsoft Store documentada en [`dbv-specs-ops/docs/MICROSOFT_
 `v0.6.0` documentada en [`dbv-specs-ops/CHANGELOG.md`](./dbv-specs-ops/CHANGELOG.md) — editor WYSIWYG de diagramas (nodos, flechas con dirección y trazo, arrastrar y soltar), menú "Herramientas" en la cabecera, clonar repositorio de Git por URL, Universe Browser completo con buscador sobre el catálogo real de Typst Universe (~4.700 paquetes y plantillas), bibliografía visual con detección de duplicados, empaquetado macOS, runner de JavaScript con `jogs`, y pegar una imagen directamente del portapapeles.
 
 El changelog se mantiene en los dos idiomas: [Español](./dbv-specs-ops/CHANGELOG.md) · [English](./dbv-specs-ops/CHANGELOG.en.md).
+
+---
+
+## 📚 Referencias
+
+- **Voynov, A., Corbi, A., López-Oliver, P., & Gil, D. (2026).** [*Typst: A Modern Typesetting Engine for Science*](https://doi.org/10.9781/ijimai.2026.2269). *International Journal of Interactive Multimedia and Artificial Intelligence, 9*(7), 107–120. Revisión sistemática del ecosistema Typst (motor, lenguaje, paquetes de Typst Universe, adopción) con estudios de caso en Física, Matemáticas e Informática. La Sección XI ("Application of Typst for Computer Science") cataloga paquetes de diagramación — Fletcher/Matofletcher (diagramas de flujo), CeTZ (árboles, gráficos), Diagraph (DOT/Graphviz vía Wasm), Pintora/Pintorita (diagramas de actividad, clases, ER), Chronos (diagramas de secuencia), Gantty/Timeliney (Gantt) y Kantan (tableros Kanban) — que sirven de mapa de referencia para valorar futuras integraciones en el editor. Uno de sus autores, **Alberto Corbi**, es colaborador de este proyecto (ver la sección de Autor y Créditos más abajo).
 
 ---
 

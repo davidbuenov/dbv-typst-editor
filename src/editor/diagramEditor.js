@@ -92,6 +92,25 @@ const SEED_TEMPLATES = {
     diagram = addEdge(diagram, 'n2', 'n3');
     return diagram;
   },
+  /**
+   * RF-47: el modelo de RF-31 ya soporta un nodo `diamond` y una etiqueta por
+   * arista (`setEdgeLabel`) — exactamente lo que hace falta para un rombo de
+   * decisión con salidas "Sí"/"No" — pero ninguna plantilla de siembra lo
+   * mostraba, así que la capacidad pasaba desapercibida (ADR-DECISION-001,
+   * memory.md: no hace falta Fletcher ni Matofletcher, solo un ejemplo).
+   */
+  decision: () => {
+    let diagram = addNode(createEmptyDiagram(), { x: 170, y: 20, label: 'Inicio', shape: 'round', color: 'green' });
+    diagram = addNode(diagram, { x: 140, y: 120, w: 160, h: 90, label: '¿Condición?', shape: 'diamond', color: 'amber' });
+    diagram = addNode(diagram, { x: 20, y: 260, label: 'Camino Sí', shape: 'rect', color: 'blue' });
+    diagram = addNode(diagram, { x: 280, y: 260, label: 'Camino No', shape: 'rect', color: 'rose' });
+    diagram = addEdge(diagram, 'n1', 'n2');
+    diagram = addEdge(diagram, 'n2', 'n3');
+    diagram = setEdgeLabel(diagram, 'n2', 'n3', 'Sí');
+    diagram = addEdge(diagram, 'n2', 'n4');
+    diagram = setEdgeLabel(diagram, 'n2', 'n4', 'No');
+    return diagram;
+  },
 };
 
 /**
@@ -596,6 +615,7 @@ export function createDiagramEditor({ panelEl, getView }) {
 
   find('seed-flowchart')?.addEventListener('click', () => seedWith(SEED_TEMPLATES.flowchart));
   find('seed-block')?.addEventListener('click', () => seedWith(SEED_TEMPLATES.block));
+  find('seed-decision')?.addEventListener('click', () => seedWith(SEED_TEMPLATES.decision));
 
   // Las plantillas están dibujadas a la medida del lienzo, así que NO se
   // reencuadran: hacerlo movería y escalaría el diagrama nada más sembrarlo,

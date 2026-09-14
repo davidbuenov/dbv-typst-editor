@@ -558,6 +558,44 @@ Cuando el usuario pide "algo más limpio" tras un primer arreglo que solo atajó
 - **2026-09-06 — El primer `/ship` con push real (`v0.2.0`) hizo fallar los tres GitHub Actions del proyecto, y la causa no tenía nada que ver con el contenido de esa entrega: un test (`is_packaged_path_detecta_una_instalacion_de_microsoft_store`) construye una ruta de Windows y depende de que `Path::components()` trocee por `\`, cierto solo en Windows — en Linux/macOS (donde corre `ci.yml`, `ubuntu-22.04`) toda la cadena es un único componente literal y la aserción falla siempre.** El bug es preexistente desde que se escribió ese test, pero **nunca se había manifestado porque la CI nunca se había ejecutado de verdad hasta el primer push con tag** — todas las sesiones anteriores solo habían verificado el proyecto en Windows local. Lección operativa: **un test que construye una ruta de un SO concreto usando `std::path::Path` (que es multiplataforma en tiempo de compilación) necesita `#[cfg(target_os = "...")]`, o falla en silencio en cualquier runner de otro SO** — y la única forma de descubrirlo es ejecutar esa CI de verdad, no razonar sobre el código. "Los tests pasan en mi máquina" no implica "los tests pasan en la matriz de CI", ni siquiera cuando la CI ya existía y solo faltaba dispararla una vez.
 - **2026-09-06 — Decisión de arquitectura registrada, no solo una lección: la vista previa sigue compilando el fichero abierto, no el entrypoint del proyecto, pese a que eso hace que citas/referencias de un capítulo suelto no se resuelvan fuera de `main.typ`.** Se evaluó explícitamente la alternativa (compilar siempre por el entrypoint del proyecto) y se descartó: el coste de recompilar el documento completo en cada pulsación de tecla, en un proyecto multi-capítulo grande, no compensa frente a la solución adoptada — reconocer el error real de Typst (`the document does not contain a bibliography`) y explicarlo con una pista legible en un color distinto al del error del compilador. Si en el futuro se replantea esta decisión (p. ej. si se añade un modo "vista previa del documento completo" opcional), este es el sitio donde se documentó el porqué de no haberlo hecho ya.
 
+### ADR-V070-001 — `/spec` de v0.7.0: UX real + editor de ecuaciones propio + diagramación priorizada contra literatura externa
+
+*Registrada el 2026-09-14, al congelar `/spec` de v0.7.0 (`SPECIFICATIONS.md` §5g, v1.8).*
+
+- **Contexto.** Sesión de dos partes distintas: (1) el usuario usó la aplicación con un proyecto real ajeno a este repositorio (un glosario técnico-administrativo con imágenes y fuentes propias, del proyecto SICLE de la Xunta de Galicia) y encontró tres defectos de UX vivos al vuelo; (2) por iniciativa propia, pidió analizar Voynov, A., Corbi, A., López-Oliver, P., & Gil, D. (2026), *"Typst: A Modern Typesetting Engine for Science"*, IJIMAI 9(7), 107–120 (`doi.org/10.9781/ijimai.2026.2269`), para extraer ideas de diagramación de su Sección XI. **Alberto Corbi, coautor del artículo, es colaborador de este mismo proyecto** — indexado como referencia formal en `README.md`/`README.en.md`.
+- **Decisión 1 — el `.typ` suelto vs. carpeta de proyecto explica el primer bug reportado, no era un bug de verdad.** Al intentar usar `image("images/logo.svg")` desde un `.typ` abierto suelto (no como carpeta de proyecto), la vista previa fallaba con "file not found": la sombra de compilación (`shadow.rs`, ver cabecera del fichero) replica un `.typ` suelto en modo `flat` (`recursive: !flat`), que deliberadamente **no** desciende a subcarpetas como `images/`/`fonts/` — es el comportamiento documentado de RF-02b, no un defecto. Aclarado al usuario; abrir la carpeta como proyecto lo resolvió sin cambio de código. **No genera RF nuevo**, pero queda registrado aquí por si en el futuro se considera sorprendente para otros usuarios y se plantea, p. ej., un aviso in-app cuando un `.typ` suelto referencia una ruta con subcarpeta.
+- **Decisión 2 — el editor de ecuaciones (RF-46) es diseño propio, no una integración de paquete.** El artículo de referencia no describe ningún editor visual de ecuaciones para Typst; lo más cercano que documenta es MiTeX (pegar LaTeX ya escrito) y Eqalc (fórmula → función evaluable, uso científico distinto). El usuario fue explícito en corregir el alcance inicial que yo propuse (plantillas rápidas de inserción tipo `cetzAssistant.js`): quiere una **interfaz visual interactiva con vista previa en vivo mientras se construye la ecuación**, no un catálogo estático. La decisión técnica de mayor riesgo —motor de la vista previa en vivo: recompilar con el sidecar en cada ajuste vs. una librería de render matemático en el frontend— se difiere a `/plan` con spike dedicado, mismo criterio que ya resolvió el Spike S-2 de sincronización editor↔preview (`ADR-SYNC-001`).
+- **Decisión 3 — orden de prioridad de diagramación fijado explícitamente por el usuario, no propuesto solo por mí:** Fletcher/flujogramas con decisiones (extiende RF-31 ya existente) > Chronos/secuencia > Gantty-Timeliney/Gantt > Kantan+Diagraph condicional a que sobre alcance en `/plan`. El criterio de priorización combinado fue "extiende lo que ya existe primero" + "encaja con el perfil de usuario real (informes de proyecto con actores y fases)", no la mera cobertura del artículo.
+- **Decisión 4 — descartes explícitos de la Sección XI, con motivo propio cada uno** (detalle en `SPECIFICATIONS.md` §5g): Pintora/Pintorita por coste de compilación de decenas de segundos (el propio artículo lo advierte, contradice RF-06 de vista previa instantánea); Zap/Circuiteria/Quill y Algorithmic por público de nicho (electrónica/CS académico) fuera de §3; Touying por ser una funcionalidad de tamaño comparable a un `/spec` propio (modo Presentación completo), no un ítem de menú incremental.
+- **Disparador de reevaluación:** si `/plan` de RF-46 encuentra que ninguna de las dos vías de renderizado en vivo es viable con presupuesto de tiempo razonable, esta ADR es el sitio donde documentar la alternativa adoptada (p. ej. degradar a "vista previa tras cada cambio confirmado" en vez de verdaderamente en vivo). Si en el futuro se pide Touying, ya hay precedente de que merece su propio `/spec`, no colgarlo de un RF de v0.7.0+.
+
+### ADR-DECISION-001 — RF-47 no necesita Fletcher ni Matofletcher: el editor de RF-31 ya dibuja rombos de decisión
+
+*Registrada el 2026-09-14, al planificar `/plan` de v0.7.0, antes de escribir ninguna línea de RF-47.*
+
+- **Contexto.** `SPECIFICATIONS.md` RF-47 dejaba para `/plan` decidir entre importar `fletcher:0.5.8`
+  directamente o su envoltorio `matofletcher:0.1.1` para poder dibujar nodos de decisión con salidas
+  "sí"/"no" en el editor WYSIWYG de diagramas (RF-31, v0.6.0).
+- **Hallazgo, leyendo el código real antes de decidir:** `diagramModel.js` ya define `NODE_SHAPES` con
+  `'diamond'` (con su silueta en `shapeOutline`, su recorte de flecha en `boundaryPointToward` y su
+  traducción a CeTZ en `shapeToCetz`, los tres verificados contra el compilador real en v0.6.0), y ya
+  tiene `setEdgeLabel` para poner texto en una arista — el propio comentario de esa función, escrito en
+  v0.6.0, dice literalmente "el 'sí'/'no' que sale de un rombo de decisión". La UI (`diagramEditor.js` +
+  `index.html`) ya expone el botón de forma `◇` y el campo de etiqueta de arista. **No falta ninguna
+  primitiva: falta solo un ejemplo que lo muestre.**
+- **Decisión:** RF-47 no añade Fletcher ni Matofletcher como dependencia. Se reduce a una plantilla de
+  siembra nueva (`SEED_TEMPLATES.decision`) en `diagramEditor.js`, del mismo tamaño que las dos que ya
+  existen (`flowchart`, `block`) — un rombo con dos aristas etiquetadas hacia dos nodos de proceso.
+- **Por qué importa dejarlo escrito:** sin este hallazgo, el `/plan` habría comprometido un slice mediano
+  (nueva dependencia de Typst Universe, nueva forma de emisión de código, posible incompatibilidad de
+  versión a verificar como ya pasó con `cetz:0.3.1`) para un problema que el propio código de v0.6.0 ya
+  resolvía. Encaja con la lección repetida de este proyecto — verificar contra lo real antes de comprometer
+  alcance — aplicada esta vez a la LECTURA del código propio, no solo a la compilación contra un binario.
+- **Disparador de reevaluación:** si en el futuro se necesita un tipo de diagrama que el modelo de
+  nodos/aristas de RF-31 no pueda expresar razonablemente (p. ej. compuertas lógicas con múltiples entradas
+  etiquetadas, o carriles de responsabilidad tipo swimlane), ahí sí tendría sentido evaluar Fletcher u otro
+  paquete especializado — no antes.
+
 ## 🗺️ Mapa del Producto (Áreas de Foco)
 
 - **Producto:** "El entorno de escritorio más accesible para el ecosistema Typst" (posicionamiento oficial) — no editor de código con soporte Typst. Herramienta orientada a documento/proyecto ("Obsidian for Typst"): lanzador por tareas, asistente de creación de proyecto, plantillas como funcionalidad de primer nivel.

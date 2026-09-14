@@ -18,7 +18,20 @@
       y en un WebView sin DevTools el síntoma es una interfaz muerta sin errores.
     -->
     <script>
+      // RF-40: "ResizeObserver loop completed with undelivered notifications" es
+      // un aviso benigno y muy común de Chromium en cualquier layout con paneles
+      // redimensionables (se dispara al arrastrar el separador editor/preview) —
+      // no indica ningún fallo de la aplicación. Antes de este filtro, este
+      // manejador lo mostraba en el banner rojo de error como si lo fuera.
+      // Se comprueba una SUBCADENA estable ("ResizeObserver loop"), no el
+      // mensaje completo: es el fragmento documentado del propio Chromium desde
+      // 2020 y sobrevive a variaciones menores de redacción entre versiones.
+      // Cualquier otro mensaje de error sigue mostrándose sin cambios.
+      function isBenignResizeObserverNotice(message) {
+        return typeof message === 'string' && message.includes('ResizeObserver loop');
+      }
       window.addEventListener('error', (e) => {
+        if (isBenignResizeObserverNotice(e.message)) return;
         const el = document.getElementById('fatal-error');
         if (!el) return;
         el.textContent = `Error: ${e.message} (${e.filename}:${e.lineno})`;
@@ -76,6 +89,26 @@
             <span class="header-menu__caret" aria-hidden="true">▾</span>
           </button>
           <div id="file-menu" class="floating-panel floating-panel--menu hidden" role="menu">
+            <!-- RF-43: Guardar/Guardar como/Exportar PDF/Exportar PNG vivían como
+                 botones de icono sueltos en la barra del documento, duplicando el
+                 propósito de este menú. Mismos IDs que antes (los escuchadores de
+                 `main.js` y el reenvío del menú nativo de macOS por
+                 `el('btn-save').click()` no cambian) y las etiquetas COMPLETAS ya
+                 existentes en `i18n.js` (`action.save`/`action.saveAs`/...), no las
+                 abreviadas que solo tenían sentido en la barra compacta. -->
+            <button id="btn-save" class="menu-item" type="button" role="menuitem">
+              <svg class="menu-item__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 3h9l3.5 3.5V16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M6.3 3v4h6.4V3"/><path d="M6 12h8v4.7H6z"/></svg><span data-i18n="action.save"></span>
+            </button>
+            <button id="btn-save-as" class="menu-item" type="button" role="menuitem">
+              <svg class="menu-item__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 3h9l3.5 3.5V16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M6.3 3v4h6.4V3"/><path d="M6 12h8v4.7H6z"/></svg><span data-i18n="action.saveAs"></span>
+            </button>
+            <button id="btn-export-pdf" class="menu-item" type="button" role="menuitem">
+              <svg class="menu-item__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6.3 2.5h5l3.4 3.4V16a1 1 0 0 1-1 1H6.3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1Z"/><path d="M11.3 2.5V6h3.4"/><path d="M10 9.3v5.4M7.6 12l2.4 2.4L12.4 12"/></svg><span data-i18n="action.exportPdf"></span>
+            </button>
+            <button id="btn-export-png" class="menu-item" type="button" role="menuitem">
+              <svg class="menu-item__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="2.8" y="4" width="14.4" height="12" rx="1.4"/><circle cx="6.8" cy="7.8" r="1.15"/><path d="M3.6 14.2 7.2 10.4l2.8 2.8 2-2.3 3.9 3.8"/></svg><span data-i18n="action.exportPng"></span>
+            </button>
+            <div class="menu-separator" role="separator"></div>
             <button id="btn-open-folder" class="menu-item" type="button" role="menuitem">
               <svg class="menu-item__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2.5 6.2c0-.7.6-1.3 1.3-1.3h3.5l1.5 1.8h7.2c.7 0 1.3.6 1.2 1.3l-.9 6.2c-.1.7-.7 1.2-1.3 1.2H4.1c-.7 0-1.2-.5-1.3-1.2L2.5 6.2Z"/></svg><span data-i18n="action.openFolder"></span>
             </button>
@@ -116,6 +149,15 @@
             </button>
             <button id="btn-python" class="menu-item" type="button" role="menuitem">
               <span class="menu-item__icon menu-item__icon--glyph" aria-hidden="true">🐍</span><span data-i18n="action.python"></span>
+            </button>
+            <div class="menu-separator" role="separator"></div>
+            <!-- RF-45: el editor de diagramas (RF-31) vivía SOLO como un icono
+                 entre una veintena de la barra de inserción del editor — "muy
+                 disimulado" (feedback del usuario). Ese icono se conserva (dos
+                 vías al mismo editor, sin comportamiento divergente), y esta
+                 entrada del menú Herramientas le da un sitio visible propio. -->
+            <button id="btn-tools-diagram" class="menu-item" type="button" role="menuitem">
+              <span class="menu-item__icon menu-item__icon--glyph" aria-hidden="true">✎</span><span data-i18n="action.diagramEditor"></span>
             </button>
             <div class="menu-separator" role="separator"></div>
             <button id="btn-jogs-insert" class="menu-item" type="button" role="menuitem" data-i18n-title="jogs.hint">
@@ -231,28 +273,9 @@
           <div class="document__bar">
             <span class="document__name" id="document-name">—</span>
             <span class="document__dirty hidden" id="document-dirty" data-i18n="doc.unsaved"></span>
-            <button id="btn-save" class="button button--compact button--icon-label" type="button" data-i18n-title="action.save">
-              <svg class="button__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 3h9l3.5 3.5V16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M6.3 3v4h6.4V3"/><path d="M6 12h8v4.7H6z"/></svg>
-              <span data-i18n="action.save"></span>
-            </button>
-            <button id="btn-save-as" class="button button--compact button--ghost button--icon-label" type="button" data-i18n-title="action.saveAs">
-              <span class="button__icon-wrap">
-                <svg class="button__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 3h9l3.5 3.5V16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M6.3 3v4h6.4V3"/><path d="M6 12h8v4.7H6z"/></svg>
-                <svg class="button__icon-badge" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M13 4.5 15.5 7 7 15.5 4 16l.5-3z"/></svg>
-              </span>
-              <span data-i18n="action.saveAsShort"></span>
-            </button>
-            <button id="btn-export-pdf" class="button button--compact button--ghost button--icon-label" type="button" data-i18n-title="action.exportPdf">
-              <svg class="button__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6.3 2.5h5l3.4 3.4V16a1 1 0 0 1-1 1H6.3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1Z"/><path d="M11.3 2.5V6h3.4"/><path d="M10 9.3v5.4M7.6 12l2.4 2.4L12.4 12"/></svg>
-              <span data-i18n="action.exportPdfShort"></span>
-            </button>
             <button id="btn-format-doc" class="button button--compact button--ghost button--icon-label" type="button" title="Formatear documento con Typstyle / Tinymist (Shift+Alt+F)">
               <svg class="button__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 5h13M3.5 10h9M3.5 15h13"/></svg>
               <span>Formatear</span>
-            </button>
-            <button id="btn-export-png" class="button button--compact button--ghost button--icon-label" type="button" data-i18n-title="action.exportPng">
-              <svg class="button__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="2.8" y="4" width="14.4" height="12" rx="1.4"/><circle cx="6.8" cy="7.8" r="1.15"/><path d="M3.6 14.2 7.2 10.4l2.8 2.8 2-2.3 3.9 3.8"/></svg>
-              <span data-i18n="action.exportPngShort"></span>
             </button>
             <span class="document__path" id="document-path"></span>
             <span class="document__lsp-badge hidden" id="lsp-status" title="Language Server Tinymist">● Tinymist</span>
@@ -610,6 +633,7 @@
         <span class="diagram-editor__hint" data-i18n="diagram.seedHint"></span>
         <button data-diagram="seed-flowchart" type="button" class="button button--compact button--ghost" data-i18n="diagram.seedFlowchart"></button>
         <button data-diagram="seed-block" type="button" class="button button--compact button--ghost" data-i18n="diagram.seedBlock"></button>
+        <button data-diagram="seed-decision" type="button" class="button button--compact button--ghost" data-i18n="diagram.seedDecision"></button>
       </div>
       <!-- Paleta de formas: cada botón INSERTA esa forma, no cambia un modo
            (patrón adoptado de dbv-eer-studio). Los glifos son la propia

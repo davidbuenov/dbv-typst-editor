@@ -700,6 +700,16 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
   return {
     state,
     editor,
+    /**
+     * Abre el editor de diagramas (RF-31) cerca de `triggerEl`. RF-45: además
+     * del icono de la barra de inserción (que llega aquí a través de
+     * `specialHandlers.diagram` en `toolbar.js`), el menú Herramientas
+     * necesita la MISMA acción desde un botón propio — ambos abren el mismo
+     * editor, sin lógica duplicada.
+     */
+    openDiagramEditor(triggerEl) {
+      diagramEditor?.openNear(triggerEl);
+    },
     openProjectAt,
     openDocument,
     /**

@@ -13,6 +13,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- **The diagram editor (RF-31) gets its own entry in the Tools menu (RF-45).** It used to be reachable only as one icon among roughly twenty in the editor's insertion toolbar — "very hidden away", in the user's words. The toolbar icon is kept as an extra shortcut; both routes open the same editor.
+- **New "Flow with decision" seed template in the diagram editor (RF-47).** The editor already supported a diamond-shaped node and text on an arrow since v0.6.0 — exactly what a decision diamond with "Yes"/"No" branches needs — but no template showed it off, so the capability went unnoticed. No new Typst Universe package was added: an example was all that was missing (see `ADR-DECISION-001` in `memory.md`).
+
+### Changed
+- **Save, Save As, Export PDF and Export PNG move from the document bar to the File menu (RF-43).** They used to live as loose icon buttons, duplicating what that menu already does. Same full labels and shortcuts as before; they're disabled (not hidden) without an open project.
+- **Redesigned "Recent projects" cards (RF-44).** Each entry now shows an icon for whether it's a project folder or a loose `.typ` file, and the containing folder's path is trimmed to its last two segments (with the full path available on hover) instead of the untrimmed full Windows path. The visible list is capped at the 5 most recent entries — the on-disk history is unchanged, only what gets rendered.
+
+### Fixed
+- **The benign `ResizeObserver` notice no longer shows up as an application error (RF-40).** Dragging the splitter between the editor and the preview used to trigger Chromium's "ResizeObserver loop completed with undelivered notifications" message, which the global error handler displayed in the red banner as if it were a real failure. It's now filtered by Chromium's own stable substring; any other real error still shows up unchanged.
+
 ## [0.6.0] - 2026-09-13
 
 ### Added

@@ -40,6 +40,7 @@
 - [How to stop](#-how-to-stop)
 - [Project structure](#-project-structure)
 - [Changelog](#-changelog)
+- [References](#-references)
 - [License](#-license)
 - [Author & Credits](#-author--credits)
 
@@ -217,6 +218,12 @@ stop.cmd
 `v0.6.0` documented in [`dbv-specs-ops/CHANGELOG.en.md`](./dbv-specs-ops/CHANGELOG.en.md) — a WYSIWYG diagram editor (nodes, arrows with direction and stroke, drag and drop), a "Tools" menu in the header, cloning a Git repository by URL, a full Universe Browser with search over the real Typst Universe catalog (~4,700 packages and templates), a visual bibliography with duplicate detection, macOS packaging, a JavaScript runner with `jogs`, and pasting an image straight from the clipboard.
 
 The changelog is maintained in both languages: [English](./dbv-specs-ops/CHANGELOG.en.md) · [Español](./dbv-specs-ops/CHANGELOG.md).
+
+---
+
+## 📚 References
+
+- **Voynov, A., Corbi, A., López-Oliver, P., & Gil, D. (2026).** [*Typst: A Modern Typesetting Engine for Science*](https://doi.org/10.9781/ijimai.2026.2269). *International Journal of Interactive Multimedia and Artificial Intelligence, 9*(7), 107–120. A systematic review of the Typst ecosystem (engine, language, Typst Universe packages, adoption) with case studies in Physics, Math and Computer Science. Section XI ("Application of Typst for Computer Science") catalogs diagramming packages — Fletcher/Matofletcher (flowcharts), CeTZ (trees, charts), Diagraph (DOT/Graphviz via Wasm), Pintora/Pintorita (activity, class, ER diagrams), Chronos (sequence diagrams), Gantty/Timeliney (Gantt charts) and Kantan (Kanban boards) — that serve as a reference map for evaluating future integrations in the editor. One of its authors, **Alberto Corbi**, is a collaborator on this project (see the Author & Credits section below).
 
 ---
 

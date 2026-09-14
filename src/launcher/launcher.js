@@ -15,6 +15,16 @@
 import { t } from '../i18n/i18n.js';
 import { getRecentProjects, listTemplates, removeRecentProject } from '../services/backend.js';
 import { baseName } from '../app/workspace.js';
+import { truncateParentPath } from '../app/paths.js';
+
+/**
+ * RF-44: el backend ya guarda hasta 10 (`MAX_RECENT`,
+ * `commands/recent_projects.rs`), pero el lanzador es una pantalla de
+ * arranque, no un historial — más allá de 5 tarjetas no aporta y un buscador
+ * sería demasiado para una lista corta (decisión explícita del usuario). El
+ * histórico en disco no se toca: solo se recorta lo que se PINTA.
+ */
+export const RECENT_DISPLAY_LIMIT = 5;
 
 /** Nombre y descripción de una plantilla en el idioma activo. */
 export function localizeTemplate(template, language) {
@@ -53,7 +63,9 @@ export function createLauncher({ recentEl, onOpenRecent }) {
     }
 
     const fragment = document.createDocumentFragment();
-    for (const project of projects) {
+    // RF-44: como mucho 5 tarjetas visibles — el resto del histórico (hasta
+    // 10, `MAX_RECENT` en el backend) sigue ahí, solo no se pinta.
+    for (const project of projects.slice(0, RECENT_DISPLAY_LIMIT)) {
       const item = document.createElement('div');
       item.className = 'recent-item';
 
@@ -61,15 +73,34 @@ export function createLauncher({ recentEl, onOpenRecent }) {
       openButton.type = 'button';
       openButton.className = 'recent-item__open';
 
+      // Icono por tipo: una carpeta de proyecto y un `.typ` suelto (RF-02b) no
+      // se abren igual ni tienen la misma estructura detrás, así que conviene
+      // distinguirlos de un vistazo, no solo por el texto de la ruta.
+      const icon = document.createElement('span');
+      icon.className = 'recent-item__icon';
+      icon.setAttribute('aria-hidden', 'true');
+      icon.textContent = project.isSingleFile ? '📄' : '📁';
+      openButton.append(icon);
+
+      const text = document.createElement('span');
+      text.className = 'recent-item__text';
+
       const name = document.createElement('span');
       name.className = 'recent-item__name';
       name.textContent = project.name || baseName(project.path);
-      openButton.append(name);
+      text.append(name);
 
+      // Solo los últimos tramos de la carpeta CONTENEDORA, no la ruta
+      // completa de Windows — inútil a simple vista y es lo que hacía la
+      // lista "horrorosa" en palabras del usuario. La ruta completa sigue
+      // disponible en el `title` (tooltip) para quien la necesite.
       const path = document.createElement('span');
       path.className = 'recent-item__path';
-      path.textContent = project.path;
-      openButton.append(path);
+      path.textContent = truncateParentPath(project.path);
+      path.title = project.path;
+      text.append(path);
+
+      openButton.append(text);
 
       openButton.addEventListener('click', () => onOpenRecent(project.path));
       item.append(openButton);

@@ -443,24 +443,27 @@
 .recent-item {
   display: flex;
   align-items: center;
-  border: 1px solid transparent;
+  /* RF-44: peso propio de tarjeta en reposo (antes transparente del todo, se
+     confundía con texto suelto de la pantalla) — el resalte de hover/foco
+     sigue siendo un paso más oscuro sobre este mismo fondo. */
+  border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: transparent;
+  background: var(--bg-secondary);
   transition: background var(--transition), border-color var(--transition);
 }
 
 .recent-item:hover,
 .recent-item:focus-within {
   background: var(--bg-tertiary);
-  border-color: var(--border);
+  border-color: var(--accent);
 }
 
 .recent-item__open {
   flex: 1 1 auto;
   min-width: 0;
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  gap: 10px;
   padding: 8px 10px;
   border: none;
   background: transparent;
@@ -471,15 +474,34 @@
   outline: none;
 }
 
+.recent-item__icon {
+  flex: 0 0 auto;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.recent-item__text {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .recent-item__name {
   font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .recent-item__path {
   font-family: var(--font-mono);
   font-size: 11px;
   color: var(--text-muted);
-  word-break: break-all;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .recent-item__remove {

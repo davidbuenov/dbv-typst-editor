@@ -1,11 +1,12 @@
 # 📋 Especificaciones: DBV Typst Editor
 
-> **Fase:** `/spec` (Especificación) → **v0.6.0 especificada**
-> **Estado:** 🔒 **CONGELADO v1.7 — 2026-09-11.** v1.7 abre v0.6.0 (§5f, RF-31 a RF-38) en una sola pasada, a petición explícita del usuario tras la dinámica de v0.5.0 (tres reaperturas del mismo `/spec`): editor WYSIWYG de diagramas que sustituye al asistente CeTZ de RF-23, menú "Herramientas" en la cabecera, alcance de integración con GitHub (clonar por URL, decisión del usuario cerrando la pregunta abierta de §5e.1/§9), Universe Browser completo, bibliografía visual completa, empaquetado macOS, auto-actualizador y ejecución de módulos JavaScript con el paquete Typst Universe `jogs` (runtime QuickJS embebido, análogo al runner de Python de RF-22).
+> **Fase:** `/spec` (Especificación) → **v0.7.0 especificada**
+> **Estado:** 🔒 **CONGELADO v1.8 — 2026-09-14.** v1.8 abre v0.7.0 (§5g, RF-40 a RF-50) tras una pasada de uso real del usuario con un proyecto externo (un glosario técnico-administrativo con imágenes y fuentes propias) que destapó tres defectos de UX vivos en la aplicación —un aviso benigno de `ResizeObserver` mostrado como error de la app, el separador editor/vista previa bloqueable al arrastrarlo, y los atajos de zoom capturados por el zoom nativo del webview en vez de por la app— más dos reorganizaciones de menú pedidas al ver la app en marcha (Guardar/Guardar como/PDF/PNG a "Archivo"; el editor de diagramas de RF-31 visible en "Herramientas" en vez de un icono suelto en la barra del editor), un rediseño de la pantalla de inicio, un **nuevo editor visual interactivo de ecuaciones matemáticas**, y tres ampliaciones de diagramación (flujogramas con decisiones, diagramas de secuencia, diagramas de Gantt) priorizadas explícitamente contra la Sección XI ("Application of Typst for Computer Science") de Voynov, A., Corbi, A., López-Oliver, P., & Gil, D. (2026), *"Typst: A Modern Typesetting Engine for Science"*, IJIMAI 9(7), 107–120, ya indexado como referencia en `README.md`/`README.en.md` — uno de sus autores, Alberto Corbi, es colaborador de este proyecto.
+> **v1.7:** v1.7 abre v0.6.0 (§5f, RF-31 a RF-38) en una sola pasada, a petición explícita del usuario tras la dinámica de v0.5.0 (tres reaperturas del mismo `/spec`): editor WYSIWYG de diagramas que sustituye al asistente CeTZ de RF-23, menú "Herramientas" en la cabecera, alcance de integración con GitHub (clonar por URL, decisión del usuario cerrando la pregunta abierta de §5e.1/§9), Universe Browser completo, bibliografía visual completa, empaquetado macOS, auto-actualizador y ejecución de módulos JavaScript con el paquete Typst Universe `jogs` (runtime QuickJS embebido, análogo al runner de Python de RF-22).
 > **v1.5:** v1.4 consolidó el lanzador (§5d, RF-25 a RF-27, con la precisión de RF-26 criterio 10 añadida el mismo día). **v1.5 añade §5e** —RF-28 (chincheta de ventana encima, portada de DBV Markdown Reader) y RF-29 (ver la previsualización de plantilla a tamaño grande)— tras probar el usuario la aplicación construida, más **§5e.1, que documenta el alcance real de la integración con Git** y por qué NO es integración con GitHub. Ver `ADR-VENTANA-001` en `memory.md`. (baseline de especificación v0.5.0, ampliada). v1.3 especificó el salto a productividad profesional y robustez (v0.5.0): Integración con Git y resolución visual de conflictos (RF-19), Galería visual de plantillas con previsualización (RF-20), Inteligencia de código con Tinymist LSP vendorizado (RF-21), Figuras y datos dinámicos con Python (RF-22), Asistente visual de diagramas CeTZ (RF-23), y Robustez de entorno y guardado atómico (RF-24). **v1.4 reabre ese `/spec`, a decisión del usuario y antes de entregar la versión, para consolidar el lanzador** (§5d): Lanzador de una sola vía (RF-25), Galería unificada de creación de documentos (RF-26) y Tokens semánticos de estado (RF-27). El motivo es que `/build` de v0.5.0 dejó **tres** superficies distintas para elegir plantilla; ver `ADR-LANZADOR-001` en `memory.md`.
 > **Regla de congelación:** a partir de aquí, cualquier cambio de alcance o de requisito exige (1) registrarlo como ADR en `memory.md`, (2) actualizar este documento con nueva versión, y (3) revisar el impacto en `implementation_plan.md`. No se modifican requisitos "al vuelo" durante `/build`.
 > **Documento de diseño:** el sistema visual que rige §5d está en [`DESIGN.md`](./DESIGN.md), escrito el 2026-09-09 (deuda documental abierta desde el `/spec` original, saldada al abordar este rediseño).
-> **Última Revisión:** 2026-09-09
+> **Última Revisión:** 2026-09-14
 
 ---
 
@@ -454,6 +455,215 @@ clonó por su cuenta. Se cubre en v0.6.0 con **RF-33** (§5f).
     5. *Sin duplicados.* Pegar dos veces el mismo recorte reutiliza el fichero ya guardado, misma
        deduplicación por contenido que ya hacía el arrastre.
 
+## ✨ 5g. Funcionalidades — v0.7.0 (Pulido de UX real + Ecuaciones + Diagramación ampliada)
+
+> Alcance acordado con el usuario el 2026-09-14, en una sola pasada de análisis (sin reaperturas), tras una
+> sesión de uso real de la aplicación con un proyecto externo (un glosario técnico-administrativo, ajeno a
+> este repositorio, con imágenes y fuentes propias) y una lectura dirigida de Voynov, A., Corbi, A.,
+> López-Oliver, P., & Gil, D. (2026), *"Typst: A Modern Typesetting Engine for Science"*, IJIMAI 9(7),
+> 107–120 (referenciado en `README.md`/`README.en.md`). RF-40 a RF-45 son correcciones y reorganizaciones
+> de UX encontradas usando la app, no funcionalidad nueva; RF-46 a RF-50 sí lo son.
+
+- [ ] **RF-40 El aviso de `ResizeObserver` deja de mostrarse como error de la aplicación.**
+  Arrastrar el separador entre editor y vista previa dispara el mensaje del navegador *"ResizeObserver
+  loop completed with undelivered notifications"*, y la aplicación lo muestra en el banner rojo de error
+  global como si fuera un fallo propio. Es un aviso **benigno y extremadamente común** en cualquier layout
+  redimensionable con `ResizeObserver` (Chromium lo emite cuando dos observers se retroalimentan entre sí
+  dentro de un mismo frame) — el defecto no está en el redimensionado, está en que el manejador de errores
+  global no lo distingue de un error real.
+  - **Criterios de aceptación:**
+    1. *Nunca llega al banner de error visible al usuario*, sea cual sea el mecanismo de filtrado elegido
+       en `/plan` (lista de mensajes ignorados en el manejador de `window.onerror`/`unhandledrejection`,
+       o eliminar la causa de raíz del bucle de `ResizeObserver` si `/plan` la encuentra y es razonable).
+    2. *Un error real de la app durante el mismo gesto (arrastrar el separador) sigue mostrándose.* No es
+       aceptable silenciar la categoría entera de errores del manejador global, solo este mensaje concreto
+       y benigno — degradar la detección de errores reales sería cambiar un defecto visible por uno
+       invisible.
+    3. *Regresión cubierta:* un test (manual o automatizado, a decidir en `/plan` dado que depende de
+       `ResizeObserver` real en un navegador) confirma que arrastrar el separador repetidamente no produce
+       ningún banner.
+
+- [ ] **RF-41 El separador editor/vista previa no debe quedar bloqueado al arrastrarlo.**
+  Reportado por el usuario: "a veces esa barra no se podía mover más a la izquierda, se quedaba como
+  bloqueada". Bug de layout independiente de RF-40, probablemente un `min-width` mal calculado o no
+  recalculado en el panel de vista previa (`ui/splitter.js`, ver Slice 5/18 en `task.md` para el mecanismo
+  existente) que a veces impide seguir reduciendo el ancho del panel aunque quede espacio disponible.
+  - **Criterios de aceptación:**
+    1. *Causa raíz identificada y documentada en `memory.md`* antes de aplicar el arreglo — no basta con
+       ampliar un límite a ojo si no se sabe por qué se activaba antes de tiempo.
+    2. *El separador se puede arrastrar hasta los límites reales de usabilidad* (un mínimo razonable de
+       ancho para cada panel, no cero), de forma consistente en cada intento, sin que un arrastre previo
+       dentro de la misma sesión deje el límite más restrictivo de lo que debería.
+    3. *Reproducido y verificado con `npm run verify:layout`* (el arnés de geometría real en navegador
+       headless que ya existe desde el Slice 25, punto 9 de `task.md`) — es exactamente el tipo de fallo
+       que ese arnés se creó para atrapar.
+
+- [ ] **RF-42 Zoom contextual con teclado y rueda del ratón.**
+  `Ctrl++`/`Ctrl+-` y `Ctrl` + rueda del ratón deben ajustar una magnitud distinta según dónde esté el
+  foco, en vez de disparar el zoom nativo del webview de Tauri sobre toda la ventana (comportamiento
+  actual, no deseado).
+  - **Criterios de aceptación:**
+    1. *Foco en el editor de código:* aumenta/disminuye el tamaño de fuente de CodeMirror 6, con un
+       mínimo y máximo razonables y persistencia por proyecto o global (a decidir en `/plan`, mismo
+       criterio que otras preferencias de RF-09).
+    2. *Foco en la vista previa:* aumenta/disminuye el zoom del PDF, reutilizando el mecanismo de zoom ya
+       existente (`preview.js`, botones +/−/100%/"Ajustar al ancho" del Slice 25 punto 7 de `task.md`) en
+       vez de crear uno paralelo.
+    3. *El zoom nativo del webview queda deshabilitado* para estas combinaciones — se intercepta el evento
+       con `preventDefault()` antes de que Tauri/WebView2 lo resuelva a nivel de sistema.
+    4. *La rueda del ratón con `Ctrl` reproduce el mismo efecto que `Ctrl++`/`Ctrl+-`* según el mismo
+       criterio de foco, con la dirección de scroll natural (rueda hacia arriba = acercar).
+    5. *Sin foco en ninguno de los dos paneles* (p. ej. foco en el árbol de proyecto), la combinación no
+       hace nada perceptible — nunca cae por defecto en el zoom nativo del sistema.
+
+- [ ] **RF-43 Guardar / Guardar como / Exportar PDF / Exportar PNG se mueven al menú "Archivo".**
+  Hoy viven como botones sueltos en la barra de herramientas del editor de texto, duplicando el propósito
+  del menú "Archivo" que ya agrupa el resto de operaciones de fichero desde RF-30 (§5e).
+  - **Criterios de aceptación:**
+    1. *Los cuatro pasan al menú Archivo*, con las mismas etiquetas y atajos que ya tenían — mismo
+       criterio de "ninguna acción se pierde ni cambia de nombre" que fijó RF-30.2.
+    2. *Desaparecen de la barra de herramientas del editor* una vez migrados — no se duplican en los dos
+       sitios, que reintroduciría el mismo problema de "varias puertas para lo mismo" que motivó RF-25/26.
+    3. *Se deshabilitan, no se ocultan, sin proyecto/documento abierto*, mismo criterio ya establecido en
+       RF-26.10 y RF-30.3.
+
+- [ ] **RF-44 Rediseño de la pantalla de inicio.**
+  La pantalla "¿Qué quieres escribir hoy?" (post-RF-25/26) resultó, en palabras del usuario al verla en la
+  ventana real, "horrorosa": cinco botones sueltos de peso visual similar y una lista plana de rutas
+  completas de Windows sin recortar. No cambia qué se puede hacer desde el home (eso ya lo fijó RF-25),
+  solo cómo se presenta.
+  - **Criterios de aceptación:**
+    1. *Jerarquía visual clara*, conservando la estructura ya fijada por RF-25 (una acción dominante "Nuevo
+       documento", el resto subordinado): las acciones secundarias (Abrir carpeta, Abrir documento `.typ`,
+       Importar `.dbvt`, Clonar repositorio de RF-33) se presentan con menos peso que la acción dominante,
+       no como una fila de botones idénticos.
+    2. *Proyectos recientes como tarjetas*, no como filas de texto plano: icono según tipo (carpeta de
+       proyecto vs. `.typ` suelto), nombre del proyecto destacado, y la ruta del padre **recortada** (los
+       últimos 2-3 segmentos, nunca la ruta completa de Windows) con la ruta completa disponible en un
+       `title`/tooltip al pasar el cursor.
+    3. *Máximo 5 entradas recientes visibles.* Decisión explícita del usuario, en lugar de un buscador:
+       más allá de 5 no aporta valor y añade un elemento de búsqueda innecesario para una lista corta. Si existen
+       más de 5 proyectos recientes en el almacenamiento persistente, se muestran solo los 5 más recientes
+       — no se trunca el histórico subyacente, solo lo visible.
+    4. *Entradas obsoletas señaladas.* Si la ruta de un proyecto reciente ya no existe en disco (carpeta
+       movida o borrada), la tarjeta lo indica visualmente (p. ej. atenuada, con aviso) en vez de fallar
+       sin explicación al intentar abrirla — mejora no pedida explícitamente pero que se cuela directamente
+       en el alcance de "rediseñar cómo se presentan los recientes".
+    5. *Funciona en los tres temas* (claro/oscuro/sepia) y a ancho de ventana pequeño, mismo criterio de
+       calidad que el resto de superficies visuales del producto (`DESIGN.md`).
+
+- [ ] **RF-45 El editor de diagramas gana una entrada visible en el menú "Herramientas".**
+  El editor WYSIWYG de RF-31 (v0.6.0) solo es alcanzable hoy como un icono entre una veintena en la barra
+  de herramientas del editor de texto — "muy disimulado", en palabras del usuario. No cambia el editor de
+  diagramas en sí (RF-31 sigue íntegro), solo dónde se entra a él.
+  - **Criterios de aceptación:**
+    1. *Entrada propia en el menú Herramientas (RF-32)*, con icono y etiqueta legible, no solo un
+       pictograma — mismo nivel de visibilidad que ya tienen el runner de Python (RF-22) o el runner de
+       JavaScript (RF-38) dentro de ese mismo menú.
+    2. *El icono de la barra del editor puede conservarse como atajo adicional* (decisión de `/plan`: dos
+       vías a la misma acción no repiten el problema de RF-25/26 mientras ambas abran exactamente el mismo
+       editor, sin comportamiento divergente).
+    3. *Sin proyecto/documento abierto se deshabilita*, mismo criterio que el resto de entradas de
+       Herramientas (RF-32.3).
+
+- [ ] **RF-46 Editor visual interactivo de ecuaciones matemáticas.**
+  Nueva capacidad, sin precedente en RF-13/RF-20 (que solo insertan símbolos sueltos o marcado estático).
+  El usuario fue explícito sobre el alcance: **no** es un catálogo de plantillas de inserción rápida, es
+  una **interfaz visual e interactiva** donde la ecuación se va construyendo y ajustando con **vista previa
+  en vivo** de cómo queda, y solo al terminar se inserta como código Typst en el cursor. El artículo de
+  referencia (§ sección "Application of Typst for Computer Science"/"Mathematics") no describe ningún
+  editor visual de este tipo ya hecho para Typst — es diseño propio de este producto, no una integración de
+  paquete existente.
+  - **Criterios de aceptación:**
+    1. *Construcción incremental con vista previa en vivo.* El usuario compone la ecuación por piezas
+       (fracción, exponente/subíndice, sumatorio/integral/producto, matriz, símbolos griegos y operadores,
+       delimitadores) y ve en todo momento cómo se renderiza el resultado, antes de decidir insertarlo —
+       no un formulario que solo se ve al final.
+    2. *Inserción explícita y única.* La ecuación solo entra en el documento cuando el usuario confirma
+       (botón "Insertar"), como código Typst (`$...$` o bloque de ecuación) en la posición del cursor, con
+       la misma sensibilidad al contexto que ya usa RF-13 (`isInsideMath()`).
+    3. *Reapertura para editar (deseable, no bloqueante):* si es alcanzable sin complejidad desproporcionada,
+       reabrir una ecuación ya insertada desde su código Typst la recupera en el editor visual — mismo
+       espíritu que la "edición bidireccional mínima" que RF-31.3 ya exige para diagramas; si `/plan` lo
+       encuentra desproporcionado para esta primera versión, queda documentado como diferido, no descartado
+       en silencio.
+    4. *Soporte del paquete MiTeX para pegar LaTeX ya escrito.* Complementa al editor visual (no lo
+       sustituye): quien ya tiene una fórmula en sintaxis LaTeX puede pegarla y se traduce/envuelve
+       para Typst, sin tener que reconstruirla pieza a pieza en la interfaz visual. Investigación puntual
+       de `/plan` sobre el paquete real (`@preview/mitex`) antes de comprometerse, misma disciplina que
+       cualquier otra integración de Typst Universe en este proyecto.
+    5. *Motor de renderizado de la vista previa en vivo* (recompilar con el sidecar en cada ajuste vs. una
+       libreria de render matemático embebida en el frontend) se decide en `/plan` con un spike dedicado,
+       igual que se hizo para la sincronización editor↔preview (Spike S-2) — es la decisión técnica de
+       mayor riesgo de este RF y no debe resolverse "sobre la marcha" en `/build`.
+
+- [ ] **RF-47 Diagramas de flujo con decisiones (Fletcher/Matofletcher).**
+  Primera ampliación de diagramación, y la de mayor prioridad acordada: extensión natural del editor
+  WYSIWYG ya existente (RF-31), que hoy dibuja nodos y flechas genéricos pero no tiene un modo dedicado a
+  flujogramas con bifurcaciones de decisión (sí/no) como los que produce el paquete Fletcher (vía su
+  envoltorio Matofletcher, según cataloga la Sección XI del artículo de referencia).
+  - **Criterios de aceptación:**
+    1. *Nodo de decisión propio* en el lienzo del editor de RF-31 (forma de rombo, dos salidas etiquetables
+       "sí"/"no" o etiqueta libre), distinto del nodo de proceso rectangular ya existente.
+    2. *Emisión de código limpio* usando el paquete elegido en `/plan` (Fletcher directamente o vía
+       Matofletcher — la elección concreta y su import se cierran ahí, no aquí), con el mismo criterio de
+       RF-31.2 (import deduplicado, código legible e insertable).
+    3. *No rompe los tipos de diagrama ya cubiertos por RF-31* (flujo genérico, bloques/arquitectura,
+       gráficas 2D, lienzo libre) — es una ampliación del mismo editor, no una superficie nueva.
+
+- [ ] **RF-48 Diagramas de secuencia (Chronos).**
+  Segunda prioridad acordada. Actores, mensajes (síncronos/asíncronos), activaciones y ciclos de vida —
+  tipo de diagrama frecuente en documentación técnica de proyecto (el propio caso de uso real que motivó
+  esta sesión de `/spec` es un glosario de arquitectura con actores UTE/AMTEGA) y ausente por completo del
+  editor actual.
+  - **Criterios de aceptación:**
+    1. *Asistente o modo dedicado* (a decidir en `/plan` si se integra como un modo más del lienzo de
+       RF-31 o como una superficie propia más simple, dado que un diagrama de secuencia es
+       estructuralmente distinto de un lienzo de nodos/flechas libre) que permite definir actores y la
+       secuencia de mensajes entre ellos.
+    2. *Emisión de código con el paquete Chronos* (`#import "@preview/chronos:..."`, versión exacta a
+       verificar en `/plan` contra el registro real de Typst Universe, misma disciplina que fijó
+       `ADR-UNIVERSE-001` para el resto de paquetes curados de este proyecto).
+    3. *Accesible desde el menú Herramientas (RF-45)*, no como una superficie oculta nueva.
+
+- [ ] **RF-49 Diagramas de Gantt (Gantty/Timeliney).**
+  Tercera prioridad acordada. Encaja directamente con el tipo de documentos de gestión de proyecto que
+  produce el perfil de usuario objetivo (fases, hitos, fechas de entrega).
+  - **Criterios de aceptación:**
+    1. *Asistente o modo dedicado* para definir tareas/fases con fechas de inicio y fin, y su agrupación
+       (p. ej. "Investigación", "Redacción", "Producción" como en el ejemplo del artículo de referencia).
+    2. *Emisión de código con el paquete elegido en `/plan`* entre Gantty y Timeliney (evaluación de
+       cuál de los dos encaja mejor con el editor visual, no una elección arbitraria) — versión verificada
+       contra el registro real antes de curarla, mismo criterio que el resto del catálogo.
+    3. *Accesible desde el menú Herramientas (RF-45)*.
+
+- [ ] **RF-50 (alcance condicional — "si sobra alcance de `/plan`") Tableros Kanban y render de DOT/Graphviz.**
+  Cuarta prioridad, explícitamente condicional: el usuario aceptó incluirla en el `/spec` **solo si el
+  `/plan` de RF-47 a RF-49 deja margen**, sin comprometerse a que entre en la v0.7.0 de forma incondicional.
+  - **Criterios de aceptación (si se aborda):**
+    1. *Tableros Kanban* con el paquete Kantan (columnas Backlog/En curso/Testing/Hecho o equivalentes,
+       tarjetas con etiqueta/prioridad/asignado, según el ejemplo del artículo de referencia).
+    2. *Render de diagramas DOT/Graphviz* con el paquete Diagraph, que los renderiza vía Wasm sin exigir
+       Graphviz instalado en el sistema — útil para quien ya trae un `.dot` de otra herramienta.
+    3. *Si `/plan` decide no abordarlo en v0.7.0*, se documenta aquí mismo como diferido a una versión
+       futura, no se elimina del `/spec` en silencio.
+
+### Descartado explícitamente para v0.7.0 (Sección XI del artículo de referencia)
+
+Evaluados y descartados por bajo encaje con el perfil de usuario actual de DBV Typst Editor (§3) — no son
+un olvido, es una decisión de alcance tomada en esta misma sesión de `/spec`, 2026-09-14:
+
+- **Pintora/Pintorita** (texto→diagrama de actividad/clases/ER): el propio artículo de referencia advierte
+  de un coste de compilación de hasta **decenas de segundos** por depender de un intérprete JavaScript
+  sobre Wasm — contradice el objetivo de vista previa "instantánea" (RF-06) de este producto.
+- **Zap / Circuiteria / Quill** (circuitos electrónicos/cuánticos): público de electrónica/computación
+  cuántica, fuera de los perfiles de usuario de §3 (profesorado, investigación, TFG/TFM, escritura técnica).
+- **Algorithmic** (pseudocódigo académico de algoritmos): público de Ciencias de la Computación específico,
+  no el perfil principal del producto.
+- **Touying** (presentaciones tipo Beamer): descartado de *este* alcance por ser una funcionalidad de
+  tamaño mayor —un modo "Presentación" completo, comparable en esfuerzo a RF-31 o RF-46— y no un ítem de
+  menú incremental; candidato explícito para una futura versión con `/spec` propio si el usuario lo pide.
+
 ## 🚀 6. Funcionalidades — Beta y v1.0 (detalle del Spec Addendum)
 
 Estas funcionalidades están **descritas y arquitectónicamente resueltas** (ver `ARCHITECTURE.md` §7.6–§7.14 y `TYPST_ECOSYSTEM_RESEARCH.md`) pero **fuera del MVP v0.1** por decisión explícita de alcance del usuario. Nota de encuadre: el **Universe Browser** (Package Explorer + Template Explorer, ver árbol de navegación en `ARCHITECTURE.md` §7.6.0.1) se posiciona como punto de entrada de primer nivel de la aplicación (§2), no como un add-on menor — esto afecta a su importancia de diseño y visibilidad en Beta, no reabre el acuerdo de fases ya cerrado con el usuario (el Lanzador de plantillas curadas, MVP, ya adelanta esta experiencia — ver `ARCHITECTURE.md` §7.6):
@@ -553,7 +763,8 @@ Orden de prioridad para toda decisión de diseño/arquitectura (fijado explícit
 | **v0.2** | **Barra de herramientas de inserción del editor (RF-13)** + Project Archive `.dbvt` (export/import) + 4 plantillas restantes (TFM, Tesis doctoral, Informe técnico, Presentación). | ✅ Completado (2026-09-05) |
 | **v0.4.0** | Vista previa del **documento completo** conmutable (RF-14), **control de refresco** automático/manual (RF-15), **sincronización editor↔vista previa** por anclas (RF-16), **selector de imágenes del proyecto** en el botón Fig (RF-17) y **arrastre de imágenes** coherente con el de fuentes (RF-18). | ✅ Completado (2026-09-08) |
 | **v0.5.0** | **Integración con Git y diffs side-by-side (RF-19)**, **Galería visual de plantillas con preview (RF-20)**, **LSP Tinymist vendorizado (RF-21)**, **Figuras y datos dinámicos con Python (RF-22)**, **Asistente visual de diagramas CeTZ (RF-23)**, **Robustez de entorno Windows y guardado atómico (RF-24)**, consolidación del lanzador (RF-25 a RF-27), pulido de ventana y previsualización (RF-28 a RF-30). Cerrado y publicado. | ✅ Completado (2026-09-09) |
-| **v0.6.0** | **Editor WYSIWYG de diagramas (RF-31, sustituye a RF-23)**, **menú Herramientas (RF-32)**, **clonar repositorio por URL (RF-33)**, **Universe Browser completo (RF-34)**, **bibliografía visual completa (RF-35)**, **empaquetado macOS (RF-36)**, **auto-actualizador (RF-37)**, **ejecución de módulos JavaScript con `jogs` (RF-38)**. Especificado el 2026-09-11 en una sola pasada. | 📋 Especificado |
+| **v0.6.0** | **Editor WYSIWYG de diagramas (RF-31, sustituye a RF-23)**, **menú Herramientas (RF-32)**, **clonar repositorio por URL (RF-33)**, **Universe Browser completo (RF-34)**, **bibliografía visual completa (RF-35)**, **empaquetado macOS (RF-36)**, **auto-actualizador (RF-37)**, **ejecución de módulos JavaScript con `jogs` (RF-38)**. Especificado el 2026-09-11 en una sola pasada. | ✅ Completado (2026-09-13) |
+| **v0.7.0** | **Filtrado del aviso de `ResizeObserver` (RF-40)**, **arreglo del separador bloqueable (RF-41)**, **zoom contextual con teclado/rueda (RF-42)**, **Guardar/PDF/PNG al menú Archivo (RF-43)**, **rediseño de la pantalla de inicio (RF-44)**, **editor de diagramas visible en Herramientas (RF-45)**, **editor visual interactivo de ecuaciones (RF-46)**, **flujogramas con decisiones (RF-47)**, **diagramas de secuencia (RF-48)**, **diagramas de Gantt (RF-49)**, y **Kanban/DOT-Graphviz si sobra alcance (RF-50)**. Especificado el 2026-09-14 en una sola pasada. | 📋 Especificado |
 | **Beta (v0.2–v0.4)** | Navegación estructural, asistentes de inserción con formulario (la barra en sí es v0.2, RF-13), gestión de imágenes por arrastre, modos de escritura, exportación PNG, terminal avanzado, LSP `tinymist`. | ✅ Completado / absorbido por v0.5.0–v0.6.0 |
 | **v1.0** | Ecosistema completo de plantillas, exportación SVG, asistentes avanzados, Paquete Docente, publicación en stores, accesibilidad WCAG AA. | Futuro |
 | **Futuro (post-1.0)** | IA, repositorio comunitario, sincronización, colaboración en tiempo real, integración Zotero/Mendeley, asistentes de redacción académica. | Exploratorio |

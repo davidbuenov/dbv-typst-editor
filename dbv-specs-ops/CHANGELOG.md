@@ -13,6 +13,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Sin publicar] / [Unreleased]
 
+### Added
+- **El editor de diagramas (RF-31) gana una entrada propia en el menú Herramientas (RF-45).** Antes solo era alcanzable como un icono entre una veintena de la barra de inserción del editor — "muy disimulado", en palabras del usuario. El icono de la barra se conserva como atajo adicional; las dos vías abren el mismo editor.
+- **Nueva plantilla de siembra "Flujo con decisión" en el editor de diagramas (RF-47).** El propio editor ya soportaba un nodo en forma de rombo y texto sobre una flecha desde v0.6.0 — exactamente lo necesario para un rombo de decisión con salidas "Sí"/"No" — pero ninguna plantilla lo mostraba, así que la capacidad pasaba desapercibida. No se ha añadido ningún paquete nuevo de Typst Universe: bastaba un ejemplo (ver `ADR-DECISION-001`, `memory.md`).
+
+### Changed
+- **Guardar, Guardar como, Exportar PDF y Exportar PNG se mudan de la barra del documento al menú Archivo (RF-43).** Vivían como botones de icono sueltos, duplicando el propósito de ese menú. Mismas etiquetas completas y atajos de siempre; se deshabilitan (no desaparecen) sin proyecto abierto.
+- **Rediseño de las tarjetas de "Proyectos recientes" (RF-44).** Cada entrada muestra ahora un icono según sea una carpeta de proyecto o un `.typ` suelto, y la ruta de la carpeta contenedora recortada a sus dos últimos tramos (con la ruta completa disponible al pasar el cursor) en vez de la ruta completa de Windows sin recortar. La lista visible se limita a las 5 entradas más recientes — el histórico en disco no cambia, solo lo que se pinta.
+
+### Fixed
+- **El aviso benigno de `ResizeObserver` ya no se muestra como error de la aplicación (RF-40).** Arrastrar el separador entre el editor y la vista previa disparaba el mensaje de Chromium "ResizeObserver loop completed with undelivered notifications", que el manejador global de errores mostraba en el banner rojo como si fuera un fallo propio. Se filtra por la subcadena estable del propio Chromium; cualquier otro error real sigue mostrándose sin cambios.
+
 ## [0.6.0] - 2026-09-13
 
 ### Added

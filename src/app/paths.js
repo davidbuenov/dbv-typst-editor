@@ -49,3 +49,30 @@ export function relativeToRoot(root, path) {
   const prefix = `${normalizedRoot}/`;
   return normalizedPath.startsWith(prefix) ? normalizedPath.slice(prefix.length) : null;
 }
+
+/**
+ * Los últimos `segments` tramos de la carpeta CONTENEDORA de `path` — no de
+ * `path` en sí, porque su último tramo (el nombre del proyecto o fichero) ya
+ * se muestra aparte como título (RF-44). Con marca de recorte ("…") cuando
+ * queda algo por delante, para no dar la impresión de que esa es la ruta
+ * completa. Pensada para tarjetas de "proyectos recientes": una ruta completa
+ * de Windows de varios niveles no cabe, y no aporta nada a simple vista.
+ * @param {string} path
+ * @param {number} [segments] Cuántos tramos de la carpeta padre mostrar.
+ */
+export function truncateParentPath(path, segments = 2) {
+  const separator = path.includes('\\') && !path.includes('/') ? '\\' : '/';
+  const parts = path.split(/[/\\]/).filter(Boolean);
+  const parent = parts.slice(0, -1);
+  if (parent.length === 0) return '';
+
+  const shown = parent.slice(-segments);
+  const truncated = shown.length < parent.length;
+  // Una ruta Unix absoluta ("/home/...") pierde su "/" inicial al filtrar el
+  // tramo vacío de delante del primer separador — se repone aquí cuando no se
+  // ha recortado nada por delante (si se ha recortado, "…/" ya cumple el
+  // mismo papel de "hay más por delante").
+  const isAbsoluteUnix = separator === '/' && path.startsWith('/');
+  const prefix = truncated ? `…${separator}` : isAbsoluteUnix ? separator : '';
+  return prefix + shown.join(separator);
+}

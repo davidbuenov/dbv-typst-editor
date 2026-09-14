@@ -42,6 +42,7 @@
 - [Changelog](#-changelog)
 - [References](#-references)
 - [License](#-license)
+- [Acknowledgments](#-acknowledgments)
 - [Author & Credits](#-author--credits)
 
 ---
@@ -232,6 +233,37 @@ The changelog is maintained in both languages: [English](./dbv-specs-ops/CHANGEL
 MIT — see [LICENSE](./LICENSE) for details.
 
 Copyright (c) 2026 David Bueno Vallejo
+
+---
+
+## 🙏 Acknowledgments
+
+This app wouldn't exist without a good number of open-source projects. Thanks to their authors and maintainers:
+
+### Engine and language
+
+- [Typst](https://typst.app) — the typesetting engine the whole app is built around (vendored as a compilation sidecar binary).
+- [Tinymist](https://github.com/Myriad-Dreamin/tinymist) — Typst's official Language Server, vendored for semantic autocompletion, live diagnostics and formatting.
+
+### Typst Universe packages powering the app's own visual assistants
+
+- [cetz](https://typst.app/universe/package/cetz) — the drawing engine behind the WYSIWYG diagram editor.
+- [MiTeX](https://typst.app/universe/package/mitex) — converts LaTeX pasted into the visual equation editor.
+- [Chronos](https://typst.app/universe/package/chronos) — sequence diagrams.
+- [Gantty](https://typst.app/universe/package/gantty) — Gantt charts with real dates.
+- [Kantan](https://typst.app/universe/package/kantan) — Kanban boards.
+- [Diagraph](https://typst.app/universe/package/diagraph) — DOT/Graphviz graph rendering via a Wasm plugin.
+- [jogs](https://typst.app/universe/package/jogs) — embedded JavaScript runtime (QuickJS) for figures and dynamic data.
+
+### Core pieces of the application
+
+- [Tauri](https://tauri.app) — the desktop framework (Rust + native WebView) the whole app runs on, along with its `shell`, `dialog`, `updater`, `process` and `single-instance` plugins.
+- [CodeMirror 6](https://codemirror.net) and [codemirror-lang-typst](https://github.com/kxxt/codemirror-lang-typst) — the code editor and its Typst syntax highlighting.
+- [Hayagriva](https://github.com/typst/hayagriva) — the very same BibTeX/Hayagriva bibliography engine the Typst compiler itself uses for `#bibliography()`.
+- [Vite](https://vite.dev) — frontend bundling and dev server.
+- Rust crates: [serde](https://serde.rs)/serde_json, [tokio](https://tokio.rs), [notify](https://github.com/notify-rs/notify), [toml](https://github.com/toml-rs/toml), [tempfile](https://github.com/Stebalien/tempfile), [zip](https://github.com/zip-rs/zip2), [dunce](https://gitlab.com/kornelski/dunce), [base64](https://github.com/marshallpierce/rust-base64), [ureq](https://github.com/algesten/ureq) and [sys-locale](https://github.com/1Password/sys-locale) (macOS).
+
+Thanks also to the maintainers of every package curated in the app's Universe Browser (see [`src/universe/curatedCatalog.js`](./src/universe/curatedCatalog.js)) — IEEE/ACM/Springer templates, `fletcher`, `touying`, `quick-maths`, `physica`, `codly`, `zebraw`, `showybox`, `tablem`, `subpar`, `lovelace`, `glossarium`, `unify`, `wordometer` and the rest — for their work, even where this list doesn't name every one individually.
 
 ---
 

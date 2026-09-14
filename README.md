@@ -44,6 +44,7 @@
 - [Changelog](#-changelog)
 - [Referencias](#-referencias)
 - [Licencia](#-licencia)
+- [Agradecimientos](#-agradecimientos)
 - [Autor y Créditos](#-autor-y-créditos)
 
 ---
@@ -327,6 +328,37 @@ El changelog se mantiene en los dos idiomas: [Español](./dbv-specs-ops/CHANGELO
 MIT — ver [LICENSE](./LICENSE) para más detalles.
 
 Copyright (c) 2026 David Bueno Vallejo
+
+---
+
+## 🙏 Agradecimientos
+
+Esta aplicación no existiría sin el trabajo de un buen número de proyectos de código abierto. Gracias a sus autores y mantenedores:
+
+### Motor y lenguaje
+
+- [Typst](https://typst.app) — el motor de composición tipográfica sobre el que se construye toda la aplicación (binario vendorizado como sidecar de compilación).
+- [Tinymist](https://github.com/Myriad-Dreamin/tinymist) — Language Server oficial de Typst, vendorizado para autocompletado semántico, diagnósticos en vivo y formateo.
+
+### Paquetes de Typst Universe usados por los asistentes visuales de la aplicación
+
+- [cetz](https://typst.app/universe/package/cetz) — motor de dibujo detrás del editor WYSIWYG de diagramas.
+- [MiTeX](https://typst.app/universe/package/mitex) — conversión de LaTeX pegado en el editor visual de ecuaciones.
+- [Chronos](https://typst.app/universe/package/chronos) — diagramas de secuencia.
+- [Gantty](https://typst.app/universe/package/gantty) — diagramas de Gantt con fechas reales.
+- [Kantan](https://typst.app/universe/package/kantan) — tableros Kanban.
+- [Diagraph](https://typst.app/universe/package/diagraph) — render de grafos DOT/Graphviz vía un plugin Wasm.
+- [jogs](https://typst.app/universe/package/jogs) — runtime JavaScript embebido (QuickJS) para figuras y datos dinámicos.
+
+### Piezas centrales de la aplicación
+
+- [Tauri](https://tauri.app) — el framework de escritorio (Rust + WebView nativo) sobre el que corre toda la aplicación, junto con sus plugins `shell`, `dialog`, `updater`, `process` y `single-instance`.
+- [CodeMirror 6](https://codemirror.net) y [codemirror-lang-typst](https://github.com/kxxt/codemirror-lang-typst) — el editor de código y su resaltado de sintaxis Typst.
+- [Hayagriva](https://github.com/typst/hayagriva) — el mismo motor de bibliografía BibTeX/Hayagriva que usa el propio compilador Typst para `#bibliography()`.
+- [Vite](https://vite.dev) — empaquetado y servidor de desarrollo del frontend.
+- Crates de Rust: [serde](https://serde.rs)/serde_json, [tokio](https://tokio.rs), [notify](https://github.com/notify-rs/notify), [toml](https://github.com/toml-rs/toml), [tempfile](https://github.com/Stebalien/tempfile), [zip](https://github.com/zip-rs/zip2), [dunce](https://gitlab.com/kornelski/dunce), [base64](https://github.com/marshallpierce/rust-base64), [ureq](https://github.com/algesten/ureq) y [sys-locale](https://github.com/1Password/sys-locale) (macOS).
+
+Gracias también a los mantenedores de todos los paquetes curados en el Universe Browser de la aplicación (ver [`src/universe/curatedCatalog.js`](./src/universe/curatedCatalog.js)) — plantillas de IEEE/ACM/Springer, `fletcher`, `touying`, `quick-maths`, `physica`, `codly`, `zebraw`, `showybox`, `tablem`, `subpar`, `lovelace`, `glossarium`, `unify`, `wordometer` y el resto — por su trabajo, aunque no todos quepan uno a uno en esta lista.
 
 ---
 

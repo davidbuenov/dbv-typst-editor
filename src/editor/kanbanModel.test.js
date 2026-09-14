@@ -131,6 +131,12 @@ describe('boardToKantanCode', () => {
     expect(boardToKantanCode(board)).toContain('[Tarea \\[urgente\\]]');
   });
 
+  it('escapa corchetes también en el nombre del asignado, no solo en el de la tarjeta', () => {
+    let board = addColumn(createEmptyBoard(), 'Backlog');
+    board = addCard(board, 0, { name: 'Tarea', assignee: 'David [equipo A]' });
+    expect(boardToKantanCode(board)).toContain('[David \\[equipo A\\]][Tarea]');
+  });
+
   it('escapa comillas en el nombre de una columna', () => {
     const board = addColumn(createEmptyBoard(), 'Fase "final"');
     expect(boardToKantanCode(board)).toContain('"Fase \\"final\\""');

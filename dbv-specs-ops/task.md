@@ -386,6 +386,12 @@
   * **`helpContent.test.js`** ampliado con un test que exige URL `https://` y etiqueta bilingüe en todo `docLink`; **`help.test.js` nuevo** (3 tests: cabeceras por sección, `scrollToSection`, un enlace de verdad dispara `openExternalUrl` en vez de navegar).
   * **569/569 Vitest (+4) · 237/237 Rust (+1) · `verify:frontend` 11/11 · `verify:layout` 16/16.** `SPECIFICATIONS.md` (RF-52 criterio 5, "RF-52.1"), `CHANGELOG.md`/`.en.md`.
 
+- [x] **Fase 26: `/test` de la ampliación (RF-50 a RF-52.1) — cerrada el 2026-09-15.** Suite completa reejecutada desde cero: **570/570 Vitest · 237/237 Rust · `verify:frontend` 11/11 · `verify:layout` 16/16**. Revisión de huecos de cobertura:
+  * **Hueco real cerrado:** `boardToKantanCode` escapaba corchetes en el nombre de la tarjeta (ya testeado) pero no había ningún test que probara lo mismo para el nombre del ASIGNADO — mismo `escapeTypstContent`, dos llamadas distintas en `cardToKantanCode`, y solo una de las dos tenía test. 1 test nuevo en `kanbanModel.test.js` (22 en total).
+  * **Comprobado y descartado como hueco real:** ni `workspace.test.js` ni ningún otro fichero prueba `createWorkspace()` directamente (solo reexporta y prueba `joinPath`/`isTypstPath`/`baseName`) — `openDiagramEditor`/`openEquationEditor`/`openSequenceEditor`/`openGanttEditor` tampoco tienen test propio, así que `openKanbanEditor`/`openDotEditor` no son una regresión de esta ampliación sino la misma frontera de cobertura ya aceptada para los cuatro asistentes anteriores (montar `createWorkspace()` completo exigiría mockear todo el editor/CodeMirror, árbol de proyecto y diálogo — coste desproporcionado para cerrar aquí, no antes).
+  * **Comprobado y descartado como hueco real:** el camino completo de `TypstError::CompilationFailed` viajando por el puente IPC hasta el frontend no tiene test de extremo a extremo para NINGÚN comando de compilación de esta app (ni siquiera `equation.rs`, ya en producción desde el Slice 60) — es infraestructura genérica de `call()`/`normalizeError` en `backend.js`, no algo específico de RF-51; `dotEditor.test.js` ya prueba el nivel que le corresponde (un resultado `{ok:false}` simulado conserva el "last good render").
+  * Sin bugs que corregir en esta pasada — solo el test nuevo. Sin entrada de `CHANGELOG.md` (cobertura, no comportamiento).
+
 ## 🔄 Context Snapshot / Snapshot de Contexto
 
 > ### 👉 CÓMO RETOMAR ESTE PROYECTO (leer esto primero) — actualizado 2026-09-13, v0.6.0 PUBLICADA DEL TODO

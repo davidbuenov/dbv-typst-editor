@@ -540,6 +540,7 @@ async function bootstrap() {
       diagramPanel: el('diagram-panel'),
       equationPanel: el('equation-panel'),
       sequencePanel: el('sequence-panel'),
+      ganttPanel: el('gantt-panel'),
       documentName: el('document-name'),
       documentDirty: el('document-dirty'),
       documentPath: el('document-path'),
@@ -1018,6 +1019,14 @@ async function bootstrap() {
       return;
     }
     workspace.openSequenceEditor(el('btn-tools-sequence'));
+  });
+
+  el('btn-tools-gantt').addEventListener('click', () => {
+    if (!workspace.state.document) {
+      toast.show(t('gantt.needDocument'), 'error');
+      return;
+    }
+    workspace.openGanttEditor(el('btn-tools-gantt'));
   });
 
   el('btn-jogs-insert').addEventListener('click', () => {

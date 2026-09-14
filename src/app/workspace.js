@@ -24,6 +24,7 @@ import { createCetzAssistant } from '../editor/cetzAssistant.js';
 import { createDiagramEditor } from '../editor/diagramEditor.js';
 import { createEquationEditor } from '../editor/equationEditor.js';
 import { createSequenceEditor } from '../editor/sequenceEditor.js';
+import { createGanttEditor } from '../editor/ganttEditor.js';
 import { createToolbar } from '../editor/toolbar.js';
 import { figureActionForPath } from '../editor/toolbarActions.js';
 import { posFromLsp } from '../editor/lspClient.js';
@@ -86,6 +87,7 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
   let diagramEditor;
   let equationEditor;
   let sequenceEditor;
+  let ganttEditor;
   const editor = createEditor(elements.editorHost, {
     theme: getTheme(),
     lspClient,
@@ -267,6 +269,11 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
 
   sequenceEditor = createSequenceEditor({
     panelEl: elements.sequencePanel,
+    getView: editor.getView,
+  });
+
+  ganttEditor = createGanttEditor({
+    panelEl: elements.ganttPanel,
     getView: editor.getView,
   });
 
@@ -732,6 +739,10 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     /** Abre el asistente de diagramas de secuencia (RF-48), mismo patrón que `openDiagramEditor`. */
     openSequenceEditor(triggerEl) {
       sequenceEditor?.openNear(triggerEl);
+    },
+    /** Abre el asistente de diagramas de Gantt (RF-49), mismo patrón que `openDiagramEditor`. */
+    openGanttEditor(triggerEl) {
+      ganttEditor?.openNear(triggerEl);
     },
     openProjectAt,
     openDocument,

@@ -78,6 +78,7 @@ const DICTIONARIES = {
     'action.diagramEditor': 'Editor de diagramas',
     'action.equationEditor': 'Editor de ecuaciones',
     'action.sequenceEditor': 'Diagrama de secuencia',
+    'action.ganttEditor': 'Diagrama de Gantt',
     'jogs.inserted': 'Script jogs insertado',
     'sidebar.tabFiles': 'Archivos',
     'sidebar.tabOutline': 'Esquema',
@@ -421,6 +422,15 @@ const DICTIONARIES = {
     'sequence.needParticipants': 'Añade al menos dos participantes antes de crear un mensaje.',
     'sequence.needTwoParticipants': 'Hacen falta al menos dos participantes para insertar el diagrama.',
 
+    // Asistente de diagramas de Gantt (RF-49).
+    'gantt.title': 'Diagrama de Gantt',
+    'gantt.taskPlaceholder': 'Nombre de la tarea',
+    'gantt.needDocument': 'Abre un documento primero para insertar un diagrama de Gantt.',
+    'gantt.hintDefault': 'Añade tareas con su fecha de inicio y de fin.',
+    'gantt.needFields': 'Escribe un nombre y las dos fechas antes de añadir la tarea.',
+    'gantt.badRange': 'La fecha de fin no puede ser anterior a la de inicio.',
+    'gantt.needOneTask': 'Añade al menos una tarea para insertar el diagrama.',
+
     'cetz.title': 'Asistente de Diagramas CeTZ',
     'cetz.desc': 'Inserta código listo para compilar con la biblioteca gráfica CeTZ.',
     'cetz.flowchart': 'Diagrama de Flujo',
@@ -548,6 +558,7 @@ const DICTIONARIES = {
     'action.diagramEditor': 'Diagram editor',
     'action.equationEditor': 'Equation editor',
     'action.sequenceEditor': 'Sequence diagram',
+    'action.ganttEditor': 'Gantt chart',
     'jogs.inserted': 'jogs script inserted',
     'sidebar.tabFiles': 'Files',
     'sidebar.tabOutline': 'Outline',
@@ -890,6 +901,15 @@ const DICTIONARIES = {
     'sequence.hintDefault': 'Add at least two participants and the messages between them.',
     'sequence.needParticipants': 'Add at least two participants before creating a message.',
     'sequence.needTwoParticipants': 'At least two participants are needed to insert the diagram.',
+
+    // Gantt chart assistant (RF-49).
+    'gantt.title': 'Gantt chart',
+    'gantt.taskPlaceholder': 'Task name',
+    'gantt.needDocument': 'Open a document first to insert a Gantt chart.',
+    'gantt.hintDefault': 'Add tasks with their start and end date.',
+    'gantt.needFields': 'Type a name and both dates before adding the task.',
+    'gantt.badRange': 'The end date cannot be earlier than the start date.',
+    'gantt.needOneTask': 'Add at least one task to insert the diagram.',
 
     'cetz.title': 'CeTZ Diagram Assistant',
     'cetz.desc': 'Insert ready-to-compile code using the CeTZ graphics library.',

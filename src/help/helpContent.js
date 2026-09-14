@@ -178,6 +178,16 @@ export const HELP_SECTIONS = [
     ],
   },
   {
+    id: 'gantt',
+    title: { es: 'Diagramas de Gantt', en: 'Gantt charts' },
+    blocks: [
+      {
+        es: 'En el menú Herramientas → Diagrama de Gantt (▤): añade tareas con su nombre y sus fechas reales de inicio y fin. Al insertar, se genera con el paquete gantty y se añade su import si hace falta.',
+        en: 'In the Tools menu → Gantt chart (▤): add tasks with their name and their real start and end dates. Inserting generates the diagram with the gantty package, adding its import if needed.',
+      },
+    ],
+  },
+  {
     id: 'vista-previa',
     title: { es: 'Vista previa', en: 'Preview' },
     blocks: [

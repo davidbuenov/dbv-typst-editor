@@ -99,6 +99,14 @@ export const CURATED_PACKAGES = [
     license: 'Apache-2.0',
   },
   {
+    spec: '@preview/gantty:0.5.1',
+    title: 'gantty — diagramas de Gantt',
+    titleEn: 'gantty — Gantt charts',
+    description: 'Diagramas de Gantt con fechas reales, tareas y subtareas.',
+    descriptionEn: 'Gantt charts with real dates, tasks and subtasks.',
+    license: 'LGPL-3.0-or-later',
+  },
+  {
     spec: '@preview/touying:0.7.4',
     title: 'touying — presentaciones',
     titleEn: 'touying — presentations',

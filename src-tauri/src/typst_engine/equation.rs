@@ -29,7 +29,7 @@
 
 use tauri::AppHandle;
 
-use super::{font_path_args, run, TypstError};
+use super::{compile_source_to_svg, TypstError};
 
 /// Envuelve el cuerpo matemático (sin los `$` delimitadores) en un documento
 /// mínimo recortado al contenido — sin cabecera, pie, ni márgenes de página
@@ -62,31 +62,13 @@ pub async fn typst_compile_equation(
     font_size_pt: Option<f64>,
     preamble: Option<String>,
 ) -> Result<String, TypstError> {
-    let workdir =
-        tempfile::tempdir().map_err(|error| TypstError::ExecutionFailed(error.to_string()))?;
-    let input_path = workdir.path().join("equation.typ");
-    let output_path = workdir.path().join("equation.svg");
-
     let source = wrap_equation(&math, font_size_pt.unwrap_or(11.0), preamble.as_deref());
-    std::fs::write(&input_path, source).map_err(|error| TypstError::ExecutionFailed(error.to_string()))?;
-
-    let input_arg = input_path.to_string_lossy().to_string();
-    let output_arg = output_path.to_string_lossy().to_string();
-
-    let mut args = vec!["compile".to_string(), input_arg, output_arg, "--format".to_string(), "svg".to_string()];
-    if let Some(root) = &root {
-        args.extend(font_path_args(std::path::Path::new(root)));
-    }
-    let arg_refs: Vec<&str> = args.iter().map(String::as_str).collect();
-
     // No usa `run_cancelable`/`EngineState` a propósito (ver cabecera del
     // fichero): es un proceso independiente, corto, sin estado compartido con
-    // la vista previa principal del documento. `run()` ya distingue éxito de
-    // fallo por el código de salida (`TypstError::CompilationFailed` si el
-    // compilador rechaza la fórmula), así que aquí solo queda leer el SVG.
-    run(&app, &arg_refs).await?;
-
-    std::fs::read_to_string(&output_path).map_err(|error| TypstError::ExecutionFailed(error.to_string()))
+    // la vista previa principal del documento. `compile_source_to_svg` ya
+    // distingue éxito de fallo por el código de salida
+    // (`TypstError::CompilationFailed` si el compilador rechaza la fórmula).
+    compile_source_to_svg(&app, &source, root.as_deref()).await
 }
 
 #[cfg(test)]

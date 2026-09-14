@@ -193,6 +193,54 @@ pub fn font_path_args(root: &std::path::Path) -> Vec<String> {
     }
 }
 
+/// Compila `source` (código Typst ya completo, listo para pasar tal cual al
+/// compilador) a un SVG recortado al contenido de la página que ese código
+/// declare — la "viñeta" que usan tanto el editor de ecuaciones (RF-46) como
+/// el de DOT/Graphviz (RF-51) para su vista previa en vivo.
+///
+/// Extraído en `/build` de la ampliación RF-50/RF-51 de v0.7.0: hasta
+/// entonces esta fontanería (tempdir + escribir + compilar + leer el SVG)
+/// vivía duplicada solo dentro de `equation.rs`, su único consumidor. Lo que
+/// NO se ha generalizado a propósito es la construcción del propio `source`:
+/// `equation.rs` (`wrap_equation`, con su tamaño de fuente y sus `$ ... $`) y
+/// `dot.rs` (`wrap_dot`, sin tamaño de fuente, con una llamada a `render(...)`
+/// en vez de una fórmula) siguen siendo dos funciones de envoltorio propias
+/// — forzarlas a una abstracción común no encajaría con ninguna de las dos,
+/// mismo criterio de tamaño de extracción que las tres reutilizaciones del
+/// `/code-simplify` de esta versión (Fase 21, `task.md`).
+pub async fn compile_source_to_svg(
+    app: &AppHandle,
+    source: &str,
+    root: Option<&str>,
+) -> Result<String, TypstError> {
+    let workdir =
+        tempfile::tempdir().map_err(|error| TypstError::ExecutionFailed(error.to_string()))?;
+    let input_path = workdir.path().join("input.typ");
+    let output_path = workdir.path().join("output.svg");
+
+    std::fs::write(&input_path, source)
+        .map_err(|error| TypstError::ExecutionFailed(error.to_string()))?;
+
+    let input_arg = input_path.to_string_lossy().to_string();
+    let output_arg = output_path.to_string_lossy().to_string();
+
+    let mut args = vec![
+        "compile".to_string(),
+        input_arg,
+        output_arg,
+        "--format".to_string(),
+        "svg".to_string(),
+    ];
+    if let Some(root) = root {
+        args.extend(font_path_args(std::path::Path::new(root)));
+    }
+    let arg_refs: Vec<&str> = args.iter().map(String::as_str).collect();
+
+    run(app, &arg_refs).await?;
+
+    std::fs::read_to_string(&output_path).map_err(|error| TypstError::ExecutionFailed(error.to_string()))
+}
+
 /// Versión del compilador Typst embebido en la aplicación.
 #[tauri::command]
 pub async fn typst_version(app: AppHandle) -> Result<String, TypstError> {

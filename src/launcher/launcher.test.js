@@ -36,7 +36,7 @@ vi.mock('../services/backend.js', () => ({
   removeRecentProject: () => Promise.resolve({ ok: true }),
 }));
 
-import { createLauncher, localizeTemplate, RECENT_DISPLAY_LIMIT } from './launcher.js';
+import { createLauncher, formatRelativeTime, localizeTemplate, RECENT_DISPLAY_LIMIT } from './launcher.js';
 
 const CON_LOCALIZACION = {
   name: 'dbv-tfg',
@@ -160,8 +160,48 @@ describe('proyectos recientes (RF-44)', () => {
     const launcher = createLauncher({ recentEl, onOpenRecent: () => {} });
     await launcher.load();
 
-    const icons = [...recentEl.querySelectorAll('.recent-item__icon')].map((el) => el.textContent);
-    expect(icons).toEqual(['📁', '📄']);
+    // Iconos SVG con el mismo trazo que el resto de la app, no emoji — se
+    // comprueba por la silueta (un `path` distinto por icono), no por texto.
+    const icons = [...recentEl.querySelectorAll('.recent-item__icon')].map((el) => el.innerHTML);
+    expect(icons[0]).toContain('M2.5 6.2'); // carpeta
+    expect(icons[1]).toContain('M6.3 2.5'); // documento
+    expect(icons[0]).not.toBe(icons[1]);
+  });
+
+  it('muestra "Ver todos" solo si hay más de RECENT_DISPLAY_LIMIT, y expande al pulsarlo', async () => {
+    recentProjectsResult = {
+      ok: true,
+      value: Array.from({ length: 7 }, (_, index) =>
+        recentProject({ path: `D:\\p\\proyecto-${index}`, name: `proyecto-${index}` }),
+      ),
+    };
+    const recentEl = document.createElement('div');
+    const recentToggleEl = document.createElement('button');
+    document.body.append(recentEl, recentToggleEl);
+
+    const launcher = createLauncher({ recentEl, recentToggleEl, onOpenRecent: () => {} });
+    await launcher.load();
+
+    expect(recentToggleEl.classList.contains('hidden')).toBe(false);
+    expect(recentEl.querySelectorAll('.recent-item')).toHaveLength(RECENT_DISPLAY_LIMIT);
+
+    recentToggleEl.click();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(recentEl.querySelectorAll('.recent-item')).toHaveLength(7);
+  });
+
+  it('oculta "Ver todos" cuando no hay más entradas que las visibles', async () => {
+    recentProjectsResult = { ok: true, value: [recentProject({ path: 'D:\\p\\proyecto' })] };
+    const recentEl = document.createElement('div');
+    const recentToggleEl = document.createElement('button');
+    document.body.append(recentEl, recentToggleEl);
+
+    const launcher = createLauncher({ recentEl, recentToggleEl, onOpenRecent: () => {} });
+    await launcher.load();
+
+    expect(recentToggleEl.classList.contains('hidden')).toBe(true);
   });
 
   it('abrir sigue funcionando tras el rediseño de la tarjeta', async () => {
@@ -175,5 +215,46 @@ describe('proyectos recientes (RF-44)', () => {
     recentEl.querySelector('.recent-item__open').click();
 
     expect(onOpenRecent).toHaveBeenCalledWith('D:\\p\\proyecto');
+  });
+});
+
+describe('formatRelativeTime', () => {
+  // Momento de referencia fijo, no `Date.now()`: mismo motivo por el que
+  // `lastOpened` viaja como parámetro y no como reloj real.
+  const NOW = new Date('2026-09-14T12:00:00Z').getTime();
+  const hoursAgo = (h) => Math.round(NOW / 1000 - h * 3600);
+
+  it('menos de 24h es "hoy"', () => {
+    expect(formatRelativeTime(hoursAgo(2), { now: NOW })).toBe('hoy');
+  });
+
+  it('entre 24h y 48h es "ayer"', () => {
+    expect(formatRelativeTime(hoursAgo(30), { now: NOW })).toBe('ayer');
+  });
+
+  it('entre 2 y 6 días cuenta días', () => {
+    expect(formatRelativeTime(hoursAgo(3 * 24), { now: NOW })).toBe('3 días');
+  });
+
+  it('a partir de 7 días cuenta semanas', () => {
+    expect(formatRelativeTime(hoursAgo(7 * 24), { now: NOW })).toBe('1 sem');
+    expect(formatRelativeTime(hoursAgo(20 * 24), { now: NOW })).toBe('2 sem');
+  });
+
+  it('a partir de 30 días cuenta meses, con singular correcto', () => {
+    expect(formatRelativeTime(hoursAgo(30 * 24), { now: NOW })).toBe('1 mes');
+    expect(formatRelativeTime(hoursAgo(65 * 24), { now: NOW })).toBe('2 meses');
+  });
+
+  it('un lastOpened en el futuro (reloj desajustado) no da una cifra negativa', () => {
+    expect(formatRelativeTime(Math.round(NOW / 1000) + 3600, { now: NOW })).toBe('hoy');
+  });
+
+  it('respeta el idioma inglés', () => {
+    expect(formatRelativeTime(hoursAgo(2), { now: NOW, language: 'en' })).toBe('today');
+    expect(formatRelativeTime(hoursAgo(30), { now: NOW, language: 'en' })).toBe('yesterday');
+    expect(formatRelativeTime(hoursAgo(3 * 24), { now: NOW, language: 'en' })).toBe('3d');
+    expect(formatRelativeTime(hoursAgo(20 * 24), { now: NOW, language: 'en' })).toBe('2w');
+    expect(formatRelativeTime(hoursAgo(65 * 24), { now: NOW, language: 'en' })).toBe('2mo');
   });
 });

@@ -200,8 +200,19 @@
                abre la galería; y el sitio que ocupaba la rejilla se lo quedan los
                proyectos recientes, que es lo que se busca de verdad al volver. -->
           <h2 class="launcher__subheading" data-i18n="launcher.start"></h2>
+          <!-- Rediseño a partir de una referencia visual que le gustó al
+               usuario más que la disposición anterior (primario + secundarias
+               lado a lado): ahora el primario ocupa el ancho completo, con
+               marcas de esquina decorativas (guiño tipográfico/de imprenta,
+               coherente con una app de composición), y las secundarias pasan
+               de fila de botones a una rejilla 2x2 de tarjetas propias, cada
+               una con icono, título corto y una pista de una línea. -->
           <div class="launcher__start">
             <button id="btn-launcher-new" class="launcher__primary" type="button">
+              <span class="launcher__primary-corner launcher__primary-corner--tl" aria-hidden="true"></span>
+              <span class="launcher__primary-corner launcher__primary-corner--tr" aria-hidden="true"></span>
+              <span class="launcher__primary-corner launcher__primary-corner--bl" aria-hidden="true"></span>
+              <span class="launcher__primary-corner launcher__primary-corner--br" aria-hidden="true"></span>
               <span class="launcher__primary-icon" aria-hidden="true">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M7 3h7l4.5 4.5V20a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 3v5h4.5"/><path d="M12 11.5v6M9 14.5h6"/></svg>
               </span>
@@ -212,26 +223,52 @@
             </button>
 
             <div class="launcher__actions">
-              <button id="btn-empty-open-folder" class="button button--ghost button--icon-label" type="button">
-                <svg class="button__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2.5 6.2c0-.7.6-1.3 1.3-1.3h3.5l1.5 1.8h7.2c.7 0 1.3.6 1.2 1.3l-.9 6.2c-.1.7-.7 1.2-1.3 1.2H4.1c-.7 0-1.2-.5-1.3-1.2L2.5 6.2Z"/></svg>
-                <span data-i18n="action.openFolder"></span>
+              <button id="btn-empty-open-folder" class="launcher__action-card" type="button">
+                <span class="launcher__action-icon" aria-hidden="true">
+                  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M2.5 6.2c0-.7.6-1.3 1.3-1.3h3.5l1.5 1.8h7.2c.7 0 1.3.6 1.2 1.3l-.9 6.2c-.1.7-.7 1.2-1.3 1.2H4.1c-.7 0-1.2-.5-1.3-1.2L2.5 6.2Z"/></svg>
+                </span>
+                <span class="launcher__action-text">
+                  <span class="launcher__action-label" data-i18n="launcher.openFolder"></span>
+                  <span class="launcher__action-hint" data-i18n="launcher.openFolderHint"></span>
+                </span>
               </button>
-              <button id="btn-empty-open-file" class="button button--ghost button--icon-label" type="button">
-                <svg class="button__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6.3 2.5h5l3.4 3.4V16a1 1 0 0 1-1 1H6.3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1Z"/><path d="M11.3 2.5V6h3.4"/><path d="M7.3 10h5.4M7.3 12.6h5.4"/></svg>
-                <span data-i18n="action.openFile"></span>
+              <button id="btn-empty-open-file" class="launcher__action-card" type="button">
+                <span class="launcher__action-icon" aria-hidden="true">
+                  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M6.3 2.5h5l3.4 3.4V16a1 1 0 0 1-1 1H6.3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1Z"/><path d="M11.3 2.5V6h3.4"/><path d="M7.3 10h5.4M7.3 12.6h5.4"/></svg>
+                </span>
+                <span class="launcher__action-text">
+                  <span class="launcher__action-label" data-i18n="launcher.openFile"></span>
+                  <span class="launcher__action-hint" data-i18n="launcher.openFileHint"></span>
+                </span>
               </button>
-              <button id="btn-import-archive" class="button button--ghost button--icon-label" type="button">
-                <svg class="button__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 6.3 4.1 3h11.8l1.1 3.3"/><rect x="3" y="6.3" width="14" height="9.7" rx="1"/><path d="M8 10h4"/></svg>
-                <span data-i18n="action.importArchive"></span>
+              <button id="btn-import-archive" class="launcher__action-card" type="button">
+                <span class="launcher__action-icon" aria-hidden="true">
+                  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M3 6.3 4.1 3h11.8l1.1 3.3"/><rect x="3" y="6.3" width="14" height="9.7" rx="1"/><path d="M8 10h4"/></svg>
+                </span>
+                <span class="launcher__action-text">
+                  <span class="launcher__action-label" data-i18n="launcher.importArchive"></span>
+                  <span class="launcher__action-hint" data-i18n="launcher.importArchiveHint"></span>
+                </span>
               </button>
-              <button id="btn-clone-repo" class="button button--ghost button--icon-label" type="button">
-                <svg class="button__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="5" cy="5" r="2"/><circle cx="5" cy="15" r="2"/><circle cx="15" cy="9" r="2"/><path d="M5 7v6"/><path d="M5 9c0-2.2 1.8-2 4.5-2S15 7 15 7"/></svg>
-                <span data-i18n="action.cloneRepo"></span>
+              <button id="btn-clone-repo" class="launcher__action-card" type="button">
+                <span class="launcher__action-icon" aria-hidden="true">
+                  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" focusable="false"><circle cx="5" cy="5" r="2"/><circle cx="5" cy="15" r="2"/><circle cx="15" cy="9" r="2"/><path d="M5 7v6"/><path d="M5 9c0-2.2 1.8-2 4.5-2S15 7 15 7"/></svg>
+                </span>
+                <span class="launcher__action-text">
+                  <span class="launcher__action-label" data-i18n="launcher.cloneRepo"></span>
+                  <span class="launcher__action-hint" data-i18n="launcher.cloneRepoHint"></span>
+                </span>
               </button>
             </div>
           </div>
 
-          <h2 class="launcher__subheading" data-i18n="recent.title"></h2>
+          <div class="launcher__subheading-row">
+            <h2 class="launcher__subheading" data-i18n="recent.title"></h2>
+            <!-- Solo aparece si hay más de RECENT_DISPLAY_LIMIT proyectos
+                 (launcher.js la oculta si no hace falta) — expande/contrae la
+                 misma lista ya cargada, sin pedir nada nuevo al backend. -->
+            <button id="btn-recent-toggle" class="launcher__view-all hidden" type="button"></button>
+          </div>
           <div class="recent-list" id="recent-list"></div>
         </div>
       </section>

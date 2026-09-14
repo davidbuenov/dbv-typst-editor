@@ -886,6 +886,7 @@ async function bootstrap() {
 
   const launcher = createLauncher({
     recentEl: el('recent-list'),
+    recentToggleEl: el('btn-recent-toggle'),
     onOpenRecent: openPath,
   });
 

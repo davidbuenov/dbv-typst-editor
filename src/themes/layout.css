@@ -245,7 +245,13 @@
 
 .launcher__heading {
   margin: 0 0 8px;
-  font-size: 24px;
+  font-size: 28px;
+  font-weight: 700;
+  /* Serif solo aquí, a partir de una referencia visual que le gustó al
+     usuario: un guiño editorial/tipográfico para el titular de una app de
+     composición, sin tocar la familia sans-serif del resto de la interfaz
+     (`--font-ui`). Fuentes del sistema, sin descarga ni fichero nuevo. */
+  font-family: Georgia, Cambria, 'Times New Roman', serif;
 }
 
 .launcher__text {
@@ -262,62 +268,27 @@
   color: var(--text-muted);
 }
 
-.launcher__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 18px;
-  align-items: center;
-}
-
-/* Las tres secundarias comparten fila con la acción principal. Con el icono
-   delante crecen lo justo para no caber en ventanas estrechas, así que se les
-   permite encoger el texto antes que saltar de línea: `flex-wrap` sigue ahí
-   como último recurso, no como comportamiento habitual.
-   RF-44: antes eran botones `--ghost` completos (borde + fondo transparente)
-   — cuatro cajas idénticas en fila junto al botón principal se leían como
-   "una lista de botones", en palabras del usuario, no como acciones
-   subordinadas. Sin borde ni fondo en reposo pesan de verdad menos que la
-   acción dominante; el borde/fondo solo aparece al pasar el cursor o con
-   foco, para seguir señalando que son interactivos. */
-.launcher__actions .button {
-  min-width: 0;
-  flex: 0 1 auto;
-  border-color: transparent;
-  background: transparent;
-  color: var(--text-secondary);
-  padding-inline: 4px;
-}
-
-.launcher__actions .button:hover,
-.launcher__actions .button:focus-visible {
-  border-color: var(--border);
-  background: var(--bg-tertiary);
-  color: var(--text-primary);
-}
-
-.launcher__actions .button span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* ─── Arranque del lanzador (RF-25) ──────────────────────────────────────────
-   Una acción dominante y tres subordinadas. Aquí había una rejilla de tarjetas
-   que solo servía para abrir la galería; el espacio que deja se lo quedan los
-   proyectos recientes, más abajo. */
+/* ─── Arranque del lanzador ───────────────────────────────────────────────
+   Rediseñado a partir de una referencia visual que le gustó más al usuario
+   que la disposición anterior (primario + secundarias lado a lado, RF-25):
+   ahora el primario ocupa todo el ancho por sí solo, y las cuatro
+   secundarias pasan de fila de botones a una rejilla 2x2 de tarjetas
+   propias — cada una con su icono, su título corto y una pista de una
+   línea, mismo nivel de detalle que el primario pero con menos peso visual
+   (fondo/borde neutros, no el acento de la acción dominante). */
 .launcher__start {
-  display: grid;
-  grid-template-columns: minmax(280px, 380px) 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 16px;
-  align-items: center;
   margin-bottom: 32px;
 }
 
 .launcher__primary {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 16px;
+  padding: 20px 22px;
   text-align: left;
   background: var(--accent);
   border: 1px solid var(--accent);
@@ -343,6 +314,59 @@
   outline-offset: 2px;
 }
 
+/* Marcas de esquina ("crop marks"): un guiño de imprenta/tipografía, propio
+   de una app de composición — puramente decorativas (`aria-hidden`), cada
+   una es una cruz fina hecha con dos barras de 1px en `::before`/`::after`. */
+.launcher__primary-corner {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  opacity: 0.4;
+}
+
+.launcher__primary-corner::before,
+.launcher__primary-corner::after {
+  content: '';
+  position: absolute;
+  background: var(--bg-primary);
+}
+
+.launcher__primary-corner::before {
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  transform: translateY(-50%);
+}
+
+.launcher__primary-corner::after {
+  left: 50%;
+  top: 0;
+  height: 100%;
+  width: 1px;
+  transform: translateX(-50%);
+}
+
+.launcher__primary-corner--tl {
+  top: 8px;
+  left: 8px;
+}
+
+.launcher__primary-corner--tr {
+  top: 8px;
+  right: 8px;
+}
+
+.launcher__primary-corner--bl {
+  bottom: 8px;
+  left: 8px;
+}
+
+.launcher__primary-corner--br {
+  bottom: 8px;
+  right: 8px;
+}
+
 .launcher__primary-icon {
   display: grid;
   place-items: center;
@@ -361,13 +385,105 @@
 }
 
 .launcher__primary-label {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
 }
 
 .launcher__primary-hint {
   font-size: 12px;
   opacity: 0.8;
+}
+
+.launcher__actions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 560px) {
+  .launcher__actions {
+    grid-template-columns: 1fr;
+  }
+}
+
+.launcher__action-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  text-align: left;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: inherit;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition);
+}
+
+.launcher__action-card:hover,
+.launcher__action-card:focus-visible {
+  background: var(--bg-tertiary);
+  border-color: var(--accent);
+  outline: none;
+}
+
+.launcher__action-icon {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  color: var(--text-secondary);
+}
+
+.launcher__action-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.launcher__action-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.launcher__action-label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.launcher__action-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.launcher__subheading-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 28px 0 12px;
+}
+
+.launcher__subheading-row .launcher__subheading {
+  margin: 0;
+}
+
+.launcher__view-all {
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+.launcher__view-all:hover,
+.launcher__view-all:focus-visible {
+  text-decoration: underline;
+  outline: none;
 }
 
 .template-card {
@@ -454,25 +570,25 @@
 .recent-list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
 }
 
+/* Rediseñado de "tarjeta por fila" a lista con divisor fino — a partir de la
+   misma referencia visual que el bloque de arranque: más compacta y menos
+   ruidosa para una lista corta que se recorre de un vistazo. */
 .recent-item {
   display: flex;
   align-items: center;
-  /* RF-44: peso propio de tarjeta en reposo (antes transparente del todo, se
-     confundía con texto suelto de la pantalla) — el resalte de hover/foco
-     sigue siendo un paso más oscuro sobre este mismo fondo. */
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--bg-secondary);
-  transition: background var(--transition), border-color var(--transition);
+  border-bottom: 1px solid var(--border);
+  transition: background var(--transition);
+}
+
+.recent-item:last-child {
+  border-bottom: none;
 }
 
 .recent-item:hover,
 .recent-item:focus-within {
-  background: var(--bg-tertiary);
-  border-color: var(--accent);
+  background: var(--bg-secondary);
 }
 
 .recent-item__open {
@@ -481,7 +597,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 10px;
+  padding: 10px 8px;
   border: none;
   background: transparent;
   color: inherit;
@@ -493,32 +609,41 @@
 
 .recent-item__icon {
   flex: 0 0 auto;
-  font-size: 18px;
-  line-height: 1;
+  width: 16px;
+  height: 16px;
+  color: var(--text-muted);
 }
 
-.recent-item__text {
-  flex: 1 1 auto;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+.recent-item__icon svg {
+  width: 100%;
+  height: 100%;
 }
 
 .recent-item__name {
+  flex: 0 1 auto;
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+/* Crece para empujar `.recent-item__time` al borde derecho — sin necesidad
+   de `margin-left: auto` en el propio tiempo. */
 .recent-item__path {
-  font-family: var(--font-mono);
-  font-size: 11px;
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 12px;
   color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.recent-item__time {
+  flex: 0 0 auto;
+  font-size: 11px;
+  color: var(--text-muted);
+  padding-left: 12px;
 }
 
 .recent-item__remove {

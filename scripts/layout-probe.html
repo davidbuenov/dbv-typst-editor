@@ -70,6 +70,10 @@
           <h1 class="launcher__heading">Titulo</h1>
           <div class="launcher__start">
             <button class="launcher__primary">
+              <span class="launcher__primary-corner launcher__primary-corner--tl"></span>
+              <span class="launcher__primary-corner launcher__primary-corner--tr"></span>
+              <span class="launcher__primary-corner launcher__primary-corner--bl"></span>
+              <span class="launcher__primary-corner launcher__primary-corner--br"></span>
               <span class="launcher__primary-icon"></span>
               <span class="launcher__primary-text">
                 <span class="launcher__primary-label">Nuevo documento</span>
@@ -77,10 +81,10 @@
               </span>
             </button>
             <div class="launcher__actions">
-              <button class="button button--ghost button--icon-label"><span>Abrir carpeta de proyecto</span></button>
-              <button class="button button--ghost button--icon-label"><span>Abrir documento</span></button>
-              <button class="button button--ghost button--icon-label"><span>Importar proyecto</span></button>
-              <button class="button button--ghost button--icon-label"><span>Clonar repositorio</span></button>
+              <button class="launcher__action-card"><span class="launcher__action-icon"></span><span class="launcher__action-text"><span class="launcher__action-label">Abrir carpeta</span><span class="launcher__action-hint">Proyecto Typst o repositorio clonado</span></span></button>
+              <button class="launcher__action-card"><span class="launcher__action-icon"></span><span class="launcher__action-text"><span class="launcher__action-label">Abrir .typ</span><span class="launcher__action-hint">Un documento suelto</span></span></button>
+              <button class="launcher__action-card"><span class="launcher__action-icon"></span><span class="launcher__action-text"><span class="launcher__action-label">Importar .dbvt</span><span class="launcher__action-hint">Proyecto empaquetado</span></span></button>
+              <button class="launcher__action-card"><span class="launcher__action-icon"></span><span class="launcher__action-text"><span class="launcher__action-label">Clonar repositorio</span><span class="launcher__action-hint">Desde una URL de Git</span></span></button>
             </div>
           </div>
         </div>
@@ -176,12 +180,22 @@
         `${Math.round(start.getBoundingClientRect().width)}/${Math.round(inner.getBoundingClientRect().width)}`
       );
 
+      // Rejilla 2x2 (rediseño posterior a RF-44): dos filas de dos, no una
+      // fila de cuatro — se comprueba que de verdad forman 2 filas (no 4, que
+      // sería la rejilla colapsando a una columna por falta de espacio) y que
+      // ninguna tarjeta se desborda del contenedor.
       const acciones = document.querySelector('.launcher__actions');
-      const botones = [...acciones.children];
+      const tarjetas = [...acciones.children];
+      const filas = new Set(tarjetas.map((b) => Math.round(b.getBoundingClientRect().top))).size;
       add(
-        'las tres acciones secundarias caben en una sola línea',
-        botones.every((b) => b.getBoundingClientRect().top === botones[0].getBoundingClientRect().top),
-        `${botones.length} botones`
+        'las cuatro tarjetas de acciones forman una rejilla 2x2',
+        filas === 2,
+        `${tarjetas.length} tarjetas en ${filas} fila(s)`
+      );
+      add(
+        'las tarjetas de acciones no desbordan su rejilla',
+        tarjetas.every((b) => b.getBoundingClientRect().right <= acciones.getBoundingClientRect().right + 1),
+        `${tarjetas.length} tarjetas`
       );
 
       // 2. Cada combinación de paneles reparte el ancho completo, sin huecos

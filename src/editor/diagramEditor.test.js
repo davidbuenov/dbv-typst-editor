@@ -29,6 +29,7 @@ const PANEL_HTML = `
   <div class="diagram-editor__seed" data-diagram="seed-row">
     <button data-diagram="seed-flowchart" type="button"></button>
     <button data-diagram="seed-block" type="button"></button>
+    <button data-diagram="seed-decision" type="button"></button>
   </div>
   <div class="diagram-editor__toolbar">
     <button data-diagram-shape="rect" type="button">▭</button>
@@ -126,6 +127,29 @@ describe('createDiagramEditor', () => {
 
     expect(viewportEl.querySelectorAll('.diagram-node').length).toBe(3);
     expect(viewportEl.querySelectorAll('.diagram-edge').length).toBe(2);
+    expect(find('seed-row').classList.contains('hidden')).toBe(true);
+  });
+
+  it('sembrar con la plantilla de decisión crea el rombo y las dos ramas etiquetadas Sí/No (RF-47)', () => {
+    setup();
+
+    find('seed-decision').click();
+
+    const nodes = viewportEl.querySelectorAll('.diagram-node');
+    expect(nodes.length).toBe(4);
+    // ADR-DECISION-001 (memory.md): el rombo de decisión ya lo soportaba el
+    // modelo desde v0.6.0 — esta plantilla solo lo pone en uso por primera
+    // vez, así que lo que hay que fijar con un test es justo esto: que la
+    // siembra produce un rombo con dos ramas etiquetadas, no un nodo o
+    // paquete de Typst Universe nuevo.
+    const conditionNode = [...nodes].find((g) =>
+      g.querySelector('.diagram-node__label')?.textContent.includes('Condición'),
+    );
+    expect(conditionNode).toBeTruthy();
+    expect(conditionNode.querySelector('.diagram-node__shape').tagName).toBe('polygon'); // el rombo se dibuja como polígono, no como rect
+
+    const edgeLabels = [...viewportEl.querySelectorAll('.diagram-edge__label')].map((el) => el.textContent);
+    expect(edgeLabels).toEqual(expect.arrayContaining(['Sí', 'No']));
     expect(find('seed-row').classList.contains('hidden')).toBe(true);
   });
 

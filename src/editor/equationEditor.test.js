@@ -101,6 +101,30 @@ describe('createEquationEditor', () => {
     expect(find('preview').innerHTML).toBe('<svg>fórmula</svg>');
   });
 
+  it('una fórmula sin MiTeX no manda ningún preámbulo de import a la vista previa', async () => {
+    setup();
+    find('source').value = 'x^2';
+    find('source').dispatchEvent(new Event('input'));
+    await vi.advanceTimersByTimeAsync(300);
+
+    expect(compileEquation).toHaveBeenCalledWith('x^2', expect.objectContaining({ preamble: null }));
+  });
+
+  it('una fórmula que usa mi(...) SÍ manda el import de MiTeX a la vista previa en vivo', async () => {
+    setup();
+    // Sin este preámbulo, `equation.rs` compilaría `mi(...)` sin que `mi`
+    // esté definido — el mismo fallo que tendría el documento real sin su
+    // #import, pero aquí en la vista previa, no solo al insertar.
+    find('source').value = 'mi("\\\\frac{1}{2}")';
+    find('source').dispatchEvent(new Event('input'));
+    await vi.advanceTimersByTimeAsync(300);
+
+    expect(compileEquation).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ preamble: '#import "@preview/mitex:0.2.7": mi' }),
+    );
+  });
+
   it('un error de compilación conserva la última fórmula que sí se vio bien (last good render)', async () => {
     setup();
     const source = find('source');

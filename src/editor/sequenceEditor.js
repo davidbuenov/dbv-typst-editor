@@ -16,6 +16,7 @@
 import { t } from '../i18n/i18n.js';
 import { positionPanelNear, registerPanel } from '../panels/registerPanel.js';
 import { insertGeneratedCode } from './insertGeneratedCode.js';
+import { createListRow } from './listRow.js';
 import {
   addMessage,
   addParticipant,
@@ -53,28 +54,10 @@ export function createSequenceEditor({ panelEl, getView }) {
     hintEl.textContent = t(key);
   }
 
-  function buildRow(label, onRemove) {
-    const row = document.createElement('div');
-    row.className = 'sequence-editor__row';
-    const text = document.createElement('span');
-    text.className = 'sequence-editor__row-text';
-    text.textContent = label;
-    row.append(text);
-
-    const removeButton = document.createElement('button');
-    removeButton.type = 'button';
-    removeButton.className = 'sequence-editor__remove';
-    removeButton.setAttribute('aria-label', t('sequence.remove'));
-    removeButton.textContent = '✕';
-    removeButton.addEventListener('click', onRemove);
-    row.append(removeButton);
-    return row;
-  }
-
   function renderParticipants() {
     participantsListEl.replaceChildren(
       ...sequence.participants.map((name) =>
-        buildRow(name, () => {
+        createListRow(name, () => {
           sequence = removeParticipant(sequence, name);
           renderAll();
         }),
@@ -100,7 +83,7 @@ export function createSequenceEditor({ panelEl, getView }) {
       ...sequence.messages.map((message, index) => {
         const arrow = message.dashed ? '⇢' : '→';
         const label = `${message.from} ${arrow} ${message.to}${message.comment ? `: ${message.comment}` : ''}`;
-        return buildRow(label, () => {
+        return createListRow(label, () => {
           sequence = removeMessage(sequence, index);
           renderMessages();
         });

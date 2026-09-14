@@ -25,6 +25,7 @@ import {
   removeColumn,
 } from './kanbanModel.js';
 import { insertGeneratedCode } from './insertGeneratedCode.js';
+import { createListRow, createRemoveButton } from './listRow.js';
 
 /**
  * @param {object} deps
@@ -46,30 +47,12 @@ export function createKanbanEditor({ panelEl, getView }) {
     hintEl.textContent = t(key);
   }
 
-  function buildRemoveButton(onRemove) {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'sequence-editor__remove';
-    button.setAttribute('aria-label', t('sequence.remove'));
-    button.textContent = '✕';
-    button.addEventListener('click', onRemove);
-    return button;
-  }
-
   function buildCardRow(card, columnIndex, cardIndex) {
-    const row = document.createElement('div');
-    row.className = 'sequence-editor__row';
-    const text = document.createElement('span');
-    text.className = 'sequence-editor__row-text';
-    text.textContent = card.assignee ? `${card.name} — ${card.assignee}` : card.name;
-    row.append(text);
-    row.append(
-      buildRemoveButton(() => {
-        board = removeCard(board, columnIndex, cardIndex);
-        renderColumns();
-      }),
-    );
-    return row;
+    const label = card.assignee ? `${card.name} — ${card.assignee}` : card.name;
+    return createListRow(label, () => {
+      board = removeCard(board, columnIndex, cardIndex);
+      renderColumns();
+    });
   }
 
   function buildCardForm(columnIndex) {
@@ -153,7 +136,7 @@ export function createKanbanEditor({ panelEl, getView }) {
     title.textContent = column.name;
     header.append(title);
     header.append(
-      buildRemoveButton(() => {
+      createRemoveButton(() => {
         board = removeColumn(board, columnIndex);
         renderColumns();
       }),

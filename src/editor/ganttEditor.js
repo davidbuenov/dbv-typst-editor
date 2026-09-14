@@ -22,6 +22,7 @@ import {
   removeTask,
 } from './ganttModel.js';
 import { insertGeneratedCode } from './insertGeneratedCode.js';
+import { createListRow } from './listRow.js';
 
 /**
  * @param {object} deps
@@ -47,26 +48,12 @@ export function createGanttEditor({ panelEl, getView }) {
 
   function renderTasks() {
     tasksListEl.replaceChildren(
-      ...chart.tasks.map((task, index) => {
-        const row = document.createElement('div');
-        row.className = 'sequence-editor__row';
-        const text = document.createElement('span');
-        text.className = 'sequence-editor__row-text';
-        text.textContent = `${task.name} — ${task.start} → ${task.end}`;
-        row.append(text);
-
-        const removeButton = document.createElement('button');
-        removeButton.type = 'button';
-        removeButton.className = 'sequence-editor__remove';
-        removeButton.setAttribute('aria-label', t('sequence.remove'));
-        removeButton.textContent = '✕';
-        removeButton.addEventListener('click', () => {
+      ...chart.tasks.map((task, index) =>
+        createListRow(`${task.name} — ${task.start} → ${task.end}`, () => {
           chart = removeTask(chart, index);
           renderTasks();
-        });
-        row.append(removeButton);
-        return row;
-      }),
+        }),
+      ),
     );
   }
 

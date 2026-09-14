@@ -172,6 +172,9 @@
             <button id="btn-tools-gantt" class="menu-item" type="button" role="menuitem">
               <span class="menu-item__icon menu-item__icon--glyph" aria-hidden="true">▤</span><span data-i18n="action.ganttEditor"></span>
             </button>
+            <button id="btn-tools-kanban" class="menu-item" type="button" role="menuitem">
+              <span class="menu-item__icon menu-item__icon--glyph" aria-hidden="true">▥</span><span data-i18n="action.kanbanEditor"></span>
+            </button>
             <div class="menu-separator" role="separator"></div>
             <button id="btn-jogs-insert" class="menu-item" type="button" role="menuitem" data-i18n-title="jogs.hint">
               <span class="menu-item__icon menu-item__icon--glyph" aria-hidden="true">JS</span><span data-i18n="action.jogsInsert"></span>
@@ -854,6 +857,25 @@
 
       <span class="diagram-editor__hint" data-gantt="hint"></span>
       <button data-gantt="insert" type="button" class="button button--primary" data-i18n="sequence.insert"></button>
+    </div>
+
+    <!-- Asistente de tableros Kanban (RF-50, paquete `kantan`): columnas y,
+         dentro de cada una, tarjetas — mismo criterio de formulario que
+         RF-48/RF-49. Los formularios de tarjeta por columna se generan en JS
+         (`kanbanEditor.js`), no aquí: una columna nueva no puede tener su
+         formulario ya escrito de antemano en HTML estático. -->
+    <div id="kanban-panel" class="floating-panel floating-panel--diagram hidden" role="dialog" aria-modal="false">
+      <h2 class="floating-panel__title" data-i18n="kanban.title"></h2>
+
+      <div class="diagram-editor__toolbar">
+        <span class="diagram-editor__group-label" data-i18n="kanban.columnLabel"></span>
+        <input data-kanban="column-name" type="text" class="diagram-editor__input diagram-editor__input--grow" data-i18n-placeholder="kanban.columnPlaceholder" />
+        <button data-kanban="add-column" type="button" class="button button--compact button--ghost" data-i18n="sequence.add"></button>
+      </div>
+      <div class="kanban-editor__columns" data-kanban="columns"></div>
+
+      <span class="diagram-editor__hint" data-kanban="hint"></span>
+      <button data-kanban="insert" type="button" class="button button--primary" data-i18n="sequence.insert"></button>
     </div>
 
     <!-- Desplegable de citas (Beta, ARCHITECTURE.md §7.7.4). -->

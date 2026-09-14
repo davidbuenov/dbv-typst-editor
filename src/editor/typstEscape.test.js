@@ -6,7 +6,7 @@
 // =============================================================================
 
 import { describe, expect, it } from 'vitest';
-import { escapeTypstString } from './typstEscape.js';
+import { escapeTypstContent, escapeTypstString } from './typstEscape.js';
 
 describe('escapeTypstString', () => {
   it('duplica cada backslash', () => {
@@ -19,5 +19,19 @@ describe('escapeTypstString', () => {
 
   it('una cadena sin caracteres especiales no cambia', () => {
     expect(escapeTypstString('Alice')).toBe('Alice');
+  });
+});
+
+describe('escapeTypstContent', () => {
+  it('escapa corchetes', () => {
+    expect(escapeTypstContent('Tarea [urgente]')).toBe('Tarea \\[urgente\\]');
+  });
+
+  it('escapa la almohadilla', () => {
+    expect(escapeTypstContent('Issue #42')).toBe('Issue \\#42');
+  });
+
+  it('un texto sin caracteres especiales no cambia', () => {
+    expect(escapeTypstContent('David')).toBe('David');
   });
 });

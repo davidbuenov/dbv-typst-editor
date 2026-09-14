@@ -853,6 +853,45 @@ body {
   cursor: pointer;
 }
 
+/* ─── Asistente de tableros Kanban (RF-50) ───────────────────────────────
+   A diferencia de secuencia/Gantt (una sola lista), aquí cada columna trae
+   su propia mini-lista de tarjetas y su propio formulario de alta — por eso
+   `.kanban-editor__columns` es una rejilla, no una lista vertical simple. */
+.kanban-editor__columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+  margin: 8px 0;
+}
+
+.kanban-editor__column {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.kanban-editor__column-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.kanban-editor__card-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.kanban-editor__narrow-input {
+  width: 72px;
+}
+
 .diagram-editor__canvas {
   display: block;
   width: 100%;

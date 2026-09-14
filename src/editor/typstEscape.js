@@ -14,10 +14,14 @@
 // se lea como una secuencia de escape distinta. Un único punto en vez de tres
 // copias que solo podrían desincronizarse.
 //
-// Nótese que esto es DISTINTO de `escapeTypstContent()` en `diagramModel.js`,
-// que escapa `[`, `]` y `#` para texto en modo MARCADO (dentro de un `[...]`
-// de contenido) — un problema distinto, con caracteres especiales distintos,
-// que no debe fusionarse con este solo porque los dos se llamen "escapar".
+// `escapeTypstContent()` resuelve un problema DISTINTO — texto en modo
+// MARCADO (dentro de un `[...]` de contenido) tiene sus propios caracteres
+// especiales (`[`, `]`, `#`), no los de una cadena — así que es una función
+// separada a propósito, nunca fusionada con `escapeTypstString`. Vivía solo
+// en `diagramModel.js` hasta que `kanbanModel.js` (RF-50, Slice 66) también
+// necesitó escapar nombre/asignado de tarjeta antes de un `[...]` — mismo
+// criterio de esta fase: un único sitio para quien ya lo necesite, sin
+// tocar la razón por la que las dos funciones siguen siendo dos.
 
 /**
  * Escapa `value` para que quepa dentro de una cadena Typst (`"..."`).
@@ -25,4 +29,9 @@
  */
 export function escapeTypstString(value) {
   return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+}
+
+/** Escapa `value` para que quepa dentro de un bloque de contenido Typst (`[...]`). */
+export function escapeTypstContent(value) {
+  return value.replace(/([\[\]#])/g, '\\$1');
 }

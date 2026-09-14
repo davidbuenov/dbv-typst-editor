@@ -188,6 +188,16 @@ export const HELP_SECTIONS = [
     ],
   },
   {
+    id: 'kanban',
+    title: { es: 'Tableros Kanban', en: 'Kanban boards' },
+    blocks: [
+      {
+        es: 'En el menú Herramientas → Tablero Kanban (▥): añade columnas y, dentro de cada una, sus tarjetas (nombre, asignado opcional, dificultad y prioridad). Al insertar, se genera con el paquete kantan (licencia AGPL-3.0-only) y se añade su import si hace falta.',
+        en: 'In the Tools menu → Kanban board (▥): add columns and, inside each one, its cards (name, optional assignee, hardness and priority). Inserting generates the board with the kantan package (AGPL-3.0-only license), adding its import if needed.',
+      },
+    ],
+  },
+  {
     id: 'vista-previa',
     title: { es: 'Vista previa', en: 'Preview' },
     blocks: [

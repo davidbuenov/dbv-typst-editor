@@ -107,6 +107,14 @@ export const CURATED_PACKAGES = [
     license: 'LGPL-3.0-or-later',
   },
   {
+    spec: '@preview/kantan:0.1.0',
+    title: 'kantan — tableros Kanban',
+    titleEn: 'kantan — Kanban boards',
+    description: 'Tableros Kanban con columnas y tarjetas.',
+    descriptionEn: 'Kanban boards with columns and cards.',
+    license: 'AGPL-3.0-only',
+  },
+  {
     spec: '@preview/touying:0.7.4',
     title: 'touying — presentaciones',
     titleEn: 'touying — presentations',

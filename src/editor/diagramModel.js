@@ -21,6 +21,8 @@
 // `toolbarActions.js` (`buildTransaction(state) -> spec`, sin DOM ni
 // `EditorView`) — testeable sin montar el lienzo.
 
+import { escapeTypstContent } from './typstEscape.js';
+
 /** Constante de escala: 40px de lienzo = 1 unidad CeTZ (coordenadas razonables sin decimales largos). */
 const CETZ_UNIT = 40;
 
@@ -292,11 +294,6 @@ export function setCaption(diagram, caption) {
 
 export function setLabel(diagram, label) {
   return { ...diagram, label };
-}
-
-/** Escapa el texto de un nodo para que un nombre con corchetes/comillas no rompa el marcado Typst. */
-function escapeTypstContent(label) {
-  return label.replace(/([\[\]#])/g, '\\$1');
 }
 
 /**

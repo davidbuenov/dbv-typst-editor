@@ -541,6 +541,7 @@ async function bootstrap() {
       equationPanel: el('equation-panel'),
       sequencePanel: el('sequence-panel'),
       ganttPanel: el('gantt-panel'),
+      kanbanPanel: el('kanban-panel'),
       documentName: el('document-name'),
       documentDirty: el('document-dirty'),
       documentPath: el('document-path'),
@@ -1027,6 +1028,14 @@ async function bootstrap() {
       return;
     }
     workspace.openGanttEditor(el('btn-tools-gantt'));
+  });
+
+  el('btn-tools-kanban').addEventListener('click', () => {
+    if (!workspace.state.document) {
+      toast.show(t('kanban.needDocument'), 'error');
+      return;
+    }
+    workspace.openKanbanEditor(el('btn-tools-kanban'));
   });
 
   el('btn-jogs-insert').addEventListener('click', () => {

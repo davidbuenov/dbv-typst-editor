@@ -75,6 +75,8 @@ export const createProjectFromUniverse = ({ spec, parentDir, projectName }) =>
 export const previewUniverseTemplate = (spec) => call("preview_universe_template", { spec });
 /** Abre la ficha de un paquete/plantilla en typst.app/universe, sin instalarlo. */
 export const openUniversePackagePage = (spec) => call('open_universe_package_page', { spec });
+/** Abre `url` con el navegador del sistema — enlaces de documentación externa del panel de Ayuda (RF-52.1). */
+export const openExternalUrl = (url) => call('open_external_url', { url });
 /**
  * RF-34: índice completo de Typst Universe (~4.700 paquetes), cacheado en el
  * backend tras la primera descarga de la sesión — no en vivo en cada apertura

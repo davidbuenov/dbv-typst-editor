@@ -11,6 +11,7 @@
 // contenido no lleva atributos `data-i18n` que `applyTranslations` pueda tocar.
 
 import { getLanguage } from '../i18n/i18n.js';
+import { openExternalUrl } from '../services/backend.js';
 import { HELP_SECTIONS } from './helpContent.js';
 
 /** Devuelve la variante del idioma activo, con castellano como respaldo. */
@@ -39,6 +40,25 @@ export function createHelp({ contentEl, navEl }) {
   }
 
   function renderBlock(block) {
+    if (block.docLink) {
+      // RF-52.1: enlace a la documentación ORIGINAL del paquete/lenguaje que
+      // usa cada asistente (Graphviz para DOT, el manual de CeTZ para
+      // diagramas...), tras su explicación — petición directa del usuario:
+      // la explicación propia no sustituye a la referencia completa de
+      // quien mantiene esa sintaxis. `preventDefault` + `openExternalUrl`
+      // (comando Rust que abre el navegador del sistema) en vez de dejar que
+      // el propio WebView navegue — un `<a>` normal se quedaría intentando
+      // cargar la URL externa dentro de la propia app.
+      const link = document.createElement('a');
+      link.className = 'help__doc-link';
+      link.href = block.docLink.url;
+      link.textContent = pick(block.docLink.label);
+      link.addEventListener('click', (event) => {
+        event.preventDefault();
+        openExternalUrl(block.docLink.url);
+      });
+      return link;
+    }
     if (block.list) {
       const list = document.createElement('ul');
       list.className = 'help__list';

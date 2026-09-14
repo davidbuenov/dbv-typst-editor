@@ -379,6 +379,13 @@
   * **Contenido de Ayuda de DOT ampliado** con una chuleta mínima de sintaxis (grafo dirigido `digraph{a->b}` / no dirigido `graph{a--b}`, etiqueta de arista, atributos de nodo, comillas para nombres con espacios) — un enlace a la sección sin más contexto no habría resuelto el problema real reportado.
   * **565/565 Vitest · `verify:frontend` 11/11 · `verify:layout` 16/16.** Sin cambios en Rust.
 
+- [x] **Extra — RF-52.1: enlaces a la documentación original tras la explicación de cada asistente, cerrada el 2026-09-15.** El usuario, tras confirmar en vivo que los botones "?" funcionan bien, pidió un paso más: *"si en el documento de ayuda se pusieran los enlaces a la documentación original después de la explicación... por ejemplo graphviz a https://graphviz.org/documentation/"*.
+  * **`open_external_url` nuevo** en `commands/app_info.rs` — abre una URL con el navegador del sistema (`app.shell().open()`, mismo mecanismo ya usado por `open_universe_package_page`), validando el esquema `https://` antes (función pura `is_allowed_doc_url`, testeada) aunque las URLs vienen todas escritas a mano en `helpContent.js`, nunca de una entrada de usuario — no confiar ciegamente en el propio frontend a través del puente IPC. 1 test nuevo, 237/237 Rust.
+  * **`help.js`** gana un tipo de bloque `docLink` (`{ url, label: {es, en} }`), renderizado como un enlace con "↗" que hace `preventDefault()` y llama a `openExternalUrl()` — un `<a>` normal se habría quedado intentando navegar el propio WebView a una URL externa.
+  * **6 enlaces reales verificados con `curl` (HTTP 200) antes de fijarlos**, uno por sección: `cetz-package.github.io/docs/` (diagramas), `typst.app/docs/reference/math/` (ecuaciones), `typst.app/universe/package/chronos` (secuencia), `.../gantty` (Gantt), `.../kantan` (Kanban), `graphviz.org/documentation/` (DOT, el ejemplo del propio usuario).
+  * **`helpContent.test.js`** ampliado con un test que exige URL `https://` y etiqueta bilingüe en todo `docLink`; **`help.test.js` nuevo** (3 tests: cabeceras por sección, `scrollToSection`, un enlace de verdad dispara `openExternalUrl` en vez de navegar).
+  * **569/569 Vitest (+4) · 237/237 Rust (+1) · `verify:frontend` 11/11 · `verify:layout` 16/16.** `SPECIFICATIONS.md` (RF-52 criterio 5, "RF-52.1"), `CHANGELOG.md`/`.en.md`.
+
 ## 🔄 Context Snapshot / Snapshot de Contexto
 
 > ### 👉 CÓMO RETOMAR ESTE PROYECTO (leer esto primero) — actualizado 2026-09-13, v0.6.0 PUBLICADA DEL TODO

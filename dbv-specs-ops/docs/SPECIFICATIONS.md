@@ -715,6 +715,11 @@ clonó por su cuenta. Se cubre en v0.6.0 con **RF-33** (§5f).
     4. *Opt-in, no en todo panel de la aplicación* — un panel declara su sección de ayuda explícitamente;
        paneles que no lo necesitan (selectores de cita/imagen/símbolo, tabla...) no ganan un botón de la
        nada.
+    5. *(RF-52.1, añadido el mismo día tras probar el usuario los enlaces en vivo)* Cada sección de Ayuda
+       de un asistente que se apoya en un paquete/lenguaje externo (cetz, MiTeX/Typst math, chronos, gantty,
+       kantan, Graphviz) termina con un enlace a SU documentación original, tras la explicación propia —
+       la explicación de esta app no sustituye a la referencia completa de quien mantiene esa sintaxis.
+       Abre con el navegador del sistema (`open_external_url`, Rust), nunca navegando el propio WebView.
 
 ### Descartado explícitamente para v0.7.0 (Sección XI del artículo de referencia)
 

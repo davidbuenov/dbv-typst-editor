@@ -33,9 +33,18 @@ describe('HELP_SECTIONS', () => {
 
   it('todo bloque de texto está en los dos idiomas', () => {
     eachBlock((block, path) => {
-      if (block.list || block.shortcuts) return;
+      if (block.list || block.shortcuts || block.docLink) return;
       expect(block.es, `${path}: párrafo sin español`).toBeTruthy();
       expect(block.en, `${path}: párrafo sin inglés`).toBeTruthy();
+    });
+  });
+
+  it('todo enlace de documentación externa (RF-52.1) tiene URL https y etiqueta bilingüe', () => {
+    eachBlock((block, path) => {
+      if (!block.docLink) return;
+      expect(block.docLink.url, `${path}: enlace sin URL`).toMatch(/^https:\/\//);
+      expect(block.docLink.label.es, `${path}: enlace sin etiqueta en español`).toBeTruthy();
+      expect(block.docLink.label.en, `${path}: enlace sin etiqueta en inglés`).toBeTruthy();
     });
   });
 

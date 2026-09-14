@@ -6,6 +6,10 @@
 // =============================================================================
 
 use serde::Serialize;
+use tauri::AppHandle;
+use tauri_plugin_shell::ShellExt;
+
+use crate::error::AppError;
 
 /// Información básica de la aplicación expuesta al frontend.
 #[derive(Debug, Clone, Serialize)]
@@ -67,9 +71,52 @@ pub fn is_packaged_app() -> bool {
         .unwrap_or(false)
 }
 
+/// Abre `url` con el navegador del sistema — usado por los enlaces de
+/// documentación externa del panel de Ayuda (RF-52.1: un enlace a la
+/// documentación original tras la explicación de cada asistente, p. ej.
+/// Graphviz para el asistente de DOT, petición directa del usuario). Las
+/// URLs que llegan aquí están escritas a mano en `help/helpContent.js`,
+/// nunca compuestas a partir de una entrada de usuario — aun así se exige
+/// el esquema `https://` antes de pasarlas al shell del sistema: no confiar
+/// ciegamente en el propio frontend a través del puente IPC, mismo criterio
+/// que ya aplica `open_universe_package_page` (`universe.rs`) validando el
+/// identificador antes de construir su URL.
+/// Solo `https://` — descarta `javascript:`/`file:`/`http://` sin cifrar.
+/// Función pura para poder testearla sin un `AppHandle` real.
+fn is_allowed_doc_url(url: &str) -> bool {
+    url.starts_with("https://")
+}
+
+// `Shell::open` está marcado deprecado en favor de `tauri-plugin-opener`,
+// mismo motivo que en `universe.rs` para no arrastrar una dependencia nueva.
+#[allow(deprecated)]
+#[tauri::command]
+pub fn open_external_url(app: AppHandle, url: String) -> Result<(), AppError> {
+    if !is_allowed_doc_url(&url) {
+        return Err(AppError::Denied(format!("esquema de URL no permitido: {url}")));
+    }
+    app.shell()
+        .open(url, None)
+        .map_err(|error| AppError::Io(error.to_string()))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // Sin `AppHandle` real no se puede probar la rama de éxito de
+    // `open_external_url` (abriría de verdad el navegador) — pero el
+    // rechazo de esquema es una función pura por delante de esa llamada, y
+    // es la parte que de verdad importa testear (evita `javascript:`/
+    // `file:`/`http://` sin cifrar si algún día una URL dejara de estar
+    // escrita a mano en `helpContent.js`).
+    #[test]
+    fn is_allowed_doc_url_exige_https() {
+        assert!(is_allowed_doc_url("https://graphviz.org/documentation/"));
+        assert!(!is_allowed_doc_url("http://graphviz.org/documentation/"));
+        assert!(!is_allowed_doc_url("javascript:alert(1)"));
+        assert!(!is_allowed_doc_url("file:///etc/passwd"));
+    }
 
     #[test]
     fn platform_name_devuelve_un_identificador_conocido() {

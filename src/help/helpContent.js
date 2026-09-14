@@ -151,6 +151,12 @@ export const HELP_SECTIONS = [
         es: 'En el menú Herramientas → Editor de diagramas (✎, también accesible desde el icono de la barra del editor): un lienzo donde arrastrar y conectar nodos (rectángulo, redondeado, elipse, rombo de decisión, triángulo, hexágono), con seis colores, zoom con rueda y botones, y paneo arrastrando el fondo. Las plantillas de siembra ("Flujo", "Bloques", "Flujo con decisión"...) dan un punto de partida ya conectado. Al insertar, se genera con el paquete cetz y se añade su import si hace falta.',
         en: 'In the Tools menu → Diagram editor (✎, also reachable from the editor toolbar icon): a canvas where you drag and connect nodes (rectangle, rounded, ellipse, decision diamond, triangle, hexagon), with six colors, wheel/button zoom, and panning by dragging the background. The seed templates ("Flowchart", "Blocks", "Flow with decision"...) give an already-connected starting point. Inserting generates the diagram with the cetz package, adding its import if needed.',
       },
+      {
+        docLink: {
+          url: 'https://cetz-package.github.io/docs/',
+          label: { es: 'Manual del paquete cetz', en: 'cetz package manual' },
+        },
+      },
     ],
   },
   {
@@ -175,6 +181,12 @@ export const HELP_SECTIONS = [
           ],
         },
       },
+      {
+        docLink: {
+          url: 'https://typst.app/docs/reference/math/',
+          label: { es: 'Referencia de matemáticas de Typst', en: 'Typst math reference' },
+        },
+      },
     ],
   },
   {
@@ -184,6 +196,12 @@ export const HELP_SECTIONS = [
       {
         es: 'En el menú Herramientas → Diagrama de secuencia (⇄): añade participantes y, entre ellos, los mensajes en el orden en que ocurren (con texto opcional y trazo discontinuo para respuestas). Al insertar, se genera con el paquete chronos y se añade su import si hace falta.',
         en: 'In the Tools menu → Sequence diagram (⇄): add participants and, between them, the messages in the order they happen (with optional text and a dashed stroke for replies). Inserting generates the diagram with the chronos package, adding its import if needed.',
+      },
+      {
+        docLink: {
+          url: 'https://typst.app/universe/package/chronos',
+          label: { es: 'Documentación del paquete chronos', en: 'chronos package documentation' },
+        },
       },
     ],
   },
@@ -195,6 +213,12 @@ export const HELP_SECTIONS = [
         es: 'En el menú Herramientas → Diagrama de Gantt (▤): añade tareas con su nombre y sus fechas reales de inicio y fin. Al insertar, se genera con el paquete gantty y se añade su import si hace falta.',
         en: 'In the Tools menu → Gantt chart (▤): add tasks with their name and their real start and end dates. Inserting generates the diagram with the gantty package, adding its import if needed.',
       },
+      {
+        docLink: {
+          url: 'https://typst.app/universe/package/gantty',
+          label: { es: 'Documentación del paquete gantty', en: 'gantty package documentation' },
+        },
+      },
     ],
   },
   {
@@ -204,6 +228,12 @@ export const HELP_SECTIONS = [
       {
         es: 'En el menú Herramientas → Tablero Kanban (▥): añade columnas y, dentro de cada una, sus tarjetas (nombre, asignado opcional, dificultad y prioridad). Al insertar, se genera con el paquete kantan (licencia AGPL-3.0-only) y se añade su import si hace falta.',
         en: 'In the Tools menu → Kanban board (▥): add columns and, inside each one, its cards (name, optional assignee, hardness and priority). Inserting generates the board with the kantan package (AGPL-3.0-only license), adding its import if needed.',
+      },
+      {
+        docLink: {
+          url: 'https://typst.app/universe/package/kantan',
+          label: { es: 'Documentación del paquete kantan', en: 'kantan package documentation' },
+        },
       },
     ],
   },
@@ -236,6 +266,12 @@ export const HELP_SECTIONS = [
       {
         es: 'Útil también para quien ya tiene un .dot exportado de otra herramienta (Graphviz, un generador de esquemas de base de datos...): se pega tal cual. Al insertar, se genera con el paquete diagraph y se añade su import si hace falta.',
         en: 'Also useful for anyone who already has a .dot file exported from another tool (Graphviz, a database schema generator...): paste it as-is. Inserting generates the graph with the diagraph package, adding its import if needed.',
+      },
+      {
+        docLink: {
+          url: 'https://graphviz.org/documentation/',
+          label: { es: 'Documentación oficial de Graphviz', en: 'Official Graphviz documentation' },
+        },
       },
     ],
   },

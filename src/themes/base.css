@@ -1262,6 +1262,26 @@ body {
   margin-bottom: 5px;
 }
 
+/* Enlace a la documentación externa original (RF-52.1) — el "↗" deja claro
+   que abre fuera de la app antes de hacer clic, no solo al pasar el ratón. */
+.help__doc-link {
+  display: inline-block;
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--accent);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.help__doc-link:hover,
+.help__doc-link:focus-visible {
+  text-decoration: underline;
+}
+
+.help__doc-link::after {
+  content: ' ↗';
+}
+
 .help__shortcuts {
   display: grid;
   grid-template-columns: auto 1fr;

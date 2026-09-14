@@ -1181,6 +1181,17 @@ body {
   cursor: move;
 }
 
+/* Agrupa los botones de la derecha de la cabecera (ayuda + cierre, RF-52)
+   para que cuenten como UN solo hijo ante el `space-between` de arriba — sin
+   esto, un tercer botón suelto quedaría flotando en el centro de la
+   cabecera en vez de junto al de cerrar. */
+.panel__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+
 .help__body {
   display: grid;
   grid-template-columns: 200px minmax(0, 1fr);

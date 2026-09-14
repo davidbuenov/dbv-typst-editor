@@ -679,7 +679,7 @@
          conectados con un clic en modo "Conectar" — `diagramEditor.js`
          traduce el resultado a código CeTZ, `diagramModel.js` tiene toda la
          lógica pura. -->
-    <div id="diagram-panel" class="floating-panel floating-panel--diagram hidden" role="dialog" aria-modal="false">
+    <div id="diagram-panel" class="floating-panel floating-panel--diagram hidden" role="dialog" aria-modal="false" data-help-section="diagramas">
       <h2 class="floating-panel__title" data-i18n="diagram.title"></h2>
       <!-- RF-31, feedback del usuario: un lienzo en blanco no da ninguna
            idea de qué hacer. Dos plantillas de arranque con el MISMO
@@ -764,7 +764,7 @@
          debajo según se pulsan las piezas. Grupos poblados desde
          `EQUATION_SNIPPETS` (`equationModel.js`) por `equationEditor.js`, no
          escritos a mano aquí uno a uno. -->
-    <div id="equation-panel" class="floating-panel floating-panel--diagram hidden" role="dialog" aria-modal="false">
+    <div id="equation-panel" class="floating-panel floating-panel--diagram hidden" role="dialog" aria-modal="false" data-help-section="ecuaciones">
       <h2 class="floating-panel__title" data-i18n="equation.title"></h2>
 
       <div class="equation-editor__groups">
@@ -815,7 +815,7 @@
          listas (participantes, mensajes en orden) en vez de un lienzo — un
          diagrama de secuencia se describe bien así, sin necesitar arrastre
          ni vista previa en vivo como los otros dos editores de arriba. -->
-    <div id="sequence-panel" class="floating-panel floating-panel--diagram hidden" role="dialog" aria-modal="false">
+    <div id="sequence-panel" class="floating-panel floating-panel--diagram hidden" role="dialog" aria-modal="false" data-help-section="secuencia">
       <h2 class="floating-panel__title" data-i18n="sequence.title"></h2>
 
       <div class="diagram-editor__toolbar">
@@ -846,7 +846,7 @@
     <!-- Asistente de diagramas de Gantt (RF-49, paquete `gantty`): una lista
          de tareas con fecha real de inicio/fin — mismo criterio de RF-48
          (formulario, no lienzo). -->
-    <div id="gantt-panel" class="floating-panel floating-panel--diagram hidden" role="dialog" aria-modal="false">
+    <div id="gantt-panel" class="floating-panel floating-panel--diagram hidden" role="dialog" aria-modal="false" data-help-section="gantt">
       <h2 class="floating-panel__title" data-i18n="gantt.title"></h2>
 
       <div class="diagram-editor__toolbar">
@@ -867,7 +867,7 @@
          RF-48/RF-49. Los formularios de tarjeta por columna se generan en JS
          (`kanbanEditor.js`), no aquí: una columna nueva no puede tener su
          formulario ya escrito de antemano en HTML estático. -->
-    <div id="kanban-panel" class="floating-panel floating-panel--diagram hidden" role="dialog" aria-modal="false">
+    <div id="kanban-panel" class="floating-panel floating-panel--diagram hidden" role="dialog" aria-modal="false" data-help-section="kanban">
       <h2 class="floating-panel__title" data-i18n="kanban.title"></h2>
 
       <div class="diagram-editor__toolbar">
@@ -886,7 +886,7 @@
          el contenido (SPECIFICATIONS.md §5g RF-51.1). Vista previa en vivo
          igual que el editor de ecuaciones (RF-46), reutilizando su mismo
          patrón de "campo de texto grande + vista previa real debajo". -->
-    <div id="dot-panel" class="floating-panel floating-panel--diagram hidden" role="dialog" aria-modal="false">
+    <div id="dot-panel" class="floating-panel floating-panel--diagram hidden" role="dialog" aria-modal="false" data-help-section="dot">
       <h2 class="floating-panel__title" data-i18n="dot.title"></h2>
 
       <textarea data-dot="source" rows="4" class="diagram-editor__input diagram-editor__input--grow equation-editor__source" data-i18n-placeholder="dot.sourcePlaceholder"></textarea>

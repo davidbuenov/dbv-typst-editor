@@ -79,9 +79,7 @@ export function createHelp({ contentEl, navEl }) {
       link.type = 'button';
       link.className = 'help__nav-item';
       link.textContent = pick(section.title);
-      link.addEventListener('click', () => {
-        document.getElementById(`help-section-${section.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      });
+      link.addEventListener('click', () => scrollToSection(section.id));
       nav.append(link);
     }
 
@@ -89,8 +87,13 @@ export function createHelp({ contentEl, navEl }) {
     navEl.append(nav);
   }
 
+  /** Usado también por los botones "?" de cada asistente (RF-52, `helpTrigger.js`). */
+  function scrollToSection(sectionId) {
+    document.getElementById(`help-section-${sectionId}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
   render();
   document.addEventListener('dbv-lang-changed', render);
 
-  return { render };
+  return { render, scrollToSection };
 }

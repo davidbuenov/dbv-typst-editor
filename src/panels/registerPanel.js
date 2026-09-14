@@ -10,6 +10,7 @@
 // mecanismo de apertura/cierre para TODO panel flotante o modal de la app.
 
 import { t } from '../i18n/i18n.js';
+import { openHelpSection } from '../help/helpTrigger.js';
 import { makeDraggable } from './draggablePanel.js';
 
 /** @type {Array<() => void>} Cierres registrados, para "cerrar todo" (p. ej. Escape). */
@@ -37,6 +38,7 @@ const HEADER_SELECTOR = '.panel__header, .git-popover__header, .terminal__header
  */
 function ensurePanelChrome(panelEl, close) {
   let headerEl = panelEl.querySelector(HEADER_SELECTOR);
+  let ownHeader = false;
 
   if (!headerEl) {
     headerEl = document.createElement('div');
@@ -46,6 +48,40 @@ function ensurePanelChrome(panelEl, close) {
     const title = panelEl.querySelector(':scope > .floating-panel__title');
     if (title) headerEl.append(title);
     panelEl.prepend(headerEl);
+    ownHeader = true;
+  }
+
+  // Grupo de botones a la derecha (ayuda + cierre): sin este contenedor, el
+  // `justify-content: space-between` de `.panel__header` (pensado para
+  // exactamente DOS hijos, título y cierre) dejaría el botón de ayuda
+  // flotando en el centro de la cabecera en cuanto hubiera un tercer hijo.
+  // Solo se crea en una cabecera propia — una que ya trajera la suya (caso
+  // "no duplica el botón de cierre") sigue exactamente igual que antes.
+  let actionsEl = headerEl.querySelector(':scope > .panel__header-actions');
+  if (!actionsEl && ownHeader) {
+    actionsEl = document.createElement('div');
+    actionsEl.className = 'panel__header-actions';
+    headerEl.append(actionsEl);
+  }
+  const actionsTarget = actionsEl ?? headerEl;
+
+  // Botón "?" (RF-52): un panel declara a qué sección de Ayuda pertenece con
+  // `data-help-section` en el propio elemento — opt-in, así que paneles que
+  // no lo necesitan (citas, imágenes, símbolos...) no ganan uno de la nada.
+  // Petición directa del usuario tras probar el asistente de DOT sin ninguna
+  // ayuda visual de sintaxis: "si no sé DOT... lo tengo complicado".
+  const helpSection = panelEl.dataset.helpSection;
+  const hasHelp = headerEl.querySelector('[data-panel-help]');
+  if (helpSection && !hasHelp) {
+    const helpButton = document.createElement('button');
+    helpButton.type = 'button';
+    helpButton.className = 'icon-button icon-button--small';
+    helpButton.dataset.panelHelp = '';
+    helpButton.dataset.i18nTitle = 'action.help';
+    helpButton.title = t('action.help');
+    helpButton.textContent = '?';
+    helpButton.addEventListener('click', () => openHelpSection(helpSection));
+    actionsTarget.append(helpButton);
   }
 
   const hasClose = headerEl.querySelector('[data-panel-close], [data-i18n-title="action.close"]');
@@ -61,7 +97,7 @@ function ensurePanelChrome(panelEl, close) {
     button.title = t('action.close');
     button.textContent = '✕';
     button.addEventListener('click', close);
-    headerEl.append(button);
+    actionsTarget.append(button);
   }
 
   makeDraggable(panelEl, headerEl);

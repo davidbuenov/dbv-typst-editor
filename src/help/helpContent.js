@@ -144,6 +144,16 @@ export const HELP_SECTIONS = [
     ],
   },
   {
+    id: 'diagramas',
+    title: { es: 'Editor de diagramas', en: 'Diagram editor' },
+    blocks: [
+      {
+        es: 'En el menú Herramientas → Editor de diagramas (✎, también accesible desde el icono de la barra del editor): un lienzo donde arrastrar y conectar nodos (rectángulo, redondeado, elipse, rombo de decisión, triángulo, hexágono), con seis colores, zoom con rueda y botones, y paneo arrastrando el fondo. Las plantillas de siembra ("Flujo", "Bloques", "Flujo con decisión"...) dan un punto de partida ya conectado. Al insertar, se genera con el paquete cetz y se añade su import si hace falta.',
+        en: 'In the Tools menu → Diagram editor (✎, also reachable from the editor toolbar icon): a canvas where you drag and connect nodes (rectangle, rounded, ellipse, decision diamond, triangle, hexagon), with six colors, wheel/button zoom, and panning by dragging the background. The seed templates ("Flowchart", "Blocks", "Flow with decision"...) give an already-connected starting point. Inserting generates the diagram with the cetz package, adding its import if needed.',
+      },
+    ],
+  },
+  {
     id: 'ecuaciones',
     title: { es: 'Editor visual de ecuaciones', en: 'Visual equation editor' },
     blocks: [
@@ -202,8 +212,30 @@ export const HELP_SECTIONS = [
     title: { es: 'DOT / Graphviz', en: 'DOT / Graphviz' },
     blocks: [
       {
-        es: 'En el menú Herramientas → DOT/Graphviz: un campo de texto donde escribir o pegar un grafo en sintaxis DOT, con su vista previa REAL justo debajo — compilada por Typst en cada pausa, igual que el editor de ecuaciones. Útil para quien ya tiene un .dot exportado de otra herramienta. Al insertar, se genera con el paquete diagraph y se añade su import si hace falta.',
-        en: 'In the Tools menu → DOT/Graphviz: a text field where you write or paste a graph in DOT syntax, with its REAL preview right below — compiled by Typst on every pause, just like the equation editor. Useful for anyone who already has a .dot file exported from another tool. Inserting generates the graph with the diagraph package, adding its import if needed.',
+        es: 'En el menú Herramientas → DOT/Graphviz: un campo de texto donde escribir o pegar un grafo en sintaxis DOT, con su vista previa REAL justo debajo — compilada por Typst en cada pausa, igual que el editor de ecuaciones. A diferencia de los demás asistentes de esta versión, aquí no hay ninguna ayuda visual para construir el grafo: el propio texto DOT ES el contenido, así que si no conoces esa sintaxis, esta es la chuleta mínima para empezar.',
+        en: 'In the Tools menu → DOT/Graphviz: a text field where you write or paste a graph in DOT syntax, with its REAL preview right below — compiled by Typst on every pause, just like the equation editor. Unlike the other assistants in this version, there is no visual help building the graph here: the DOT text itself IS the content, so if you do not know that syntax, here is the minimal cheat sheet to get started.',
+      },
+      {
+        list: {
+          es: [
+            'digraph { a -> b -> c } — un grafo dirigido con dos flechas encadenadas, a hacia b y b hacia c.',
+            'graph { a -- b } — un grafo NO dirigido usa graph y -- en vez de digraph y ->.',
+            'a -> b [label="sí"] — una etiqueta de texto sobre una flecha, entre corchetes.',
+            'a [shape=box, color=blue] — atributos de un nodo concreto (forma, color...) entre corchetes, tras su nombre.',
+            'Cada sentencia separada por punto y coma o salto de línea; los nombres con espacios van entre comillas ("nodo uno").',
+          ],
+          en: [
+            'digraph { a -> b -> c } — a directed graph with two chained arrows, a to b and b to c.',
+            'graph { a -- b } — an UNdirected graph uses graph and -- instead of digraph and ->.',
+            'a -> b [label="yes"] — a text label on an arrow, in brackets.',
+            'a [shape=box, color=blue] — attributes of a specific node (shape, color...) in brackets, after its name.',
+            'Each statement separated by a semicolon or newline; names with spaces go in quotes ("node one").',
+          ],
+        },
+      },
+      {
+        es: 'Útil también para quien ya tiene un .dot exportado de otra herramienta (Graphviz, un generador de esquemas de base de datos...): se pega tal cual. Al insertar, se genera con el paquete diagraph y se añade su import si hace falta.',
+        en: 'Also useful for anyone who already has a .dot file exported from another tool (Graphviz, a database schema generator...): paste it as-is. Inserting generates the graph with the diagraph package, adding its import if needed.',
       },
     ],
   },

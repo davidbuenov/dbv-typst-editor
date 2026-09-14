@@ -19,6 +19,7 @@ import { decideImageDrop, pathsWithExtension } from './app/dropTarget.js';
 import { pickImageFromClipboard, readFileAsBase64 } from './app/clipboardImage.js';
 import { applyTranslations, getLanguage, setLanguage, t } from './i18n/i18n.js';
 import { createHelp } from './help/help.js';
+import { setHelpTrigger } from './help/helpTrigger.js';
 import { createUniversePanel } from './universe/universePanel.js';
 import { getCuratedUniverseTemplatesCatalog } from './universe/universeThumbnails.js';
 import { importPackageAction } from './universe/universeSpec.js';
@@ -353,14 +354,24 @@ function wireLanguageSwitcher() {
   refresh(getLanguage());
 }
 
-/** Ayuda bilingüe (contenido en `help/helpContent.js`). */
+/**
+ * Ayuda bilingüe (contenido en `help/helpContent.js`). Además del botón "?"
+ * de la cabecera, registra en `helpTrigger.js` la función que abren los
+ * botones "?" de cada asistente (RF-52) — `registerPanel.js` no importa
+ * `help.js` directamente para evitar un ciclo de imports.
+ */
 function wireHelpPanel() {
-  createHelp({ contentEl: el('help-content'), navEl: el('help-nav') });
-  const { close } = registerPanel(el('help-panel'), {
+  const help = createHelp({ contentEl: el('help-content'), navEl: el('help-nav') });
+  const { open, close } = registerPanel(el('help-panel'), {
     trigger: el('btn-help'),
     toggle: true,
   });
   el('btn-help-close').addEventListener('click', close);
+
+  setHelpTrigger((sectionId) => {
+    open();
+    help.scrollToSection(sectionId);
+  });
 }
 
 function wireAboutPanel() {

@@ -12,7 +12,8 @@
 // `addEventListener` de dentro habría lanzado durante el cableado inicial. Eso
 // no degrada el panel afectado — impide que arranque la aplicación entera.
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { setHelpTrigger } from '../help/helpTrigger.js';
 import { registerPanel } from './registerPanel.js';
 
 describe('registerPanel', () => {
@@ -128,5 +129,66 @@ describe('registerPanel — cabecera automática de los diálogos', () => {
     registerPanel(menu);
 
     expect(menu.querySelector('[data-panel-close]')).toBeNull();
+  });
+});
+
+// RF-52: botón "?" opt-in vía `data-help-section` — petición del usuario tras
+// probar el asistente de DOT sin ninguna ayuda visual de sintaxis.
+describe('registerPanel — botón de ayuda por sección (RF-52)', () => {
+  function crearDialogo({ helpSection } = {}) {
+    const panel = document.createElement('div');
+    panel.className = 'floating-panel hidden';
+    panel.setAttribute('role', 'dialog');
+    if (helpSection) panel.dataset.helpSection = helpSection;
+    document.body.append(panel);
+    return panel;
+  }
+
+  it('un panel sin data-help-section no gana botón de ayuda', () => {
+    const panel = crearDialogo();
+    registerPanel(panel);
+
+    expect(panel.querySelector('[data-panel-help]')).toBeNull();
+  });
+
+  it('un panel con data-help-section gana un botón "?" en su cabecera', () => {
+    const panel = crearDialogo({ helpSection: 'dot' });
+    registerPanel(panel);
+
+    const helpButton = panel.querySelector('[data-panel-help]');
+    expect(helpButton).not.toBeNull();
+    expect(helpButton.closest('.panel__header')).not.toBeNull();
+  });
+
+  it('pulsarlo abre la Ayuda en la sección declarada', () => {
+    const opened = vi.fn();
+    setHelpTrigger(opened);
+
+    const panel = crearDialogo({ helpSection: 'kanban' });
+    registerPanel(panel);
+    panel.querySelector('[data-panel-help]').click();
+
+    expect(opened).toHaveBeenCalledWith('kanban');
+    setHelpTrigger(null);
+  });
+
+  it('no duplica el botón de ayuda si el panel ya lo trae', () => {
+    const panel = crearDialogo({ helpSection: 'dot' });
+    panel.innerHTML = '<div class="panel__header"><button data-panel-help>?</button></div>';
+    registerPanel(panel);
+
+    expect(panel.querySelectorAll('[data-panel-help]').length).toBe(1);
+  });
+
+  it('ayuda y cierre comparten un mismo grupo, para que space-between no los separe', () => {
+    const panel = crearDialogo({ helpSection: 'dot' });
+    registerPanel(panel);
+
+    const header = panel.querySelector('.panel__header');
+    expect(header.children.length).toBe(1); // el título está ausente en este fixture: solo queda el grupo de acciones
+    const actions = header.querySelector('.panel__header-actions');
+    expect(actions).not.toBeNull();
+    expect(actions.querySelector('[data-panel-help]')).not.toBeNull();
+    expect(actions.querySelector('[data-panel-close]')).not.toBeNull();
   });
 });

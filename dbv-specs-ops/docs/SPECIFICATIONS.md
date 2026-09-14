@@ -1,7 +1,8 @@
 # 📋 Especificaciones: DBV Typst Editor
 
 > **Fase:** `/spec` (Especificación) → **v0.7.0 especificada**
-> **Estado:** 🔒 **CONGELADO v1.8 — 2026-09-14.** v1.8 abre v0.7.0 (§5g, RF-40 a RF-50) tras una pasada de uso real del usuario con un proyecto externo (un glosario técnico-administrativo con imágenes y fuentes propias) que destapó tres defectos de UX vivos en la aplicación —un aviso benigno de `ResizeObserver` mostrado como error de la app, el separador editor/vista previa bloqueable al arrastrarlo, y los atajos de zoom capturados por el zoom nativo del webview en vez de por la app— más dos reorganizaciones de menú pedidas al ver la app en marcha (Guardar/Guardar como/PDF/PNG a "Archivo"; el editor de diagramas de RF-31 visible en "Herramientas" en vez de un icono suelto en la barra del editor), un rediseño de la pantalla de inicio, un **nuevo editor visual interactivo de ecuaciones matemáticas**, y tres ampliaciones de diagramación (flujogramas con decisiones, diagramas de secuencia, diagramas de Gantt) priorizadas explícitamente contra la Sección XI ("Application of Typst for Computer Science") de Voynov, A., Corbi, A., López-Oliver, P., & Gil, D. (2026), *"Typst: A Modern Typesetting Engine for Science"*, IJIMAI 9(7), 107–120, ya indexado como referencia en `README.md`/`README.en.md` — uno de sus autores, Alberto Corbi, es colaborador de este proyecto.
+> **Estado:** 🔒 **CONGELADO v1.9 — 2026-09-14.** v1.9 activa RF-50 (Kanban) y RF-51 (DOT/Graphviz) de forma incondicional: v1.8 los había dejado como un único RF-50 condicional ("si sobra alcance de `/plan`"); con `/build`, `/test` y `/code-simplify` de los otros 9 RF de v0.7.0 (RF-40 a RF-49) cerrados y probados en vivo por el usuario el mismo día, el usuario ha decidido completar también esta parte para cerrar v0.7.0 con el alcance íntegro del `/spec` original, en vez de diferir nada a una versión futura. Los dos requisitos quedan detallados al mismo nivel que RF-46 a RF-49 (criterios de aceptación concretos, no solo el nombre del paquete), con nombre/versión/licencia/API de `kantan` y `diagraph` verificados contra el registro real de Typst Universe y sus READMEs reales, no asumidos — ver `ADR-DECISION-006` en `memory.md`.
+> **v1.8:** v1.8 abrió v0.7.0 (§5g, RF-40 a RF-50) tras una pasada de uso real del usuario con un proyecto externo (un glosario técnico-administrativo con imágenes y fuentes propias) que destapó tres defectos de UX vivos en la aplicación —un aviso benigno de `ResizeObserver` mostrado como error de la app, el separador editor/vista previa bloqueable al arrastrarlo, y los atajos de zoom capturados por el zoom nativo del webview en vez de por la app— más dos reorganizaciones de menú pedidas al ver la app en marcha (Guardar/Guardar como/PDF/PNG a "Archivo"; el editor de diagramas de RF-31 visible en "Herramientas" en vez de un icono suelto en la barra del editor), un rediseño de la pantalla de inicio, un **nuevo editor visual interactivo de ecuaciones matemáticas**, y tres ampliaciones de diagramación (flujogramas con decisiones, diagramas de secuencia, diagramas de Gantt) priorizadas explícitamente contra la Sección XI ("Application of Typst for Computer Science") de Voynov, A., Corbi, A., López-Oliver, P., & Gil, D. (2026), *"Typst: A Modern Typesetting Engine for Science"*, IJIMAI 9(7), 107–120, ya indexado como referencia en `README.md`/`README.en.md` — uno de sus autores, Alberto Corbi, es colaborador de este proyecto.
 > **v1.7:** v1.7 abre v0.6.0 (§5f, RF-31 a RF-38) en una sola pasada, a petición explícita del usuario tras la dinámica de v0.5.0 (tres reaperturas del mismo `/spec`): editor WYSIWYG de diagramas que sustituye al asistente CeTZ de RF-23, menú "Herramientas" en la cabecera, alcance de integración con GitHub (clonar por URL, decisión del usuario cerrando la pregunta abierta de §5e.1/§9), Universe Browser completo, bibliografía visual completa, empaquetado macOS, auto-actualizador y ejecución de módulos JavaScript con el paquete Typst Universe `jogs` (runtime QuickJS embebido, análogo al runner de Python de RF-22).
 > **v1.5:** v1.4 consolidó el lanzador (§5d, RF-25 a RF-27, con la precisión de RF-26 criterio 10 añadida el mismo día). **v1.5 añade §5e** —RF-28 (chincheta de ventana encima, portada de DBV Markdown Reader) y RF-29 (ver la previsualización de plantilla a tamaño grande)— tras probar el usuario la aplicación construida, más **§5e.1, que documenta el alcance real de la integración con Git** y por qué NO es integración con GitHub. Ver `ADR-VENTANA-001` en `memory.md`. (baseline de especificación v0.5.0, ampliada). v1.3 especificó el salto a productividad profesional y robustez (v0.5.0): Integración con Git y resolución visual de conflictos (RF-19), Galería visual de plantillas con previsualización (RF-20), Inteligencia de código con Tinymist LSP vendorizado (RF-21), Figuras y datos dinámicos con Python (RF-22), Asistente visual de diagramas CeTZ (RF-23), y Robustez de entorno y guardado atómico (RF-24). **v1.4 reabre ese `/spec`, a decisión del usuario y antes de entregar la versión, para consolidar el lanzador** (§5d): Lanzador de una sola vía (RF-25), Galería unificada de creación de documentos (RF-26) y Tokens semánticos de estado (RF-27). El motivo es que `/build` de v0.5.0 dejó **tres** superficies distintas para elegir plantilla; ver `ADR-LANZADOR-001` en `memory.md`.
 > **Regla de congelación:** a partir de aquí, cualquier cambio de alcance o de requisito exige (1) registrarlo como ADR en `memory.md`, (2) actualizar este documento con nueva versión, y (3) revisar el impacto en `implementation_plan.md`. No se modifican requisitos "al vuelo" durante `/build`.
@@ -462,7 +463,10 @@ clonó por su cuenta. Se cubre en v0.6.0 con **RF-33** (§5f).
 > este repositorio, con imágenes y fuentes propias) y una lectura dirigida de Voynov, A., Corbi, A.,
 > López-Oliver, P., & Gil, D. (2026), *"Typst: A Modern Typesetting Engine for Science"*, IJIMAI 9(7),
 > 107–120 (referenciado en `README.md`/`README.en.md`). RF-40 a RF-45 son correcciones y reorganizaciones
-> de UX encontradas usando la app, no funcionalidad nueva; RF-46 a RF-50 sí lo son.
+> de UX encontradas usando la app, no funcionalidad nueva; RF-46 a RF-51 sí lo son. RF-50 y RF-51 (Kanban y
+> DOT/Graphviz) quedaron inicialmente como un único RF-50 condicional a que sobrara alcance de `/plan`;
+> activados sin condición y separados en dos requisitos independientes el mismo día, tras cerrar `/build`,
+> `/test` y `/code-simplify` de los otros nueve (v1.9, ver cabecera del documento y `ADR-DECISION-006`).
 
 - [ ] **RF-40 El aviso de `ResizeObserver` deja de mostrarse como error de la aplicación.**
   Arrastrar el separador entre editor y vista previa dispara el mensaje del navegador *"ResizeObserver
@@ -637,16 +641,58 @@ clonó por su cuenta. Se cubre en v0.6.0 con **RF-33** (§5f).
        contra el registro real antes de curarla, mismo criterio que el resto del catálogo.
     3. *Accesible desde el menú Herramientas (RF-45)*.
 
-- [ ] **RF-50 (alcance condicional — "si sobra alcance de `/plan`") Tableros Kanban y render de DOT/Graphviz.**
-  Cuarta prioridad, explícitamente condicional: el usuario aceptó incluirla en el `/spec` **solo si el
-  `/plan` de RF-47 a RF-49 deja margen**, sin comprometerse a que entre en la v0.7.0 de forma incondicional.
-  - **Criterios de aceptación (si se aborda):**
-    1. *Tableros Kanban* con el paquete Kantan (columnas Backlog/En curso/Testing/Hecho o equivalentes,
-       tarjetas con etiqueta/prioridad/asignado, según el ejemplo del artículo de referencia).
-    2. *Render de diagramas DOT/Graphviz* con el paquete Diagraph, que los renderiza vía Wasm sin exigir
-       Graphviz instalado en el sistema — útil para quien ya trae un `.dot` de otra herramienta.
-    3. *Si `/plan` decide no abordarlo en v0.7.0*, se documenta aquí mismo como diferido a una versión
-       futura, no se elimina del `/spec` en silencio.
+- [ ] **RF-50 Tableros Kanban (Kantan).**
+  Cuarta prioridad de diagramación, **activada sin condición el 2026-09-14** (ver cabecera del documento,
+  v1.9): el usuario decidió completarla en la misma v0.7.0 en vez de diferirla, tras cerrar y probar en vivo
+  los otros nueve RF de esta versión. Paquete verificado contra el registro real de Typst Universe
+  (`packages.typst.org/preview/index.json`, 2026-09-14): `kantan:0.1.0`, único release publicado, licencia
+  **AGPL-3.0-only** (README real descargado y leído, no adivinado — ver nota de licencia más abajo).
+  - **Criterios de aceptación:**
+    1. *Asistente de formulario, no lienzo de arrastre* — mismo criterio que RF-48/RF-49
+       (`ADR-DECISION-004`): un tablero Kanban para ilustrar un documento no necesita arrastrar tarjetas
+       entre columnas en tiempo real, solo declarar su contenido. El asistente gestiona una lista de
+       **columnas** (nombre + color opcional) y, dentro de cada columna, una lista de **tarjetas** (nombre,
+       asignado opcional, coste/dificultad, prioridad) — añadir/quitar columnas y tarjetas con los mismos
+       controles ya usados en los asistentes de secuencia y Gantt (`sequence-editor__row`/`__remove`).
+    2. *Emisión de código con el paquete real* — llamadas anidadas `kanban(kanban-column(name, color:,
+       kanban-item(hardness-level, priority-level, ..args)), ...)`, con `args` como 1 argumento posicional
+       (solo nombre de tarjeta) o 2 (asignado + nombre), según traiga o no asignado la tarjeta del
+       formulario — API real confirmada leyendo `README.md` del paquete, no inventada.
+    3. *Accesible desde el menú Herramientas (RF-45)*, mismo patrón que los otros tres asistentes de
+       diagramación de esta versión.
+    4. *Nota de licencia (AGPL-3.0-only).* Más estricta que el LGPL ya aceptado para `cetz`/`gantty`
+       (`ADR-DECISION-005`), pero el razonamiento es el mismo: esta app no vendoriza ni enlaza estáticamente
+       el código del paquete — lo descarga el propio compilador Typst a la caché de paquetes del usuario
+       cuando el documento lo importa, igual que cualquier otro `@preview/...`. El cláusula de red del AGPL
+       (Affero) tampoco aplica: Kantan no se ejecuta como servicio, es código Typst que se tipografía en
+       tiempo de compilación. Se cura igualmente en `curatedCatalog.js` con su licencia real visible, para
+       que quien lo mire desde el Universe Browser (RF-34) sepa exactamente a qué se compromete su propio
+       documento si lo redistribuye con el paquete modificado — decisión de transparencia, no de bloqueo.
+
+- [ ] **RF-51 Render de diagramas DOT/Graphviz (Diagraph).**
+  Quinta prioridad de diagramación, **activada sin condición el 2026-09-14** junto con RF-50 (antes ambas
+  eran un único RF-50 condicional). Paquete verificado contra el registro real: `diagraph:0.3.7`, el más
+  reciente publicado, licencia **MIT**, requiere Typst ≥0.13.0 (el sidecar vendorizado de este proyecto es
+  0.15.1, cumple con margen). Renderiza Graphviz vía un plugin Wasm embebido en el propio paquete — sin
+  exigir el binario de Graphviz instalado en el sistema del usuario, la razón original por la que este
+  requisito interesa: sirve para quien ya trae un `.dot` exportado de otra herramienta y solo quiere
+  incrustarlo en el documento.
+  - **Criterios de aceptación:**
+    1. *Sin asistente visual de nodos/aristas — un campo de texto con el DOT tal cual.* La API real del
+       paquete es una sola función, `render(dot_string)` (o `raw-render` sobre un bloque ```` ```dot ````),
+       que toma el lenguaje DOT de Graphviz literal. Quien usa este requisito ya conoce o ya tiene ese DOT
+       escrito en otro sitio (Sección XI del artículo de referencia lo describe así); construir un editor
+       visual de nodos/aristas encima duplicaría el editor de diagramas de RF-31 sin aportar nada a quien
+       parte de un `.dot` ya hecho.
+    2. *Vista previa en vivo, reutilizando la infraestructura de RF-46* — el mismo patrón de
+       `equation.rs`/`typst_compile_equation` (compilar contra el sidecar real en cada pausa del usuario, sin
+       compartir el `EngineState` de la vista previa principal) sirve igual aquí para una viñeta de DOT: la
+       elección exacta de generalizar `equation.rs` o duplicar un comando equivalente se resuelve en
+       `/plan`, no aquí.
+    3. *Emisión de código con el paquete real* — `#import "@preview/diagraph:0.3.7": render` + `#render("...")`
+       con el texto DOT del usuario escapado como cadena Typst (mismo `escapeTypstString` ya compartido por
+       los otros tres asistentes tras `/code-simplify`, `typstEscape.js`).
+    4. *Accesible desde el menú Herramientas (RF-45)*, mismo patrón que el resto.
 
 ### Descartado explícitamente para v0.7.0 (Sección XI del artículo de referencia)
 
@@ -764,7 +810,7 @@ Orden de prioridad para toda decisión de diseño/arquitectura (fijado explícit
 | **v0.4.0** | Vista previa del **documento completo** conmutable (RF-14), **control de refresco** automático/manual (RF-15), **sincronización editor↔vista previa** por anclas (RF-16), **selector de imágenes del proyecto** en el botón Fig (RF-17) y **arrastre de imágenes** coherente con el de fuentes (RF-18). | ✅ Completado (2026-09-08) |
 | **v0.5.0** | **Integración con Git y diffs side-by-side (RF-19)**, **Galería visual de plantillas con preview (RF-20)**, **LSP Tinymist vendorizado (RF-21)**, **Figuras y datos dinámicos con Python (RF-22)**, **Asistente visual de diagramas CeTZ (RF-23)**, **Robustez de entorno Windows y guardado atómico (RF-24)**, consolidación del lanzador (RF-25 a RF-27), pulido de ventana y previsualización (RF-28 a RF-30). Cerrado y publicado. | ✅ Completado (2026-09-09) |
 | **v0.6.0** | **Editor WYSIWYG de diagramas (RF-31, sustituye a RF-23)**, **menú Herramientas (RF-32)**, **clonar repositorio por URL (RF-33)**, **Universe Browser completo (RF-34)**, **bibliografía visual completa (RF-35)**, **empaquetado macOS (RF-36)**, **auto-actualizador (RF-37)**, **ejecución de módulos JavaScript con `jogs` (RF-38)**. Especificado el 2026-09-11 en una sola pasada. | ✅ Completado (2026-09-13) |
-| **v0.7.0** | **Filtrado del aviso de `ResizeObserver` (RF-40)**, **arreglo del separador bloqueable (RF-41)**, **zoom contextual con teclado/rueda (RF-42)**, **Guardar/PDF/PNG al menú Archivo (RF-43)**, **rediseño de la pantalla de inicio (RF-44)**, **editor de diagramas visible en Herramientas (RF-45)**, **editor visual interactivo de ecuaciones (RF-46)**, **flujogramas con decisiones (RF-47)**, **diagramas de secuencia (RF-48)**, **diagramas de Gantt (RF-49)**, y **Kanban/DOT-Graphviz si sobra alcance (RF-50)**. Especificado el 2026-09-14 en una sola pasada. | 📋 Especificado |
+| **v0.7.0** | **Filtrado del aviso de `ResizeObserver` (RF-40)**, **arreglo del separador bloqueable (RF-41)**, **zoom contextual con teclado/rueda (RF-42)**, **Guardar/PDF/PNG al menú Archivo (RF-43)**, **rediseño de la pantalla de inicio (RF-44)**, **editor de diagramas visible en Herramientas (RF-45)**, **editor visual interactivo de ecuaciones (RF-46)**, **flujogramas con decisiones (RF-47)**, **diagramas de secuencia (RF-48)**, **diagramas de Gantt (RF-49)**, **tableros Kanban (RF-50)** y **render DOT/Graphviz (RF-51)**. Especificado el 2026-09-14 en una sola pasada; RF-50/RF-51 activados sin condición y detallados el mismo día (v1.9), tras cerrar y probar en vivo los otros nueve RF. | 📋 Especificado |
 | **Beta (v0.2–v0.4)** | Navegación estructural, asistentes de inserción con formulario (la barra en sí es v0.2, RF-13), gestión de imágenes por arrastre, modos de escritura, exportación PNG, terminal avanzado, LSP `tinymist`. | ✅ Completado / absorbido por v0.5.0–v0.6.0 |
 | **v1.0** | Ecosistema completo de plantillas, exportación SVG, asistentes avanzados, Paquete Docente, publicación en stores, accesibilidad WCAG AA. | Futuro |
 | **Futuro (post-1.0)** | IA, repositorio comunitario, sincronización, colaboración en tiempo real, integración Zotero/Mendeley, asistentes de redacción académica. | Exploratorio |

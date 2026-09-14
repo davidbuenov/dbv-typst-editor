@@ -70,7 +70,11 @@ function buildTheme(isDark) {
         height: '100%',
         backgroundColor: 'var(--bg-primary)',
         color: 'var(--text-primary)',
-        fontSize: '13px',
+        // RF-42: variable con respaldo, no un valor fijo — así Ctrl++/Ctrl+-
+        // ajustan el tamaño desde fuera (`--editor-font-size` en `#editor-host`,
+        // que hereda hacia abajo) sin tener que reconfigurar este compartimento
+        // de tema en cada pulsación.
+        fontSize: 'var(--editor-font-size, 13px)',
       },
       '.cm-scroller': {
         fontFamily: 'var(--font-mono)',

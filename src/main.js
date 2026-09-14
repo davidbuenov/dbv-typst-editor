@@ -14,6 +14,7 @@ import { createWorkspace, joinPath } from './app/workspace.js';
 import { createUpdater } from './app/updater.js';
 import { PANELS, getPanelState, initPanels, togglePanel } from './app/workspacePanels.js';
 import { figureActionForPath, jogsAction } from './editor/toolbarActions.js';
+import { clampEditorFontSize, EDITOR_FONT_DEFAULT, stepEditorFontSize } from './editor/fontSize.js';
 import { decideImageDrop, pathsWithExtension } from './app/dropTarget.js';
 import { pickImageFromClipboard, readFileAsBase64 } from './app/clipboardImage.js';
 import { applyTranslations, getLanguage, setLanguage, t } from './i18n/i18n.js';
@@ -1177,6 +1178,116 @@ async function bootstrap() {
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') closeAllPanels();
   });
+
+  // RF-42: Ctrl++/Ctrl+-/Ctrl+0 y Ctrl+rueda ajustan el tamaño de fuente del
+  // editor o el zoom de la vista previa según dónde esté el foco, en vez de
+  // caer en el zoom nativo del webview de Tauri (que hasta ahora los
+  // capturaba a nivel de sistema, sin que la app se enterara).
+  const EDITOR_FONT_STORAGE_KEY = 'dbv-typst-editor-font-size';
+  const editorHostEl = el('editor-host');
+  const previewPagesEl = el('preview-pages');
+
+  function readEditorFontSize() {
+    try {
+      const stored = Number(localStorage.getItem(EDITOR_FONT_STORAGE_KEY));
+      return Number.isFinite(stored) && stored > 0 ? clampEditorFontSize(stored) : EDITOR_FONT_DEFAULT;
+    } catch {
+      return EDITOR_FONT_DEFAULT;
+    }
+  }
+
+  function applyEditorFontSize(px) {
+    const clamped = clampEditorFontSize(px);
+    // En el propio host, no en `:root`: así un tamaño de fuente pensado para
+    // el editor no se filtra a ningún otro sitio que por accidente use la
+    // misma variable en el futuro.
+    editorHostEl.style.setProperty('--editor-font-size', `${clamped}px`);
+    try {
+      localStorage.setItem(EDITOR_FONT_STORAGE_KEY, String(clamped));
+    } catch {
+      // Un WebView que bloquee el almacenamiento no debe impedir cambiar el tamaño.
+    }
+    return clamped;
+  }
+
+  let editorFontSize = readEditorFontSize();
+  applyEditorFontSize(editorFontSize);
+
+  function stepEditorFont(direction) {
+    editorFontSize = stepEditorFontSize(editorFontSize, direction);
+    applyEditorFontSize(editorFontSize);
+  }
+
+  function resetEditorFont() {
+    editorFontSize = EDITOR_FONT_DEFAULT;
+    applyEditorFontSize(editorFontSize);
+  }
+
+  // El ratón no necesita "foco" para saber sobre qué panel está: se seguiría
+  // con `:hover`, pero Ctrl+rueda también debe funcionar sin haber tocado el
+  // panel antes con el ratón, así que se necesita saber igualmente dónde
+  // ESTÁ el puntero en el momento del gesto — de ahí este seguimiento propio
+  // en vez de depender de CSS.
+  let pointerOverPreview = false;
+  previewPagesEl.addEventListener('mouseenter', () => {
+    pointerOverPreview = true;
+  });
+  previewPagesEl.addEventListener('mouseleave', () => {
+    pointerOverPreview = false;
+  });
+
+  function isZoomCombo(event) {
+    if (!(event.ctrlKey || event.metaKey)) return false;
+    return event.key === '+' || event.key === '=' || event.key === '-' || event.key === '0';
+  }
+
+  document.addEventListener('keydown', (event) => {
+    if (!isZoomCombo(event)) return;
+    // Se intercepta SIEMPRE que la combinación coincide, haya o no un panel
+    // reconocible con foco — si no, cuando ninguno de los dos aplica cae en
+    // el zoom nativo del sistema, justo lo que RF-42 pide evitar.
+    event.preventDefault();
+
+    const inEditor = Boolean(editorHostEl.contains(document.activeElement));
+    const direction = event.key === '-' ? -1 : event.key === '0' ? 0 : 1;
+
+    if (inEditor) {
+      if (direction === 0) resetEditorFont();
+      else stepEditorFont(direction);
+    } else if (pointerOverPreview) {
+      if (direction === 0) preview.zoomReset();
+      else if (direction > 0) preview.zoomIn();
+      else preview.zoomOut();
+    }
+    // Ni el editor ni la vista previa: no hace nada perceptible (criterio 5).
+  });
+
+  function wheelDirection(event) {
+    // Rueda hacia arriba (deltaY negativo) = acercar, igual que Ctrl++;
+    // hacia abajo = alejar, igual que Ctrl+-.
+    return event.deltaY < 0 ? 1 : -1;
+  }
+
+  editorHostEl.addEventListener(
+    'wheel',
+    (event) => {
+      if (!event.ctrlKey) return;
+      event.preventDefault();
+      stepEditorFont(wheelDirection(event));
+    },
+    { passive: false }
+  );
+
+  previewPagesEl.addEventListener(
+    'wheel',
+    (event) => {
+      if (!event.ctrlKey) return;
+      event.preventDefault();
+      if (wheelDirection(event) > 0) preview.zoomIn();
+      else preview.zoomOut();
+    },
+    { passive: false }
+  );
 
   // Los textos que los módulos escriben a mano con t() (catálogo, recientes,
   // estado de la vista previa) no llevan `data-i18n`: hay que repintarlos.

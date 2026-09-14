@@ -219,7 +219,7 @@ export function createEquationEditor({ panelEl, getView, getRoot }) {
       renderEmptyPreview();
       setHint('equation.hintEmpty');
 
-      positionPanelNear(panelEl, triggerEl);
+      positionPanelNear(panelEl, triggerEl, { width: 760 });
       panel.open();
       sourceEl.focus();
     },

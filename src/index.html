@@ -761,32 +761,34 @@
     <div id="equation-panel" class="floating-panel floating-panel--diagram hidden" role="dialog" aria-modal="false">
       <h2 class="floating-panel__title" data-i18n="equation.title"></h2>
 
-      <div class="diagram-editor__toolbar">
-        <span class="diagram-editor__group-label" data-i18n="equation.groupStructure"></span>
-        <span data-equation="group-structure"></span>
-      </div>
-      <div class="diagram-editor__toolbar">
-        <span class="diagram-editor__group-label" data-i18n="equation.groupBigop"></span>
-        <span data-equation="group-bigop"></span>
-      </div>
-      <div class="diagram-editor__toolbar">
-        <span class="diagram-editor__group-label" data-i18n="equation.groupMatrix"></span>
-        <span data-equation="group-matrix"></span>
-      </div>
-      <div class="diagram-editor__toolbar">
-        <span class="diagram-editor__group-label" data-i18n="equation.groupSymbol"></span>
-        <span data-equation="group-symbol"></span>
-      </div>
-      <div class="diagram-editor__toolbar">
-        <span class="diagram-editor__group-label" data-i18n="equation.groupOperator"></span>
-        <span data-equation="group-operator"></span>
-      </div>
-      <div class="diagram-editor__toolbar">
-        <span class="diagram-editor__group-label" data-i18n="equation.groupDelimiter"></span>
-        <span data-equation="group-delimiter"></span>
+      <div class="equation-editor__groups">
+        <div class="diagram-editor__toolbar">
+          <span class="diagram-editor__group-label" data-i18n="equation.groupStructure"></span>
+          <span data-equation="group-structure"></span>
+        </div>
+        <div class="diagram-editor__toolbar">
+          <span class="diagram-editor__group-label" data-i18n="equation.groupBigop"></span>
+          <span data-equation="group-bigop"></span>
+        </div>
+        <div class="diagram-editor__toolbar">
+          <span class="diagram-editor__group-label" data-i18n="equation.groupMatrix"></span>
+          <span data-equation="group-matrix"></span>
+        </div>
+        <div class="diagram-editor__toolbar">
+          <span class="diagram-editor__group-label" data-i18n="equation.groupSymbol"></span>
+          <span data-equation="group-symbol"></span>
+        </div>
+        <div class="diagram-editor__toolbar">
+          <span class="diagram-editor__group-label" data-i18n="equation.groupOperator"></span>
+          <span data-equation="group-operator"></span>
+        </div>
+        <div class="diagram-editor__toolbar">
+          <span class="diagram-editor__group-label" data-i18n="equation.groupDelimiter"></span>
+          <span data-equation="group-delimiter"></span>
+        </div>
       </div>
 
-      <input data-equation="source" type="text" class="diagram-editor__input diagram-editor__input--grow" data-i18n-placeholder="equation.sourcePlaceholder" />
+      <textarea data-equation="source" rows="3" class="diagram-editor__input diagram-editor__input--grow equation-editor__source" data-i18n-placeholder="equation.sourcePlaceholder"></textarea>
 
       <!-- Recorte SVG de la propia fórmula compilada por el sidecar real —
            mismo principio de fidelidad que RF-31: se ve exactamente lo que

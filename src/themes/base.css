@@ -703,7 +703,46 @@ body {
 }
 
 /* ─── Editor visual de ecuaciones (RF-46) ────────────────────────────────
-   Botón de pieza insertable: a diferencia de `.diagram-editor__shape` (fijo
+   Panel más ancho que el genérico `.floating-panel--diagram` (680px): con
+   seis grupos de piezas más el campo de fórmula, 680px dejaba cada grupo en
+   su propia fila casi vacía — feedback directo del usuario tras probarlo en
+   vivo (2026-09-14): "la zona de escritura debería ser más ancha... los
+   tipos de operaciones podrían distribuirse mejor en horizontal". */
+#equation-panel {
+  width: min(760px, calc(100vw - 32px));
+}
+
+/* Envuelve los seis `.diagram-editor__toolbar` (uno por grupo de piezas) en
+   un flujo que los reparte en la anchura disponible en vez de apilarlos uno
+   por fila — con el panel ya ensanchado, varios grupos cortos (p. ej.
+   "Matrix" y "Symbols") comparten fila en vez de dejar hueco vacío a la
+   derecha de cada uno. */
+.equation-editor__groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+}
+
+.equation-editor__groups .diagram-editor__toolbar {
+  flex: 0 0 auto;
+  margin: 4px 0;
+}
+
+/* Campo de fórmula: antes un `<input>` de una sola línea, demasiado angosto
+   para una fórmula larga con varias piezas anidadas. Ahora un `<textarea>`
+   multilínea (mismo API de selección/foco que un `<input>`, el cableado de
+   `equationEditor.js` no cambia) con tipografía monoespaciada a mayor
+   tamaño, a petición del usuario tras probarlo en vivo. */
+.equation-editor__source {
+  min-height: 72px;
+  padding: 8px 10px;
+  font-size: 15px;
+  font-family: var(--font-mono);
+  line-height: 1.5;
+  resize: vertical;
+}
+
+/* Botón de pieza insertable: a diferencia de `.diagram-editor__shape` (fijo
    a 30px, pensado para UN glifo de silueta), aquí las etiquetas van de un
    carácter ("√") a tres ("lim", "2×2"), así que el ancho se ajusta al
    contenido en vez de recortarlo. */

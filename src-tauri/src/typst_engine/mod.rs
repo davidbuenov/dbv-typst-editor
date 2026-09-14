@@ -15,6 +15,7 @@
 // ejecución pasa por comandos nuestros, validados.
 
 pub mod compile;
+pub mod equation;
 pub mod outline;
 pub mod shadow;
 pub mod sync;

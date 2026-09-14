@@ -144,6 +144,30 @@ export const HELP_SECTIONS = [
     ],
   },
   {
+    id: 'ecuaciones',
+    title: { es: 'Editor visual de ecuaciones', en: 'Visual equation editor' },
+    blocks: [
+      {
+        es: 'En el menú Herramientas → Editor de ecuaciones (∑): un campo de texto con el código de la fórmula y, justo debajo, su vista previa REAL — compilada por Typst en cada pausa, no aproximada por otra librería.',
+        en: 'In the Tools menu → Equation editor (∑): a text field with the formula code and, right below it, its REAL preview — compiled by Typst on every pause, not approximated by another library.',
+      },
+      {
+        list: {
+          es: [
+            'Las piezas (fracción, exponente, sumatorio, integral, matriz, símbolos griegos, delimitadores...) se insertan en la posición del cursor del campo de texto, igual que la barra del editor principal.',
+            '"Pegar LaTeX": para quien ya tiene una fórmula escrita en sintaxis LaTeX. Se convierte con el paquete MiTeX y se añade el import correspondiente solo si hace falta.',
+            'La ecuación no entra en el documento hasta pulsar "Insertar" — hasta entonces se puede seguir ajustando sin ningún efecto sobre el texto.',
+          ],
+          en: [
+            'The pieces (fraction, exponent, summation, integral, matrix, Greek symbols, delimiters...) are inserted at the text field\'s cursor position, just like the main editor toolbar.',
+            '"Paste LaTeX": for anyone who already has a formula written in LaTeX syntax. It is converted with the MiTeX package, adding the needed import only when required.',
+            'The equation is not added to the document until you press "Insert" — until then you can keep adjusting it with no effect on the text.',
+          ],
+        },
+      },
+    ],
+  },
+  {
     id: 'vista-previa',
     title: { es: 'Vista previa', en: 'Preview' },
     blocks: [

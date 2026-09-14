@@ -234,5 +234,21 @@ export const tinymistSendNotification = (method, params) =>
   call('tinymist_send_notification', { method, params });
 export const tinymistStatus = () => call('tinymist_status');
 
+// ─── Editor visual de ecuaciones (RF-46) ─────────────────────────────────────
+
+/**
+ * Compila `math` (cuerpo Typst sin los `$` envolventes) a una "viñeta" SVG
+ * recortada al contenido, para la vista previa en vivo del editor de
+ * ecuaciones. `root`, si se pasa, permite resolver las fuentes propias del
+ * proyecto abierto (`fonts/`) igual que la vista previa principal.
+ */
+export const compileEquation = (math, { root, fontSizePt, preamble } = {}) =>
+  call('typst_compile_equation', {
+    math,
+    root: root ?? null,
+    fontSizePt: fontSizePt ?? null,
+    preamble: preamble ?? null,
+  });
+
 
 

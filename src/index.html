@@ -159,6 +159,13 @@
             <button id="btn-tools-diagram" class="menu-item" type="button" role="menuitem">
               <span class="menu-item__icon menu-item__icon--glyph" aria-hidden="true">✎</span><span data-i18n="action.diagramEditor"></span>
             </button>
+            <!-- RF-46: mismo criterio que RF-45 con el editor de diagramas —
+                 una acción nueva de este tamaño entra por el menú
+                 Herramientas, no por un icono más en la barra de inserción
+                 ya de por sí llena. -->
+            <button id="btn-tools-equation" class="menu-item" type="button" role="menuitem">
+              <span class="menu-item__icon menu-item__icon--glyph" aria-hidden="true">∑</span><span data-i18n="action.equationEditor"></span>
+            </button>
             <div class="menu-separator" role="separator"></div>
             <button id="btn-jogs-insert" class="menu-item" type="button" role="menuitem" data-i18n-title="jogs.hint">
               <span class="menu-item__icon menu-item__icon--glyph" aria-hidden="true">JS</span><span data-i18n="action.jogsInsert"></span>
@@ -736,6 +743,58 @@
         <input data-diagram="label" type="text" class="diagram-editor__input" data-i18n-placeholder="diagram.labelPlaceholder" />
       </div>
       <button data-diagram="insert" type="button" class="button button--primary" data-i18n="diagram.insert"></button>
+    </div>
+
+    <!-- Editor visual de ecuaciones (RF-46): a diferencia del editor de
+         diagramas de arriba, no hay un modelo de nodos — la "ecuación que se
+         va construyendo" ES el propio código Typst de la fórmula
+         (`data-equation="source"`), que se ve renderizado EN VIVO justo
+         debajo según se pulsan las piezas. Grupos poblados desde
+         `EQUATION_SNIPPETS` (`equationModel.js`) por `equationEditor.js`, no
+         escritos a mano aquí uno a uno. -->
+    <div id="equation-panel" class="floating-panel floating-panel--diagram hidden" role="dialog" aria-modal="false">
+      <h2 class="floating-panel__title" data-i18n="equation.title"></h2>
+
+      <div class="diagram-editor__toolbar">
+        <span class="diagram-editor__group-label" data-i18n="equation.groupStructure"></span>
+        <span data-equation="group-structure"></span>
+      </div>
+      <div class="diagram-editor__toolbar">
+        <span class="diagram-editor__group-label" data-i18n="equation.groupBigop"></span>
+        <span data-equation="group-bigop"></span>
+      </div>
+      <div class="diagram-editor__toolbar">
+        <span class="diagram-editor__group-label" data-i18n="equation.groupMatrix"></span>
+        <span data-equation="group-matrix"></span>
+      </div>
+      <div class="diagram-editor__toolbar">
+        <span class="diagram-editor__group-label" data-i18n="equation.groupSymbol"></span>
+        <span data-equation="group-symbol"></span>
+      </div>
+      <div class="diagram-editor__toolbar">
+        <span class="diagram-editor__group-label" data-i18n="equation.groupOperator"></span>
+        <span data-equation="group-operator"></span>
+      </div>
+      <div class="diagram-editor__toolbar">
+        <span class="diagram-editor__group-label" data-i18n="equation.groupDelimiter"></span>
+        <span data-equation="group-delimiter"></span>
+      </div>
+
+      <input data-equation="source" type="text" class="diagram-editor__input diagram-editor__input--grow" data-i18n-placeholder="equation.sourcePlaceholder" />
+
+      <!-- Recorte SVG de la propia fórmula compilada por el sidecar real —
+           mismo principio de fidelidad que RF-31: se ve exactamente lo que
+           Typst va a componer, no una aproximación de una librería ajena. -->
+      <div class="equation-editor__preview" data-equation="preview"></div>
+      <span class="diagram-editor__hint" data-equation="hint"></span>
+
+      <div class="diagram-editor__toolbar">
+        <span class="diagram-editor__group-label" data-i18n="equation.latexLabel"></span>
+        <input data-equation="latex" type="text" class="diagram-editor__input diagram-editor__input--grow" data-i18n-placeholder="equation.latexPlaceholder" />
+        <button data-equation="latex-insert" type="button" class="button button--compact button--ghost" data-i18n="equation.latexConvert"></button>
+      </div>
+
+      <button data-equation="insert" type="button" class="button button--primary" data-i18n="equation.insert"></button>
     </div>
 
     <!-- Desplegable de citas (Beta, ARCHITECTURE.md §7.7.4). -->

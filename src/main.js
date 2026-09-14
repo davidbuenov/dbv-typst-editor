@@ -538,6 +538,7 @@ async function bootstrap() {
       // El editor de diagramas busca sus propios controles dentro del panel
       // por `data-diagram`, así que aquí basta con el panel.
       diagramPanel: el('diagram-panel'),
+      equationPanel: el('equation-panel'),
       documentName: el('document-name'),
       documentDirty: el('document-dirty'),
       documentPath: el('document-path'),
@@ -1000,6 +1001,14 @@ async function bootstrap() {
       return;
     }
     workspace.openDiagramEditor(el('btn-tools-diagram'));
+  });
+
+  el('btn-tools-equation').addEventListener('click', () => {
+    if (!workspace.state.document) {
+      toast.show(t('equation.needDocument'), 'error');
+      return;
+    }
+    workspace.openEquationEditor(el('btn-tools-equation'));
   });
 
   el('btn-jogs-insert').addEventListener('click', () => {

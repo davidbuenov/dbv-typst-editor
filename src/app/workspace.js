@@ -22,6 +22,7 @@ import { createSymbolPicker } from '../editor/symbolPicker.js';
 import { createTableDialog } from '../editor/tableDialog.js';
 import { createCetzAssistant } from '../editor/cetzAssistant.js';
 import { createDiagramEditor } from '../editor/diagramEditor.js';
+import { createEquationEditor } from '../editor/equationEditor.js';
 import { createToolbar } from '../editor/toolbar.js';
 import { figureActionForPath } from '../editor/toolbarActions.js';
 import { posFromLsp } from '../editor/lspClient.js';
@@ -82,6 +83,7 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
   let tableDialog;
   let cetzAssistant;
   let diagramEditor;
+  let equationEditor;
   const editor = createEditor(elements.editorHost, {
     theme: getTheme(),
     lspClient,
@@ -253,6 +255,12 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
   diagramEditor = createDiagramEditor({
     panelEl: elements.diagramPanel,
     getView: editor.getView,
+  });
+
+  equationEditor = createEquationEditor({
+    panelEl: elements.equationPanel,
+    getView: editor.getView,
+    getRoot: () => state.project?.root ?? null,
   });
 
   /** Ganchos que rellenan los slices posteriores (vista previa, guardado). */
@@ -709,6 +717,10 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
      */
     openDiagramEditor(triggerEl) {
       diagramEditor?.openNear(triggerEl);
+    },
+    /** Abre el editor visual de ecuaciones (RF-46), mismo patrón que `openDiagramEditor`. */
+    openEquationEditor(triggerEl) {
+      equationEditor?.openNear(triggerEl);
     },
     openProjectAt,
     openDocument,

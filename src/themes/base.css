@@ -702,6 +702,58 @@ body {
   color: var(--text-secondary);
 }
 
+/* ─── Editor visual de ecuaciones (RF-46) ────────────────────────────────
+   Botón de pieza insertable: a diferencia de `.diagram-editor__shape` (fijo
+   a 30px, pensado para UN glifo de silueta), aquí las etiquetas van de un
+   carácter ("√") a tres ("lim", "2×2"), así que el ancho se ajusta al
+   contenido en vez de recortarlo. */
+.equation-editor__snippet {
+  min-width: 30px;
+  height: 28px;
+  padding: 0 6px;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.equation-editor__snippet:hover,
+.equation-editor__snippet:focus-visible {
+  border-color: var(--accent);
+  color: var(--accent);
+  outline: none;
+}
+
+/* El SVG de la fórmula ya trae su propio fondo blanco (es un recorte de
+   página real, mismo motivo que las páginas de la vista previa principal
+   son siempre blancas sea cual sea el tema) — el marco de alrededor solo
+   necesita distinguir dónde empieza y acaba ese recorte. */
+.equation-editor__preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 64px;
+  padding: 10px;
+  margin: 8px 0;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: auto;
+}
+
+.equation-editor__preview svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.equation-editor__preview--empty {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
 .diagram-editor__canvas {
   display: block;
   width: 100%;

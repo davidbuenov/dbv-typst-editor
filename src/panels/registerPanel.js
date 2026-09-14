@@ -137,3 +137,25 @@ export function registerPanel(panelEl, opts = {}) {
 export function closeAllPanels() {
   for (const close of panelClosers) close();
 }
+
+/**
+ * Posiciona un panel flotante justo debajo de `triggerEl`, recortando su
+ * borde izquierdo para que no se salga de la ventana por la derecha.
+ *
+ * Extraído en /code-simplify de v0.7.0: `diagramEditor.js`, `equationEditor.js`,
+ * `sequenceEditor.js` y `ganttEditor.js` habían llegado, cada uno por su
+ * cuenta, al mismo cálculo de cuatro líneas dentro de su `openNear()` — un
+ * único sitio en vez de cuatro copias que solo podrían desincronizarse si
+ * un quinto editor necesitara el mismo ajuste (p. ej. un margen distinto).
+ * @param {HTMLElement} panelEl
+ * @param {HTMLElement} triggerEl
+ * @param {{width?: number}} [opts] Ancho aproximado del panel — decide cuánto
+ *   antes del borde derecho de la ventana empieza a recortarse la posición.
+ */
+export function positionPanelNear(panelEl, triggerEl, { width = 420 } = {}) {
+  const rect = triggerEl.getBoundingClientRect();
+  panelEl.style.top = `${rect.bottom + 6}px`;
+  panelEl.style.left = `${Math.max(10, Math.min(window.innerWidth - width, rect.left))}px`;
+  panelEl.style.right = 'auto';
+  panelEl.style.transform = 'none';
+}

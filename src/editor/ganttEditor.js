@@ -12,7 +12,7 @@
 // RF-48.
 
 import { t } from '../i18n/i18n.js';
-import { registerPanel } from '../panels/registerPanel.js';
+import { positionPanelNear, registerPanel } from '../panels/registerPanel.js';
 import {
   addTask,
   createEmptyGanttChart,
@@ -21,6 +21,7 @@ import {
   hasGanttyImport,
   removeTask,
 } from './ganttModel.js';
+import { insertGeneratedCode } from './insertGeneratedCode.js';
 
 /**
  * @param {object} deps
@@ -96,21 +97,10 @@ export function createGanttEditor({ panelEl, getView }) {
       return;
     }
 
-    const docText = view.state.doc.toString();
-    const needsImport = !hasGanttyImport(docText);
+    const needsImport = !hasGanttyImport(view.state.doc.toString());
     const importText = needsImport ? `${ganttyImportLine()}\n\n` : '';
 
-    const { from, to } = view.state.selection.main;
-    const insertion = (from === 0 ? '' : docText[from - 1] === '\n' ? '\n' : '\n\n') + code + '\n';
-    const changes = [];
-    let offsetChars = 0;
-    if (importText) {
-      changes.push({ from: 0, to: 0, insert: importText });
-      offsetChars = importText.length;
-    }
-    changes.push({ from, to, insert: insertion });
-    view.dispatch({ changes, selection: { anchor: from + offsetChars + insertion.length } });
-    view.focus();
+    insertGeneratedCode(view, { code, importText });
     panel.close();
   });
 
@@ -125,11 +115,7 @@ export function createGanttEditor({ panelEl, getView }) {
       renderTasks();
       setHint('gantt.hintDefault');
 
-      const rect = triggerEl.getBoundingClientRect();
-      panelEl.style.top = `${rect.bottom + 6}px`;
-      panelEl.style.left = `${Math.max(10, Math.min(window.innerWidth - 420, rect.left))}px`;
-      panelEl.style.right = 'auto';
-      panelEl.style.transform = 'none';
+      positionPanelNear(panelEl, triggerEl);
       panel.open();
       nameInput.focus();
     },

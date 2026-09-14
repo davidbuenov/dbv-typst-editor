@@ -16,7 +16,7 @@
 
 import { t } from '../i18n/i18n.js';
 import { compileEquation } from '../services/backend.js';
-import { registerPanel } from '../panels/registerPanel.js';
+import { positionPanelNear, registerPanel } from '../panels/registerPanel.js';
 import {
   buildMitexCall,
   EQUATION_SNIPPETS,
@@ -25,6 +25,7 @@ import {
   mitexImportLine,
   wrapEquationForInsert,
 } from './equationModel.js';
+import { insertGeneratedCode } from './insertGeneratedCode.js';
 
 /** Glifo visible de cada pieza — puramente visual, la sintaxis real vive en `equationModel.js`. */
 const SNIPPET_GLYPHS = {
@@ -202,17 +203,7 @@ export function createEquationEditor({ panelEl, getView, getRoot }) {
     const needsImport = (hasMitexImport(sourceEl.value) || sourceEl.value.includes('mi(')) && !hasMitexImport(docText);
     const importText = needsImport ? `${mitexImportLine()}\n\n` : '';
 
-    const { from, to } = view.state.selection.main;
-    const insertion = (from === 0 ? '' : docText[from - 1] === '\n' ? '\n' : '\n\n') + code + '\n';
-    const changes = [];
-    let offsetChars = 0;
-    if (importText) {
-      changes.push({ from: 0, to: 0, insert: importText });
-      offsetChars = importText.length;
-    }
-    changes.push({ from, to, insert: insertion });
-    view.dispatch({ changes, selection: { anchor: from + offsetChars + insertion.length } });
-    view.focus();
+    insertGeneratedCode(view, { code, importText });
     panel.close();
   });
 
@@ -228,11 +219,7 @@ export function createEquationEditor({ panelEl, getView, getRoot }) {
       renderEmptyPreview();
       setHint('equation.hintEmpty');
 
-      const rect = triggerEl.getBoundingClientRect();
-      panelEl.style.top = `${rect.bottom + 6}px`;
-      panelEl.style.left = `${Math.max(10, Math.min(window.innerWidth - 420, rect.left))}px`;
-      panelEl.style.right = 'auto';
-      panelEl.style.transform = 'none';
+      positionPanelNear(panelEl, triggerEl);
       panel.open();
       sourceEl.focus();
     },

@@ -24,6 +24,8 @@
 // — el diccionario escrito a mano vale igual). Sintaxis compilada de humo
 // contra el binario real antes de fijarla.
 
+import { escapeTypstString } from './typstEscape.js';
+
 const GANTT_SPEC = '@preview/gantty:0.5.1';
 
 export function createEmptyGanttChart() {
@@ -39,10 +41,6 @@ export function addTask(chart, name, start, end) {
 
 export function removeTask(chart, index) {
   return { tasks: chart.tasks.filter((_, i) => i !== index) };
-}
-
-function escapeTypstString(value) {
-  return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 }
 
 /**

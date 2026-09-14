@@ -14,7 +14,8 @@
 // es estructuralmente distinto de un lienzo de nodos/flechas libre").
 
 import { t } from '../i18n/i18n.js';
-import { registerPanel } from '../panels/registerPanel.js';
+import { positionPanelNear, registerPanel } from '../panels/registerPanel.js';
+import { insertGeneratedCode } from './insertGeneratedCode.js';
 import {
   addMessage,
   addParticipant,
@@ -145,21 +146,10 @@ export function createSequenceEditor({ panelEl, getView }) {
       return;
     }
 
-    const docText = view.state.doc.toString();
-    const needsImport = !hasChronosImport(docText);
+    const needsImport = !hasChronosImport(view.state.doc.toString());
     const importText = needsImport ? `${chronosImportLine()}\n\n` : '';
 
-    const { from, to } = view.state.selection.main;
-    const insertion = (from === 0 ? '' : docText[from - 1] === '\n' ? '\n' : '\n\n') + code + '\n';
-    const changes = [];
-    let offsetChars = 0;
-    if (importText) {
-      changes.push({ from: 0, to: 0, insert: importText });
-      offsetChars = importText.length;
-    }
-    changes.push({ from, to, insert: insertion });
-    view.dispatch({ changes, selection: { anchor: from + offsetChars + insertion.length } });
-    view.focus();
+    insertGeneratedCode(view, { code, importText });
     panel.close();
   });
 
@@ -174,11 +164,7 @@ export function createSequenceEditor({ panelEl, getView }) {
       renderAll();
       setHint('sequence.hintDefault');
 
-      const rect = triggerEl.getBoundingClientRect();
-      panelEl.style.top = `${rect.bottom + 6}px`;
-      panelEl.style.left = `${Math.max(10, Math.min(window.innerWidth - 420, rect.left))}px`;
-      panelEl.style.right = 'auto';
-      panelEl.style.transform = 'none';
+      positionPanelNear(panelEl, triggerEl);
       panel.open();
       nameInput.focus();
     },

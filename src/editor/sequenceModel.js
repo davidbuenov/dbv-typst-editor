@@ -16,6 +16,8 @@
 // sobre un objeto `sequence` inmutable, sin DOM — `sequenceEditor.js` es el
 // cableado fino encima.
 
+import { escapeTypstString } from './typstEscape.js';
+
 const SEQUENCE_SPEC = '@preview/chronos:0.3.0';
 
 export function createEmptySequence() {
@@ -59,11 +61,6 @@ export function setMessageDashed(sequence, index, dashed) {
     ...sequence,
     messages: sequence.messages.map((m, i) => (i === index ? { ...m, dashed } : m)),
   };
-}
-
-/** Escapa un nombre de participante o un comentario para una cadena Typst. */
-function escapeTypstString(value) {
-  return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 }
 
 /**

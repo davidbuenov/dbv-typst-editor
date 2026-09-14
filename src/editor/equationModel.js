@@ -22,6 +22,8 @@
 // `plus.minus`, delimitadores `[]`/`{}` dentro de modo matemático, etc. — para
 // no repetir el error de dar por buena una sintaxis sin ejecutarla.
 
+import { escapeTypstString } from './typstEscape.js';
+
 /**
  * Catálogo de piezas insertables. `placeholder`, si aparece dentro de
  * `insert`, se SELECCIONA tras insertar (para que escribir sustituya
@@ -118,10 +120,15 @@ export function mitexImportLine() {
  * `\f`/`\s`... de LaTeX rompería la cadena Typst o se leería como una
  * secuencia de escape distinta. Verificado contra el compilador real: sin
  * este escapado, `mi("\frac{1}{2}")` no es la cadena LaTeX que se pretende.
+ *
+ * Nombre propio (no solo un re-export de `escapeTypstString`) porque aquí
+ * documenta un caso concreto —LaTeX pegado por el usuario—, no la
+ * transformación genérica; la lógica en sí vive en un único sitio
+ * (`typstEscape.js`), compartida con `sequenceModel.js`/`ganttModel.js`.
  * @param {string} latex
  */
 export function escapeLatexForTypstString(latex) {
-  return latex.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  return escapeTypstString(latex);
 }
 
 /** Código Typst que renderiza `latex` dentro de una fórmula, vía MiTeX. */

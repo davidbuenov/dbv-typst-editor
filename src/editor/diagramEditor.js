@@ -59,7 +59,8 @@ import {
   shapeOutline,
   styleOf,
 } from './diagramModel.js';
-import { registerPanel } from '../panels/registerPanel.js';
+import { positionPanelNear, registerPanel } from '../panels/registerPanel.js';
+import { insertGeneratedCode } from './insertGeneratedCode.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -709,48 +710,14 @@ export function createDiagramEditor({ panelEl, getView }) {
     const view = getView();
     if (!view || diagram.nodes.length === 0) return;
 
-    const docText = view.state.doc.toString();
-    const needsImport = !hasCetzImport(docText);
-    const importText = '#import "@preview/cetz:0.5.2"\n\n';
+    const needsImport = !hasCetzImport(view.state.doc.toString());
+    const importText = needsImport ? '#import "@preview/cetz:0.5.2"\n\n' : '';
     const code = diagramToCetzCode(diagram);
 
-    if (editingRange) {
-      // Reeditar un diagrama existente SUSTITUYE su bloque, no añade uno
-      // nuevo al lado — antes de esto, "Insertar" siempre usaba la posición
-      // actual del cursor y duplicaba el diagrama original en cada edición.
-      const { from, to } = editingRange;
-      const changes = [];
-      let offsetChars = 0;
-      if (needsImport) {
-        changes.push({ from: 0, to: 0, insert: importText });
-        offsetChars = importText.length;
-      }
-      changes.push({ from, to, insert: code });
-      view.dispatch({ changes, selection: { anchor: from + offsetChars + code.length } });
-      view.focus();
-      panel.close();
-      return;
-    }
-
-    const { from, to } = view.state.selection.main;
-
-    // Antes había un caso especial para `needsImport && from === 0` que
-    // insertaba `importText + code + '\n\n'` de una vez pero calculaba el
-    // cursor final con la longitud de `insertion` (sin `importText`) — el
-    // cursor quedaba dentro del propio código CeTZ recién insertado. La
-    // rama de abajo ya cubre `from === 0` sin ese caso especial: un insert
-    // de longitud cero para el import, más el reemplazo real, en el mismo
-    // orden de posiciones.
-    const insertion = (from === 0 ? '' : docText[from - 1] === '\n' ? '\n' : '\n\n') + code + '\n';
-    const changes = [];
-    let offsetChars = 0;
-    if (needsImport) {
-      changes.push({ from: 0, to: 0, insert: importText });
-      offsetChars = importText.length;
-    }
-    changes.push({ from, to, insert: insertion });
-    view.dispatch({ changes, selection: { anchor: from + offsetChars + insertion.length } });
-    view.focus();
+    // Reeditar un diagrama existente SUSTITUYE su bloque, no añade uno nuevo
+    // al lado — antes de esto, "Insertar" siempre usaba la posición actual
+    // del cursor y duplicaba el diagrama original en cada edición.
+    insertGeneratedCode(view, { code, importText, replaceRange: editingRange });
     panel.close();
   });
 
@@ -780,11 +747,7 @@ export function createDiagramEditor({ panelEl, getView }) {
       connectButtonEl?.classList.remove('button--primary');
       setHint(existing ? t('diagram.editingExisting') : t('diagram.defaultHint'));
 
-      const rect = triggerEl.getBoundingClientRect();
-      panelEl.style.top = `${rect.bottom + 6}px`;
-      panelEl.style.left = `${Math.max(10, Math.min(window.innerWidth - 680, rect.left))}px`;
-      panelEl.style.right = 'auto';
-      panelEl.style.transform = 'none';
+      positionPanelNear(panelEl, triggerEl, { width: 680 });
       render();
       applyViewport();
       syncColorSelection();

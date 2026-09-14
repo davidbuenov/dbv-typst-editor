@@ -91,6 +91,14 @@ export const CURATED_PACKAGES = [
     license: 'MIT',
   },
   {
+    spec: '@preview/chronos:0.3.0',
+    title: 'chronos — diagramas de secuencia',
+    titleEn: 'chronos — sequence diagrams',
+    description: 'Diagramas de secuencia (actores, mensajes, ciclo de vida) construidos sobre cetz.',
+    descriptionEn: 'Sequence diagrams (actors, messages, lifelines) built on top of cetz.',
+    license: 'Apache-2.0',
+  },
+  {
     spec: '@preview/touying:0.7.4',
     title: 'touying — presentaciones',
     titleEn: 'touying — presentations',

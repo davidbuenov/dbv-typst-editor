@@ -166,6 +166,9 @@
             <button id="btn-tools-equation" class="menu-item" type="button" role="menuitem">
               <span class="menu-item__icon menu-item__icon--glyph" aria-hidden="true">∑</span><span data-i18n="action.equationEditor"></span>
             </button>
+            <button id="btn-tools-sequence" class="menu-item" type="button" role="menuitem">
+              <span class="menu-item__icon menu-item__icon--glyph" aria-hidden="true">⇄</span><span data-i18n="action.sequenceEditor"></span>
+            </button>
             <div class="menu-separator" role="separator"></div>
             <button id="btn-jogs-insert" class="menu-item" type="button" role="menuitem" data-i18n-title="jogs.hint">
               <span class="menu-item__icon menu-item__icon--glyph" aria-hidden="true">JS</span><span data-i18n="action.jogsInsert"></span>
@@ -795,6 +798,38 @@
       </div>
 
       <button data-equation="insert" type="button" class="button button--primary" data-i18n="equation.insert"></button>
+    </div>
+
+    <!-- Asistente de diagramas de secuencia (RF-48, paquete `chronos`): dos
+         listas (participantes, mensajes en orden) en vez de un lienzo — un
+         diagrama de secuencia se describe bien así, sin necesitar arrastre
+         ni vista previa en vivo como los otros dos editores de arriba. -->
+    <div id="sequence-panel" class="floating-panel floating-panel--diagram hidden" role="dialog" aria-modal="false">
+      <h2 class="floating-panel__title" data-i18n="sequence.title"></h2>
+
+      <div class="diagram-editor__toolbar">
+        <span class="diagram-editor__group-label" data-i18n="sequence.participantsLabel"></span>
+        <input data-sequence="participant-name" type="text" class="diagram-editor__input" data-i18n-placeholder="sequence.participantPlaceholder" />
+        <button data-sequence="add-participant" type="button" class="button button--compact button--ghost" data-i18n="sequence.add"></button>
+      </div>
+      <div class="sequence-editor__list" data-sequence="participants"></div>
+
+      <div class="diagram-editor__toolbar">
+        <span class="diagram-editor__group-label" data-i18n="sequence.messageLabel"></span>
+        <select data-sequence="message-from" class="diagram-editor__input"></select>
+        <span aria-hidden="true">→</span>
+        <select data-sequence="message-to" class="diagram-editor__input"></select>
+        <input data-sequence="message-comment" type="text" class="diagram-editor__input diagram-editor__input--grow" data-i18n-placeholder="sequence.commentPlaceholder" />
+        <label class="sequence-editor__checkbox">
+          <input data-sequence="message-dashed" type="checkbox" />
+          <span data-i18n="sequence.dashed"></span>
+        </label>
+        <button data-sequence="add-message" type="button" class="button button--compact button--ghost" data-i18n="sequence.add"></button>
+      </div>
+      <div class="sequence-editor__list" data-sequence="messages"></div>
+
+      <span class="diagram-editor__hint" data-sequence="hint"></span>
+      <button data-sequence="insert" type="button" class="button button--primary" data-i18n="sequence.insert"></button>
     </div>
 
     <!-- Desplegable de citas (Beta, ARCHITECTURE.md §7.7.4). -->

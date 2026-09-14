@@ -539,6 +539,7 @@ async function bootstrap() {
       // por `data-diagram`, así que aquí basta con el panel.
       diagramPanel: el('diagram-panel'),
       equationPanel: el('equation-panel'),
+      sequencePanel: el('sequence-panel'),
       documentName: el('document-name'),
       documentDirty: el('document-dirty'),
       documentPath: el('document-path'),
@@ -1009,6 +1010,14 @@ async function bootstrap() {
       return;
     }
     workspace.openEquationEditor(el('btn-tools-equation'));
+  });
+
+  el('btn-tools-sequence').addEventListener('click', () => {
+    if (!workspace.state.document) {
+      toast.show(t('sequence.needDocument'), 'error');
+      return;
+    }
+    workspace.openSequenceEditor(el('btn-tools-sequence'));
   });
 
   el('btn-jogs-insert').addEventListener('click', () => {

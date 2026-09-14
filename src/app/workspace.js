@@ -23,6 +23,7 @@ import { createTableDialog } from '../editor/tableDialog.js';
 import { createCetzAssistant } from '../editor/cetzAssistant.js';
 import { createDiagramEditor } from '../editor/diagramEditor.js';
 import { createEquationEditor } from '../editor/equationEditor.js';
+import { createSequenceEditor } from '../editor/sequenceEditor.js';
 import { createToolbar } from '../editor/toolbar.js';
 import { figureActionForPath } from '../editor/toolbarActions.js';
 import { posFromLsp } from '../editor/lspClient.js';
@@ -84,6 +85,7 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
   let cetzAssistant;
   let diagramEditor;
   let equationEditor;
+  let sequenceEditor;
   const editor = createEditor(elements.editorHost, {
     theme: getTheme(),
     lspClient,
@@ -261,6 +263,11 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     panelEl: elements.equationPanel,
     getView: editor.getView,
     getRoot: () => state.project?.root ?? null,
+  });
+
+  sequenceEditor = createSequenceEditor({
+    panelEl: elements.sequencePanel,
+    getView: editor.getView,
   });
 
   /** Ganchos que rellenan los slices posteriores (vista previa, guardado). */
@@ -721,6 +728,10 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     /** Abre el editor visual de ecuaciones (RF-46), mismo patrón que `openDiagramEditor`. */
     openEquationEditor(triggerEl) {
       equationEditor?.openNear(triggerEl);
+    },
+    /** Abre el asistente de diagramas de secuencia (RF-48), mismo patrón que `openDiagramEditor`. */
+    openSequenceEditor(triggerEl) {
+      sequenceEditor?.openNear(triggerEl);
     },
     openProjectAt,
     openDocument,

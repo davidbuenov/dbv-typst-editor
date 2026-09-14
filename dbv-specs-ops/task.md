@@ -335,7 +335,8 @@
     * Frontend: `editor/equationModel.js` (puro: catálogo de 27 piezas insertables — fracción, potencia, subíndice, raíz n-ésima, sumatorio/integral/productorio/límite, matriz 2×2, 7 símbolos griegos, 7 relaciones/operadores, 4 delimitadores —, `insertSnippet()` genérico con selección de placeholder, soporte MiTeX con escapado de LaTeX verificado; 16 tests) + `editor/equationEditor.js` (cableado DOM: debounce de 200ms, "last good render" ante un error de sintaxis a medio escribir, mismo criterio que RF-24; 9 tests).
     * Cada snippet (incluidos `lt.eq`/`gt.eq`/`eq.not`/`plus.minus`, delimitadores `[]`/`{}` en modo matemático, y `mi(...)` de MiTeX) compilado de humo contra el binario real antes de fijar su sintaxis.
     * Entrada en el menú Herramientas (∑), mismo patrón que RF-45. Documentado en el panel de Ayuda (ES/EN).
-  * **Pendientes de esta misma fase:** Slice 63 (RF-48, secuencia con `chronos`), Slice 64 (RF-49, Gantt con spike Gantty-vs-Timeliney), Slice 65 (RF-50, condicional). **Próximo paso al retomar: Slice 63.**
+  * **Slice 63 (RF-48) ✅.** Asistente de diagramas de secuencia (menú Herramientas, ⇄), paquete `@preview/chronos:0.3.0` (README real descargado y sintaxis compilada de humo antes de fijarla, no adivinada — `ADR-DECISION-004`, memory.md). Decisión de diseño: superficie de formulario (participantes + mensajes en orden), no un modo del lienzo de RF-31 — un diagrama de secuencia no tiene posición libre que decidir. `editor/sequenceModel.js` (puro, 13 tests) + `editor/sequenceEditor.js` (cableado DOM, 7 tests). Añadido a `curatedCatalog.js` (Apache-2.0). Documentado en Ayuda (ES/EN).
+  * **Pendientes de esta misma fase:** Slice 64 (RF-49, Gantt con spike Gantty-vs-Timeliney), Slice 65 (RF-50, condicional). **Próximo paso al retomar: Slice 64.**
 
 ## 🔄 Context Snapshot / Snapshot de Contexto
 

@@ -618,6 +618,16 @@ Cuando el usuario pide "algo más limpio" tras un primer arreglo que solo atajó
 - **Todos los snippets del catálogo (`equationModel.js`) compilados de humo contra el binario real antes de fijar su sintaxis**, incluidos los menos obvios: `sum_(i=1)^n`, `root(3, x)`, `lt.eq`/`gt.eq`/`eq.not`/`plus.minus` (no `<=`/`>=`/`!=`/`+-` literales), y que `[`/`{` dentro de modo matemático son delimitadores literales, no marcado de contenido de Typst.
 - **Disparador de reevaluación:** si en el futuro el debounce de 200ms se sintiera insuficiente en máquinas mucho más lentas que la de desarrollo, o si se detectara amontonamiento real de peticiones bajo uso intensivo, ahí sí valdría la pena una cancelación explícita en `equation.rs` — no antes, por ahora es complejidad sin beneficio medido.
 
+### ADR-DECISION-004 — RF-48: diagramas de secuencia como asistente de formulario, no como lienzo
+
+*Registrada el 2026-09-14, Slice 63 de `/build` v0.7.0.*
+
+- **Contexto.** `implementation_plan.md` dejaba abierto si RF-48 debía integrarse como un modo más del lienzo de RF-31 o como una superficie propia más simple, "dado que un diagrama de secuencia es estructuralmente distinto de un lienzo de nodos/flechas libre".
+- **Decisión:** superficie propia — dos listas (participantes, mensajes en el orden en que ocurren) en vez de un lienzo con arrastre. Un diagrama de secuencia no tiene posición libre que decidir (el eje X son los participantes en el orden en que se declaran, el eje Y es el orden temporal de los mensajes): forzarlo al lienzo de nodos/flechas de RF-31 habría añadido la complejidad del arrastre sin aportar nada que el propio orden de una lista no exprese ya.
+- **Paquete y sintaxis verificados contra el registro y el binario reales, no de memoria** (mismo criterio que todo el catálogo de este proyecto desde `curatedCatalog.js`): `@preview/chronos:0.3.0` — descargado su tarball para leer el README real en vez de adivinar la API, y compilado de humo el patrón exacto (`#chronos.diagram({ import chronos: * ; _par("Alice") ; _seq("Alice", "Bob", comment: "hola", dashed: true) })`) contra el sidecar antes de fijarlo en `sequenceModel.js`.
+- **Sin vista previa en vivo, a diferencia de RF-46.** Un diagrama de secuencia con muchos mensajes es más caro de recomponer visualmente que una fórmula suelta, y el propio formulario (participantes + lista de mensajes en orden) ya es lo bastante legible sin necesitar ver el render mientras se construye — criterio de alcance, no limitación técnica: si se pidiera en el futuro, la misma infraestructura de `equation.rs` (viñeta recortada al contenido) serviría igual aquí.
+- **Añadido a `curatedCatalog.js`** con licencia Apache-2.0 verificada, para que aparezca con el badge "✓ verificado por DBV" si el usuario lo busca también desde el Universe Browser (RF-34) — mismo criterio que el resto de paquetes que este proyecto integra con un asistente propio (`cetz`, `fletcher`).
+
 ## 🗺️ Mapa del Producto (Áreas de Foco)
 
 - **Producto:** "El entorno de escritorio más accesible para el ecosistema Typst" (posicionamiento oficial) — no editor de código con soporte Typst. Herramienta orientada a documento/proyecto ("Obsidian for Typst"): lanzador por tareas, asistente de creación de proyecto, plantillas como funcionalidad de primer nivel.

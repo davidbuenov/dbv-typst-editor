@@ -168,6 +168,16 @@ export const HELP_SECTIONS = [
     ],
   },
   {
+    id: 'secuencia',
+    title: { es: 'Diagramas de secuencia', en: 'Sequence diagrams' },
+    blocks: [
+      {
+        es: 'En el menú Herramientas → Diagrama de secuencia (⇄): añade participantes y, entre ellos, los mensajes en el orden en que ocurren (con texto opcional y trazo discontinuo para respuestas). Al insertar, se genera con el paquete chronos y se añade su import si hace falta.',
+        en: 'In the Tools menu → Sequence diagram (⇄): add participants and, between them, the messages in the order they happen (with optional text and a dashed stroke for replies). Inserting generates the diagram with the chronos package, adding its import if needed.',
+      },
+    ],
+  },
+  {
     id: 'vista-previa',
     title: { es: 'Vista previa', en: 'Preview' },
     blocks: [

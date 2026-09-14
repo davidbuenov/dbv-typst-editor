@@ -61,17 +61,20 @@ Sigue la misma filosofía que su proyecto hermano [DBV Markdown Reader](https://
 
 ## 🚦 Estado actual
 
-**Versión actual:** `v0.6.0` · **Estado:** 🟢 Estable y listo para producción
+**Versión actual:** `v0.7.0` · **Estado:** 🟢 Estable y listo para producción
 
 - 🌐 **Sitio Web Oficial:** [https://davidbuenov.github.io/dbv-typst-editor/](https://davidbuenov.github.io/dbv-typst-editor/) (con galería interactiva de capturas en alta resolución y selector bilingüe ES/EN).
-- 📦 **Instaladores disponibles en Releases:** [GitHub Releases v0.6.0](https://github.com/davidbuenov/dbv-typst-editor/releases):
+- 📦 **Instaladores disponibles en Releases:** [GitHub Releases](https://github.com/davidbuenov/dbv-typst-editor/releases):
   - 🪟 **Windows**: Instalador `.exe` autónomo (sin dependencias externas).
   - 🍎 **macOS**: Archivo `.dmg` universal (compatible con Apple Silicon e Intel).
   - 🐧 **Linux**: Paquetes `.AppImage` (portable) y `.deb` (Debian/Ubuntu/Mint).
 - 🏬 **Microsoft Store:** disponible en la tienda oficial. [🛒 Consíguelo en Microsoft Store (ID 9PCPSVTNJMP0)](https://apps.microsoft.com/store/detail/9PCPSVTNJMP0?cid=DevShareMCLPCB). Si instalaste una versión previa desde la Store, asegúrate de contar con `v0.3.1` o superior (ver [`CHANGELOG.md`](./dbv-specs-ops/CHANGELOG.md)).
-- 🧪 **Calidad y estabilidad:** 631 pruebas automatizadas pasando al 100% (405 tests de frontend + 226 tests de backend en Rust) y validación de layout en motor Chromium/WebKit real.
+- 🧪 **Calidad y estabilidad:** 809 pruebas automatizadas pasando al 100% (572 tests de frontend + 237 tests de backend en Rust) y validación de layout en motor Chromium/WebKit real.
 - 🚀 **Funcionalidades destacadas incluidas:**
+  - Editor visual e interactivo de ecuaciones matemáticas, con vista previa REAL compilada por Typst en cada pausa, y "Pegar LaTeX" vía el paquete MiTeX.
+  - Cinco asistentes de diagramación más: flujogramas con decisiones, diagramas de secuencia (Chronos), diagramas de Gantt con fechas reales (Gantty), tableros Kanban (Kantan) y render de grafos DOT/Graphviz (Diagraph) — cada uno accesible desde el menú Herramientas, con botón de ayuda contextual y enlace a la documentación original del paquete.
   - Editor WYSIWYG de diagramas: nodos, flechas con dirección/trazo/etiqueta, colores, zoom y arrastrar y soltar — traduce a código `cetz.canvas` legible y se puede reabrir para seguir editando.
+  - Zoom contextual con teclado y rueda del ratón: ajusta el tamaño de fuente del editor o el zoom de la vista previa según dónde esté el foco.
   - Integración con Git: estado, commit, push, pull y clonar por URL desde la cabecera, con comparador de diferencias y resolución visual de conflictos de fusión.
   - Universe Browser completo: buscador sobre el catálogo real de Typst Universe (~4.700 paquetes y plantillas), no solo una lista curada, con distinción automática entre paquete y plantilla.
   - Sincronización bidireccional editor ↔ vista previa (doble clic en render para saltar al código fuente y botón chincheta para llevar la vista previa al cursor).
@@ -311,7 +314,7 @@ Preparación para Microsoft Store documentada en [`dbv-specs-ops/docs/MICROSOFT_
 
 ## 📋 Changelog
 
-`v0.6.0` documentada en [`dbv-specs-ops/CHANGELOG.md`](./dbv-specs-ops/CHANGELOG.md) — editor WYSIWYG de diagramas (nodos, flechas con dirección y trazo, arrastrar y soltar), menú "Herramientas" en la cabecera, clonar repositorio de Git por URL, Universe Browser completo con buscador sobre el catálogo real de Typst Universe (~4.700 paquetes y plantillas), bibliografía visual con detección de duplicados, empaquetado macOS, runner de JavaScript con `jogs`, y pegar una imagen directamente del portapapeles.
+`v0.7.0` documentada en [`dbv-specs-ops/CHANGELOG.md`](./dbv-specs-ops/CHANGELOG.md) — editor visual e interactivo de ecuaciones matemáticas, cinco asistentes de diagramación nuevos (secuencia, Gantt, Kanban, DOT/Graphviz y flujogramas con decisiones), botón de ayuda contextual con enlace a la documentación original en cada asistente, zoom contextual con teclado/rueda, y una batería de correcciones de UX (separador bloqueable, aviso de `ResizeObserver`, rediseño de la pantalla de inicio) encontradas usando la aplicación con un proyecto real.
 
 El changelog se mantiene en los dos idiomas: [Español](./dbv-specs-ops/CHANGELOG.md) · [English](./dbv-specs-ops/CHANGELOG.en.md).
 

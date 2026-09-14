@@ -9,7 +9,7 @@
 * **Regla nueva fijada en `.claude/commands/ship.md` (2026-09-13):** cada `/ship` de este proyecto genera `notasActualizacionStore_vX.Y.Z.md` SIEMPRE, exista o no intención inmediata de publicar en la Store — se había olvidado para v0.6.0 y se corrigió a petición del usuario.
 * **v0.6.0 enviada a Microsoft Store el 2026-09-13, sin incidencias en el envío** (confirmado por el usuario) — pendiente de que Microsoft complete la certificación y la publique. Ver `docs/MICROSOFT_STORE.md` §5, punto 2.
 * **v0.6.0 CERRADA DEL TODO.** Nada pendiente de código ni de infraestructura — lo único abierto son dos acciones externas del usuario, sin bloquear nada: (1) anotar aquí el resultado de la certificación de Microsoft Store cuando llegue; (2) avisar cuando tenga la cuenta de Apple Developer para activar la firma de `release-macos.yml` (hoy publica sin firmar a propósito, ver `docs/NATIVE_APPS_RELEASE_CI.md` §8).
-* **v0.7.0 alcanza su alcance ÍNTEGRO (12 de 12 RF, RF-40 a RF-52) el 2026-09-15.** `/spec` (v1.8 → v1.9 → v1.10, Fases 17/22/25), `/plan` (Fases 18 y 23), `/build` (Fases 19/24/25), `/test` (Fase 20) y `/code-simplify` (Fase 21) — todos cerrados salvo `/test`/`/code-simplify` de RF-50 a RF-52. Lo que en el `/spec` original (v1.8, 2026-09-14) había quedado como RF-50 condicional ("si sobra alcance") se activó sin condición el día siguiente, a petición explícita del usuario, y se separó en RF-50 (Kanban, `kantan:0.1.0`, AGPL-3.0-only) y RF-51 (DOT/Graphviz, `diagraph:0.3.7`, MIT) — ver `ADR-DECISION-006` en `memory.md`. RF-52 (botón "?" de ayuda contextual en los 6 paneles de diagramación) se añadió el mismo día tras probar el usuario RF-51 en vivo sin ninguna ayuda de sintaxis DOT. Estado final verificado: **565 Vitest · 236 Rust · `verify:frontend` 11/11 · `verify:layout` 16/16**. RF-41/RF-42/RF-43/RF-47/RF-50 confirmados por el usuario en la ventana real; RF-46 ajustado visualmente tras probarlo en vivo (commit `6c96322`) y reconfirmado. Hallazgos técnicos: dos landmines reales en Kantan (`stroke:`/`font:` sin valor por defecto utilizable, ninguno señalado por su README), una extracción de reutilización en Rust (`compile_source_to_svg`, compartida por `equation.rs` y `dot.rs`), y un punto de acceso global nuevo (`help/helpTrigger.js`) para evitar un ciclo de imports entre `registerPanel.js` y `help.js`. **Próximo paso al retomar: `/test` y `/code-simplify` de RF-50 a RF-52 antes de considerar v0.7.0 lista para `/ship`.**
+* **v0.7.0 completa TODO el ciclo salvo tag/push/instaladores, el 2026-09-15 — ver "CÓMO RETOMAR" más abajo.** 13 RF (RF-40 a RF-52.1): `/spec` (v1.8→v1.9→v1.10) → `/plan` → `/build` → `/test` → `/code-simplify` (0 hallazgos Críticos en dos pasadas) → `/ship` (versión bumpeada a 0.7.0, CHANGELOG cerrado, README actualizado con sección nueva de Agradecimientos, `walkthrough.md` y `notasActualizacionStore_v0.7.0.md` generados). Verificación final: **572 Vitest · 237 Rust · `verify:frontend` 11/11 · `verify:layout` 16/16**. Lo que en el `/spec` original (v1.8) había quedado como RF-50 condicional se activó sin condición al día siguiente (RF-50 Kanban + RF-51 DOT/Graphviz, `ADR-DECISION-006`), y RF-52/RF-52.1 (ayuda contextual + enlaces a documentación externa) se añadieron el mismo día tras probarlo en vivo (`ADR-DECISION-007`). **Pendiente, por instrucción explícita del usuario de hacerlo junto con él a la vuelta: crear el tag `v0.7.0`, `git push` (commits + tag), y generar los instaladores de Windows firmados.**
 
 ## Checklist de Tareas
 
@@ -399,95 +399,78 @@
   * **Reutilización — un hueco real de tamaño similar a los tres ya cerrados en la Fase 21.** `sequenceEditor.js`, `ganttEditor.js` y `kanbanEditor.js` habían llegado, cada uno por su cuenta, a la misma construcción de 6 líneas de un botón "✕" para quitar una fila (mismo `className`/`aria-label`/glifo) — `sequenceEditor.js` ya la envolvía en una fila completa (`buildRow`), que los otros dos repetían inline sin extraer. Extraído a `editor/listRow.js` (`createRemoveButton`/`createListRow`, 2 tests), con los tres editores ahora importándola en vez de tener su propia copia.
   * Verificación final: **572/572 Vitest (+2: `listRow.test.js`) · 237/237 Rust (sin cambios, no se tocó Rust en esta pasada) · `verify:frontend` 11/11 · `verify:layout` 16/16.** Sin cambios de comportamiento visible — misma naturaleza que la Fase 21 (solo reutilización + un ADR retroactivo), sin bugs que registrar en `CHANGELOG.md`.
 
+- [x] **Fase 28: `/ship` de v0.7.0 — cerrada el 2026-09-15, salvo tag/push/instaladores (diferidos a petición explícita del usuario).** Versión Minor (0.6.0 → 0.7.0) en los cuatro sitios (`package.json`, `tauri.conf.json`, `Cargo.toml`, `Cargo.lock`, este último regenerado con `cargo check`). `CHANGELOG.md`/`.en.md`: sección `[0.7.0] - 2026-09-15` cerrada en los dos ficheros con los 13 RF reordenados de forma ascendente para leerse bien como nota de versión; `[Sin publicar]`/`[Unreleased]` vacías para lo siguiente. `README.md`/`README.en.md`: contador de tests (809 = 572 Vitest + 237 Rust), "Funcionalidades destacadas" ampliada con los 13 RF, y nueva sección "Agradecimientos"/"Acknowledgments" (commit previo a esta fase) — las insignias de versión y las menciones de "versión actual de la Store" se dejan deliberadamente en `v0.6.0`, que es lo que de verdad hay publicado hoy. `dbv-specs-ops/walkthrough.md` (no versionado) reescrito para v0.7.0. `notasActualizacionStore_v0.7.0.md` generado con textos ES/EN de Novedades (886 caracteres, bajo el límite de 1.500), Submission Notes con guía de prueba de 2 minutos adaptada a los asistentes nuevos, y checklist del `.msix` (§3, mismo formato que v0.6.0 — sin sidecars nuevos en esta versión). **Commit de la versión creado, SIN tag anotado `v0.7.0` y SIN `git push`** — instrucción explícita del usuario de completar esos dos pasos junto con él, más la generación de instaladores de Windows firmados, cuando vuelva. Verificación final tras el bump: **572/572 Vitest · 237/237 Rust**, sin regresión.
+
 ## 🔄 Context Snapshot / Snapshot de Contexto
 
-> ### 👉 CÓMO RETOMAR ESTE PROYECTO (leer esto primero) — actualizado 2026-09-13, v0.6.0 PUBLICADA DEL TODO
+> ### 👉 CÓMO RETOMAR ESTE PROYECTO (leer esto primero) — actualizado 2026-09-15, v0.7.0 LISTA PARA TAG+PUSH+INSTALADORES
 >
-> **v0.6.0 completó el ciclo entero en esta sesión y ya está publicada:** `/test` (Fase 14) →
-> `/code-simplify` (Fase 15, 9 bugs Críticos corregidos) → `/ship` (Fase 16) → tag `v0.6.0` empujado →
-> **Release de GitHub publicada** (no borrador):
-> https://github.com/davidbuenov/dbv-typst-editor/releases/tag/v0.6.0, con los 7 artefactos completos
-> (Linux `.AppImage`/`.deb`, macOS `.dmg`/`.app.tar.gz` sin firmar, Windows `.exe`/`.sig`, `latest.json`).
-> No queda ningún hueco de validación conocido ni ninguna suite en rojo: **405 Vitest · 226 Rust ·
-> `verify:frontend` 11/11 · `verify:layout` 15/15 · `verify:templates` 40/40.**
+> **v0.7.0 completó el ciclo entero salvo el tag/push y los instaladores, a petición explícita del
+> usuario** ("continúa tú solo con `/test` `/code-simplify` y `/ship`... cuando yo vuelva damos los pasos
+> para generar los instaladores de Windows y hacer el push"): `/spec` (v1.8→v1.9→v1.10, Fases 17/22/25) →
+> `/plan` (Fases 18/23) → `/build` (Fases 19/24/25) → `/test` (Fases 20/26) → `/code-simplify` (Fases
+> 21/27, 0 hallazgos Críticos en las dos pasadas) → `/ship` (Fase 28, esta sesión). **13 RF completos:
+> RF-40 a RF-52.1.** Verificación final: **572 Vitest · 237 Rust · `verify:frontend` 11/11 ·
+> `verify:layout` 16/16**, todo en verde tras el bump de versión.
 >
-> **Dos bugs de infraestructura reales encontrados y corregidos DESPUÉS del primer push del tag** (no
-> están en `/code-simplify`, aparecieron al ejecutar los workflows de verdad):
-> 1. `release-macos.yml` fallaba al firmar (`SecKeychainItemImport: ... not valid` / `failed to import
->    keychain certificate`) aunque el repositorio no tiene NINGÚN secreto `APPLE_*` configurado
->    (confirmado con `gh secret list`, 0 secretos). Causa real: `env: APPLE_CERTIFICATE: ${{ secrets.X }}`
->    en un único step deja la variable de entorno EXISTIR con valor `""` cuando el secreto está vacío, y
->    el bundler de Tauri decide si firmar comprobando si la variable existe, no si tiene contenido —
->    v0.5.0 nunca lo sufrió porque ese bloque `env:` se añadió después de su release. **Corregido**
->    separando en dos steps mutuamente excluyentes (`if:` sobre si el secreto llega no vacío), así las
->    variables `APPLE_*` no existen en absoluto en el entorno del step sin firmar. Relanzado con
->    `gh workflow run release-macos.yml --ref master -f draft=true` y esta vez sí publicó el `.dmg`/`.app`.
-> 2. La Release `v0.5.0` llevaba desde su publicación (2026-09-09) sin el ejecutable de Windows — el
->    usuario ya lo tenía compilado en local (`src-tauri/target/release/bundle/nsis/`) y se subió a mano
->    con `gh release upload v0.5.0`.
+> **Lo que SÍ se ha hecho en esta fase `/ship` (commit ya creado, sin tag ni push):**
+> 1. Versión `0.6.0` → `0.7.0` en los cuatro sitios: `package.json`, `src-tauri/tauri.conf.json`,
+>    `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`.
+> 2. `dbv-specs-ops/CHANGELOG.md`/`.en.md`: sección `[0.7.0] - 2026-09-15` cerrada en los dos ficheros
+>    (los 13 RF, reordenados de forma ascendente para que se lean bien como nota de versión),
+>    `[Sin publicar]`/`[Unreleased]` vacías para lo siguiente.
+> 3. `README.md`/`README.en.md`: versión actual, contador de tests (809 = 572 Vitest + 237 Rust),
+>    "Funcionalidades destacadas" con los 13 RF de v0.7.0, y nueva sección **"Agradecimientos"** con
+>    reconocimiento a Typst/Tinymist, los paquetes de Typst Universe que usan los asistentes propios de la
+>    app (cetz, MiTeX, chronos, gantty, kantan, diagraph, jogs) y las piezas centrales (Tauri, CodeMirror,
+>    Hayagriva, Vite, crates de Rust) — todos los enlaces verificados con `curl` antes de fijarlos.
+>    **Deliberadamente NO tocados:** las insignias de versión (`Releases-v0.6.0`, badge de estado) y las
+>    menciones de "versión actual de la Store" siguen diciendo `v0.6.0` — es lo que de verdad hay
+>    publicado hoy en GitHub Releases y en Microsoft Store; actualizarlas a `v0.7.0` antes de publicar de
+>    verdad habría sido una afirmación falsa.
+> 4. `dbv-specs-ops/walkthrough.md` (no versionado) reescrito para v0.7.0.
+> 5. `notasActualizacionStore_v0.7.0.md` generado (regla fija de `.claude/commands/ship.md`) — textos
+>    ES/EN de "Novedades" (bajo el límite de 1.500 caracteres) y Submission Notes con guía de prueba de
+>    2 minutos adaptada a los asistentes nuevos, más el checklist de verificación del `.msix` (§3, mismo
+>    formato que v0.6.0 — sigue habiendo DOS sidecars, sin ninguno nuevo en esta versión).
 >
-> **Regla nueva, para que no se repita:** `.claude/commands/ship.md` ahora exige generar
-> `notasActualizacionStore_vX.Y.Z.md` en CADA `/ship`, sin esperar a que se pida — se había olvidado para
-> v0.6.0 (ya generado a posteriori, `notasActualizacionStore_v0.6.0.md`).
+> **Lo que queda pendiente, EXPLÍCITAMENTE diferido a cuando el usuario vuelva (no ejecutar sin él):**
+> 1. **Crear el tag anotado `v0.7.0`** sobre el commit de esta versión.
+> 2. **`git push origin master --tags`** — al empujar el tag arrancan `release-linux.yml` y
+>    `release-macos.yml` (conviene vigilarlos, mismo patrón que v0.6.0: `release-macos.yml` puede
+>    necesitar relanzarse si los secretos `APPLE_*` cambian de estado).
+> 3. **Generar los instaladores de Windows firmados** — runbook completo en
+>    `dbv-specs-ops/docs/WINDOWS_RELEASE.md` (vendorizar sidecars, variables `TAURI_SIGNING_*`, orden
+>    exacto de comandos). El release de GitHub no lleva ejecutable de Windows automáticamente — lo sube
+>    el usuario a mano, como en versiones anteriores.
+> 4. Cuando se publique de verdad: subir los textos de `notasActualizacionStore_v0.7.0.md` a Partner
+>    Center (Microsoft Store) siguiendo su checklist §3, y solo entonces actualizar las insignias/menciones
+>    de versión del README que se dejaron deliberadamente en `v0.6.0` (punto 3 de arriba).
 >
-> **Acciones que siguen dependiendo del usuario, no de la IA:** publicar v0.6.0 en Microsoft Store (textos
-> y checklist ya listos en `notasActualizacionStore_v0.6.0.md` + `docs/MICROSOFT_STORE.md`); y avisar
-> cuando tenga la cuenta de Apple Developer real para poder cargar los secretos `APPLE_*` de verdad y que
-> `release-macos.yml` empiece a firmar el bundle universal (hoy publica sin firmar a propósito, decisión
-> legítima documentada en `docs/NATIVE_APPS_RELEASE_CI.md` §8).
+> **Trabajo autónomo de esta sesión, para contexto de la siguiente:** el usuario pidió explícitamente
+> continuar sin pausas por varias fases seguidas ("sigue sin parar todo lo que puedas", luego "adelante con
+> el `/plan`", luego "continúa tú solo con `/test` `/code-simplify` y `/ship`") mientras probaba en vivo
+> cada pieza y daba feedback puntual (Kanban "funciona bien", los enlaces de ayuda "comprobado funcionan
+> bien"). RF-50/RF-51 (Kanban, DOT/Graphviz) y RF-52/RF-52.1 (ayuda contextual + enlaces) se añadieron
+> DESPUÉS del `/spec` original de v0.7.0 (v1.8), en dos reaperturas el mismo día y el día siguiente —
+> detalle completo en `ADR-DECISION-006`/`007` de `memory.md`.
 >
-> **Qué trae v0.6.0 (detalle completo en `memory.md`, catorce entradas fechadas 2026-09-11/12):**
-> editor WYSIWYG de diagramas (reemplaza al asistente CeTZ; seis formas, colores, zoom/paneo, dirección
-> de flechas, pie de figura citable); menú "Herramientas"; clonar repositorio por URL; Universe Browser
-> completo con buscador sobre el catálogo real (~4.700 paquetes/plantillas), en pestañas
-> "Paquetes"/"Buscar" y con ese mismo buscador reutilizado en "Crear documento → Buscar"; bibliografía
-> visual con `hayagriva`; empaquetado macOS (bundle+CI listos, firma condicionada a que el usuario active
-> su cuenta de Apple Developer); auto-actualizador (ya estaba); runner de JavaScript con `jogs`; y RF-39
-> (pegar imagen del portapapeles), que no estaba en el `/spec` original — salió de la propia pasada manual.
+> **Diferido a propósito, no lo reabras sin que el usuario lo pida (heredado de v0.6.0, sigue sin tocar):**
+> retirar el asistente CeTZ viejo (⬡, `cetzAssistant.js`) — el editor WYSIWYG no cubre plot/canvas libre
+> todavía, así que quitarlo sería una regresión.
 >
-> **Todo validado en ventana real, nada pendiente de probar:** el editor de diagramas (rondas 4ª-10ª:
-> arrastre, formas/colores/zoom, dirección de flechas, puntas invisibles ×2, etiqueta `<fig:...>` de las
-> imágenes), el Universe Browser completo (rondas 13ª-14ª: distinción paquete/plantilla, layout, pestañas,
-> buscador compartido — cerrado con "me encanta, funciona perfecto"), la sincronización render↔editor
-> RF-16 (rondas 11ª-12ª, verificada contra un TFG real de la universidad), el pegado de imagen RF-39
-> ("ahora funciona perfectamente"), y la bibliografía visual (RF-35) y `jogs` (RF-38), confirmados el
-> 2026-09-12 en el mismo mensaje que cerró la pasada manual.
+> **Sigue pendiente, sin relación con v0.7.0, heredado de sesiones anteriores sin reproducir todavía:**
+> - Bug reportado sin reproducir: al escribir dentro de una ecuación (asistente viejo, anterior a RF-46),
+>   el estado de la vista previa alternaba "Compilando…"/"Página 1" — revisar si sigue aplicando con el
+>   editor de ecuaciones nuevo de RF-46 o si era específico del flujo anterior.
+> - `macos_menu.rs` sin cobertura y sin compilar jamás en un Mac real — pendiente de que el usuario tenga
+>   acceso a una máquina macOS o la cuenta de Apple Developer avance.
 >
-> **v0.5.0 ya está publicada del todo — heredado como pendiente de la sesión anterior, YA RESUELTO:**
-> el usuario empujó el tag: release en
-> `https://github.com/davidbuenov/dbv-typst-editor/releases/tag/v0.5.0` (Linux `.AppImage`/`.deb`,
-> macOS `.dmg`/`.app.tar.gz`) y **v0.5.0 ya está publicada en Microsoft Store**. El release de GitHub
-> **no lleva ejecutable de Windows** — es lo esperado, no un fallo: no hay `release-windows.yml`, el
-> build de Windows firmado lo genera el usuario en local con su clave de firma (`TAURI_SIGNING_*` +
-> `npm run updater:manifest`), nunca la IA. Si hace falta, es una acción manual del usuario, no algo que
-> arreglar en el repositorio.
->
-> **Patrón de trabajo de esta sesión, por si se repite en la siguiente:** el usuario prueba en la ventana
-> real (o contra un proyecto real suyo, no el de demo), reporta el síntoma con precisión ("pincho aquí,
-> va allí"), se reproduce con una sonda en Chrome real o contra el proyecto real antes de tocar código, se
-> corrige, se documenta en `memory.md` con la causa raíz y se hace commit por ronda. Varias rondas
-> encontraron un SEGUNDO fallo relacionado al verificar el primero (RF-16: encabezado → comentario/import;
-> RF-34: plantilla-como-paquete → layout → pestañas → buscador compartido) — merece la pena preguntarse
-> "qué más encaja en esta misma causa" antes de dar una ronda por cerrada.
->
-> **Diferido a propósito, no lo reabras sin que el usuario lo pida:** retirar el asistente CeTZ viejo (⬡,
-> `cetzAssistant.js`) — el editor nuevo no cubre plot/canvas libre todavía, así que quitarlo sería una
-> regresión (Slice 49, deliberadamente pospuesto). Decidir si se retira lo toca `/code-simplify`, no antes.
->
-> **Acciones que siguen dependiendo del usuario, no de código:**
-> 1. **Microsoft Store de v0.6.0**, cuando llegue el momento de publicarla — el checklist está en
->    `docs/MICROSOFT_STORE.md`.
-> 2. **Cuenta de Apple Developer** para que `release-macos.yml` empiece a firmar RF-36 — revisar su
->    estado si no ha llegado todavía (la esperaba "en unos días" a fecha de 2026-09-11).
->
-> **Sigue pendiente, sin relación con v0.6.0:**
-> - Bug reportado sin reproducir, arrastrado desde hace sesiones: al escribir dentro de una ecuación, el
->   estado de la vista previa alterna "Compilando…"/"Página 1".
-> - `macos_menu.rs` sin cobertura y sin compilar jamás en un Mac — se compilará de verdad al construir RF-36.
->
-> **Última sesión:** 2026-09-12 · **Rama:** `master` · remoto `origin` = `github.com/davidbuenov/dbv-typst-editor`
-> (público) · v0.5.0 publicada (GitHub Releases + Microsoft Store) · commits de v0.6.0 hasta `bb7e7cc`
-> inclusive · verificación en verde: 402 Vitest · 224 Rust · `verify:frontend` 11/11 · `verify:layout` 15/15.
+> **Última sesión:** 2026-09-15 · **Rama:** `master` · remoto `origin` = `github.com/davidbuenov/dbv-typst-editor`
+> (público) · v0.6.0 sigue siendo lo único publicado (GitHub Releases + Microsoft Store) · commits de
+> v0.7.0 desde `1c8834b` hasta el commit de bump de versión de esta fase, inclusive · verificación en
+> verde: 572 Vitest · 237 Rust · `verify:frontend` 11/11 · `verify:layout` 16/16. **Sin tag `v0.7.0` y sin
+> push — pendientes de que el usuario vuelva, por instrucción suya explícita.**
 
 ### ✅ Qué funciona hoy (MVP v0.1 completo)
 

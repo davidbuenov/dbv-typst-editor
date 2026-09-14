@@ -59,17 +59,20 @@ It follows the same philosophy as its sibling project [DBV Markdown Reader](http
 
 ## 🚦 Current status
 
-**Current version:** `v0.6.0` · **Status:** 🟢 Stable and production ready
+**Current version:** `v0.7.0` · **Status:** 🟢 Stable and production ready
 
 - 🌐 **Official Website:** [https://davidbuenov.github.io/dbv-typst-editor/en/](https://davidbuenov.github.io/dbv-typst-editor/en/) (featuring full-resolution interactive screenshot gallery and bilingual ES/EN switch).
-- 📦 **Installers available on Releases:** [GitHub Releases v0.6.0](https://github.com/davidbuenov/dbv-typst-editor/releases):
+- 📦 **Installers available on Releases:** [GitHub Releases](https://github.com/davidbuenov/dbv-typst-editor/releases):
   - 🪟 **Windows**: Standalone `.exe` installer (no external dependencies).
   - 🍎 **macOS**: Universal `.dmg` (compatible with Apple Silicon & Intel).
   - 🐧 **Linux**: `.AppImage` (portable) and `.deb` (Debian/Ubuntu/Mint) packages.
 - 🏬 **Microsoft Store:** published on the official store. [🛒 Get it from Microsoft Store (ID 9PCPSVTNJMP0)](https://apps.microsoft.com/store/detail/9PCPSVTNJMP0?cid=DevShareMCLPCB). If you installed an earlier Store package, make sure you get `v0.3.1` or later (see [`CHANGELOG.en.md`](./dbv-specs-ops/CHANGELOG.en.md)).
-- 🧪 **Quality & Stability:** 631 automated tests passing at 100% (405 frontend tests + 226 Rust backend tests) and layout verification in real rendering engines.
+- 🧪 **Quality & Stability:** 809 automated tests passing at 100% (572 frontend tests + 237 Rust backend tests) and layout verification in real rendering engines.
 - 🚀 **Key Highlights:**
+  - Visual, interactive equation editor with a REAL preview compiled by Typst on every pause, plus "Paste LaTeX" via the MiTeX package.
+  - Five more diagramming assistants: flowcharts with decisions, sequence diagrams (Chronos), Gantt charts with real dates (Gantty), Kanban boards (Kantan) and DOT/Graphviz graph rendering (Diagraph) — each reachable from the Tools menu, with a contextual help button and a link to the package's original documentation.
   - WYSIWYG diagram editor: nodes, arrows with direction/stroke/label, colors, zoom and drag-and-drop — translates to readable `cetz.canvas` code and can be reopened for further editing.
+  - Contextual zoom with keyboard and mouse wheel: adjusts the editor's font size or the preview's zoom depending on where the focus is.
   - Git integration: status, commit, push, pull and clone by URL from the header, with a diff viewer and visual merge-conflict resolution.
   - Full Universe Browser: search across the real Typst Universe catalog (~4,700 packages and templates), not just a curated list, with automatic package/template detection.
   - Bidirectional editor ↔ preview synchronization (double-click on preview jumps to source code and pin button takes preview to cursor).
@@ -216,7 +219,7 @@ stop.cmd
 
 ## 📋 Changelog
 
-`v0.6.0` documented in [`dbv-specs-ops/CHANGELOG.en.md`](./dbv-specs-ops/CHANGELOG.en.md) — a WYSIWYG diagram editor (nodes, arrows with direction and stroke, drag and drop), a "Tools" menu in the header, cloning a Git repository by URL, a full Universe Browser with search over the real Typst Universe catalog (~4,700 packages and templates), a visual bibliography with duplicate detection, macOS packaging, a JavaScript runner with `jogs`, and pasting an image straight from the clipboard.
+`v0.7.0` documented in [`dbv-specs-ops/CHANGELOG.en.md`](./dbv-specs-ops/CHANGELOG.en.md) — a visual, interactive equation editor, five new diagramming assistants (sequence, Gantt, Kanban, DOT/Graphviz and flowcharts with decisions), a contextual help button linking to each assistant's original documentation, contextual zoom with keyboard/wheel, and a batch of UX fixes (stuck splitter, `ResizeObserver` warning, home screen redesign) found using the app on a real project.
 
 The changelog is maintained in both languages: [English](./dbv-specs-ops/CHANGELOG.en.md) · [Español](./dbv-specs-ops/CHANGELOG.md).
 

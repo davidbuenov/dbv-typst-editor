@@ -233,23 +233,6 @@
   height: 100%;
   overflow: auto;
   padding: 32px 24px 48px;
-  /* Ilustración decorativa de fondo (petición del usuario, a partir de una
-     imagen suya): totalmente transparente salvo el trazo azul, así que se ve
-     igual de bien sobre cualquiera de los tres temas sin necesitar una
-     versión por tema. `background-image`, no un `<img>`: nunca intercepta
-     clics ni compite por foco/tabulación con el contenido real. */
-  background-image: url('../assets/launcher-sketch.png');
-  background-repeat: no-repeat;
-  background-position: top right;
-  background-size: min(46%, 620px) auto;
-}
-
-/* En ventanas estrechas la ilustración competiría con el titular y las
-   tarjetas por el mismo espacio — se retira en vez de solaparse. */
-@media (max-width: 900px) {
-  .launcher {
-    background-image: none;
-  }
 }
 
 .launcher__inner {
@@ -257,7 +240,30 @@
      vacía (petición explícita tras probar la Beta). `minmax` con `1fr` deja
      que crezca con la ventana sin volverse ilegible en monitores ultra-anchos. */
   width: min(1400px, 100%);
+  /* Ilustración decorativa de fondo (petición del usuario, a partir de una
+     imagen suya): totalmente transparente salvo el trazo azul, así que se ve
+     igual de bien sobre cualquiera de los tres temas sin necesitar una
+     versión por tema. `background-image`, no un `<img>`: nunca intercepta
+     clics ni compite por foco/tabulación con el contenido real.
+     En `.launcher__inner` (la columna de contenido, con tope de 1400px y
+     centrada), NO en `.launcher` (que ocupa la ventana entera): puesta en
+     `.launcher` se despegaba del resto del contenido en monitores muy anchos,
+     pegada al borde de la ventana en vez de alineada con las tarjetas y el
+     texto — hallazgo del usuario. Así su borde derecho coincide siempre con
+     el de la acción principal y las tarjetas. */
+  background-image: url('../assets/launcher-sketch.png');
+  background-repeat: no-repeat;
+  background-position: top right;
+  background-size: min(46%, 620px) auto;
   margin: 0 auto;
+}
+
+/* En ventanas estrechas la ilustración competiría con el titular y las
+   tarjetas por el mismo espacio — se retira en vez de solaparse. */
+@media (max-width: 900px) {
+  .launcher__inner {
+    background-image: none;
+  }
 }
 
 .launcher__heading {

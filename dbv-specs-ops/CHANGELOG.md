@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 - **El aviso benigno de `ResizeObserver` ya no se muestra como error de la aplicación (RF-40).** Arrastrar el separador entre el editor y la vista previa disparaba el mensaje de Chromium "ResizeObserver loop completed with undelivered notifications", que el manejador global de errores mostraba en el banner rojo como si fuera un fallo propio. Se filtra por la subcadena estable del propio Chromium; cualquier otro error real sigue mostrándose sin cambios.
+- **El separador de la vista previa ya no se queda "bloqueado" al maximizar la ventana (RF-41).** Reportado y confirmado en vivo por el usuario. Causa: `max: 1200` era un tope fijo en píxeles ajeno al ancho real de la ventana — en un monitor ancho maximizado, 1200px deja de sentirse como "todo el espacio disponible" y el arrastre se corta en seco con hueco de sobra a la derecha del editor. Ahora es proporcional al ancho real de la ventana, sin techo absoluto.
+- **La fila de acciones secundarias del lanzador (Abrir carpeta/Abrir documento/Importar/Clonar) pesa menos visualmente.** Seguían leyéndose como "una lista de botones" junto al botón principal aunque ya fueran subordinadas en la estructura (RF-44): ahora no llevan borde ni fondo en reposo, solo al pasar el cursor o con foco.
 
 ## [0.6.0] - 2026-09-13
 

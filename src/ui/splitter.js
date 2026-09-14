@@ -19,7 +19,13 @@
  * @param {string} options.cssVariable Custom property que fija el ancho.
  * @param {string} options.storageKey Clave de persistencia.
  * @param {number} options.min Ancho mínimo en píxeles.
- * @param {number} options.max Ancho máximo en píxeles.
+ * @param {number | ((hostWidth: number) => number)} options.max Ancho máximo
+ *   en píxeles, o una función del ancho actual del `hostEl` que lo calcula.
+ *   RF-41: un número fijo no escala con la ventana — en una ventana maximizada
+ *   ancha, un tope como 1200px se siente "bloqueado" con espacio de sobra a la
+ *   derecha, mientras que en una ventana estrecha ese mismo tope puede superar
+ *   el ancho real disponible sin que nada lo impida antes de tiempo. Pásalo
+ *   como función cuando el panel deba aprovechar el ancho real de la ventana.
  * @param {'start'|'end'} [options.measureFrom] Desde qué borde se mide el ancho.
  * @param {'x'|'y'} [options.axis] Eje de arrastre: columna (por defecto) o fila
  *   — la consola de errores de la vista previa (Beta) se redimensiona en `y`.
@@ -30,7 +36,8 @@ export function createSplitter(handleEl, options) {
     throw new TypeError('createSplitter: se esperan elementos del DOM');
   }
 
-  const clamp = (value) => Math.min(max, Math.max(min, value));
+  const resolveMax = () => (typeof max === 'function' ? max(hostEl.getBoundingClientRect().width) : max);
+  const clamp = (value) => Math.min(resolveMax(), Math.max(min, value));
 
   const apply = (width) => {
     hostEl.style.setProperty(cssVariable, `${Math.round(width)}px`);

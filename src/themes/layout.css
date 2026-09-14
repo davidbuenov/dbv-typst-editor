@@ -265,17 +265,34 @@
 .launcher__actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 4px 18px;
   align-items: center;
 }
 
 /* Las tres secundarias comparten fila con la acción principal. Con el icono
    delante crecen lo justo para no caber en ventanas estrechas, así que se les
    permite encoger el texto antes que saltar de línea: `flex-wrap` sigue ahí
-   como último recurso, no como comportamiento habitual. */
+   como último recurso, no como comportamiento habitual.
+   RF-44: antes eran botones `--ghost` completos (borde + fondo transparente)
+   — cuatro cajas idénticas en fila junto al botón principal se leían como
+   "una lista de botones", en palabras del usuario, no como acciones
+   subordinadas. Sin borde ni fondo en reposo pesan de verdad menos que la
+   acción dominante; el borde/fondo solo aparece al pasar el cursor o con
+   foco, para seguir señalando que son interactivos. */
 .launcher__actions .button {
   min-width: 0;
   flex: 0 1 auto;
+  border-color: transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  padding-inline: 4px;
+}
+
+.launcher__actions .button:hover,
+.launcher__actions .button:focus-visible {
+  border-color: var(--border);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 
 .launcher__actions .button span {

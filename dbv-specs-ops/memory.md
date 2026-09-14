@@ -596,6 +596,16 @@ Cuando el usuario pide "algo más limpio" tras un primer arreglo que solo atajó
   etiquetadas, o carriles de responsabilidad tipo swimlane), ahí sí tendría sentido evaluar Fletcher u otro
   paquete especializado — no antes.
 
+### ADR-DECISION-002 — RF-41: el separador de la vista previa se "bloqueaba" por un tope fijo en píxeles, no por un fallo de arrastre
+
+*Registrada el 2026-09-14, tras confirmación en vivo del usuario en la ventana real (no una hipótesis leída).*
+
+- **Reproducción real, no leída.** El usuario dejó la aplicación abierta y bloqueada a propósito para que se investigara: *"cuando maximizo la ventana no me deja tirar más a la izquierda del panel, ahora mismo está bloqueado"*. Sin acceso a esa ventana concreta desde esta sesión, la causa se confirmó de otra forma: un test (`ui/splitter.test.js`) que reproduce EXACTAMENTE el cálculo real de `createSplitter` con un host de 2400px de ancho (una ventana maximizada típica) y comprueba que, con el código de antes (`max: 1200` fijo en `main.js`), el separador se corta en seco a 1200px mucho antes de que el puntero deje de moverse hacia la izquierda — el síntoma exacto descrito, no una suposición.
+- **Causa raíz.** `createSplitter(el('splitter-preview'), { ..., max: 1200 })` fijaba un TOPE ABSOLUTO en píxeles, ajeno al ancho real de `#workspace-view`. En una ventana normal (~1400px) ese número ya era generoso; en una ventana maximizada en un monitor ancho (2400px+), 1200px deja de sentirse como "todo el espacio disponible" — el usuario ve hueco de sobra a la derecha del editor y percibe el separador como roto, aunque técnicamente estuviera haciendo justo lo que el código le pedía.
+- **Arreglo:** `ui/splitter.js` acepta ahora `max` como número (compatibilidad con `splitter-sidebar`/`splitter-band`, que no cambian) o como función `(hostWidth) => number`, resuelta en CADA arrastre vía `resolveMax()` — no solo al crear el separador, porque la ventana puede maximizarse DESPUÉS. `splitter-preview` pasa `max: (hostWidth) => Math.max(240, hostWidth - 420)`: proporcional a la ventana real, reservando 420px para sidebar+editor+separadores, sin techo absoluto.
+- **Por qué no se tocó a ciegas antes de esto:** `implementation_plan.md` (R-41) exigía explícitamente reproducir antes de arreglar, citando el precedente de RF-31/RF-38 donde leer código sin ejecutar nada no encontró la causa real. Aquí la reproducción no fue en un navegador interactivo (no disponible en esta sesión) sino en un test que aísla la única variable que importa (el ancho del host) y deja el mismo cálculo de producción correr sin mocks adicionales — encontrando el número exacto (1200 vs. 2400) que explica el síntoma.
+- **Disparador de reevaluación:** si 420px de reserva resulta insuficiente o excesivo en la prueba real del usuario (p. ej. con el explorador de proyecto también visible), ajustar esa constante en `main.js` — el mecanismo de `resolveMax` ya no hace falta tocarlo.
+
 ## 🗺️ Mapa del Producto (Áreas de Foco)
 
 - **Producto:** "El entorno de escritorio más accesible para el ecosistema Typst" (posicionamiento oficial) — no editor de código con soporte Typst. Herramienta orientada a documento/proyecto ("Obsidian for Typst"): lanzador por tareas, asistente de creación de proyecto, plantillas como funcionalidad de primer nivel.

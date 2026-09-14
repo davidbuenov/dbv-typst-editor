@@ -1163,7 +1163,14 @@ async function bootstrap() {
     storageKey: 'dbv-typst-preview-width',
     measureFrom: 'end',
     min: 240,
-    max: 1200,
+    // RF-41: reportado por el usuario — al maximizar la ventana, el separador
+    // se quedaba "bloqueado" sin llegar más a la izquierda, con hueco de sobra
+    // a la derecha del editor. Causa: 1200 era un tope FIJO en píxeles, ajeno
+    // al ancho real de la ventana. Ahora es proporcional al ancho del propio
+    // `#workspace-view`: hasta dejar 420px para sidebar+editor+separadores, sin
+    // techo absoluto — en una ventana maximizada ancha el usuario puede seguir
+    // arrastrando hasta donde el espacio disponible se lo permita de verdad.
+    max: (hostWidth) => Math.max(240, hostWidth - 420),
   });
 
   document.addEventListener('keydown', (event) => {

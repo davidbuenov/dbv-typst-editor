@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 - **The benign `ResizeObserver` notice no longer shows up as an application error (RF-40).** Dragging the splitter between the editor and the preview used to trigger Chromium's "ResizeObserver loop completed with undelivered notifications" message, which the global error handler displayed in the red banner as if it were a real failure. It's now filtered by Chromium's own stable substring; any other real error still shows up unchanged.
+- **The preview splitter no longer gets "stuck" when the window is maximized (RF-41).** Reported and confirmed live by the user. Cause: `max: 1200` was a fixed pixel cap unrelated to the actual window width — on a wide maximized monitor, 1200px stops feeling like "all the available space" and dragging cuts off abruptly with plenty of unused room to the right of the editor. It now scales with the real window width, with no absolute ceiling.
+- **The launcher's secondary actions row (Open folder/Open document/Import/Clone) carries less visual weight.** They still read as "a row of buttons" next to the primary button even though they were already structurally subordinate (RF-44): they now carry no border or background at rest, only on hover or focus.
 
 ## [0.6.0] - 2026-09-13
 

@@ -363,6 +363,10 @@ Esta aplicación no existiría sin el trabajo de un buen número de proyectos de
 
 Gracias también a los mantenedores de todos los paquetes curados en el Universe Browser de la aplicación (ver [`src/universe/curatedCatalog.js`](./src/universe/curatedCatalog.js)) — plantillas de IEEE/ACM/Springer, `fletcher`, `touying`, `quick-maths`, `physica`, `codly`, `zebraw`, `showybox`, `tablem`, `subpar`, `lovelace`, `glossarium`, `unify`, `wordometer` y el resto — por su trabajo, aunque no todos quepan uno a uno en esta lista.
 
+### Publicación en Microsoft Store
+
+- [tauri-windows-bundle](https://github.com/Choochmeque/tauri-windows-bundle), de **Vladimir Pankratov** — la herramienta que genera el paquete `.msix` con el que esta aplicación está publicada en Microsoft Store; sin ella, la vía oficial de Tauri para la Store exigiría un certificado Authenticode de pago.
+
 ---
 
 ## ✍️ Autor y Créditos

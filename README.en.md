@@ -268,6 +268,10 @@ This app wouldn't exist without a good number of open-source projects. Thanks to
 
 Thanks also to the maintainers of every package curated in the app's Universe Browser (see [`src/universe/curatedCatalog.js`](./src/universe/curatedCatalog.js)) — IEEE/ACM/Springer templates, `fletcher`, `touying`, `quick-maths`, `physica`, `codly`, `zebraw`, `showybox`, `tablem`, `subpar`, `lovelace`, `glossarium`, `unify`, `wordometer` and the rest — for their work, even where this list doesn't name every one individually.
 
+### Microsoft Store publishing
+
+- [tauri-windows-bundle](https://github.com/Choochmeque/tauri-windows-bundle), by **Vladimir Pankratov** — the tool that builds the `.msix` package this app ships to the Microsoft Store; without it, Tauri's official path to the Store would require a paid Authenticode certificate.
+
 ---
 
 ## ✍️ Author & Credits

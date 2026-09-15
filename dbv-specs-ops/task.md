@@ -145,7 +145,7 @@
   - [x] **`REVIEW.md`** (Bugs/Seguridad/Cumplimiento) — **0 hallazgos Críticos.**
   - [x] **Versionado: `0.3.0` → `0.3.1`** (Patch — solo corrección de bugs, propuesto por el usuario).
   - [ ] **PENDIENTE Y URGENTE (acción del usuario):** reenviar el `.msix` corregido a Partner Center. **La ficha publicada sigue sirviendo el paquete roto a usuarios nuevos.** Checklist de verificación obligatoria en `docs/MICROSOFT_STORE.md` §6.
-  - [ ] Reportar el bug aguas arriba (`npx patch-package @choochmeque/tauri-windows-bundle --create-issue` deja el borrador hecho) — afecta a cualquier app Tauri con sidecar publicada por esa vía.
+  - [x] **Reportado aguas arriba y cerrado por el autor (Vladimir Pankratov, `Choochmeque`):** [tauri-windows-bundle#127](https://github.com/Choochmeque/tauri-windows-bundle/issues/127) (`externalBin` ignorado) y [tauri-windows-bundle#128](https://github.com/Choochmeque/tauri-windows-bundle/issues/128) (recursos con `../` copiados fuera del paquete).
   - [x] **`CHANGELOG.md`**: sección `[0.3.0] - 2026-09-06` añadida.
   - [x] **Tag de versión `v0.3.0` creado.** Push **no ejecutado** — queda como sugerencia (ver Context Snapshot).
 

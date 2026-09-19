@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+- **The Windows auto-updater could never download an update: `latest.json` pointed at a URL that returns 404.** GitHub renames an asset with spaces on upload (`DBV Typst Editor_0.7.0_x64-setup.exe` becomes `DBV.Typst.Editor_0.7.0_x64-setup.exe`), but `scripts/updater-manifest.mjs` encoded the LOCAL name (`DBV%20Typst%20Editor_…`). Found on 2026-09-19 by checking the published `latest.json` files with `curl`: those of v0.6.0 and v0.7.0 return 404, while the dotted URL returns 200. New `scripts/github-asset-name.mjs` (`githubAssetName`), used by the script and covered by 3 tests. **The already published v0.6.0 and v0.7.0 releases keep their broken manifest**; only the `latest.json` generated with this version of the script will fix it.
+
+
 ## [0.8.0] - 2026-09-19
 
 Performance and preview start-up with large documents, choosing the main document from the file tree, and a Homebrew install channel. Origin: v0.7.0 was slow on Windows, and with a 220-page book (`z6-IPbook`, 321 kB of source) it left a Mac with the CPU at 95 % and the process at 8.9 GB. Measured with the real `typst`: 220 pages, 86 MB of SVG, 4.6 s and 2.3 GB peak per compilation.

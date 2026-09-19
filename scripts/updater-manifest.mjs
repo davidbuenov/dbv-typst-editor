@@ -35,6 +35,7 @@
 import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { githubAssetName } from './github-asset-name.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const BUNDLE_DIR = join(ROOT, 'src-tauri', 'target', 'release', 'bundle', 'nsis');
@@ -85,7 +86,7 @@ const manifest = {
     // sus claves `linux-x86_64` / `darwin-universal`.
     'windows-x86_64': {
       signature: signatureContent,
-      url: `https://github.com/${REPO}/releases/download/v${version}/${encodeURIComponent(archive)}`,
+      url: `https://github.com/${REPO}/releases/download/v${version}/${encodeURIComponent(githubAssetName(archive))}`,
     },
   },
 };

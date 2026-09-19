@@ -3,9 +3,9 @@
 **[🇪🇸 Español](./README.md) · 🇬🇧 English**
 
 [![Website](https://img.shields.io/badge/Website-davidbuenov.github.io%2Fdbv--typst--editor-2563eb?style=flat&logo=googlechrome&logoColor=white)](https://davidbuenov.github.io/dbv-typst-editor/en/)
-[![Releases](https://img.shields.io/badge/Releases-v0.6.0-brightgreen?logo=github)](https://github.com/davidbuenov/dbv-typst-editor/releases)
+[![Releases](https://img.shields.io/badge/Releases-v0.8.0-brightgreen?logo=github)](https://github.com/davidbuenov/dbv-typst-editor/releases)
 [![Microsoft Store](https://img.shields.io/badge/Microsoft%20Store-9PCPSVTNJMP0-0078D6?logo=microsoft&logoColor=white)](https://apps.microsoft.com/store/detail/9PCPSVTNJMP0?cid=DevShareMCLPCB)
-![Status](https://img.shields.io/badge/status-stable%20%7C%20v0.6.0-success)
+![Status](https://img.shields.io/badge/status-stable%20%7C%20v0.8.0-success)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
 ![Windows](https://img.shields.io/badge/Windows-10%20%2F%2011%20(.exe%20%2B%20Store)-0078D6?logo=windows&logoColor=white)
 ![macOS](https://img.shields.io/badge/macOS-Universal%20(.dmg)-000000?logo=apple&logoColor=white)
@@ -59,7 +59,7 @@ It follows the same philosophy as its sibling project [DBV Markdown Reader](http
 
 ## 🚦 Current status
 
-**Current version:** `v0.7.0` · **Status:** 🟢 Stable and production ready
+**Current version:** `v0.8.0` · **Status:** 🟢 Stable and production ready
 
 - 🌐 **Official Website:** [https://davidbuenov.github.io/dbv-typst-editor/en/](https://davidbuenov.github.io/dbv-typst-editor/en/) (featuring full-resolution interactive screenshot gallery and bilingual ES/EN switch).
 - 📦 **Installers available on Releases:** [GitHub Releases](https://github.com/davidbuenov/dbv-typst-editor/releases):
@@ -67,8 +67,12 @@ It follows the same philosophy as its sibling project [DBV Markdown Reader](http
   - 🍎 **macOS**: Universal `.dmg` (compatible with Apple Silicon & Intel).
   - 🐧 **Linux**: `.AppImage` (portable) and `.deb` (Debian/Ubuntu/Mint) packages.
 - 🏬 **Microsoft Store:** published on the official store. [🛒 Get it from Microsoft Store (ID 9PCPSVTNJMP0)](https://apps.microsoft.com/store/detail/9PCPSVTNJMP0?cid=DevShareMCLPCB). If you installed an earlier Store package, make sure you get `v0.3.1` or later (see [`CHANGELOG.en.md`](./dbv-specs-ops/CHANGELOG.en.md)).
-- 🧪 **Quality & Stability:** 809 automated tests passing at 100% (572 frontend tests + 237 Rust backend tests) and layout verification in real rendering engines.
+- 🧪 **Quality & Stability:** 875 automated tests passing at 100% (618 frontend tests + 257 Rust backend tests) and layout verification in real rendering engines.
 - 🚀 **Key Highlights:**
+  - Performance with large documents: the preview releases pages that scroll far away (a 220-page book no longer grows to several GB), the typing pause adapts to how long compiling takes, and a loose `.typ` in a huge folder (Downloads, Desktop) opens in seconds instead of almost a minute.
+  - Selectable main document: a **main** badge in the file tree and a context menu (right-click) or the File menu to mark which file the preview compiles — essential in projects without a `main.typ`. It is remembered per project and writes nothing into your folder.
+  - Tinymist on demand and switchable off from its badge: it starts by itself for small documents and waits for you to enable it on large ones.
+  - Homebrew install on macOS and Linux (`brew tap davidbuenov/dbv-typst-editor && brew install --cask dbv-typst-editor`), with a `typs` command-line command to open a document or a folder.
   - Visual, interactive equation editor with a REAL preview compiled by Typst on every pause, plus "Paste LaTeX" via the MiTeX package.
   - Five more diagramming assistants: flowcharts with decisions, sequence diagrams (Chronos), Gantt charts with real dates (Gantty), Kanban boards (Kantan) and DOT/Graphviz graph rendering (Diagraph) — each reachable from the Tools menu, with a contextual help button and a link to the package's original documentation.
   - WYSIWYG diagram editor: nodes, arrows with direction/stroke/label, colors, zoom and drag-and-drop — translates to readable `cetz.canvas` code and can be reopened for further editing.
@@ -106,6 +110,26 @@ The most seamless experience on Windows 10 and 11: packaged and signed directly 
 **[⬇️ See all versions (Releases)](https://github.com/davidbuenov/dbv-typst-editor/releases)** — download `DBV Typst Editor_x.y.z_x64-setup.exe`.
 
 Your browser may warn that the file "isn't commonly downloaded" (SmartScreen) — this is normal for new installers without a commercial signature. Double-click to install (no admin rights or internet connection required), then check for updates any time from the "About" panel (ⓘ icon) — never automatic on launch.
+
+### 🍺 Homebrew (macOS & Linux)
+
+```bash
+brew tap davidbuenov/dbv-typst-editor
+brew install --cask dbv-typst-editor
+```
+
+Works on **macOS** (Intel and Apple Silicon) and **Linux x86_64**. On Linux it needs Homebrew 6.0.0 or later (the release that added AppImage casks) and FUSE 2 to run AppImages (`libfuse2` on Debian/Ubuntu). The tap ([davidbuenov/homebrew-dbv-typst-editor](https://github.com/davidbuenov/homebrew-dbv-typst-editor)) updates itself on every new Release; update with `brew upgrade --cask dbv-typst-editor`. On macOS it does not replace the Gatekeeper prompt described below: the `.dmg` is still not signed or notarised by Apple.
+
+**From the terminal:** the Cask also installs a `typs` command, to open the app without leaving the keyboard:
+
+```bash
+typs                 # open the app
+typs report.typ      # open a document
+typs thesis/         # open a folder as a project
+typs .               # open the current folder
+```
+
+If the app is already running, `typs` reuses the same window. `brew uninstall --cask dbv-typst-editor` removes it.
 
 ### 🐧 Linux
 
@@ -219,7 +243,7 @@ stop.cmd
 
 ## 📋 Changelog
 
-`v0.7.0` documented in [`dbv-specs-ops/CHANGELOG.en.md`](./dbv-specs-ops/CHANGELOG.en.md) — a visual, interactive equation editor, five new diagramming assistants (sequence, Gantt, Kanban, DOT/Graphviz and flowcharts with decisions), a contextual help button linking to each assistant's original documentation, contextual zoom with keyboard/wheel, and a batch of UX fixes (stuck splitter, `ResizeObserver` warning, home screen redesign) found using the app on a real project.
+`v0.8.0` documented in [`dbv-specs-ops/CHANGELOG.en.md`](./dbv-specs-ops/CHANGELOG.en.md) — performance with large documents (preview page release, bounded temporary replica, adaptive typing pause), a main document selectable from the tree, Tinymist on demand, and a Homebrew channel for macOS and Linux with the `typs` command. `v0.7.0` added: a visual, interactive equation editor, five new diagramming assistants (sequence, Gantt, Kanban, DOT/Graphviz and flowcharts with decisions), a contextual help button linking to each assistant's original documentation, contextual zoom with keyboard/wheel, and a batch of UX fixes (stuck splitter, `ResizeObserver` warning, home screen redesign) found using the app on a real project.
 
 The changelog is maintained in both languages: [English](./dbv-specs-ops/CHANGELOG.en.md) · [Español](./dbv-specs-ops/CHANGELOG.md).
 

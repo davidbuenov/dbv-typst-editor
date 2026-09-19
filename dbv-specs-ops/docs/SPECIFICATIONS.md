@@ -1,7 +1,8 @@
 # 📋 Especificaciones: DBV Typst Editor
 
 > **Fase:** `/spec` (Especificación) → **v0.7.0 especificada**
-> **Estado:** 🔒 **CONGELADO v1.10 — 2026-09-15.** v1.10 añade **RF-52** (botón "?" de ayuda contextual en cada asistente de diagramación) tras probar el usuario en vivo el asistente de DOT/Graphviz recién construido: sin ninguna ayuda visual de sintaxis (a diferencia de los otros cinco asistentes, que sí construyen el código por ti), quien no conoce el lenguaje DOT se queda sin saber qué escribir. Ver criterios de aceptación al final de §5g.
+> **Estado:** 🔒 **CONGELADO v1.11 — 2026-09-19.** v1.11 añade §5h (**RNF-PERF, RF-53, RF-54, RF-55**), registrada **a posteriori** en `/ship` de v0.8.0 (ver `ADR-V080-001` en `memory.md`).
+> **v1.10 (2026-09-15):** v1.10 añade **RF-52** (botón "?" de ayuda contextual en cada asistente de diagramación) tras probar el usuario en vivo el asistente de DOT/Graphviz recién construido: sin ninguna ayuda visual de sintaxis (a diferencia de los otros cinco asistentes, que sí construyen el código por ti), quien no conoce el lenguaje DOT se queda sin saber qué escribir. Ver criterios de aceptación al final de §5g.
 > **v1.9:** v1.9 activó RF-50 (Kanban) y RF-51 (DOT/Graphviz) de forma incondicional: v1.8 los había dejado como un único RF-50 condicional ("si sobra alcance de `/plan`"); con `/build`, `/test` y `/code-simplify` de los otros 9 RF de v0.7.0 (RF-40 a RF-49) cerrados y probados en vivo por el usuario el mismo día, el usuario decidió completar también esta parte para cerrar v0.7.0 con el alcance íntegro del `/spec` original, en vez de diferir nada a una versión futura. Los dos requisitos quedan detallados al mismo nivel que RF-46 a RF-49 (criterios de aceptación concretos, no solo el nombre del paquete), con nombre/versión/licencia/API de `kantan` y `diagraph` verificados contra el registro real de Typst Universe y sus READMEs reales, no asumidos — ver `ADR-DECISION-006` en `memory.md`.
 > **v1.8:** v1.8 abrió v0.7.0 (§5g, RF-40 a RF-50) tras una pasada de uso real del usuario con un proyecto externo (un glosario técnico-administrativo con imágenes y fuentes propias) que destapó tres defectos de UX vivos en la aplicación —un aviso benigno de `ResizeObserver` mostrado como error de la app, el separador editor/vista previa bloqueable al arrastrarlo, y los atajos de zoom capturados por el zoom nativo del webview en vez de por la app— más dos reorganizaciones de menú pedidas al ver la app en marcha (Guardar/Guardar como/PDF/PNG a "Archivo"; el editor de diagramas de RF-31 visible en "Herramientas" en vez de un icono suelto en la barra del editor), un rediseño de la pantalla de inicio, un **nuevo editor visual interactivo de ecuaciones matemáticas**, y tres ampliaciones de diagramación (flujogramas con decisiones, diagramas de secuencia, diagramas de Gantt) priorizadas explícitamente contra la Sección XI ("Application of Typst for Computer Science") de Voynov, A., Corbi, A., López-Oliver, P., & Gil, D. (2026), *"Typst: A Modern Typesetting Engine for Science"*, IJIMAI 9(7), 107–120, ya indexado como referencia en `README.md`/`README.en.md` — uno de sus autores, Alberto Corbi, es colaborador de este proyecto.
 > **v1.7:** v1.7 abre v0.6.0 (§5f, RF-31 a RF-38) en una sola pasada, a petición explícita del usuario tras la dinámica de v0.5.0 (tres reaperturas del mismo `/spec`): editor WYSIWYG de diagramas que sustituye al asistente CeTZ de RF-23, menú "Herramientas" en la cabecera, alcance de integración con GitHub (clonar por URL, decisión del usuario cerrando la pregunta abierta de §5e.1/§9), Universe Browser completo, bibliografía visual completa, empaquetado macOS, auto-actualizador y ejecución de módulos JavaScript con el paquete Typst Universe `jogs` (runtime QuickJS embebido, análogo al runner de Python de RF-22).
@@ -736,6 +737,36 @@ un olvido, es una decisión de alcance tomada en esta misma sesión de `/spec`, 
 - **Touying** (presentaciones tipo Beamer): descartado de *este* alcance por ser una funcionalidad de
   tamaño mayor —un modo "Presentación" completo, comparable en esfuerzo a RF-31 o RF-46— y no un ítem de
   menú incremental; candidato explícito para una futura versión con `/spec` propio si el usuario lo pide.
+
+## ✨ 5h. Funcionalidades — v0.8.0 (Rendimiento con documentos grandes + Documento principal + Homebrew)
+
+> **Origen (2026-09-19):** la v0.7.0 se probó en un Mac con un libro real de 220 páginas (`z6-IPbook`: CPU al 95 %, proceso en 8,9 GB) y en Windows con un informe suelto en `Descargas` (casi un minuto en abrirse). Estos requisitos se **registran a posteriori**: nacieron de medir problemas reales, no de una especificación previa, y este apartado deja constancia de qué se decidió y por qué. Detalle técnico y mediciones en `CHANGELOG.md` (`[0.8.0]`) y en `memory.md` (Lecciones Aprendidas, 2026-09-19).
+
+### RNF-PERF — La vista previa escala con documentos grandes
+1. La memoria de la vista previa **no crece sin techo** al recorrer un documento largo: el marcado de una página alejada más de 2.500 px del viewport se libera, conservando su hueco (el scroll no salta) y se vuelve a pedir si el lector regresa.
+2. La pausa de escritura antes de recompilar **se adapta** a lo que tardó la última compilación real (1,5×, mínimo 350 ms, techo 6 s).
+3. La réplica temporal de un `.typ` suelto **solo copia lo que un documento Typst puede leer**, y ninguna réplica copia ficheros de más de 32 MB que no pueda enlazar. Una carpeta abierta como proyecto se replica entera.
+4. Criterio de aceptación medido: un informe suelto en una carpeta de 59 GB abre en segundos; un libro de 220 páginas (86 MB de SVG, 4,6 s por compilación) no acumula memoria al recorrerlo.
+
+### RF-53 — Documento principal elegible desde la interfaz
+1. Un proyecto sin `main.typ` deja de depender de la heurística alfabética del backend: el usuario marca cuál es el documento principal.
+2. El árbol de ficheros muestra una etiqueta **principal** en ese fichero. El botón derecho sobre un `.typ` ofrece "Establecer como documento principal" (no en carpetas, en ficheros que no sean `.typ` ni en el que ya lo es) y "Mostrar en el explorador"; el menú Archivo ofrece lo mismo para el fichero abierto.
+3. Marcar otro fichero **anula el anterior**, devuelve el alcance de la vista previa a "Documento" y recompila.
+4. La elección se guarda **por proyecto en la aplicación** y no escribe nada en la carpeta del usuario; el valor guardado se trata como dato no fiable (rutas absolutas y `..` se rechazan) y se aplica al reabrir solo si el fichero sigue existiendo.
+
+### RF-54 — Tinymist bajo demanda y desactivable
+1. Tinymist ya **no arranca al abrir un proyecto**: arranca solo cuando el documento abierto tiene menos de 100.000 caracteres; con uno mayor espera a que el usuario pulse la insignia "Activar Tinymist". Pasar a un documento grande lo detiene.
+2. Pulsar la insignia con Tinymist activo lo **desactiva**, y la preferencia se recuerda entre sesiones y proyectos hasta que se pulse de nuevo.
+3. Un arranque fallido no se reintenta solo con cada documento que se abre.
+4. Motivo: Tinymist compila el documento entero en segundo plano y recibe el texto completo en cada pulsación, además de la vista previa propia.
+
+### RF-55 — Canal Homebrew para macOS y Linux, y comando `typs`
+1. Un tap propio (`davidbuenov/homebrew-dbv-typst-editor`) con **un único Cask** para macOS (`.dmg` universal) y Linux x86_64 (`.AppImage`, Homebrew 6.0.0+). Se actualiza automáticamente al publicarse una Release (`update-homebrew-tap.yml`); el tap se valida en CI en macOS y Ubuntu.
+2. El Cask instala el comando de consola **`typs`**: `typs`, `typs fichero.typ`, `typs carpeta/` y `typs .`, que devuelven el terminal en cuanto se abre la ventana.
+3. La aplicación acepta, al arrancar o por instancia única, **ficheros `.typ` y carpetas existentes** (una carpeta se abre como proyecto), y resuelve las rutas relativas contra el directorio de quien la invocó.
+4. **Pendiente de verificación en un Mac real:** que `open -a "DBV Typst Editor" <carpeta>` llegue a la aplicación como Apple Event con la carpeta, y el bucle de recompilación de macOS (hipótesis: eventos de solo metadatos de Spotlight; mitigado descartándolos en el observador de ficheros).
+
+---
 
 ## 🚀 6. Funcionalidades — Beta y v1.0 (detalle del Spec Addendum)
 

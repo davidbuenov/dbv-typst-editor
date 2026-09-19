@@ -54,6 +54,8 @@ pub fn is_relevant_change(path: &Path) -> bool {
         || name.ends_with(".tmp")
         || name.contains(".dbv-tmp")
         || name.starts_with(".goutputstream")
+        // Finder reescribe este fichero al abrir la carpeta; no es contenido.
+        || name == ".DS_Store"
         // Espejo de la vista previa (typst_engine::compile): si disparase el
         // watcher, cada compilación provocaría otra compilación — un bucle.
         || name.starts_with(".dbv-preview")
@@ -65,6 +67,23 @@ pub fn is_relevant_change(path: &Path) -> bool {
             .is_some_and(crate::commands::file_io::is_noise_dir)
     });
     !is_temp && !in_noise_dir
+}
+
+/// True si el tipo de evento puede haber cambiado el CONTENIDO de un fichero.
+///
+/// Los cambios de solo metadatos (permisos, atributos extendidos, fecha de
+/// acceso) se descartan. En macOS, Spotlight (`mds`/`spotlightknowledged`)
+/// reescribe atributos extendidos de cada fichero que indexa, y compilar un
+/// proyecto los lee todos: sin este filtro cada compilación provocaba eventos
+/// `Modify(Metadata)` que disparaban otra compilación — el bucle que dejó un
+/// Mac al 95 % de CPU con un libro de 220 páginas.
+pub fn is_relevant_kind(kind: &notify::EventKind) -> bool {
+    use notify::event::ModifyKind;
+    match kind {
+        notify::EventKind::Modify(ModifyKind::Metadata(_)) => false,
+        notify::EventKind::Modify(_) | notify::EventKind::Create(_) | notify::EventKind::Remove(_) => true,
+        _ => false,
+    }
 }
 
 /// Observa `root` de forma recursiva y emite `CHANGE_EVENT` por cada cambio
@@ -90,11 +109,7 @@ pub fn watch_project(
     let active = active_document.map(PathBuf::from);
     let mut watcher = notify::recommended_watcher(move |event: notify::Result<notify::Event>| {
         let Ok(event) = event else { return };
-        let is_relevant_kind = matches!(
-            event.kind,
-            notify::EventKind::Modify(_) | notify::EventKind::Create(_) | notify::EventKind::Remove(_)
-        );
-        if !is_relevant_kind {
+        if !is_relevant_kind(&event.kind) {
             return;
         }
         for path in event.paths.iter().filter(|path| is_relevant_change(path)) {
@@ -164,6 +179,27 @@ mod tests {
         assert!(!is_relevant_change(Path::new("/proyecto/main.typ.tmp")));
         assert!(!is_relevant_change(Path::new("/proyecto/.goutputstream-XY12")));
         assert!(!is_relevant_change(Path::new("/proyecto/.main.typ.swp")));
+    }
+
+    #[test]
+    fn is_relevant_change_descarta_el_ds_store_de_finder() {
+        assert!(!is_relevant_change(Path::new("/proyecto/.DS_Store")));
+        assert!(!is_relevant_change(Path::new("/proyecto/cex/.DS_Store")));
+    }
+
+    #[test]
+    fn is_relevant_kind_descarta_los_cambios_de_solo_metadatos() {
+        // Spotlight reescribe atributos extendidos de lo que indexa; tratarlos
+        // como cambios disparaba una recompilación tras cada compilación.
+        use notify::event::{DataChange, MetadataKind, ModifyKind};
+        use notify::EventKind;
+        assert!(!is_relevant_kind(&EventKind::Modify(ModifyKind::Metadata(MetadataKind::Extended))));
+        assert!(!is_relevant_kind(&EventKind::Modify(ModifyKind::Metadata(MetadataKind::Any))));
+        assert!(!is_relevant_kind(&EventKind::Access(notify::event::AccessKind::Any)));
+        assert!(is_relevant_kind(&EventKind::Modify(ModifyKind::Data(DataChange::Content))));
+        assert!(is_relevant_kind(&EventKind::Modify(ModifyKind::Name(notify::event::RenameMode::Any))));
+        assert!(is_relevant_kind(&EventKind::Create(notify::event::CreateKind::File)));
+        assert!(is_relevant_kind(&EventKind::Remove(notify::event::RemoveKind::File)));
     }
 
     #[test]

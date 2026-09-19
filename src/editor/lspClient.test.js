@@ -8,6 +8,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createLspClient,
+  LSP_AUTOSTART_MAX_CHARS,
   getCompletionWordRange,
   mapLspKind,
   pathToUri,
@@ -231,6 +232,144 @@ describe('lspClient', () => {
           version: 1,
           text: '= Documento en cola',
         },
+      });
+    });
+    describe('arranque perezoso (documentos grandes)', () => {
+      const small = '= Capítulo corto';
+      const big = 'x'.repeat(LSP_AUTOSTART_MAX_CHARS + 1);
+      let startSpy;
+      let stopSpy;
+      let statuses;
+
+      beforeEach(() => {
+        localStorage.clear();
+        statuses = [];
+        startSpy = vi.spyOn(backend, 'tinymistStart').mockResolvedValue({ ok: true, value: null });
+        stopSpy = vi.spyOn(backend, 'tinymistStop').mockResolvedValue({ ok: true, value: null });
+        vi.spyOn(backend, 'tinymistSendNotification').mockResolvedValue({ ok: true, value: null });
+        client = createLspClient({ onStatusChange: (status) => statuses.push(status) });
+      });
+
+      it('abrir el proyecto NO arranca Tinymist: queda en pausa', async () => {
+        await client.setProjectRoot('/p');
+
+        expect(startSpy).not.toHaveBeenCalled();
+        expect(statuses.at(-1)).toBe('idle');
+      });
+
+      it('un documento pequeño lo arranca solo', async () => {
+        await client.setProjectRoot('/p');
+
+        await client.openDocument('/p/a.typ', small);
+        await vi.waitFor(() => expect(client.isActive()).toBe(true));
+
+        expect(startSpy).toHaveBeenCalledOnce();
+      });
+
+      it('un documento grande NO lo arranca', async () => {
+        await client.setProjectRoot('/p');
+
+        await client.openDocument('/p/IP.typ', big);
+
+        expect(startSpy).not.toHaveBeenCalled();
+        expect(client.isActive()).toBe(false);
+      });
+
+      it('enable() lo arranca aunque el documento sea grande y lo deja fijado', async () => {
+        await client.setProjectRoot('/p');
+        await client.openDocument('/p/IP.typ', big);
+
+        await client.enable();
+        expect(client.isActive()).toBe(true);
+
+        // Fijado a mano: otro documento grande ya no lo detiene.
+        await client.openDocument('/p/otro.typ', big);
+        expect(client.isActive()).toBe(true);
+        expect(stopSpy).not.toHaveBeenCalled();
+      });
+
+      it('pasar de un documento pequeño a uno grande lo detiene', async () => {
+        await client.setProjectRoot('/p');
+        await client.openDocument('/p/a.typ', small);
+        await vi.waitFor(() => expect(client.isActive()).toBe(true));
+
+        await client.openDocument('/p/IP.typ', big);
+
+        expect(client.isActive()).toBe(false);
+        expect(stopSpy).toHaveBeenCalledOnce();
+        expect(statuses.at(-1)).toBe('idle');
+      });
+
+      it('disable() lo detiene y no vuelve a arrancar solo, ni con un documento pequeño', async () => {
+        await client.setProjectRoot('/p');
+        await client.openDocument('/p/a.typ', small);
+        await vi.waitFor(() => expect(client.isActive()).toBe(true));
+
+        await client.disable();
+        expect(client.isActive()).toBe(false);
+        expect(statuses.at(-1)).toBe('idle');
+        expect(stopSpy).toHaveBeenCalledOnce();
+
+        startSpy.mockClear();
+        await client.openDocument('/p/b.typ', small);
+        expect(startSpy).not.toHaveBeenCalled();
+      });
+
+      it('lo apagado a mano se recuerda en una sesión nueva', async () => {
+        await client.setProjectRoot('/p');
+        await client.disable();
+
+        const reopened = createLspClient({});
+        await reopened.setProjectRoot('/p');
+        await reopened.openDocument('/p/a.typ', small);
+
+        expect(reopened.isDisabled()).toBe(true);
+        expect(startSpy).not.toHaveBeenCalled();
+      });
+
+      it('enable() lo reactiva y borra la preferencia', async () => {
+        await client.setProjectRoot('/p');
+        await client.disable();
+
+        await client.enable();
+
+        expect(client.isActive()).toBe(true);
+        expect(client.isDisabled()).toBe(false);
+        expect(localStorage.getItem('dbv-typst-lsp-disabled')).toBeNull();
+      });
+
+      it('tras un arranque fallido NO lo reintenta con cada documento que se abre', async () => {
+        startSpy.mockResolvedValue({ ok: false, error: { kind: 'bridge', message: 'Binary not found' } });
+        await client.setProjectRoot('/p');
+
+        await client.openDocument('/p/a.typ', small);
+        await vi.waitFor(() => expect(statuses.at(-1)).toBe('error'));
+        await client.openDocument('/p/b.typ', small);
+        await client.openDocument('/p/c.typ', small);
+
+        expect(startSpy).toHaveBeenCalledOnce();
+      });
+
+      it('tras un fallo, activarlo a mano con la insignia sí lo reintenta', async () => {
+        startSpy.mockResolvedValueOnce({ ok: false, error: { kind: 'bridge', message: 'x' } });
+        await client.setProjectRoot('/p');
+        await client.openDocument('/p/a.typ', small);
+        await vi.waitFor(() => expect(statuses.at(-1)).toBe('error'));
+
+        await client.enable();
+
+        expect(startSpy).toHaveBeenCalledTimes(2);
+        expect(client.isActive()).toBe(true);
+      });
+
+      it('cambiar de proyecto suelta la activación manual', async () => {
+        await client.setProjectRoot('/p');
+        await client.enable();
+
+        await client.setProjectRoot('/otro');
+        await client.openDocument('/otro/IP.typ', big);
+
+        expect(client.isActive()).toBe(false);
       });
     });
   });

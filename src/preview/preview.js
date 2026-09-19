@@ -30,6 +30,20 @@ import { anchorAtPoint, anchorForLine } from './syncAnchors.js';
 const DEBOUNCE_MS = 350;
 
 /**
+ * La pausa de escritura crece con lo que tarda la compilación: esperar solo
+ * 350 ms cuando compilar cuesta 4,6 s (libro real de 220 páginas) lanza una
+ * compilación nueva —y cancela la anterior— en cada respiro, y el proceso no
+ * termina nunca. Se espera el equivalente a 1,5 compilaciones, con un techo.
+ */
+const DEBOUNCE_SLOW_FACTOR = 1.5;
+const DEBOUNCE_MAX_MS = 6000;
+
+/** Pausa de escritura adecuada tras una compilación que duró `lastCompileMs`. */
+export function debounceFor(lastCompileMs) {
+  return Math.min(DEBOUNCE_MAX_MS, Math.max(DEBOUNCE_MS, lastCompileMs * DEBOUNCE_SLOW_FACTOR));
+}
+
+/**
  * Modo de refresco (RF-15). No es una comodidad: desde RF-14 la vista previa
  * compila el documento completo, y el Spike S-2 midió que eso cuesta ×9 lo que
  * costaba el capítulo (828 ms frente a 91 ms en una tesis de 202 páginas), muy
@@ -43,6 +57,17 @@ const INITIAL_WINDOW = 2;
 
 /** Margen de precarga: se traen las páginas una pantalla antes de llegar. */
 const PRELOAD_MARGIN = '600px';
+
+/**
+ * Distancia al viewport a partir de la cual una página ya pintada se descarta.
+ * Bastante mayor que `PRELOAD_MARGIN` para que no haya ida y vuelta: una página
+ * que se descarta siempre queda fuera de la zona donde se vuelve a pedir.
+ *
+ * Sin descarte, recorrer un libro de 220 páginas dejaba cada una como DOM vivo:
+ * ~400 kB de SVG (miles de nodos `<path>` de glifos) por página. Con un libro
+ * real (`z6-IPbook`: 86 MB de SVG) el proceso llegó a 8,9 GB en un Mac.
+ */
+const EVICT_MARGIN = '2500px';
 
 const ZOOM_STORAGE_KEY = 'dbv-typst-preview-zoom';
 const ZOOM_STEPS = [0.5, 0.65, 0.8, 1, 1.25, 1.5, 2];
@@ -158,6 +183,8 @@ export function createPreview({
   onStaleChange,
 }) {
   let debounceTimer = null;
+  /** Duración de la última compilación, para adaptar la pausa de escritura. */
+  let lastCompileMs = 0;
   /** Último token de generación efectivamente pintado. */
   let renderedGeneration = 0;
   /** Hay algo compilado en pantalla (aunque sea de una versión anterior). */
@@ -220,6 +247,28 @@ export function createPreview({
     },
     { root: pagesEl, rootMargin: PRELOAD_MARGIN }
   );
+
+  // Descarta el marcado de las páginas que se alejan del viewport. El hueco se
+  // conserva (su alto sale de `--page-ratio`), así que el scroll no salta, y
+  // `observer` la volverá a pedir si el lector regresa.
+  const releaseObserver = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) releasePage(entry.target);
+      }
+    },
+    { root: pagesEl, rootMargin: EVICT_MARGIN }
+  );
+
+  function releasePage(pageEl) {
+    if (!pageEl.dataset.loaded) return;
+    pageEl.replaceChildren();
+    delete pageEl.dataset.loaded;
+    releaseObserver.unobserve(pageEl);
+    // Solo si sigue siendo de la generación vigente: si no, el hueco ya está
+    // muerto y `renderSkeleton` lo habrá sustituido.
+    if (Number(pageEl.dataset.generation) === renderedGeneration) observer.observe(pageEl);
+  }
 
   /** Zoom que hace que la página use todo el ancho disponible ahora mismo. */
   function fitZoom() {
@@ -291,6 +340,7 @@ export function createPreview({
     pageEl.innerHTML = svg;
     pageEl.dataset.loaded = '1';
     observer.unobserve(pageEl);
+    releaseObserver.observe(pageEl);
   }
 
   async function loadPage(pageEl) {
@@ -314,6 +364,12 @@ export function createPreview({
    * que evita que la barra de desplazamiento salte mientras se cargan páginas.
    */
   function renderSkeleton(generation, geometry, pages) {
+    // Los huecos de la generación anterior desaparecen: se sueltan de ambos
+    // observadores para que no retengan nodos muertos. Va ANTES del bucle,
+    // porque `fillPage` registra en `releaseObserver` las páginas ya servidas.
+    releaseObserver.disconnect();
+    observer.disconnect();
+
     const loaded = new Map(pages.map((page) => [page.index, page.svg]));
     const fragment = document.createDocumentFragment();
 
@@ -373,11 +429,15 @@ export function createPreview({
     const scrollTop = pagesEl.scrollTop;
     setStatus('preview.compiling');
 
+    const startedAt = performance.now();
     const result = await compilePreview({
       target,
       firstPage: firstVisiblePage(),
       windowSize: INITIAL_WINDOW,
     });
+    // Una compilación superada por otra devuelve enseguida y no dice nada de lo
+    // que cuesta el documento: solo las que terminan de verdad ajustan la pausa.
+    if (!result.ok || !result.value.stale) lastCompileMs = performance.now() - startedAt;
 
     if (!result.ok) {
       if (!hasRendered) {
@@ -423,7 +483,7 @@ export function createPreview({
       return;
     }
     if (debounceTimer) clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(compileNow, DEBOUNCE_MS);
+    debounceTimer = setTimeout(compileNow, debounceFor(lastCompileMs));
   }
 
   function setZoomIndex(delta) {

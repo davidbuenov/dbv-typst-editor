@@ -933,6 +933,33 @@
   text-overflow: ellipsis;
 }
 
+/* Etiqueta del documento principal en el árbol de ficheros. */
+.tree-row__badge {
+  flex: 0 0 auto;
+  margin-left: auto;
+  padding: 0 6px;
+  border-radius: 9999px;
+  background: var(--accent-subtle);
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 16px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+/* Menú contextual del árbol: flota sobre todo, anclado al puntero. */
+.tree-context-menu {
+  position: fixed;
+  z-index: 60;
+  min-width: 220px;
+  padding: 6px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px var(--shadow);
+}
+
 /* ─── Separadores redimensionables ────────────────────────────────────────── */
 .splitter {
   background: var(--border);

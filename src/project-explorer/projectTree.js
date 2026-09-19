@@ -25,7 +25,10 @@ import { listDirectory, revealInFileManager } from '../services/backend.js';
  * @property {boolean} isEditable
  */
 
-export function createProjectTree(containerEl, { onOpenFile }) {
+/** Compara rutas sin depender del separador de la plataforma. */
+const sameFile = (a, b) => Boolean(a && b) && a.replaceAll('\\', '/') === b.replaceAll('\\', '/');
+
+export function createProjectTree(containerEl, { onOpenFile, onSetEntrypoint } = {}) {
   if (!(containerEl instanceof HTMLElement)) {
     throw new TypeError('createProjectTree: containerEl debe ser un HTMLElement');
   }
@@ -35,6 +38,9 @@ export function createProjectTree(containerEl, { onOpenFile }) {
   /** @type {TreeEntry[]} Ficheros abribles ya conocidos (niveles cargados). */
   const knownFiles = [];
   let activePath = null;
+  /** Ruta ABSOLUTA del documento principal del proyecto, para marcarlo. */
+  let entrypointPath = null;
+  let openMenuEl = null;
 
   function reset() {
     generation += 1;
@@ -56,6 +62,82 @@ export function createProjectTree(containerEl, { onOpenFile }) {
       row.classList.toggle('is-active', row.dataset.path === path);
     }
   }
+
+  /** Pone o quita la etiqueta "principal" en una fila según `entrypointPath`. */
+  function applyEntrypointBadge(row) {
+    const isMain = !row.classList.contains('is-dir') && sameFile(row.dataset.path, entrypointPath);
+    row.classList.toggle('is-entrypoint', isMain);
+    let badge = row.querySelector('.tree-row__badge');
+    if (isMain && !badge) {
+      badge = document.createElement('span');
+      badge.className = 'tree-row__badge';
+      badge.textContent = t('tree.entrypointBadge');
+      badge.title = t('tree.entrypointBadgeTitle');
+      row.append(badge);
+    } else if (!isMain && badge) {
+      badge.remove();
+    }
+  }
+
+  /** Marca qué fichero es el documento principal (o ninguno con `null`). */
+  function setEntrypointPath(path) {
+    entrypointPath = path;
+    for (const row of containerEl.querySelectorAll('.tree-row')) applyEntrypointBadge(row);
+  }
+
+  function closeContextMenu() {
+    openMenuEl?.remove();
+    openMenuEl = null;
+  }
+
+  /**
+   * Menú contextual de una fila. "Establecer como documento principal" solo
+   * aparece en ficheros `.typ` (el resto no pueden ser raíz de compilación) y
+   * no se ofrece si ya lo es. "Mostrar en el explorador" es lo que hacía el
+   * botón derecho antes de existir este menú, y se conserva.
+   */
+  function openContextMenu(event, entry) {
+    closeContextMenu();
+    const menu = document.createElement('div');
+    menu.className = 'tree-context-menu';
+    menu.setAttribute('role', 'menu');
+
+    const addItem = (label, action) => {
+      const item = document.createElement('button');
+      item.type = 'button';
+      item.className = 'menu-item';
+      item.setAttribute('role', 'menuitem');
+      item.textContent = label;
+      item.addEventListener('click', () => {
+        closeContextMenu();
+        action();
+      });
+      menu.append(item);
+    };
+
+    if (entry.isTypst && !entry.isDir && !sameFile(entry.path, entrypointPath) && onSetEntrypoint) {
+      addItem(t('action.setEntrypoint'), () => onSetEntrypoint(entry.path));
+    }
+    addItem(t('action.reveal'), () => revealInFileManager(entry.path));
+
+    document.body.append(menu);
+    // Se recoloca dentro de la ventana: en el borde derecho o inferior el menú
+    // saldría cortado.
+    const { width, height } = menu.getBoundingClientRect();
+    menu.style.left = `${Math.max(4, Math.min(event.clientX, window.innerWidth - width - 4))}px`;
+    menu.style.top = `${Math.max(4, Math.min(event.clientY, window.innerHeight - height - 4))}px`;
+    openMenuEl = menu;
+    menu.querySelector('.menu-item')?.focus();
+  }
+
+  // Se cierra al pulsar fuera, con Escape o al desplazar el árbol.
+  document.addEventListener('mousedown', (event) => {
+    if (openMenuEl && !openMenuEl.contains(event.target)) closeContextMenu();
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') closeContextMenu();
+  });
+  containerEl.addEventListener('scroll', closeContextMenu);
 
   function buildRow(entry, depth) {
     const wrapper = document.createElement('div');
@@ -84,6 +166,7 @@ export function createProjectTree(containerEl, { onOpenFile }) {
     label.className = 'tree-row__name';
     label.textContent = entry.name;
     row.append(label);
+    applyEntrypointBadge(row);
 
     wrapper.append(row);
 
@@ -119,7 +202,7 @@ export function createProjectTree(containerEl, { onOpenFile }) {
 
     row.addEventListener('contextmenu', (event) => {
       event.preventDefault();
-      revealInFileManager(entry.path);
+      openContextMenu(event, entry);
     });
 
     return wrapper;
@@ -185,6 +268,7 @@ export function createProjectTree(containerEl, { onOpenFile }) {
     refresh,
     filter,
     setActivePath,
+    setEntrypointPath,
     /** Ficheros abribles conocidos, para el selector rápido de documento. */
     getKnownFiles: () => knownFiles.slice(),
     getRoot: () => root,

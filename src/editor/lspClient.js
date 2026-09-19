@@ -159,11 +159,45 @@ export function getCompletionWordRange(context) {
 }
 
 /**
+ * Tamaño (en caracteres) a partir del cual Tinymist NO arranca solo.
+ *
+ * Tinymist compila el documento entero en segundo plano y reenvía el texto
+ * completo en cada pulsación (`didChange`). Medido con un libro real de 220
+ * páginas (321 kB de fuente, `z6-IPbook`): `typst` solo necesita 4,6 s y 2,3 GB
+ * para UNA compilación, y Tinymist la repite mientras se escribe, además de la
+ * vista previa propia. En un Mac de un compañero eso fue CPU al 95 % y varios
+ * GB de RAM. Por debajo del umbral (capítulos y documentos normales) el LSP
+ * sigue arrancando solo, como siempre; por encima espera a que el usuario lo
+ * active con la insignia.
+ */
+export const LSP_AUTOSTART_MAX_CHARS = 100_000;
+
+/** Preferencia global: el usuario apagó Tinymist a mano y no debe arrancar solo. */
+const LSP_DISABLED_KEY = 'dbv-typst-lsp-disabled';
+
+function readDisabledPreference() {
+  try {
+    return localStorage.getItem(LSP_DISABLED_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function writeDisabledPreference(disabled) {
+  try {
+    if (disabled) localStorage.setItem(LSP_DISABLED_KEY, '1');
+    else localStorage.removeItem(LSP_DISABLED_KEY);
+  } catch {
+    // Sin almacenamiento vale solo para esta sesión.
+  }
+}
+
+/**
  * Crea la instancia de cliente LSP para comunicarse con Tinymist.
  * @param {object} [deps]
  * @param {(diagnostics: any[]) => void} [deps.onDiagnostics]
  * @param {(msg: string, tone?: 'info'|'error') => void} [deps.notify]
- * @param {(status: 'offline'|'starting'|'ready'|'error') => void} [deps.onStatusChange]
+ * @param {(status: 'offline'|'idle'|'starting'|'ready'|'error') => void} [deps.onStatusChange]
  */
 export function createLspClient({ onDiagnostics: initialOnDiagnostics, notify, onStatusChange } = {}) {
   let active = false;
@@ -172,16 +206,31 @@ export function createLspClient({ onDiagnostics: initialOnDiagnostics, notify, o
   let pendingDoc = null; 
   let unlistenNotif = null;
   let onDiagnostics = initialOnDiagnostics;
+  /** Raíz del proyecto abierto: el LSP se arranca contra ella, cuando toque. */
+  let projectRoot = null;
+  /** True si el usuario lo activó a mano: entonces el umbral de tamaño no aplica. */
+  let forced = false;
+  /** True si el usuario lo apagó: no arranca solo hasta que lo active de nuevo. */
+  let disabled = readDisabledPreference();
+  /**
+   * True si el último arranque falló. Sin esto, cada documento que se abre
+   * volvería a lanzar un proceso que ya sabemos que no arranca (Tinymist ausente
+   * o roto), con la insignia parpadeando "Conectando…" ↔ "error". Solo lo
+   * limpian un proyecto nuevo o una activación manual.
+   */
+  let failed = false;
 
   function setStatus(s) {
     onStatusChange?.(s);
   }
 
-  async function start(projectRoot) {
+  async function start(root) {
+    projectRoot = root;
+    failed = false;
     isStarting = true;
     setStatus('starting');
     try {
-      const res = await tinymistStart(projectRoot);
+      const res = await tinymistStart(root);
       if (res.ok) {
         active = true;
         isStarting = false;
@@ -207,24 +256,26 @@ export function createLspClient({ onDiagnostics: initialOnDiagnostics, notify, o
       }
       console.warn('[LSP] Fallo al iniciar Tinymist:', res.error);
       active = false;
+      failed = true;
       isStarting = false;
       setStatus('error');
       return false;
     } catch (e) {
       console.warn('[LSP] Excepción al iniciar Tinymist:', e);
       active = false;
+      failed = true;
       isStarting = false;
       setStatus('error');
       return false;
     }
   }
 
-  async function stop() {
+  async function stop({ status = 'offline' } = {}) {
     active = false;
     isStarting = false;
     currentDoc = null;
     pendingDoc = null;
-    setStatus('offline');
+    setStatus(status);
     if (unlistenNotif) {
       try {
         unlistenNotif();
@@ -235,11 +286,50 @@ export function createLspClient({ onDiagnostics: initialOnDiagnostics, notify, o
     await tinymistStop();
   }
 
+  /** Registra el proyecto abierto SIN arrancar Tinymist: lo decide `openDocument`. */
+  async function setProjectRoot(root) {
+    if (active || isStarting) await stop();
+    projectRoot = root;
+    forced = false;
+    failed = false;
+    setStatus(root ? 'idle' : 'offline');
+  }
+
+  /** Apagado manual (insignia): detiene Tinymist y lo recuerda entre sesiones. */
+  async function disable() {
+    disabled = true;
+    forced = false;
+    writeDisabledPreference(true);
+    if (active || isStarting) await stop({ status: 'idle' });
+    else setStatus(projectRoot ? 'idle' : 'offline');
+  }
+
+  /** Activación manual (insignia): arranca aunque el documento supere el umbral. */
+  async function enable() {
+    disabled = false;
+    writeDisabledPreference(false);
+    if (!projectRoot || active || isStarting) return false;
+    forced = true;
+    return start(projectRoot);
+  }
+
   async function openDocument(path, text) {
     const uri = pathToUri(path);
+    const big = text.length > LSP_AUTOSTART_MAX_CHARS;
+
+    // Con el LSP ya en marcha, pasar a un documento enorme lo detiene: cada
+    // pulsación le costaría a Tinymist recompilar cientos de páginas.
+    if (active && big && !forced) {
+      await stop({ status: 'idle' });
+    }
+
     currentDoc = { path, uri, version: 1 };
     if (!active) {
       pendingDoc = { path, uri, text };
+      // Arranque perezoso: un documento pequeño lo arranca; uno grande espera.
+      if (projectRoot && !isStarting && !disabled && !failed && (forced || !big)) {
+        start(projectRoot).catch(console.error);
+      }
       return;
     }
     pendingDoc = null;
@@ -362,6 +452,10 @@ export function createLspClient({ onDiagnostics: initialOnDiagnostics, notify, o
     setDiagnosticsHandler(handler) {
       onDiagnostics = handler;
     },
+    setProjectRoot,
+    enable,
+    disable,
+    isDisabled: () => disabled,
     isActive: () => active,
     getStatus: () => (active ? 'ready' : isStarting ? 'starting' : 'offline'),
     getCurrentUri: () => currentDoc?.uri ?? null,

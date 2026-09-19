@@ -108,18 +108,37 @@ impl PreparedInput {
 /// réplica. Reemplaza al espejo `.dbv-preview.typ`, que escribía dentro de la
 /// carpeta del usuario (ver `shadow.rs` para el porqué).
 pub(crate) fn prepare_input(target: &CompileTarget) -> Result<PreparedInput, TypstError> {
+    // Las anclas de sincronización se siembran SIEMPRE, en la única sombra
+    // (obligación 3 del Adversarial Architect Review): el Spike S-2 midió que
+    // entre bloques dejan el SVG byte a byte idéntico y cuestan 0,007 ms cada
+    // una, así que render y tabla de anclas salen por construcción del mismo
+    // árbol. Con dos réplicas distintas, las posiciones podrían no casar.
+    prepare_input_with_seed(target, true)
+}
+
+/// Igual que `prepare_input`, pero sin sembrar anclas de sincronización.
+///
+/// Solo la usa `typst_compile_preview` como reintento (ver más abajo): el
+/// escaneo ligero de `shadow::seed_anchors` no es un parser (`shadow.rs`) y un
+/// `(`/`)` suelto en texto plano —fuera de un tramo `raw`, p. ej. "Missing )"
+/// en una celda de tabla— desincroniza su conteo de profundidad para el resto
+/// del fichero, hasta el punto de sembrar una ancla DENTRO de una llamada de
+/// código. El síntoma real (hallado 2026-09-15 con un proyecto de un usuario):
+/// un error de Typst que no existe en el documento y que no desaparece por
+/// mucho que se edite el fichero, porque la réplica sembrada vuelve a
+/// romperse igual en cada recompilación.
+fn prepare_input_unseeded(target: &CompileTarget) -> Result<PreparedInput, TypstError> {
+    prepare_input_with_seed(target, false)
+}
+
+fn prepare_input_with_seed(target: &CompileTarget, seed: bool) -> Result<PreparedInput, TypstError> {
     let project_root = Path::new(&target.root);
     let dirty = match (&target.dirty_path, &target.dirty_content) {
         (Some(path), Some(content)) => Some((Path::new(path.as_str()), content.as_str())),
         _ => None,
     };
 
-    // Las anclas de sincronización se siembran SIEMPRE, en la única sombra
-    // (obligación 3 del Adversarial Architect Review): el Spike S-2 midió que
-    // entre bloques dejan el SVG byte a byte idéntico y cuestan 0,007 ms cada
-    // una, así que render y tabla de anclas salen por construcción del mismo
-    // árbol. Con dos réplicas distintas, las posiciones podrían no casar.
-    let shadow = shadow::build(project_root, target.single_file, true, dirty)?;
+    let shadow = shadow::build(project_root, target.single_file, seed, dirty)?;
     let input = shadow.translate(project_root, Path::new(&target.document));
     let root = shadow.root().to_string_lossy().to_string();
 
@@ -128,6 +147,42 @@ pub(crate) fn prepare_input(target: &CompileTarget) -> Result<PreparedInput, Typ
         root,
         input: input.to_string_lossy().to_string(),
     })
+}
+
+/// Argumentos de `typst compile --format svg` para `prepared`, escribiendo el
+/// resultado en `output_pattern`. Compartido entre la compilación normal y el
+/// reintento sin anclas: deben ser exactamente los mismos salvo por la réplica
+/// de origen, o un reintento que solo cambiara la siembra no probaría nada.
+fn compile_svg_args(prepared: &PreparedInput, output_pattern: &Path) -> Vec<String> {
+    let mut args = vec![
+        "compile".to_string(),
+        "--root".to_string(),
+        prepared.root.clone(),
+        "--format".to_string(),
+        "svg".to_string(),
+    ];
+    args.extend(super::font_path_args(Path::new(&prepared.root)));
+    args.push(prepared.input.clone());
+    args.push(output_pattern.to_string_lossy().to_string());
+    args
+}
+
+/// Sustituye, dentro de `text`, la ruta de la réplica temporal por la del
+/// proyecto real.
+///
+/// Sin esto, un error de compilación señala un fichero bajo
+/// `AppData\Local\Temp\...` que el usuario no reconoce y que además desaparece
+/// al cerrar la app — el mensaje debe apuntar a SU proyecto, no a nuestro
+/// mecanismo interno de réplica (`shadow.rs`). En Windows, `typst` normaliza la
+/// ruta que recibe en `--root` a su forma verbatim `\\?\C:\...` al reportarla en
+/// un error, así que se prueban ambas formas.
+fn remap_shadow_root(text: &str, shadow_root: &str, real_root: &str) -> String {
+    let mut result = text.replace(shadow_root, real_root);
+    if !shadow_root.starts_with(r"\\?\") {
+        let verbatim = format!(r"\\?\{shadow_root}");
+        result = result.replace(&verbatim, real_root);
+    }
+    result
 }
 
 /// Bytes de cabecera que se leen de cada SVG para sacar su tamaño. La etiqueta
@@ -265,6 +320,20 @@ pub struct PreviewOutcome {
     pub warnings: String,
     /// True si el resultado llegó tarde y no debe pintarse (requisito (b)).
     pub stale: bool,
+}
+
+impl PreviewOutcome {
+    /// Resultado de una compilación que otra posterior ya superó: vacío y
+    /// marcado obsoleto, para que el frontend lo ignore sin tratarlo como error.
+    fn superseded(generation: u64) -> Self {
+        Self {
+            generation,
+            geometry: Vec::new(),
+            pages: Vec::new(),
+            warnings: String::new(),
+            stale: true,
+        }
+    }
 }
 
 /// Extrae el tamaño de página de la cabecera `<svg …>`.
@@ -450,6 +519,23 @@ pub fn strip_download_progress(stderr: &str) -> String {
 /// `pub(crate)`: también la usa `typst_engine::outline` (Beta) para que el
 /// panel de navegación estructural vea los cambios sin guardar igual que la
 /// vista previa — mismo criterio, no duplicarlo.
+/// Reintenta una compilación fallida sobre una réplica SIN anclas de
+/// sincronización (ver `prepare_input_unseeded`). Devuelve `(código, stderr,
+/// raíz de esa réplica)`, o `None` si el reintento no pudo ni lanzarse — en cuyo
+/// caso quien llama se queda con el error de la compilación original.
+async fn retry_without_anchors(
+    app: &AppHandle,
+    state: &EngineState,
+    target: &CompileTarget,
+    generation: u64,
+    output_pattern: &Path,
+) -> Option<(Option<i32>, String, String)> {
+    let unseeded = prepare_input_unseeded(target).ok()?;
+    let args = compile_svg_args(&unseeded, output_pattern);
+    let (code, _stdout, stderr) = run_cancelable(app, state, generation, args).await.ok()?;
+    Some((code, stderr, unseeded.root.clone()))
+}
+
 /// Compila el documento a SVG multipágina para la vista previa en vivo.
 #[tauri::command]
 pub async fn typst_compile_preview(
@@ -468,38 +554,51 @@ pub async fn typst_compile_preview(
     let output_pattern = workdir.path().join("page-{0p}.svg");
 
     let prepared = prepare_input(&target)?;
-
-    let mut args = vec![
-        "compile".to_string(),
-        "--root".to_string(),
-        prepared.root.clone(),
-        "--format".to_string(),
-        "svg".to_string(),
-    ];
-    // Fuentes propias del proyecto (`fonts/`), si las trae: van antes de los
-    // argumentos posicionales de entrada y salida. Se buscan en la réplica, que
-    // es donde viven todas las rutas de esta compilación.
-    args.extend(super::font_path_args(Path::new(&prepared.root)));
-    args.push(prepared.input.clone());
-    args.push(output_pattern.to_string_lossy().to_string());
-
-    let (code, _stdout, stderr) = run_cancelable(&app, &state, generation, args).await?;
+    let args = compile_svg_args(&prepared, &output_pattern);
+    let (mut code, _stdout, mut stderr) = run_cancelable(&app, &state, generation, args).await?;
+    let mut shadow_root = prepared.root.clone();
 
     // Un resultado que ya no es el último no se pinta ni se convierte en error:
     // se devuelve marcado como obsoleto para que el frontend lo ignore.
     if !state.is_current(generation) {
-        return Ok(PreviewOutcome {
-            generation,
-            geometry: Vec::new(),
-            pages: Vec::new(),
-            warnings: String::new(),
-            stale: true,
-        });
+        return Ok(PreviewOutcome::superseded(generation));
+    }
+
+    if code != Some(0) {
+        // Reintento sin anclas de sincronización: ver el porqué en
+        // `prepare_input_unseeded`. Si la MISMA réplica compila sin sembrar,
+        // el fallo era nuestro, no del documento — se sirve ese resultado (sin
+        // tabla de sincronización para esta generación) en vez de un error
+        // fantasma que no desaparece por mucho que el usuario edite.
+        //
+        // Si el reintento TAMBIÉN falla, es un error real del documento — pero
+        // su stderr sembrado apunta a líneas `#metadata(...)<dbv-sync>` que no
+        // existen para el usuario y puede arrastrar avisos "content labelled
+        // multiple times" que no tienen nada que ver con su fallo. El stderr
+        // SIN sembrar es el que hay que enseñar siempre que exista, sembrado
+        // o no: es el mismo documento, sin nuestro ruido de por medio, y con
+        // los números de línea REALES — las anclas añaden líneas, así que el
+        // error de un fichero sembrado salía desplazado (medido: línea 11 en
+        // la réplica para un fallo que está en la 8).
+        if let Some((retry_code, retry_stderr, retry_root)) =
+            retry_without_anchors(&app, &state, &target, generation, &output_pattern).await
+        {
+            if !state.is_current(generation) {
+                return Ok(PreviewOutcome::superseded(generation));
+            }
+            code = retry_code;
+            stderr = retry_stderr;
+            shadow_root = retry_root;
+        }
     }
 
     if code != Some(0) {
         // (d) El frontend conserva la última vista buena y enseña este stderr.
-        return Err(TypstError::CompilationFailed(stderr));
+        return Err(TypstError::CompilationFailed(remap_shadow_root(
+            &stderr,
+            &shadow_root,
+            &target.root,
+        )));
     }
 
     let files = collect_page_files(workdir.path());
@@ -582,7 +681,11 @@ pub async fn typst_export_pdf(
     let (code, stdout, stderr) = run_cancelable(&app, &state, generation, args).await?;
 
     if code != Some(0) {
-        return Err(TypstError::CompilationFailed(stderr));
+        return Err(TypstError::CompilationFailed(remap_shadow_root(
+            &stderr,
+            &prepared.root,
+            &target.root,
+        )));
     }
     if stdout.is_empty() {
         return Err(TypstError::ExecutionFailed(
@@ -629,7 +732,11 @@ pub async fn typst_export_png(
     let (code, _stdout, stderr) = run_cancelable(&app, &state, generation, args).await?;
 
     if code != Some(0) {
-        return Err(TypstError::CompilationFailed(stderr));
+        return Err(TypstError::CompilationFailed(remap_shadow_root(
+            &stderr,
+            &prepared.root,
+            &target.root,
+        )));
     }
     Ok(output)
 }
@@ -836,6 +943,50 @@ warning: unknown font family: flux\n\
             .collect();
         assert_eq!(en_disco, vec!["main.typ".to_string()]);
         assert_eq!(fs::read_to_string(dir.path().join("main.typ")).unwrap(), "= Hola");
+    }
+
+    #[test]
+    fn prepare_input_unseeded_replica_sin_anclas_de_sincronizacion() {
+        // El reintento de `typst_compile_preview` (2026-09-15): si sembrar
+        // anclas desincroniza `shadow::Depth` (p. ej. un `)` suelto en texto
+        // plano) y rompe la compilación, se reintenta con esta réplica sin
+        // sembrar. Debe compilar el mismo documento sin ninguna ancla.
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("main.typ"), "= Hola").unwrap();
+
+        let prepared = prepare_input_unseeded(&target(dir.path(), "main.typ")).unwrap();
+
+        let replicado = fs::read_to_string(prepared.input()).unwrap();
+        assert!(replicado.contains("= Hola"));
+        assert!(!replicado.contains("<dbv-sync>"));
+    }
+
+    #[test]
+    fn remap_shadow_root_sustituye_la_ruta_de_la_replica_por_la_del_proyecto() {
+        let shadow_root = r"C:\Users\alguien\AppData\Local\Temp\.tmpABCDEF";
+        let real_root = r"C:\Users\alguien\Downloads\mi-proyecto";
+        let stderr = format!("error: algo\n  ┌─ {shadow_root}\\cap.typ:3:1\n");
+
+        let remapped = remap_shadow_root(&stderr, shadow_root, real_root);
+
+        assert!(remapped.contains(real_root), "{remapped}");
+        assert!(!remapped.contains(shadow_root), "{remapped}");
+    }
+
+    #[test]
+    fn remap_shadow_root_tambien_sustituye_la_forma_verbatim_de_windows() {
+        // `typst` normaliza la ruta que recibe en `--root` a su forma verbatim
+        // `\\?\C:\...` al reportarla en un error (verificado contra un caso
+        // real de un usuario) — la sustitución debe cazar esa forma también,
+        // no solo la ruta tal cual se pasó al CLI.
+        let shadow_root = r"C:\Users\alguien\AppData\Local\Temp\.tmpABCDEF";
+        let real_root = r"C:\Users\alguien\Downloads\mi-proyecto";
+        let stderr = format!(r"error: algo en \\?\{shadow_root}\cap.typ:3:1");
+
+        let remapped = remap_shadow_root(&stderr, shadow_root, real_root);
+
+        assert!(remapped.contains(real_root), "{remapped}");
+        assert!(!remapped.contains(shadow_root), "{remapped}");
     }
 
     #[test]

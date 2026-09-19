@@ -40,6 +40,56 @@ const MAX_DEPTH: usize = 6;
 /// fallar con un mensaje claro que copiar sin freno en cada pausa de escritura.
 const MAX_FILES: usize = 5_000;
 
+/// Tamaño a partir del cual un fichero que NO se puede enlazar se omite en vez
+/// de copiarse.
+///
+/// Enlazar es gratis, pero un enlace duro solo existe dentro de un volumen: con
+/// el proyecto en `D:` y el temporal en `C:` (o cualquier disco externo), cada
+/// pausa de escritura copiaba TODO el proyecto. Caso real (2026-09-19): un
+/// `.typ` suelto en la carpeta Descargas —260 ficheros, 59 GB, con zips de 13 GB
+/// y una ISO— tardaba casi un minuto en abrirse. Typst no lee de un proyecto
+/// ficheros de decenas de MB (una imagen enorme ya sería un problema de
+/// maquetación); si alguno lo hiciera, el error de Typst lo dice con claridad.
+const MAX_COPY_BYTES: u64 = 32 * 1024 * 1024;
+
+/// Extensiones que Typst puede leer de un `.typ` SUELTO. En ese modelo la raíz
+/// es la carpeta contenedora —Descargas, el Escritorio— y casi nada de lo que
+/// hay ahí le interesa al documento; replicar solo lo que un documento Typst
+/// puede llegar a cargar evita copiar cientos de ficheros ajenos en cada
+/// compilación. Una carpeta abierta COMO proyecto sí se replica entera.
+///
+/// Además de lo que Typst carga por sí mismo (imágenes, fuentes, datos,
+/// bibliografías, estilos CSL, temas y sintaxis de `raw`, plugins `.wasm`),
+/// entra el código fuente y el texto plano que un documento suele incrustar con
+/// `read()` / `raw()` — un curso de programación lee sus propios `.cpp`. Un
+/// formato que falte aquí sigue funcionando abriendo la carpeta COMO proyecto.
+const FLAT_MODE_EXTENSIONS: &[&str] = &[
+    // Documentos y datos
+    "typ", "bib", "yml", "yaml", "csv", "tsv", "json", "toml", "xml", "txt", "md", "cbor", "html",
+    "csl", "tex", "ini", "log",
+    // Imágenes
+    "png", "jpg", "jpeg", "gif", "svg", "webp", "pdf",
+    // Fuentes
+    "ttf", "otf", "ttc", "otc", "woff", "woff2",
+    // Temas y sintaxis de `raw`, plugins
+    "tmtheme", "sublime-syntax", "wasm",
+    // Código fuente que se incrusta con `read()` / `raw()`
+    "c", "h", "cc", "cpp", "hpp", "cs", "java", "kt", "py", "js", "ts", "rs", "go", "rb", "php",
+    "sh", "ps1", "sql", "r", "m", "swift", "lua", "css",
+];
+
+/// True si `name` es un fichero que un `.typ` suelto puede necesitar.
+fn is_flat_mode_relevant(name: &str) -> bool {
+    Path::new(name)
+        .extension()
+        .and_then(|extension| extension.to_str())
+        .is_some_and(|extension| {
+            FLAT_MODE_EXTENSIONS
+                .iter()
+                .any(|candidate| candidate.eq_ignore_ascii_case(extension))
+        })
+}
+
 /// Etiqueta de las anclas de sincronización (RF-16). Un nombre improbable a
 /// propósito: si el documento del usuario ya la usara, sus elementos se
 /// mezclarían con los nuestros en el `query`.
@@ -233,7 +283,12 @@ fn is_heading(line: &str) -> bool {
 /// que es cuanto hace falta para saber si el principio de una línea está en
 /// markup de nivel superior. Mismo criterio que el resto del proyecto ante
 /// Typst —escaneo ligero antes que parser completo (ARCHITECTURE.md §275)—,
-/// porque equivocarse aquí solo cuesta un ancla de menos, nunca un documento roto.
+/// porque equivocarse aquí debe costar solo un ancla de menos, nunca un
+/// documento roto. Esa garantía exige que el error sea siempre "de más":
+/// contar de menos (un cierre suelto que baja el contador de cero) sembraba
+/// anclas DENTRO de llamadas de código y rompía la compilación — de ahí el
+/// `.max(0)` de `consume`. Un contador que se queda alto (un `(` suelto) solo
+/// pierde anclas, que es el fallo tolerable.
 #[derive(Default)]
 struct Depth {
     open: i32,
@@ -312,7 +367,15 @@ impl Depth {
                 }
                 ('"', _) => in_string = true,
                 ('{' | '[' | '(', _) => self.open += 1,
-                ('}' | ']' | ')', _) => self.open -= 1,
+                // Un cierre de más NO puede dejar el contador por debajo de cero:
+                // un `)` suelto en texto plano ("Missing )" en una celda, una
+                // carita ":)") lo dejaba en -1, y el siguiente `#table(` lo
+                // devolvía a 0 — "nivel superior" DENTRO de la llamada. El ancla
+                // sembrada caía entre argumentos y Typst daba un error que el
+                // documento no tiene ("the character `#` is not valid in code"),
+                // repetido en cada recompilación. Hallado en /test (2026-09-19)
+                // reproduciendo el caso de un usuario del 2026-09-15.
+                ('}' | ']' | ')', _) => self.open = (self.open - 1).max(0),
                 _ => {}
             }
             index += 1;
@@ -362,6 +425,12 @@ fn replicate_file(
     if linkable {
         return Ok(());
     }
+    // Sin enlace posible, copiar un fichero enorme es lo que más cuesta: se
+    // omite (ver `MAX_COPY_BYTES`). Los `.typ`/`.bib` no pasan por aquí con
+    // tamaños así, y de todos modos siempre se copian.
+    if !must_copy(name) && fs::metadata(source).is_ok_and(|meta| meta.len() > MAX_COPY_BYTES) {
+        return Ok(());
+    }
     fs::copy(source, destination)
         .map(|_| ())
         .map_err(|error| TypstError::ExecutionFailed(error.to_string()))
@@ -402,6 +471,10 @@ fn replicate_dir(
                     budget,
                 )?;
             }
+            continue;
+        }
+        // Un `.typ` suelto solo arrastra lo que un documento Typst puede leer.
+        if !recursive && !is_flat_mode_relevant(name) {
             continue;
         }
         if *budget == 0 {
@@ -532,6 +605,132 @@ mod tests {
             fs::read_to_string(shadow.root().join("chapters/01.typ")).unwrap(),
             "= Capítulo\n"
         );
+    }
+
+    #[test]
+    fn un_parentesis_suelto_en_texto_no_siembra_anclas_dentro_de_una_llamada() {
+        // Caso real: el documento original compila, pero con un `)` suelto la
+        // réplica sembrada ponía un ancla entre los argumentos de `#table(` y
+        // Typst fallaba con un error que el usuario no podía corregir.
+        let source = "= Titulo
+
+Texto con un ) suelto aqui.
+
+#table(
+  columns: 2,
+
+  [a], [b],
+)
+
+Fin.
+";
+
+        let seeded = seed_anchors(source, "main.typ");
+
+        // La línea 8 (`[a], [b],`) está DENTRO de la llamada: sin ancla.
+        assert!(!seeded.contains("l: 8"), "ancla dentro de #table(...):
+{seeded}");
+        // Lo que sí está en nivel superior sigue anclado, antes y después.
+        assert!(seeded.contains("l: 3"), "{seeded}");
+        assert!(seeded.contains("l: 11"), "{seeded}");
+    }
+
+    #[test]
+    fn varios_cierres_sueltos_seguidos_tampoco_desincronizan_la_profundidad() {
+        let source = "Cara :) :) ]] }}
+
+#figure(
+  caption: [x],
+
+  [y],
+)
+";
+
+        let seeded = seed_anchors(source, "a.typ");
+
+        assert!(!seeded.contains("l: 6"), "{seeded}");
+    }
+
+    #[test]
+    fn un_fichero_suelto_solo_replica_lo_que_typst_puede_leer() {
+        // Descargas real: zips, ISOs y ejecutables no los lee ningún documento.
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("informe.typ"), "= Hola").unwrap();
+        fs::write(dir.path().join("logo.PNG"), b"png").unwrap();
+        fs::write(dir.path().join("datos.csv"), "a,b").unwrap();
+        fs::write(dir.path().join("instalador.exe"), b"exe").unwrap();
+        fs::write(dir.path().join("copia.zip"), b"zip").unwrap();
+        fs::write(dir.path().join("pelicula.mp4"), b"mp4").unwrap();
+
+        let shadow = build(dir.path(), true, false, None).unwrap();
+
+        assert!(shadow.root().join("informe.typ").is_file());
+        assert!(shadow.root().join("logo.PNG").is_file());
+        assert!(shadow.root().join("datos.csv").is_file());
+        assert!(!shadow.root().join("instalador.exe").exists());
+        assert!(!shadow.root().join("copia.zip").exists());
+        assert!(!shadow.root().join("pelicula.mp4").exists());
+    }
+
+    #[test]
+    fn una_carpeta_de_proyecto_si_replica_extensiones_no_listadas() {
+        // El filtro por extensión es solo del modelo de `.typ` suelto: un
+        // proyecto puede leer cualquier cosa con `read()` (p. ej. un `.cpp`).
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("main.typ"), "= Hola").unwrap();
+        fs::write(dir.path().join("prog.cpp"), "int main(){}").unwrap();
+
+        let shadow = build(dir.path(), false, false, None).unwrap();
+
+        assert!(shadow.root().join("prog.cpp").is_file());
+    }
+
+    #[test]
+    fn un_fichero_enorme_que_no_se_puede_enlazar_se_omite_en_vez_de_copiarse() {
+        // Sin enlace duro posible (otro volumen) copiar decenas de MB en cada
+        // pausa de escritura era lo que hacía tardar un minuto. Se fuerza el
+        // fallo del enlace con un destino que ya existe.
+        let dir = tempfile::tempdir().unwrap();
+        let source = dir.path().join("grande.png");
+        let destination = dir.path().join("destino.png");
+        let file = fs::File::create(&source).unwrap();
+        file.set_len(MAX_COPY_BYTES + 1).unwrap();
+        fs::write(&destination, b"previo").unwrap();
+
+        replicate_file(&source, &destination, "grande.png", Path::new("grande.png"), false).unwrap();
+
+        // Ni enlazado (ya existía) ni copiado: el destino queda como estaba.
+        assert_eq!(fs::read(&destination).unwrap(), b"previo");
+    }
+
+    #[test]
+    fn un_fichero_pequeno_que_no_se_puede_enlazar_si_se_copia() {
+        let dir = tempfile::tempdir().unwrap();
+        let source = dir.path().join("pequena.png");
+        let destination = dir.path().join("destino.png");
+        fs::write(&source, b"contenido").unwrap();
+        fs::write(&destination, b"previo").unwrap();
+
+        replicate_file(&source, &destination, "pequena.png", Path::new("pequena.png"), false).unwrap();
+
+        assert_eq!(fs::read(&destination).unwrap(), b"contenido");
+    }
+
+    #[test]
+    fn is_flat_mode_relevant_acepta_lo_que_un_documento_suele_incrustar() {
+        // Un curso de programación lee sus propios `.cpp` con `read()`; un
+        // documento estilizado trae `.csl`, un tema `.tmTheme` y quizá un plugin.
+        for name in ["prog.cpp", "estilo.csl", "oscuro.tmTheme", "lenguaje.sublime-syntax", "plugin.wasm", "script.PY"] {
+            assert!(is_flat_mode_relevant(name), "{name}");
+        }
+    }
+
+    #[test]
+    fn is_flat_mode_relevant_ignora_mayusculas_y_rechaza_lo_ajeno() {
+        assert!(is_flat_mode_relevant("Foto.JPG"));
+        assert!(is_flat_mode_relevant("refs.bib"));
+        assert!(!is_flat_mode_relevant("setup.exe"));
+        assert!(!is_flat_mode_relevant("sinextension"));
     }
 
     #[test]

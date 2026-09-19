@@ -25,7 +25,18 @@ use tauri::{AppHandle, Emitter, Manager, State, Url};
 
 use crate::commands::file_io::{has_extension, path_to_string, TYPST_EXTENSIONS};
 
-/// Primer argumento que parece un documento Typst.
+/// True si el sistema puede pedirle a la aplicación que abra `path`: una
+/// CARPETA existente (se abre como proyecto) o un fichero Typst existente.
+///
+/// Es el único criterio de aceptación de las dos vías de entrada (`argv` y
+/// Apple Events), para que no puedan divergir. Las carpetas entran para el
+/// comando de consola `typs <carpeta>` del Cask de Homebrew; `open_project` ya
+/// las trata igual que a un `.typ` suelto, así que el frontend no cambia.
+fn is_openable(path: &Path) -> bool {
+    path.is_dir() || (has_extension(&path_to_string(path), &TYPST_EXTENSIONS) && path.is_file())
+}
+
+/// Primer argumento que parece algo abrible: un documento Typst o una carpeta.
 ///
 /// Función pura sobre un iterador de argumentos —no sobre `std::env::args()`
 /// directamente— para poder testear los casos que en la práctica rompen esto:
@@ -36,11 +47,34 @@ pub fn first_document_argument<I: IntoIterator<Item = String>>(args: I) -> Optio
         .into_iter()
         .skip(1)
         .filter(|argument| !argument.starts_with('-'))
-        .find(|argument| has_extension(argument, &TYPST_EXTENSIONS) && Path::new(argument).is_file());
+        .find(|argument| is_openable(Path::new(argument)));
     found
 }
 
-/// Primer documento Typst de una lista de URLs `file://` (Apple Events de macOS).
+/// Convierte a absolutas, contra `cwd`, las rutas relativas de `args`.
+///
+/// La segunda ejecución de la aplicación no abre nada: el plugin de instancia
+/// única reenvía su `argv` a la PRIMERA, que tiene su propio directorio de
+/// trabajo. Sin esto, `typs .` o `typs tesis.typ` desde un terminal, con la app
+/// ya abierta, se resolvería contra la carpeta donde arrancó la primera vez. El
+/// argumento 0 (el ejecutable) y las banderas no se tocan; un argumento que no
+/// fuera una ruta se queda como una ruta inexistente y se descarta después.
+pub fn absolutize_arguments<I: IntoIterator<Item = String>>(args: I, cwd: &str) -> Vec<String> {
+    args.into_iter()
+        .enumerate()
+        .map(|(index, argument)| {
+            let is_relative_path = index > 0 && !argument.starts_with('-') && Path::new(&argument).is_relative();
+            if is_relative_path {
+                path_to_string(&Path::new(cwd).join(&argument))
+            } else {
+                argument
+            }
+        })
+        .collect()
+}
+
+/// Primer documento Typst o carpeta de una lista de URLs `file://` (Apple Events
+/// de macOS).
 ///
 /// Hermana de `first_document_argument` para el otro camino de entrada, con el
 /// mismo criterio de aceptación —extensión y existencia en disco— para que las
@@ -51,7 +85,7 @@ pub fn first_document_url<I: IntoIterator<Item = Url>>(urls: I) -> Option<String
     urls.into_iter()
         .filter(|url| url.scheme() == "file")
         .filter_map(|url| url.to_file_path().ok())
-        .find(|path| has_extension(&path_to_string(path), &TYPST_EXTENSIONS) && path.is_file())
+        .find(|path| is_openable(path))
         .map(|path| path_to_string(&path))
 }
 
@@ -145,6 +179,64 @@ mod tests {
         assert_eq!(resultado, None);
     }
 
+    #[test]
+    fn devuelve_una_carpeta_existente_pasada_por_argumento() {
+        // `typs .` / `typs tesis/` desde la consola: la carpeta se abre como
+        // proyecto, igual que desde el lanzador.
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().to_string_lossy().to_string();
+
+        let resultado = first_document_argument(args(&["app.exe", &path]));
+        assert_eq!(resultado, Some(path));
+    }
+
+    #[test]
+    fn descarta_una_carpeta_que_no_existe() {
+        assert_eq!(first_document_argument(args(&["app.exe", "no-existe-dbv-carpeta"])), None);
+    }
+
+    #[test]
+    fn una_carpeta_no_se_confunde_con_una_bandera() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().to_string_lossy().to_string();
+
+        let resultado = first_document_argument(args(&["app.exe", "--verbose", &path]));
+        assert_eq!(resultado, Some(path));
+    }
+
+    #[test]
+    fn absolutize_resuelve_lo_relativo_contra_el_directorio_de_trabajo() {
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join("tesis.typ");
+        std::fs::write(&file, "= Hola").unwrap();
+        let cwd = dir.path().to_string_lossy().to_string();
+
+        let absolutas = absolutize_arguments(args(&["app.exe", "tesis.typ"]), &cwd);
+
+        assert_eq!(first_document_argument(absolutas), Some(path_to_string(&file)));
+    }
+
+    #[test]
+    fn absolutize_no_toca_el_ejecutable_ni_las_banderas_ni_lo_ya_absoluto() {
+        let dir = tempfile::tempdir().unwrap();
+        let absoluta = dir.path().to_string_lossy().to_string();
+
+        let resultado = absolutize_arguments(args(&["app.exe", "--verbose", &absoluta]), "/otro/sitio");
+
+        assert_eq!(resultado, vec!["app.exe".to_string(), "--verbose".to_string(), absoluta]);
+    }
+
+    #[test]
+    fn absolutize_permite_abrir_la_carpeta_actual_con_un_punto() {
+        // `typs .` desde la carpeta del proyecto.
+        let dir = tempfile::tempdir().unwrap();
+        let cwd = dir.path().to_string_lossy().to_string();
+
+        let resultado = first_document_argument(absolutize_arguments(args(&["app.exe", "."]), &cwd));
+
+        assert!(resultado.is_some(), "la carpeta actual debe ser abrible");
+    }
+
     // ─── Apple Events (macOS) ────────────────────────────────────────────────
 
     fn escribir(dir: &Path, nombre: &str) -> std::path::PathBuf {
@@ -186,6 +278,17 @@ mod tests {
             Url::from_file_path(&file).unwrap(),
         ];
         assert_eq!(first_document_url(urls), Some(path_to_string(&file)));
+    }
+
+    #[test]
+    fn devuelve_la_carpeta_de_una_url_file() {
+        // `open -a "DBV Typst Editor" carpeta` llega como Apple Event con la URL
+        // de la carpeta.
+        let dir = tempfile::tempdir().unwrap();
+        let url = Url::from_directory_path(dir.path()).unwrap();
+
+        let resultado = first_document_url([url]).expect("una carpeta existente es abrible");
+        assert_eq!(Path::new(&resultado), dir.path());
     }
 
     #[test]

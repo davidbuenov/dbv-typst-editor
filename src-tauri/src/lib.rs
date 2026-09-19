@@ -44,11 +44,14 @@ pub fn run() {
     // proceso nuevo, pero la ruta no llega por `argv` sino por Apple Event
     // (`RunEvent::Opened`, más abajo).
     #[cfg(desktop)]
-    let builder = builder.plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
+    let builder = builder.plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
         if let Some(window) = app.get_webview_window("main") {
             let _ = window.unminimize();
             let _ = window.set_focus();
         }
+        // `cwd` es el directorio del terminal que lanzó la segunda ejecución:
+        // sin él, `typs .` se resolvería contra el de la primera instancia.
+        let argv = commands::startup::absolutize_arguments(argv, &cwd);
         if let Some(document) = commands::startup::first_document_argument(argv) {
             let _ = app.emit("open-document", document);
         }

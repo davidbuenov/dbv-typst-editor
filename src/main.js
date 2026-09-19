@@ -428,7 +428,10 @@ async function bootstrap() {
       lspStatusEl.setAttribute('data-status', status);
       if (status === 'ready') {
         lspStatusEl.textContent = '● Tinymist LSP';
-        lspStatusEl.title = 'Language Server Tinymist activo';
+        lspStatusEl.title = 'Language Server Tinymist activo. Pulsa para desactivarlo';
+      } else if (status === 'idle') {
+        lspStatusEl.textContent = '○ Activar Tinymist';
+        lspStatusEl.title = 'Tinymist está desactivado (autocompletado, hover y formateo). Pulsa para activarlo';
       } else if (status === 'starting') {
         lspStatusEl.textContent = '○ Conectando LSP...';
         lspStatusEl.title = 'Iniciando Language Server Tinymist...';
@@ -440,8 +443,11 @@ async function bootstrap() {
   };
 
   lspStatusEl?.addEventListener('click', () => {
-    if (currentLspStatus === 'ready') {
-      toast.show('Tinymist LSP activo: autocompletado en vivo (#, @, <), hover con documentación y formateo con Typstyle (Shift+Alt+F)');
+    if (currentLspStatus === 'idle') {
+      lspClient.enable();
+    } else if (currentLspStatus === 'ready') {
+      lspClient.disable();
+      toast.show('Tinymist desactivado. Pulsa la insignia para volver a activarlo.');
     } else if (currentLspStatus === 'starting') {
       toast.show('Tinymist LSP está iniciando...', 'info');
     } else if (currentLspStatus === 'error') {
@@ -456,6 +462,7 @@ async function bootstrap() {
 
   const tree = createProjectTree(el('project-tree'), {
     onOpenFile: (path) => workspace.openDocument(path),
+    onSetEntrypoint: (path) => applyEntrypoint(path),
   });
 
   // Nuevo fichero .typ en la raíz del proyecto: el hueco real que destapó
@@ -571,6 +578,7 @@ async function bootstrap() {
       projectMenuItems: [
         el('btn-save'),
         el('btn-save-as'),
+        el('btn-set-entrypoint'),
         el('btn-export-pdf'),
         el('btn-export-png'),
         el('btn-export-archive'),
@@ -1162,6 +1170,21 @@ async function bootstrap() {
     preview.restart();
     outline.restart();
   });
+  el('btn-set-entrypoint').addEventListener('click', () => applyEntrypoint());
+
+  /** Fija el documento principal (por defecto el abierto) y recompila con él. */
+  function applyEntrypoint(path) {
+    const entrypoint = workspace.setEntrypoint(path);
+    if (!entrypoint) {
+      toast.show(t('project.entrypointInvalid'), 'error');
+      return;
+    }
+    toast.show(t('project.entrypointSet').replace('{name}', entrypoint));
+    refreshPreviewControls();
+    lastTargetDocument = workspace.getCompileTarget()?.document ?? null;
+    preview.restart();
+    outline.restart();
+  }
   refreshModeButton.addEventListener('click', () => {
     preview.toggleRefreshMode();
     refreshPreviewControls();

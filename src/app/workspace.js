@@ -32,6 +32,7 @@ import { figureActionForPath } from '../editor/toolbarActions.js';
 import { posFromLsp } from '../editor/lspClient.js';
 import { t } from '../i18n/i18n.js';
 import { getTheme } from '../themes/theme.js';
+import { readStoredEntrypoint, resolveEntrypoint, storeEntrypoint } from './entrypoint.js';
 import { isTypstPath, joinPath, relativeToRoot } from './paths.js';
 import { buildCompileTarget, hasRootDocument } from './compileTarget.js';
 import {
@@ -432,6 +433,12 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     }
 
     state.project = result.value;
+    // El documento principal elegido a mano manda sobre la heurística, si el
+    // fichero sigue existiendo (se comprueba: pudo borrarse o renombrarse).
+    const storedEntrypoint = state.project.isSingleFile ? null : readStoredEntrypoint(state.project.root);
+    if (storedEntrypoint && (await fileModifiedMs(joinPath(state.project.root, storedEntrypoint))).ok) {
+      state.project = { ...state.project, entrypoint: storedEntrypoint };
+    }
     state.document = null;
     state.dirty = false;
     state.previewDocument = null;
@@ -439,6 +446,12 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     renderProjectBar();
     renderDocumentBar();
 
+    // Antes de pintar el árbol: las filas se etiquetan al construirse.
+    tree.setEntrypointPath(
+      state.project.entrypoint && !state.project.isSingleFile
+        ? joinPath(state.project.root, state.project.entrypoint)
+        : null,
+    );
     await tree.setRoot(state.project.root, { force: true });
     // Un `.typ` suelto se reabre por su fichero, no por su carpeta; el separador
     // lo pone `joinPath`, que respeta el de la plataforma.
@@ -448,7 +461,9 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
         ? joinPath(state.project.root, state.project.entrypoint)
         : state.project.root,
     });
-    lspClient?.start(state.project.root).catch(console.error);
+    // Tinymist ya no arranca aquí: `openDocument` lo hace si el documento es
+    // pequeño, o el usuario desde la insignia si no (ver `LSP_AUTOSTART_MAX_CHARS`).
+    lspClient?.setProjectRoot(state.project.root).catch(console.error);
     listeners.projectOpened?.(state.project);
 
     if (state.project.entrypoint) {
@@ -826,6 +841,30 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
       }
       return state.previewScope;
     },
+    /**
+     * Marca un `.typ` (por defecto el abierto) como documento principal del
+     * proyecto. Devuelve su ruta relativa, o `null` si no se puede (sin
+     * proyecto, un `.typ` suelto, o no es un `.typ` de dentro del proyecto).
+     */
+    setEntrypoint(targetPath) {
+      const project = state.project;
+      const relative = resolveEntrypoint(project, targetPath ?? state.document?.path);
+      if (!relative) return null;
+      state.project = { ...project, entrypoint: relative };
+      // Al fijar el principal, el alcance vuelve a "documento": es lo que se
+      // pretende al elegirlo.
+      state.previewScope = 'document';
+      storeEntrypoint(project.root, relative);
+      try {
+        localStorage.setItem(scopeKey(project.root), 'document');
+      } catch {
+        // Sin almacenamiento vale solo para esta sesión.
+      }
+      tree.setEntrypointPath(joinPath(project.root, relative));
+      return relative;
+    },
+    /** Documento principal vigente del proyecto (ruta relativa), o `null`. */
+    getEntrypoint: () => state.project?.entrypoint ?? null,
     /** True si el proyecto tiene un documento raíz distinto del fichero abierto. */
     hasRootDocument: () => hasRootDocument(state.project),
     suggestedPngName(page) {

@@ -158,6 +158,31 @@ impl EngineWorld {
         Ok(())
     }
 
+    /// Deja como únicas sustituciones las de `entries` (el conjunto COMPLETO de lo
+    /// que el editor tiene sin guardar): lo que ya no aparece deja de estar
+    /// sustituido, y lo que sigue reutiliza su `Source` para no perder la caché
+    /// incremental. Las rutas de fuera del proyecto se ignoran.
+    pub fn replace_overrides(&self, entries: &[(PathBuf, String)]) {
+        let wanted: HashMap<FileId, &str> = entries
+            .iter()
+            .filter_map(|(path, text)| Some((self.id_of(path).ok()?, text.as_str())))
+            .collect();
+        let Ok(mut overrides) = self.overrides.write() else {
+            return;
+        };
+        overrides.retain(|id, _| wanted.contains_key(id));
+        for (id, text) in wanted {
+            match overrides.get_mut(&id) {
+                Some(source) => {
+                    source.replace(text);
+                }
+                None => {
+                    overrides.insert(id, Source::new(id, text.to_string()));
+                }
+            }
+        }
+    }
+
     /// Retira la sustitución de un fichero (el editor lo guardó o lo descartó).
     pub fn clear_override(&self, path: &Path) -> Result<(), EngineError> {
         let id = self.id_of(path)?;
@@ -373,6 +398,38 @@ mod tests {
         world.set_override(&main, "A.\n#pagebreak()\nB.\n#pagebreak()\nC.").unwrap();
 
         assert_eq!(compile(&world).unwrap().pages().len(), 3);
+    }
+
+    #[test]
+    fn replace_overrides_deja_solo_el_conjunto_pedido() {
+        let dir = project(&[("main.typ", "#include \"a.typ\"
+#include \"b.typ\""), ("a.typ", "A."), ("b.typ", "B.")]);
+        let world = EngineWorld::new(dir.path(), &dir.path().join("main.typ")).unwrap();
+        let (a, b) = (dir.path().join("a.typ"), dir.path().join("b.typ"));
+
+        world.replace_overrides(&[(a.clone(), "A.
+#pagebreak()
+A2.".into()), (b.clone(), "B.
+#pagebreak()
+B2.".into())]);
+        assert_eq!(compile(&world).unwrap().pages().len(), 3);
+        // El editor guardó b.typ: solo a.typ sigue sin guardar.
+        world.replace_overrides(&[(a, "A.
+#pagebreak()
+A2.".into())]);
+
+        assert_eq!(compile(&world).unwrap().pages().len(), 2);
+    }
+
+    #[test]
+    fn replace_overrides_ignora_las_rutas_de_fuera_del_proyecto() {
+        let dir = project(&[("main.typ", "Una.")]);
+        let otro = project(&[("otro.typ", "y")]);
+        let world = EngineWorld::new(dir.path(), &dir.path().join("main.typ")).unwrap();
+
+        world.replace_overrides(&[(otro.path().join("otro.typ"), "z".into())]);
+
+        assert_eq!(compile(&world).unwrap().pages().len(), 1);
     }
 
     #[test]

@@ -17,6 +17,8 @@
 //   · `map`      — el mapa glifo → fuente y sus dos consultas.
 //   · `diagnostics` — errores y avisos como rangos por fichero.
 
+pub mod pages;
+pub mod worker;
 pub mod world;
 
 /// Versión de Typst con la que se compila este motor. Es la MISMA que la del

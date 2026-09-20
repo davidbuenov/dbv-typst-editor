@@ -61,6 +61,17 @@ ureq = { version = "3", features = ["json"] }
 # de verdad (ADR-BIBLIOGRAFIA-001, memory.md).
 hayagriva = "0.10.1"
 
+# v0.9.0 (ADR-MOTOR-001): motor de vista previa EN PROCESO. Typst como librería, con
+# versiones EXACTAS iguales a las del sidecar vendorizado (`scripts/vendor-typst.mjs`):
+# es la condición para que la imagen coincida con la exportación del CLI. Una
+# prueba (`engine::tests`) falla si dejan de coincidir. Licencia Apache-2.0: se
+# conservan los avisos.
+typst = "=0.15.1"
+typst-ide = "=0.15.1"
+typst-layout = "=0.15.1"
+typst-svg = "=0.15.1"
+typst-kit = { version = "=0.15.1", default-features = false, features = ["datetime", "embedded-fonts", "scan-fonts", "system-files"] }
+
 # Beta: menú nativo de macOS (macos_menu.rs) — dependencia exclusiva de esa
 # plataforma (`[target...]`, no una feature): en Windows/Linux ni siquiera se
 # resuelve, coherente con que el propio módulo está `#[cfg(target_os = "macos")]`.

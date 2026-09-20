@@ -14,6 +14,7 @@ pub mod assets;
 pub mod bibliography;
 pub mod commands;
 pub mod error;
+pub mod engine;
 #[cfg(target_os = "macos")]
 pub mod macos_menu;
 pub mod platform;

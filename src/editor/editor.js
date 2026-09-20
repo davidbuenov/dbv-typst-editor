@@ -32,11 +32,14 @@ import {
 } from '@codemirror/commands';
 import {
   bracketMatching,
+  defaultHighlightStyle,
   foldGutter,
   foldKeymap,
   indentOnInput,
   syntaxHighlighting,
 } from '@codemirror/language';
+import { isTypstPath } from '../app/paths.js';
+import { detectLanguage, loadLanguageExtension } from './languageSupport.js';
 import { highlightSelectionMatches, search, searchKeymap } from '@codemirror/search';
 import { Compartment, EditorState } from '@codemirror/state';
 import {
@@ -145,6 +148,7 @@ function buildTheme(isDark) {
  * @param {import('@codemirror/state').Compartment} deps.themeCompartment
  * @param {import('@codemirror/state').Compartment} deps.readOnlyCompartment
  * @param {import('@codemirror/state').Compartment} deps.historyCompartment
+ * @param {import('@codemirror/state').Compartment} deps.languageCompartment Lenguaje del fichero abierto (RF-60).
  * @param {import('@codemirror/state').Extension} deps.saveKeymap
  * @param {import('@codemirror/state').Extension} deps.updateListener
  * @param {boolean} deps.isDark
@@ -154,6 +158,7 @@ export function buildExtensions({
   themeCompartment,
   readOnlyCompartment,
   historyCompartment,
+  languageCompartment,
   saveKeymap,
   updateListener,
   isDark,
@@ -197,8 +202,11 @@ export function buildExtensions({
     autocompleteExt,
     lintGutter(),
     EditorView.lineWrapping,
-    typst_lezer(),
+    languageCompartment.of(typst_lezer()),
     syntaxHighlighting(TypstHighlightSytle),
+    // Para los ficheros de código (RF-60): donde el estilo de Typst no define un
+    // color, se usa el de siempre.
+    syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
     // `typstLezerListKeymap` NO es un array de atajos: el paquete lo exporta ya
     // como extensión con su propia precedencia, así que va suelto en la lista y
     // no dentro de un `keymap.of([...])`. Continúa las listas de Typst al pulsar
@@ -254,8 +262,18 @@ export function createEditor(
   // cambiar de fichero deshace hasta el texto del documento anterior y lo
   // escribe encima del nuevo — una forma silenciosa de destruir trabajo.
   const historyCompartment = new Compartment();
+  // Lenguaje del fichero abierto (RF-60): Typst, un paquete de código o nada.
+  const languageCompartment = new Compartment();
 
   let currentPath = null;
+  // Cada apertura invalida la carga de lenguaje anterior: si el usuario cambia de
+  // fichero antes de que llegue el paquete, el resaltado tardío no debe pisar al nuevo.
+  let languageToken = 0;
+  // Tinymist solo entiende Typst: con un `.cpp` delante se le apaga el editor,
+  // o devolvería completados y hovers del documento Typst anterior.
+  const typstOnlyLsp = lspClient
+    ? { ...lspClient, isActive: () => lspClient.isActive() && isTypstPath(currentPath) }
+    : undefined;
   // Distingue "el usuario ha escrito" de "hemos cargado un documento": sin esta
   // bandera, abrir un fichero lo marcaría inmediatamente como modificado.
   let loading = false;
@@ -279,14 +297,15 @@ export function createEditor(
         themeCompartment,
         readOnlyCompartment,
         historyCompartment,
+        languageCompartment,
         saveKeymap,
         isDark: theme === 'dark',
-        lspClient,
+        lspClient: typstOnlyLsp,
         updateListener: EditorView.updateListener.of((update) => {
           if (loading) return;
           if (update.docChanged) {
             const text = update.state.doc.toString();
-            lspClient?.changeDocument(text);
+            if (isTypstPath(currentPath)) lspClient?.changeDocument(text);
             onChanges?.(update.changes);
             onChange?.(text);
           }
@@ -295,6 +314,23 @@ export function createEditor(
       }),
     }),
   });
+
+  /** Pone el resaltado del fichero: el de Typst al momento, el de código cuando llegue su paquete. */
+  function applyLanguage(path) {
+    languageToken += 1;
+    const token = languageToken;
+    const language = detectLanguage(path);
+    if (language.kind === 'typst') {
+      view.dispatch({ effects: languageCompartment.reconfigure(typst_lezer()) });
+      return;
+    }
+    view.dispatch({ effects: languageCompartment.reconfigure([]) });
+    loadLanguageExtension(language).then((extension) => {
+      if (extension && token === languageToken) {
+        view.dispatch({ effects: languageCompartment.reconfigure(extension) });
+      }
+    });
+  }
 
   return {
     /** Carga un documento sin disparar `onChange` ni conservar el historial. */
@@ -310,7 +346,8 @@ export function createEditor(
       view.dispatch({ effects: historyCompartment.reconfigure([]) });
       view.dispatch({ effects: historyCompartment.reconfigure(history()) });
       currentPath = path ?? null;
-      lspClient?.openDocument(currentPath, content);
+      if (isTypstPath(currentPath)) lspClient?.openDocument(currentPath, content);
+      applyLanguage(currentPath);
       loading = false;
     },
     formatDocument: () => lspClient?.formatDocument(view),

@@ -30,6 +30,7 @@ import { createDotEditor } from '../editor/dotEditor.js';
 import { createToolbar } from '../editor/toolbar.js';
 import { figureActionForPath } from '../editor/toolbarActions.js';
 import { posFromLsp } from '../editor/lspClient.js';
+import { detectLanguage } from '../editor/languageSupport.js';
 import { mergeDiagnostics, toEditorDiagnostics } from '../editor/diagnosticsModel.js';
 import { revealAndFlash, revealRangeAndFlash } from '../editor/syncFlash.js';
 import { t } from '../i18n/i18n.js';
@@ -336,6 +337,15 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     elements.documentName.textContent = hasDocument ? state.document.fileName : '—';
     elements.documentDirty.classList.toggle('hidden', !state.dirty);
     elements.documentPath.textContent = hasDocument ? state.document.path : '';
+
+    // Insignia del lenguaje (RF-60.5): solo para lo que no es Typst, que es
+    // lo que el usuario da por supuesto en esta aplicación.
+    if (elements.documentLanguage) {
+      const language = hasDocument ? detectLanguage(state.document.path) : null;
+      const show = language !== null && language.kind !== 'typst';
+      elements.documentLanguage.classList.toggle('hidden', !show);
+      elements.documentLanguage.textContent = show ? language.name : '';
+    }
 
     // RF-26.10, a observación del usuario: un paquete se importa EN el documento
     // abierto, así que sin documento la única acción posible del panel acaba en

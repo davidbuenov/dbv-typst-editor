@@ -27,7 +27,23 @@ pub const TYPST_EXTENSIONS: [&str; 1] = ["typ"];
 
 /// Ficheros del proyecto que se muestran como editables aunque no sean `.typ`
 /// (bibliografía y configuración que el usuario sí toca a mano).
-pub const COMPANION_EXTENSIONS: [&str; 3] = ["bib", "toml", "yml"];
+pub const COMPANION_EXTENSIONS: &[&str] = &[
+    // Bibliografía y configuración del proyecto.
+    "bib", "toml", "yml", "yaml", "json", "csv", "tsv", "txt", "md", "xml", "ini", "cfg",
+    // Código que un documento suele incrustar con `read()` o `raw()` (RF-60).
+    "c", "h", "cpp", "hpp", "cc", "cs", "java", "kt", "py", "rs", "go", "js", "ts", "tsx", "jsx",
+    "rb", "php", "swift", "sh", "bash", "ps1", "sql", "lua", "r", "html", "css", "scss", "tex",
+    "log", "bat", "pl",
+];
+
+/// Tamaño máximo de un fichero de texto que se abre en el editor. Por encima, un
+/// editor de texto en pantalla se vuelve inservible y casi seguro no es texto.
+pub const MAX_TEXT_BYTES: u64 = 5 * 1024 * 1024;
+
+/// Cuántos bytes iniciales se miran buscando un NUL para decidir si es binario.
+const BINARY_SNIFF_BYTES: usize = 8 * 1024;
+
+const UTF8_BOM: &[u8] = &[0xEF, 0xBB, 0xBF];
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -179,6 +195,71 @@ pub fn reveal_command(path: &str, is_dir: bool) -> (&'static str, Vec<String>) {
     ("xdg-open", vec![target])
 }
 
+fn is_typst_path(path: &Path) -> bool {
+    path.file_name().is_some_and(|name| has_extension(&name.to_string_lossy(), &TYPST_EXTENSIONS))
+}
+
+fn too_large(size: u64) -> AppError {
+    AppError::Denied(format!(
+        "El fichero pesa {:.1} MB y el editor solo abre ficheros de texto de hasta {} MB.",
+        size as f64 / 1_048_576.0,
+        MAX_TEXT_BYTES / 1_048_576
+    ))
+}
+
+/// Decodifica los bytes de un fichero de texto que NO es Typst (RF-60): rechaza lo
+/// demasiado grande, lo binario (un NUL al principio) y lo que no es UTF-8 — abrirlo
+/// "con pérdida" y guardarlo destrozaría el original en silencio. Quita el BOM UTF-8
+/// para que no aparezca como un carácter invisible en el editor.
+pub fn decode_text(bytes: &[u8]) -> Result<String, AppError> {
+    if bytes.len() as u64 > MAX_TEXT_BYTES {
+        return Err(too_large(bytes.len() as u64));
+    }
+    if bytes.iter().take(BINARY_SNIFF_BYTES).any(|&b| b == 0) {
+        return Err(AppError::Denied(
+            "El fichero parece binario (contiene bytes nulos): no se abre como texto.".into(),
+        ));
+    }
+    let body = bytes.strip_prefix(UTF8_BOM).unwrap_or(bytes);
+    String::from_utf8(body.to_vec()).map_err(|_| {
+        AppError::Denied("El fichero no está en UTF-8: abrirlo y guardarlo lo estropearía.".into())
+    })
+}
+
+fn read_text_guarded(path: &Path) -> Result<String, AppError> {
+    // Se mira el tamaño antes de leer: un fichero enorme no se carga en memoria.
+    let size = fs::metadata(path).map_err(|e| AppError::Io(e.to_string()))?.len();
+    if size > MAX_TEXT_BYTES {
+        return Err(too_large(size));
+    }
+    decode_text(&fs::read(path).map_err(|e| AppError::Io(e.to_string()))?)
+}
+
+/// Devuelve `content` con el formato del fichero que ya hay en `path` (RF-60.2):
+/// si tenía BOM UTF-8 o saltos CRLF, se conservan al guardar, para que abrir y
+/// guardar un fichero ajeno no reescriba todas sus líneas. El editor trabaja
+/// siempre con `\n`. Solo se aplica a lo que no es Typst.
+pub fn with_original_format(path: &Path, content: &str) -> String {
+    if is_typst_path(path) {
+        return content.to_string();
+    }
+    let Ok(existing) = fs::read(path) else { return content.to_string() };
+    if existing.len() as u64 > MAX_TEXT_BYTES {
+        return content.to_string();
+    }
+    let crlf = existing.windows(2).filter(|w| *w == b"\r\n").count();
+    let lf_only = existing.iter().filter(|&&b| b == b'\n').count().saturating_sub(crlf);
+    let mut out = if crlf > lf_only && !content.contains('\r') {
+        content.replace('\n', "\r\n")
+    } else {
+        content.to_string()
+    };
+    if existing.starts_with(UTF8_BOM) {
+        out.insert(0, '\u{FEFF}');
+    }
+    out
+}
+
 /// Lee un fichero de texto del proyecto.
 #[tauri::command]
 pub fn read_file(path: String) -> Result<FilePayload, AppError> {
@@ -188,7 +269,11 @@ pub fn read_file(path: String) -> Result<FilePayload, AppError> {
     }
 
     let canonical = dunce::canonicalize(&path_buf).map_err(|e| AppError::Io(e.to_string()))?;
-    let content = fs::read_to_string(&canonical).map_err(|e| AppError::Io(e.to_string()))?;
+    let content = if is_typst_path(&canonical) {
+        fs::read_to_string(&canonical).map_err(|e| AppError::Io(e.to_string()))?
+    } else {
+        read_text_guarded(&canonical)?
+    };
 
     let payload = FilePayload {
         file_name: canonical
@@ -263,6 +348,7 @@ pub fn write_file(path: String, content: String) -> Result<u64, AppError> {
         return Err(AppError::InvalidPath(path));
     }
 
+    let content = with_original_format(&path_buf, &content);
     write_atomic(&path_buf, &content).map_err(|e| AppError::Io(e.to_string()))?;
     Ok(modified_ms(&path_buf))
 }
@@ -493,5 +579,88 @@ mod tests {
             .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
             .collect();
         assert_eq!(entries, vec!["documento.typ".to_string()]);
+    }
+
+    #[test]
+    fn los_ficheros_de_codigo_pedidos_son_editables_y_los_binarios_no() {
+        for name in ["main.cpp", "Main.java", "script.py", "lib.h", "notas.txt", "datos.json", "A.CPP"] {
+            assert!(has_extension(name, COMPANION_EXTENSIONS), "{name} debería ser editable");
+        }
+        for name in ["logo.png", "manual.pdf", "app.exe", "libro.zip", "fuente.ttf"] {
+            assert!(!has_extension(name, COMPANION_EXTENSIONS), "{name} no debería ser editable");
+        }
+    }
+
+    #[test]
+    fn decode_text_acepta_utf8_y_quita_el_bom() {
+        assert_eq!(decode_text("hola ñ".as_bytes()).unwrap(), "hola ñ");
+        assert_eq!(decode_text(b"\xEF\xBB\xBFabc").unwrap(), "abc");
+    }
+
+    #[test]
+    fn decode_text_rechaza_binario_no_utf8_y_demasiado_grande() {
+        assert!(matches!(decode_text(b"ab\0cd"), Err(AppError::Denied(m)) if m.contains("binario")));
+        assert!(matches!(decode_text(&[0xC3, 0x28]), Err(AppError::Denied(m)) if m.contains("UTF-8")));
+        let big = vec![b'a'; (MAX_TEXT_BYTES + 1) as usize];
+        assert!(matches!(decode_text(&big), Err(AppError::Denied(m)) if m.contains("MB")));
+    }
+
+    #[test]
+    fn read_file_de_codigo_aplica_las_guardas_y_typst_no_cambia() {
+        let dir = tempfile::tempdir().unwrap();
+        let bin = dir.path().join("dato.cpp");
+        fs::write(&bin, b"int\0main").unwrap();
+        assert!(matches!(read_file(path_to_string(&bin)), Err(AppError::Denied(_))));
+
+        let ok = dir.path().join("a.cpp");
+        fs::write(&ok, b"\xEF\xBB\xBFint main() {}\r\n").unwrap();
+        assert_eq!(read_file(path_to_string(&ok)).unwrap().content, "int main() {}\r\n");
+
+        let typ = dir.path().join("a.typ");
+        fs::write(&typ, "\u{FEFF}= T").unwrap();
+        assert_eq!(read_file(path_to_string(&typ)).unwrap().content, "\u{FEFF}= T");
+    }
+
+    #[test]
+    fn guardar_conserva_crlf_y_bom_del_original_en_ficheros_que_no_son_typst() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("a.cpp");
+        fs::write(&path, b"\xEF\xBB\xBFuno\r\ndos\r\n").unwrap();
+
+        write_file(path_to_string(&path), "uno\ndos\ntres\n".into()).unwrap();
+
+        assert_eq!(fs::read(&path).unwrap(), b"\xEF\xBB\xBFuno\r\ndos\r\ntres\r\n");
+    }
+
+    #[test]
+    fn guardar_no_inventa_crlf_ni_bom_en_un_fichero_lf() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("a.py");
+        fs::write(&path, "uno\ndos\n").unwrap();
+
+        write_file(path_to_string(&path), "uno\ndos\ntres\n".into()).unwrap();
+
+        assert_eq!(fs::read(&path).unwrap(), b"uno\ndos\ntres\n");
+    }
+
+    #[test]
+    fn un_fichero_nuevo_se_guarda_tal_cual() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("nuevo.cpp");
+
+        write_file(path_to_string(&path), "a\nb\n".into()).unwrap();
+
+        assert_eq!(fs::read(&path).unwrap(), b"a\nb\n");
+    }
+
+    #[test]
+    fn un_fichero_typst_no_se_convierte_al_guardar() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("a.typ");
+        fs::write(&path, "uno\r\ndos\r\n").unwrap();
+
+        write_file(path_to_string(&path), "uno\ndos\n".into()).unwrap();
+
+        assert_eq!(fs::read(&path).unwrap(), b"uno\ndos\n");
     }
 }

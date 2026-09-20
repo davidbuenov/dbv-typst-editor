@@ -569,6 +569,7 @@ async function bootstrap() {
       documentName: el('document-name'),
       documentDirty: el('document-dirty'),
       documentPath: el('document-path'),
+      documentLanguage: el('document-language'),
       projectName: el('project-name'),
       projectKind: el('project-kind'),
       projectActions: el('project-actions'),

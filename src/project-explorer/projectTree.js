@@ -118,6 +118,11 @@ export function createProjectTree(containerEl, { onOpenFile, onSetEntrypoint } =
     if (entry.isTypst && !entry.isDir && !sameFile(entry.path, entrypointPath) && onSetEntrypoint) {
       addItem(t('action.setEntrypoint'), () => onSetEntrypoint(entry.path));
     }
+    // RF-60.6: un fichero que la aplicación no reconoce como texto se puede abrir
+    // igualmente como texto plano; las guardas de lectura rechazan lo binario.
+    if (!entry.isDir && !entry.isEditable && onOpenFile) {
+      addItem(t('action.openAsText'), () => onOpenFile(entry.path));
+    }
     addItem(t('action.reveal'), () => revealInFileManager(entry.path));
 
     document.body.append(menu);

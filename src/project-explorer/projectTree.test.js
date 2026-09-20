@@ -116,3 +116,38 @@ describe('documento principal en el árbol', () => {
     expect(document.querySelector('.tree-context-menu')).toBeNull();
   });
 });
+
+describe('"Abrir como texto" (RF-60.6)', () => {
+  let container;
+  let onOpenFile;
+
+  beforeEach(async () => {
+    document.body.innerHTML = '<div id="tree"></div>';
+    container = document.getElementById('tree');
+    listDirectory.mockReset().mockResolvedValue({
+      ok: true,
+      value: [entry('main.typ'), entry('sim.cpp'), entry('datos.zzz', { isEditable: false }), entry('logo.png', { isEditable: false })],
+    });
+    onOpenFile = vi.fn();
+    const tree = createProjectTree(container, { onOpenFile, onSetEntrypoint: vi.fn() });
+    await tree.setRoot(win());
+    await settle();
+  });
+
+  const menuLabels = (name) => {
+    rowOf(container, name).dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+    return [...document.querySelectorAll('.tree-context-menu .menu-item')];
+  };
+
+  it('un fichero que no se reconoce como texto lo ofrece y lo abre', () => {
+    const items = menuLabels('datos.zzz');
+
+    expect(items).toHaveLength(2);
+    items[0].click();
+    expect(onOpenFile).toHaveBeenCalledWith(win('datos.zzz'));
+  });
+
+  it('un fichero que ya es editable (código, texto) no lo ofrece: se abre con un clic', () => {
+    expect(menuLabels('sim.cpp')).toHaveLength(1);
+  });
+});

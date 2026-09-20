@@ -234,7 +234,7 @@ impl InProcEngine {
     ) -> Attempt {
         let receiver = match self.submit(target, generation) {
             Ok(receiver) => receiver,
-            Err(reason) => return Attempt::Fallback { reason, sticky: false },
+            Err(reason) => return self.fallback(reason, false),
         };
 
         let result = match tokio::time::timeout(COMPILE_TIMEOUT, receiver).await {
@@ -294,7 +294,15 @@ impl InProcEngine {
     fn disable(&self, reason: String) -> Attempt {
         *lock(&self.disabled) = Some(reason.clone());
         *lock(&self.active) = None;
-        Attempt::Fallback { reason, sticky: true }
+        self.fallback(reason, true)
+    }
+
+    /// Pide el motor clásico. Los diagnósticos del motor rápido dejan de valer: si
+    /// la compilación clásica falla, la interfaz no debe seguir enseñando errores
+    /// de una compilación anterior que ya no corresponde a lo que hay en pantalla.
+    fn fallback(&self, reason: String, sticky: bool) -> Attempt {
+        *lock(&self.diagnostics) = (0, Vec::new());
+        Attempt::Fallback { reason, sticky }
     }
 
     fn handle(&self, result: CompileResult, first_page: usize, window: usize) -> Attempt {
@@ -328,7 +336,7 @@ impl InProcEngine {
                 // Un paquete sin descargar no es un fallo del documento ni del
                 // motor: solo esta compilación pasa al clásico, que sí descarga.
                 if errors.iter().any(|error| error.message.contains("el motor en proceso no descarga paquetes")) {
-                    return Attempt::Fallback { reason: "paquete de Typst Universe sin descargar".into(), sticky: false };
+                    return self.fallback("paquete de Typst Universe sin descargar".into(), false);
                 }
                 let message = diagnostics
                     .iter()
@@ -491,6 +499,20 @@ mod tests {
         target.dirty_content = None;
         let Attempt::Done(saved) = run(&engine, &target, 3) else { panic!("debía compilar") };
         assert_eq!(saved.geometry.len(), 2);
+    }
+
+    #[test]
+    fn un_respaldo_al_clasico_borra_los_diagnosticos_del_motor_rapido() {
+        let (dir, target) = project(&[("main.typ", "Texto #no-existe fin.")]);
+        let engine = enabled();
+        let Attempt::Failed { .. } = run(&engine, &target, 1) else { panic!("debía fallar el documento") };
+        assert!(!engine.last_diagnostics().1.is_empty());
+
+        // Un paquete que el motor no descarga pasa esta compilación al clásico.
+        fs::write(dir.path().join("main.typ"), "#import \"@preview/cetz-inexistente:0.0.1\": *").unwrap();
+        let Attempt::Fallback { .. } = run(&engine, &target, 2) else { panic!("debía pedir respaldo") };
+
+        assert!(engine.last_diagnostics().1.is_empty(), "no deben quedar errores de la compilación anterior");
     }
 
     #[test]

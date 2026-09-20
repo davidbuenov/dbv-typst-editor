@@ -73,6 +73,22 @@ export const syncFlashField = StateField.define({
 
 const timers = new WeakMap();
 
+/** Retira la marca pasado `durationMs`; una marca nueva reinicia la cuenta. */
+function scheduleClear(view, durationMs) {
+  clearTimeout(timers.get(view));
+  timers.set(
+    view,
+    setTimeout(() => {
+      // El editor pudo destruirse (cambio de proyecto) antes de que venciera.
+      try {
+        view.dispatch({ effects: flashEffect.of(null) });
+      } catch {
+        // Sin editor vivo no hay marca que retirar.
+      }
+    }, durationMs)
+  );
+}
+
 /**
  * Lleva el cursor a la línea, la centra en pantalla y marca su bloque unos
  * segundos. Una segunda llamada sustituye a la marca anterior.
@@ -90,18 +106,7 @@ export function revealAndFlash(view, lineNumber, durationMs = FLASH_DURATION_MS)
     effects: [EditorView.scrollIntoView(position, { y: 'center' }), flashEffect.of({ from, to })],
   });
 
-  clearTimeout(timers.get(view));
-  timers.set(
-    view,
-    setTimeout(() => {
-      // El editor pudo destruirse (cambio de proyecto) antes de que venciera.
-      try {
-        view.dispatch({ effects: flashEffect.of(null) });
-      } catch {
-        // Sin editor vivo no hay marca que retirar.
-      }
-    }, durationMs)
-  );
+  scheduleClear(view, durationMs);
 }
 
 /**
@@ -125,15 +130,5 @@ export function revealRangeAndFlash(view, from, to, durationMs = FLASH_DURATION_
     effects: [EditorView.scrollIntoView(start, { y: 'center' }), flashEffect.of({ range: { from: start, to: end } })],
   });
 
-  clearTimeout(timers.get(view));
-  timers.set(
-    view,
-    setTimeout(() => {
-      try {
-        view.dispatch({ effects: flashEffect.of(null) });
-      } catch {
-        // Sin editor vivo no hay marca que retirar.
-      }
-    }, durationMs)
-  );
+  scheduleClear(view, durationMs);
 }

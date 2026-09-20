@@ -1,0 +1,22 @@
+# Spike S-3 — sincronización EXACTA con la API oficial de Typst (typst-ide).
+# Crate INDEPENDIENTE a propósito (igual que los otros spikes): no forma parte del
+# workspace de la aplicación y NO se compila con ella. Es una herramienta de
+# investigación: mide si `jump_from_click` / `jump_from_cursor` dan, sobre un
+# proyecto real, la precisión que las anclas de `shadow.rs` no pueden dar.
+[package]
+name = "dbv-typst-jump-spike"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# Versiones fijadas a la del sidecar vendorizado (typst 0.15.1): es la condición
+# para que la maquetación de aquí coincida con las páginas SVG que se ven.
+[dependencies]
+typst = "=0.15.1"
+typst-ide = "=0.15.1"
+typst-layout = "=0.15.1"
+typst-svg = "=0.15.1"
+typst-kit = { version = "=0.15.1", default-features = false, features = ["datetime", "embedded-fonts", "scan-fonts", "system-files"] }
+
+[profile.release]
+opt-level = 3

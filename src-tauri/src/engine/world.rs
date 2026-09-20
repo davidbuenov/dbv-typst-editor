@@ -183,6 +183,14 @@ impl EngineWorld {
         }
     }
 
+    /// Copia de las sustituciones vigentes (`Source` es barato de clonar y una
+    /// copia no cambia aunque se reemplace el contenido después). Es lo que permite
+    /// consultar el mapa de una generación contra el texto con el que se compiló,
+    /// aunque ya haya llegado otra petición.
+    pub fn override_snapshot(&self) -> HashMap<FileId, Source> {
+        self.overrides.read().map(|overrides| overrides.clone()).unwrap_or_default()
+    }
+
     /// Retira la sustitución de un fichero (el editor lo guardó o lo descartó).
     pub fn clear_override(&self, path: &Path) -> Result<(), EngineError> {
         let id = self.id_of(path)?;

@@ -17,9 +17,11 @@
 //   · `map`      — el mapa glifo → fuente y sus dos consultas.
 //   · `diagnostics` — errores y avisos como rangos por fichero.
 
+pub mod commands;
 pub mod diagnostics;
 pub mod map;
 pub mod pages;
+pub mod session;
 pub mod worker;
 pub mod world;
 

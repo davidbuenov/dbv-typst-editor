@@ -45,6 +45,7 @@ use tempfile::TempDir;
 
 use super::shadow::{self, ShadowRoot};
 use super::{TypstError, SIDECAR};
+use crate::engine::session::{Attempt, InProcEngine};
 
 /// Margen de seguridad para una compilación (RF-38, `ADR-JOGS-001` en
 /// `memory.md`): un script `eval-js` de `jogs` en bucle infinito no tiene
@@ -320,6 +321,16 @@ pub struct PreviewOutcome {
     pub warnings: String,
     /// True si el resultado llegó tarde y no debe pintarse (requisito (b)).
     pub stale: bool,
+    /// Qué motor compiló esta vista previa: `"classic"` (CLI) o `"inproc"`
+    /// (Typst como librería). De ello depende cómo se sincroniza el editor
+    /// (RF-57): por anclas de bloque, o por el mapa exacto del motor nuevo.
+    pub engine: &'static str,
+    /// Errores y avisos con su fichero y rango exactos (RF-59). Solo los rellena el
+    /// motor en proceso; el clásico enseña el `stderr` del CLI en `warnings`.
+    pub diagnostics: Vec<crate::engine::diagnostics::Diagnostic>,
+    /// Por qué esta compilación se sirvió con el motor clásico aunque el motor en
+    /// proceso estaba activado (pánico, plazo, paquete sin descargar…).
+    pub fallback_reason: Option<String>,
 }
 
 impl PreviewOutcome {
@@ -332,6 +343,9 @@ impl PreviewOutcome {
             pages: Vec::new(),
             warnings: String::new(),
             stale: true,
+            engine: "classic",
+            diagnostics: Vec::new(),
+            fallback_reason: None,
         }
     }
 }
@@ -541,12 +555,40 @@ async fn retry_without_anchors(
 pub async fn typst_compile_preview(
     app: AppHandle,
     state: tauri::State<'_, EngineState>,
+    engine: tauri::State<'_, InProcEngine>,
     target: CompileTarget,
     first_page: Option<usize>,
     window_size: Option<usize>,
 ) -> Result<PreviewOutcome, TypstError> {
     // (b) Token de generación: se reserva antes de tocar nada.
     let generation = state.next_generation();
+
+    // Motor en proceso (v0.9.0), si está activado y sano. Cualquier fallo suyo
+    // que no sea del documento pasa a ESTA misma compilación por el motor clásico
+    // de más abajo, que queda intacto como respaldo (ADR-MOTOR-001).
+    let mut fallback_reason = None;
+    if engine.wants_inproc() {
+        let attempt = engine
+            .compile(&target, generation, |g| state.is_current(g), first_page.unwrap_or(0), window_size.unwrap_or(2))
+            .await;
+        match attempt {
+            Attempt::Done(done) => {
+                return Ok(PreviewOutcome {
+                    generation,
+                    geometry: done.geometry,
+                    pages: done.pages,
+                    warnings: done.warnings,
+                    stale: false,
+                    engine: "inproc",
+                    diagnostics: done.diagnostics,
+                    fallback_reason: None,
+                });
+            }
+            Attempt::Failed { message } => return Err(TypstError::CompilationFailed(message)),
+            Attempt::Superseded => return Ok(PreviewOutcome::superseded(generation)),
+            Attempt::Fallback { reason, .. } => fallback_reason = Some(reason),
+        }
+    }
 
     // (c) Directorio temporal propio de esta compilación.
     let workdir =
@@ -624,6 +666,9 @@ pub async fn typst_compile_preview(
         pages,
         warnings: stderr,
         stale: false,
+        engine: "classic",
+        diagnostics: Vec::new(),
+        fallback_reason,
     })
 }
 
@@ -635,9 +680,17 @@ pub async fn typst_compile_preview(
 #[tauri::command]
 pub fn typst_preview_page(
     state: tauri::State<'_, EngineState>,
+    engine: tauri::State<'_, InProcEngine>,
     generation: u64,
     index: usize,
 ) -> Result<PreviewPage, TypstError> {
+    // La generación vigente del motor en proceso se sirve de su propio documento.
+    if let Some(latest) = engine.latest_for(generation) {
+        return latest
+            .page_svg(index)
+            .map(|svg| PreviewPage { index, svg })
+            .ok_or_else(|| TypstError::PreviewExpired(format!("página {index} de la generación {generation}")));
+    }
     let path = state
         .page_path(generation, index)
         .ok_or_else(|| TypstError::PreviewExpired(format!("página {index} de la generación {generation}")))?;
@@ -647,9 +700,10 @@ pub fn typst_preview_page(
 
 /// Cancela la compilación en curso y libera las páginas (al cerrar proyecto).
 #[tauri::command]
-pub fn typst_cancel_preview(state: tauri::State<'_, EngineState>) {
+pub fn typst_cancel_preview(state: tauri::State<'_, EngineState>, engine: tauri::State<'_, InProcEngine>) {
     state.cancel_running();
     state.clear_session();
+    engine.release();
 }
 
 /// Exporta el documento a PDF (RF-10).

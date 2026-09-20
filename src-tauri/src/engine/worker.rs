@@ -27,11 +27,13 @@
 
 use std::any::Any;
 use std::panic::{catch_unwind, AssertUnwindSafe};
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::{Arc, Condvar, Mutex};
 use std::time::{Duration, Instant};
 
 use typst::diag::{SourceDiagnostic, SourceResult, Warned};
+use typst::syntax::{FileId, Source};
 use typst_layout::PagedDocument;
 
 use super::world::EngineWorld;
@@ -49,10 +51,11 @@ pub struct Request {
 
 /// Cómo terminó una compilación.
 pub enum Outcome {
-    /// Compiló: el documento y los avisos.
-    Compiled { document: Arc<PagedDocument>, warnings: Vec<SourceDiagnostic> },
+    /// Compiló: el documento, los avisos y las sustituciones con las que se
+    /// compiló (para consultar el mapa contra ESE texto).
+    Compiled { document: Arc<PagedDocument>, warnings: Vec<SourceDiagnostic>, sources: Arc<HashMap<FileId, Source>> },
     /// El documento tiene errores (los de Typst, con su fichero y rango).
-    Failed { errors: Vec<SourceDiagnostic>, warnings: Vec<SourceDiagnostic> },
+    Failed { errors: Vec<SourceDiagnostic>, warnings: Vec<SourceDiagnostic>, sources: Arc<HashMap<FileId, Source>> },
     /// Typst entró en pánico. La aplicación sigue viva; el motor debe darse por
     /// no fiable y pasar al clásico.
     Panicked(String),
@@ -113,11 +116,14 @@ impl Worker {
         Self { shared }
     }
 
-    /// Encola una petición. Si había otra esperando, se descarta: gana la última.
-    pub fn submit(&self, request: Request) {
+    /// Encola una petición. Si había otra esperando, se descarta —gana la última— y
+    /// se devuelve su generación, para que quien esperaba su resultado sepa que no
+    /// va a llegar.
+    pub fn submit(&self, request: Request) -> Option<u64> {
         let mut state = lock(&self.shared.state);
-        state.pending = Some(request);
+        let superseded = state.pending.replace(request).map(|old| old.generation);
         self.shared.wake.notify_one();
+        superseded
     }
 
     /// Cuánto lleva compilando la petición en curso, o `None` si está libre. Es lo
@@ -170,12 +176,16 @@ fn compile_once(world: &Arc<EngineWorld>, request: &Request, compiler: &Compiler
     world.begin_compile();
 
     match catch_unwind(AssertUnwindSafe(|| compiler(world, request))) {
-        Ok(Warned { output: Ok(document), warnings }) => {
-            Outcome::Compiled { document: Arc::new(document), warnings: warnings.to_vec() }
-        }
-        Ok(Warned { output: Err(errors), warnings }) => {
-            Outcome::Failed { errors: errors.to_vec(), warnings: warnings.to_vec() }
-        }
+        Ok(Warned { output: Ok(document), warnings }) => Outcome::Compiled {
+            document: Arc::new(document),
+            warnings: warnings.to_vec(),
+            sources: Arc::new(world.override_snapshot()),
+        },
+        Ok(Warned { output: Err(errors), warnings }) => Outcome::Failed {
+            errors: errors.to_vec(),
+            warnings: warnings.to_vec(),
+            sources: Arc::new(world.override_snapshot()),
+        },
         Err(payload) => Outcome::Panicked(panic_message(payload)),
     }
 }
@@ -267,11 +277,11 @@ mod tests {
         });
         let worker = Worker::with_compiler(world, sink, compiler);
 
-        worker.submit(request(1));
+        assert_eq!(worker.submit(request(1)), None);
         std::thread::sleep(Duration::from_millis(80));
-        worker.submit(request(2));
-        worker.submit(request(3));
-        worker.submit(request(4));
+        assert_eq!(worker.submit(request(2)), None, "la 1 ya está compilando: no hay pendiente");
+        assert_eq!(worker.submit(request(3)), Some(2), "la 3 supera a la 2, que esperaba");
+        assert_eq!(worker.submit(request(4)), Some(3));
         let first = wait(&rx);
         let second = wait(&rx);
 

@@ -165,7 +165,7 @@ mod tests {
         }));
         worker.submit(Request { generation: 1, overrides: Vec::new() });
         let all: Vec<SourceDiagnostic> = match rx.recv_timeout(Duration::from_secs(60)).unwrap().outcome {
-            Outcome::Failed { errors, warnings } => errors.into_iter().chain(warnings).collect(),
+            Outcome::Failed { errors, warnings, .. } => errors.into_iter().chain(warnings).collect(),
             Outcome::Compiled { warnings, .. } => warnings,
             Outcome::Panicked(message) => panic!("pánico: {message}"),
         };

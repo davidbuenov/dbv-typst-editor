@@ -71,6 +71,8 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .manage(watcher::WatcherState::default())
         .manage(typst_engine::compile::EngineState::default())
+        // v0.9.0: motor de vista previa en proceso (viene apagado, ADR-MOTOR-002).
+        .manage(engine::session::InProcEngine::default())
         .manage(commands::startup::PendingDocument::default())
         .manage(commands::tinymist::TinymistState::default())
         .manage(commands::universe_index::UniverseIndexState::default())
@@ -138,6 +140,11 @@ pub fn run() {
             typst_engine::compile::typst_export_pdf,
             typst_engine::compile::typst_export_png,
             typst_engine::compile::typst_preview_page,
+            engine::commands::engine_locate,
+            engine::commands::engine_reveal,
+            engine::commands::engine_diagnostics,
+            engine::commands::engine_set_mode,
+            engine::commands::engine_status,
             typst_engine::equation::typst_compile_equation,
             typst_engine::dot::typst_compile_dot,
             typst_engine::outline::typst_outline,

@@ -17,7 +17,15 @@ const invoke = vi.fn();
 vi.mock('@tauri-apps/api/core', () => ({ invoke: (...args) => invoke(...args) }));
 vi.mock('@tauri-apps/api/event', () => ({ listen: vi.fn() }));
 
-const { call, readFile } = await import('./backend.js');
+const {
+  call,
+  engineDiagnostics,
+  engineLocate,
+  engineReveal,
+  engineSetMode,
+  engineStatus,
+  readFile,
+} = await import('./backend.js');
 
 /**
  * Hace que el puente falle con `motivo`.
@@ -90,5 +98,45 @@ describe('call', () => {
     const result = await call('app_info');
     expect(result.ok).toBe(false);
     expect(typeof result.error.message).toBe('string');
+  });
+});
+
+describe('motor de vista previa en proceso', () => {
+  it('engineLocate pasa la generación, la página y el punto con los nombres que espera Tauri', async () => {
+    invoke.mockResolvedValue({ file: 'main.typ', from: 3, to: 8 });
+
+    const result = await engineLocate(7, 2, 100.5, 200.25);
+
+    expect(invoke).toHaveBeenCalledWith('engine_locate', { generation: 7, page: 2, xPt: 100.5, yPt: 200.25 });
+    expect(result).toEqual({ ok: true, value: { file: 'main.typ', from: 3, to: 8 } });
+  });
+
+  it('engineReveal pasa el fichero y el rango UTF-16', async () => {
+    invoke.mockResolvedValue([]);
+
+    await engineReveal(3, 'cap/01.typ', 10, 25);
+
+    expect(invoke).toHaveBeenCalledWith('engine_reveal', { generation: 3, file: 'cap/01.typ', from: 10, to: 25 });
+  });
+
+  it('engineSetMode y engineStatus y engineDiagnostics llaman a su comando', async () => {
+    invoke.mockResolvedValue({ mode: 'inproc', disabledReason: null });
+
+    await engineSetMode('inproc');
+    await engineStatus();
+    await engineDiagnostics();
+
+    expect(invoke).toHaveBeenNthCalledWith(1, 'engine_set_mode', { mode: 'inproc' });
+    expect(invoke).toHaveBeenNthCalledWith(2, 'engine_status', {});
+    expect(invoke).toHaveBeenNthCalledWith(3, 'engine_diagnostics', {});
+  });
+
+  it('una generación caducada llega como error tipado, no como una excepción', async () => {
+    elPuenteFalla({ kind: 'previewExpired', message: 'la generación 3 ya no es la vigente' });
+
+    const result = await engineLocate(3, 1, 0, 0);
+
+    expect(result.ok).toBe(false);
+    expect(result.error.kind).toBe('previewExpired');
   });
 });

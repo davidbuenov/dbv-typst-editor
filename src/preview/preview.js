@@ -23,7 +23,14 @@
 // inusable justo el escenario insignia del producto.
 
 import { t } from '../i18n/i18n.js';
-import { cancelPreview, compilePreview, getSyncAnchors, previewPage } from '../services/backend.js';
+import {
+  cancelPreview,
+  compilePreview,
+  engineLocate,
+  engineReveal,
+  getSyncAnchors,
+  previewPage,
+} from '../services/backend.js';
 import { anchorAtPoint, anchorForLine, anchorSpan } from './syncAnchors.js';
 
 /** Pausa de escritura tras la que se recompila, en modo automático. */
@@ -181,8 +188,20 @@ export function createPreview({
   zoomLabelEl,
   getTarget,
   onStaleChange,
+  onCompileStart,
+  onRendered,
+  onCompiled,
 }) {
   let debounceTimer = null;
+  /**
+   * Motor que compiló lo que se ve: `'classic'` (CLI, sincronización por anclas
+   * de bloque) o `'inproc'` (Typst como librería, sincronización exacta por
+   * palabra, RF-57). Lo decide el backend en cada compilación, no el frontend:
+   * ante un fallo del motor nuevo el backend sirve esa compilación con el clásico.
+   */
+  let renderedEngine = 'classic';
+  /** Identificador (del seguimiento de cambios) de la compilación que se ve. */
+  let renderedStart = null;
   /** Duración de la última compilación, para adaptar la pausa de escritura. */
   let lastCompileMs = 0;
   /** Último token de generación efectivamente pintado. */
@@ -428,6 +447,9 @@ export function createPreview({
 
     const scrollTop = pagesEl.scrollTop;
     setStatus('preview.compiling');
+    // Desde este instante los cambios del editor cuentan como "pendientes" para
+    // esta compilación: es lo que permite reasignar posiciones al saltar (RF-57.5).
+    const startId = onCompileStart?.();
 
     const startedAt = performance.now();
     const result = await compilePreview({
@@ -448,6 +470,7 @@ export function createPreview({
       }
       showBand(result.error.message || t('preview.error'));
       setStatus('preview.failed');
+      onCompiled?.({ ok: false, startId });
       return;
     }
 
@@ -455,6 +478,8 @@ export function createPreview({
     if (outcome.stale || outcome.generation < renderedGeneration) return;
 
     renderedGeneration = outcome.generation;
+    renderedEngine = outcome.engine === 'inproc' ? 'inproc' : 'classic';
+    renderedStart = startId ?? null;
     hasRendered = true;
     setStale(false);
     // La tabla pertenece a una generación: al recompilar deja de valer.
@@ -468,6 +493,14 @@ export function createPreview({
     if (outcome.warnings.trim()) showBand(outcome.warnings.trim());
     else hideBand();
     setStatus('preview.pages', String(pageCount));
+    if (startId !== undefined) onRendered?.(startId);
+    onCompiled?.({
+      ok: true,
+      startId,
+      engine: renderedEngine,
+      generation: outcome.generation,
+      fallbackReason: outcome.fallbackReason ?? null,
+    });
   }
 
   /**
@@ -515,28 +548,50 @@ export function createPreview({
   const SYNC_MARK_MS = 2200;
 
   /**
-   * Pinta unos segundos una banda sobre el bloque de `anchor` (RF-16): sin ella,
-   * tras el salto no se veía QUÉ parte del render correspondía al fuente.
+   * Pone una marca (que se desvanece sola) sobre un rectángulo de una página.
    *
-   * La banda es un hijo propio del contenedor, posicionado contra la página, y no
+   * La marca es un hijo propio del contenedor, posicionado contra la página, y no
    * un hijo de la página: `fillPage` y el descarte de páginas lejanas vacían la
    * página al cargar o soltar su marcado, y se llevarían la marca consigo.
+   */
+  function placeMark(page, xPt, yPt, wPt, hPt) {
+    const pageEl = pagesEl.children[page - 1];
+    if (!pageEl || !pageEl.classList.contains('preview-page')) return;
+
+    const heightPt = pageHeightsPt[page - 1] || pageEl.offsetHeight;
+    const ratio = pageEl.offsetHeight / heightPt;
+    const mark = document.createElement('div');
+    mark.className = 'preview-sync-mark';
+    mark.style.top = `${pageEl.offsetTop + yPt * ratio}px`;
+    mark.style.left = `${pageEl.offsetLeft + xPt * ratio}px`;
+    mark.style.width = `${wPt * ratio}px`;
+    mark.style.height = `${Math.max(hPt * ratio, 16)}px`;
+    pagesEl.append(mark);
+    setTimeout(() => mark.remove(), SYNC_MARK_MS);
+  }
+
+  function clearMarks() {
+    pagesEl.querySelectorAll('.preview-sync-mark').forEach((old) => old.remove());
+  }
+
+  /**
+   * Motor clásico: una banda del ancho de la página sobre el bloque de `anchor`,
+   * desde su ancla hasta la siguiente (RF-16). Sin ella, tras el salto no se veía
+   * QUÉ parte del render correspondía al fuente.
    */
   function flashAnchor(anchor) {
     const pageEl = pagesEl.children[anchor.page - 1];
     if (!pageEl || !pageEl.classList.contains('preview-page')) return;
-
     const heightPt = pageHeightsPt[anchor.page - 1] || pageEl.offsetHeight;
     const ratio = pageEl.offsetHeight / heightPt;
-    const mark = document.createElement('div');
-    mark.className = 'preview-sync-mark';
-    mark.style.top = `${pageEl.offsetTop + anchor.yPt * ratio}px`;
-    mark.style.left = `${pageEl.offsetLeft}px`;
-    mark.style.width = `${pageEl.offsetWidth}px`;
-    mark.style.height = `${Math.max(anchorSpan(anchors, anchor) * ratio, 16)}px`;
-    pagesEl.querySelectorAll('.preview-sync-mark').forEach((old) => old.remove());
-    pagesEl.append(mark);
-    setTimeout(() => mark.remove(), SYNC_MARK_MS);
+    clearMarks();
+    placeMark(anchor.page, 0, anchor.yPt, pageEl.offsetWidth / ratio, anchorSpan(anchors, anchor));
+  }
+
+  /** Motor en proceso: una caja por rectángulo (una por línea dibujada, RF-57.4). */
+  function flashRects(rects) {
+    clearMarks();
+    for (const rect of rects) placeMark(rect.page, rect.xPt, rect.yPt, rect.wPt, rect.hPt);
   }
 
   /**
@@ -640,9 +695,47 @@ export function createPreview({
     async sourceAt(clientX, clientY) {
       const point = documentPointAt(clientX, clientY);
       if (!point) return null;
+      if (renderedEngine === 'inproc') {
+        // Motor en proceso: el propio compilado sabe qué palabra escribí aquí.
+        const result = await engineLocate(renderedGeneration, point.page, point.xPt, point.yPt);
+        if (!result.ok || !result.value) return null;
+        const located = result.value;
+        return {
+          file: located.file,
+          line: located.startLine,
+          column: located.startColumn,
+          endLine: located.endLine,
+          endColumn: located.endColumn,
+          from: located.from,
+          to: located.to,
+          exact: true,
+          startId: renderedStart,
+        };
+      }
       const table = await ensureAnchors();
       return anchorAtPoint(table, point);
     },
+    /**
+     * Motor en proceso (RF-57): dónde se dibuja lo escrito entre `from` y `to`
+     * (UTF-16, en el texto que se COMPILÓ) de `file`. Lleva la vista previa hasta
+     * allí y lo marca. Devuelve si encontró algo que marcar.
+     * @param {string} file
+     * @param {number} from
+     * @param {number} to
+     * @param {{scroll?: boolean}} [options] `scroll: false` solo marca (tras un doble clic).
+     */
+    async revealSource(file, from, to, { scroll = true } = {}) {
+      if (renderedEngine !== 'inproc') return false;
+      const result = await engineReveal(renderedGeneration, file, from, to);
+      if (!result.ok || result.value.length === 0) return false;
+      if (scroll) scrollToPage(result.value[0].page, result.value[0].yPt);
+      flashRects(result.value);
+      return true;
+    },
+    /** Motor que compiló lo que se ve (`'classic'` o `'inproc'`). */
+    getEngine: () => renderedEngine,
+    /** Identificador (del seguimiento de cambios) de la compilación que se ve. */
+    getRenderedStart: () => renderedStart,
     /**
      * Lleva la vista previa al punto que corresponde a una línea del fuente
      * (RF-16, dirección editor → render). Devuelve si ha podido situarse.

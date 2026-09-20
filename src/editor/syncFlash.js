@@ -54,6 +54,11 @@ export const syncFlashField = StateField.define({
       if (effect.value === null) {
         result = Decoration.none;
       } else {
+        if (effect.value.range) {
+          const { from, to } = effect.value.range;
+          result = to > from ? Decoration.set([Decoration.mark({ class: 'cm-sync-flash-range' }).range(from, to)]) : Decoration.none;
+          continue;
+        }
         const ranges = [];
         for (let n = effect.value.from; n <= effect.value.to; n += 1) {
           ranges.push(Decoration.line({ class: 'cm-sync-flash' }).range(transaction.state.doc.line(n).from));
@@ -90,6 +95,40 @@ export function revealAndFlash(view, lineNumber, durationMs = FLASH_DURATION_MS)
     view,
     setTimeout(() => {
       // El editor pudo destruirse (cambio de proyecto) antes de que venciera.
+      try {
+        view.dispatch({ effects: flashEffect.of(null) });
+      } catch {
+        // Sin editor vivo no hay marca que retirar.
+      }
+    }, durationMs)
+  );
+}
+
+/**
+ * Lleva el cursor a un rango EXACTO del fuente (RF-57, motor en proceso), lo
+ * selecciona, lo centra y lo marca unos segundos. Es la versión precisa de
+ * `revealAndFlash`: la palabra o frase, no el bloque. Los extremos se recortan
+ * al documento para no reventar si el texto cambió desde la compilación.
+ *
+ * @param {EditorView} view
+ * @param {number} from Desplazamiento UTF-16 (el de CodeMirror).
+ * @param {number} to
+ * @param {number} [durationMs]
+ */
+export function revealRangeAndFlash(view, from, to, durationMs = FLASH_DURATION_MS) {
+  const length = view.state.doc.length;
+  const start = Math.min(Math.max(0, from), length);
+  const end = Math.min(Math.max(start, to), length);
+
+  view.dispatch({
+    selection: { anchor: start, head: end },
+    effects: [EditorView.scrollIntoView(start, { y: 'center' }), flashEffect.of({ range: { from: start, to: end } })],
+  });
+
+  clearTimeout(timers.get(view));
+  timers.set(
+    view,
+    setTimeout(() => {
       try {
         view.dispatch({ effects: flashEffect.of(null) });
       } catch {

@@ -41,6 +41,7 @@ import { createWizard } from './project-wizard/wizard.js';
 import {
   copyAssetIntoProject,
   copyFontIntoProject,
+  engineSetMode,
   gitAdd,
   gitClone,
   getAppInfo,
@@ -62,6 +63,7 @@ import {
   pickTypstFile,
 } from './services/backend.js';
 import { createChoiceDialog } from './ui/choiceDialog.js';
+import { createChangeTracker } from './preview/changeTracker.js';
 import { createSplitter } from './ui/splitter.js';
 import { createToast } from './ui/toast.js';
 import { cycleTheme, getTheme, initTheme, setTheme } from './themes/theme.js';
@@ -666,6 +668,9 @@ async function bootstrap() {
   wireFontDrop(workspace, toast.show, getAssetExtensions);
 
   const staleEl = el('preview-stale');
+  // Posiciones del texto compilado ↔ texto actual del editor (RF-57.5).
+  const tracker = createChangeTracker();
+  workspace.setListener('editorChanges', (changes) => tracker.record(changes));
   const preview = createPreview({
     pagesEl: el('preview-pages'),
     bandEl: el('preview-band'),
@@ -674,6 +679,13 @@ async function bootstrap() {
     zoomLabelEl: el('preview-zoom-label'),
     getTarget: () => workspace.getCompileTarget(),
     onStaleChange: (stale) => staleEl.classList.toggle('hidden', !stale),
+    onCompileStart: () => tracker.start(workspace.getCursorSource()?.docLength ?? 0),
+    onRendered: (id) => tracker.rendered(id),
+    onCompiled: (result) => {
+      if (result.ok && result.fallbackReason) {
+        toast.show(t('preview.engineFallback').replace('{reason}', result.fallbackReason), 'error');
+      }
+    },
   });
   createSplitter(el('splitter-band'), {
     hostEl: el('workspace-view').querySelector('.preview'),
@@ -703,6 +715,8 @@ async function bootstrap() {
   // documento raíz compilado (main.typ): reiniciar aquí reseteaba el scroll a
   // la página 1 y rompía la experiencia del doble clic (RF-16).
   workspace.setListener('documentOpened', () => {
+    // Las posiciones de la compilación anterior no valen para otro documento.
+    tracker.reset();
     refreshPreviewControls();
     const target = workspace.getCompileTarget();
     const targetDoc = target?.document ?? null;
@@ -1161,7 +1175,34 @@ async function bootstrap() {
     const mode = preview.getRefreshMode();
     refreshModeButton.textContent = t(mode === 'manual' ? 'preview.refreshManual' : 'preview.refreshAuto');
     refreshButton.classList.toggle('hidden', mode !== 'manual');
+    engineButton.textContent = t(engineMode === 'inproc' ? 'preview.engineInproc' : 'preview.engineClassic');
   }
+
+  // Motor de la vista previa (RF-56). El clásico es el de serie hasta que el
+  // rápido se valide en una ventana real (ADR-MOTOR-002).
+  const ENGINE_STORAGE_KEY = 'dbv-typst-preview-engine';
+  const engineButton = el('btn-preview-engine');
+  let engineMode = 'classic';
+  try {
+    if (localStorage.getItem(ENGINE_STORAGE_KEY) === 'inproc') engineMode = 'inproc';
+  } catch {
+    // Sin almacenamiento se queda el clásico.
+  }
+  async function applyEngineMode(mode) {
+    engineMode = mode;
+    try {
+      localStorage.setItem(ENGINE_STORAGE_KEY, mode);
+    } catch {
+      // Es solo una comodidad: se pierde al reiniciar.
+    }
+    await engineSetMode(mode);
+    refreshPreviewControls();
+  }
+  engineSetMode(engineMode);
+  engineButton.addEventListener('click', async () => {
+    await applyEngineMode(engineMode === 'inproc' ? 'classic' : 'inproc');
+    preview.restart();
+  });
 
   scopeButton.addEventListener('click', () => {
     workspace.setPreviewScope(workspace.getPreviewScope() === 'document' ? 'file' : 'document');
@@ -1206,15 +1247,50 @@ async function bootstrap() {
     // Además de marcar el bloque en el editor (lo hace `goToSource`), se marca
     // en la vista previa cuál fue el bloque resuelto: así se ve si el doble clic
     // cayó donde se esperaba.
+    if (source.exact) {
+      // Motor en proceso: la palabra exacta, corregida con lo tecleado desde
+      // que se compiló (RF-57.5), y marcada también en la vista previa.
+      await preview.revealSource(source.file, source.from, source.to, { scroll: false });
+      const range = mapToCurrent(source);
+      if (range === 'deleted') {
+        toast.show(t('sync.deleted'));
+        return;
+      }
+      await workspace.goToSource(source.file, source.line, range);
+      return;
+    }
     preview.flashAnchor(source);
     await workspace.goToSource(source.file, source.line);
   });
+
+  /** Rango del texto actual del editor que corresponde al de lo compilado. */
+  function mapToCurrent(source) {
+    const open = workspace.getCursorSource();
+    const raw = { from: source.from, to: source.to };
+    if (!open || open.file !== source.file || !tracker.has(preview.getRenderedStart())) return raw;
+    const mapped = tracker.toCurrent(preview.getRenderedStart(), source.from, source.to);
+    if (!mapped) return raw;
+    return mapped.collapsed ? 'deleted' : { from: mapped.from, to: mapped.to };
+  }
 
   // Dirección contraria, como acción explícita: seguir el cursor de forma
   // continua obligaría a recalcular la tabla de anclas sin parar.
   async function syncPreviewToCursor() {
     const cursor = workspace.getCursorSource();
     if (!cursor) return;
+    if (preview.getEngine() === 'inproc') {
+      // Motor en proceso: la palabra o selección exacta, llevada al texto que se
+      // compiló con lo tecleado desde entonces.
+      const id = preview.getRenderedStart();
+      const mapped = tracker.has(id) ? tracker.toRendered(id, cursor.from, cursor.to) : { from: cursor.from, to: cursor.to, collapsed: false };
+      if (mapped.collapsed) {
+        toast.show(t('sync.deleted'));
+        return;
+      }
+      if (await preview.revealSource(cursor.file, mapped.from, mapped.to)) return;
+      toast.show(t('sync.notFound'));
+      return;
+    }
     const found = await preview.scrollToSource(cursor.file, cursor.line);
     if (!found) toast.show(t('sync.notFound'));
   }

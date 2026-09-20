@@ -941,6 +941,12 @@
   animation: sync-flash-line 2s ease-out forwards;
 }
 
+.cm-sync-flash-range {
+  background: var(--accent-subtle);
+  border-bottom: 2px solid var(--accent);
+  animation: sync-flash-line 2s ease-out forwards;
+}
+
 .preview-sync-mark {
   position: absolute;
   z-index: 2;
@@ -978,6 +984,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .cm-sync-flash,
+  .cm-sync-flash-range,
   .preview-sync-mark {
     animation: none;
   }

@@ -167,6 +167,26 @@ export const getOutline = (target) => call('typst_outline', { target });
 /** Tabla de anclas para la sincronización editor↔vista previa (RF-16). */
 export const getSyncAnchors = (target) => call('typst_sync_anchors', { target });
 export const getBibliographyKeys = (root) => call('bibliography_keys', { root });
+
+// ─── Motor de vista previa en proceso (v0.9.0, RF-56/57/59) ───────────────────
+
+/**
+ * Qué se escribió en el punto (`xPt`, `yPt`) de la página `page` (1-indexada) de la
+ * vista previa de `generation`. Devuelve `null` si ahí no hay nada con origen en
+ * el fuente, y un error `PreviewExpired` si esa generación ya no es la vigente.
+ * @returns {Promise<import('./backend.js').Result<null | EngineLocated>>}
+ */
+export const engineLocate = (generation, page, xPt, yPt) =>
+  call('engine_locate', { generation, page, xPt, yPt });
+/** Cajas (una por línea dibujada) de lo escrito entre `from` y `to` (UTF-16) de `file`. */
+export const engineReveal = (generation, file, from, to) =>
+  call('engine_reveal', { generation, file, from, to });
+/** Errores y avisos de la última compilación, con fichero y rango exactos (RF-59). */
+export const engineDiagnostics = () => call('engine_diagnostics');
+/** Elige el motor de la vista previa: `'inproc'` o `'classic'`. */
+export const engineSetMode = (mode) => call('engine_set_mode', { mode });
+export const engineStatus = () => call('engine_status');
+
 /** RF-35: bibliografía completa con campos y validación básica (duplicados, campos ausentes). */
 export const getBibliographyEntries = (root) => call('bibliography_entries', { root });
 

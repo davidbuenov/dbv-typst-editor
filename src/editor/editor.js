@@ -230,6 +230,8 @@ export function buildExtensions({
  * @param {HTMLElement} hostEl Contenedor donde se monta el editor.
  * @param {object} [options]
  * @param {(content: string) => void} [options.onChange] Cambio hecho por el usuario.
+ * @param {(changes: import('@codemirror/state').ChangeSet) => void} [options.onChanges]
+ *   Los cambios (ChangeSet) de cada edición, para reasignar posiciones (RF-57.5).
  * @param {() => void} [options.onSave] Atajo de guardado (Ctrl/Cmd+S).
  * @param {(view: EditorView) => void} [options.onSelectionChange] Cursor o
  *   selección movidos — lo usa la barra de herramientas (RF-13) para refrescar
@@ -239,7 +241,7 @@ export function buildExtensions({
  */
 export function createEditor(
   hostEl,
-  { onChange, onSave, onSelectionChange, theme = 'dark', lspClient } = {}
+  { onChange, onChanges, onSave, onSelectionChange, theme = 'dark', lspClient } = {}
 ) {
   if (!(hostEl instanceof HTMLElement)) {
     throw new TypeError('createEditor: hostEl debe ser un HTMLElement');
@@ -285,6 +287,7 @@ export function createEditor(
           if (update.docChanged) {
             const text = update.state.doc.toString();
             lspClient?.changeDocument(text);
+            onChanges?.(update.changes);
             onChange?.(text);
           }
           if (update.docChanged || update.selectionSet) onSelectionChange?.(update.view);

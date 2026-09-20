@@ -30,7 +30,7 @@ import { createDotEditor } from '../editor/dotEditor.js';
 import { createToolbar } from '../editor/toolbar.js';
 import { figureActionForPath } from '../editor/toolbarActions.js';
 import { posFromLsp } from '../editor/lspClient.js';
-import { revealAndFlash } from '../editor/syncFlash.js';
+import { revealAndFlash, revealRangeAndFlash } from '../editor/syncFlash.js';
 import { t } from '../i18n/i18n.js';
 import { getTheme } from '../themes/theme.js';
 import { readStoredEntrypoint, resolveEntrypoint, storeEntrypoint } from './entrypoint.js';
@@ -107,6 +107,7 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
       // la vía normal — al guardarlos, el observador dispara la recompilación.
       if (isTypstPath(state.document?.path)) listeners.documentChanged?.(content);
     },
+    onChanges: (changes) => listeners.editorChanges?.(changes),
     onSave: () => listeners.saveRequested?.(),
     onSelectionChange: () => toolbar?.refresh(),
   });
@@ -788,9 +789,10 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     /**
      * Lleva el editor a `file:line` (RF-16, render → editor). `file` viene
      * relativo a la raíz del proyecto, que es como lo guardan las anclas, y se
-     * abre el fichero si no es el que ya está delante.
+     * abre el fichero si no es el que ya está delante. Con `range` (motor en
+     * proceso, RF-57) se selecciona y marca ese rango exacto en vez del bloque.
      */
-    async goToSource(file, line) {
+    async goToSource(file, line, range = null) {
       if (!state.project) return false;
 
       const absolute = joinPath(state.project.root, file);
@@ -802,7 +804,8 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
       // compilación) se recorta al final en vez de reventar el editor.
       // Centrado y con el bloque resaltado unos segundos: sin marca, en un
       // fichero largo no había forma de ver a qué bloque había saltado.
-      revealAndFlash(view, line);
+      if (range) revealRangeAndFlash(view, range.from, range.to);
+      else revealAndFlash(view, line);
       view.focus();
       return true;
     },
@@ -817,6 +820,10 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
       return {
         file,
         line: view.state.doc.lineAt(view.state.selection.main.head).number,
+        from: view.state.selection.main.from,
+        to: view.state.selection.main.to,
+        docLength: view.state.doc.length,
+        path: state.document.path,
       };
     },
     closeProject,

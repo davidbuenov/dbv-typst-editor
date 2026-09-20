@@ -66,6 +66,11 @@ pub struct Located {
     pub start_column: u32,
     pub end_line: u32,
     pub end_column: u32,
+    /// El mismo rango como desplazamientos UTF-16 desde el inicio del fichero. Son
+    /// lo que permite reasignarlo con los cambios que el editor tiene pendientes
+    /// desde esa compilación sin conocer el texto compilado.
+    pub from: usize,
+    pub to: usize,
 }
 
 /// Un glifo (o una forma, o una imagen) dibujado, con sus bytes de origen.
@@ -380,7 +385,9 @@ impl SourceMap {
         };
         let (start_line, start_column) = line_column(source, start)?;
         let (end_line, end_column) = line_column(source, end)?;
-        Some(Located { file, start_line, start_column, end_line, end_column })
+        let lines = source.lines();
+        let (from, to) = (lines.byte_to_utf16(start)?, lines.byte_to_utf16(end)?);
+        Some(Located { file, start_line, start_column, end_line, end_column, from, to })
     }
 
     /// Dónde se dibuja lo escrito entre `from` y `to` (UTF-16, desde el inicio del
@@ -652,6 +659,19 @@ mod tests {
         assert_eq!(located.start_column as usize, from + 1);
         assert_eq!(located.end_column as usize, to + 1);
         assert_eq!(covered(&f, &located), "palabra");
+    }
+
+    #[test]
+    fn locate_devuelve_tambien_los_desplazamientos_utf16_desde_el_inicio_del_fichero() {
+        let text = "ñandú 😀 palabra final";
+        let f = fixture(&[("main.typ", text)]);
+        let (from, to) = utf16_of(text, "palabra");
+        let rect = f.map.reveal("main.typ", from, to)[0];
+
+        let (x, y) = center(&rect);
+        let located = f.map.locate(1, x, y).unwrap();
+
+        assert_eq!((located.from, located.to), (from, to));
     }
 
     #[test]

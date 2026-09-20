@@ -13,7 +13,7 @@
 import { EditorState, Text } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { FLASH_DURATION_MS, revealAndFlash, syncBlockRange, syncFlashField } from './syncFlash.js';
+import { FLASH_DURATION_MS, revealAndFlash, revealRangeAndFlash, syncBlockRange, syncFlashField } from './syncFlash.js';
 
 const doc = (text) => Text.of(text.split('\n'));
 
@@ -81,6 +81,20 @@ describe('revealAndFlash con un editor real', () => {
 
     expect(view.state.selection.main.head).toBe(view.state.doc.line(4).from);
     expect(flashed()).toEqual(['tres', 'cuatro']);
+  });
+
+  it('un rango exacto se selecciona y se marca solo él, no el bloque', () => {
+    revealRangeAndFlash(view, 4, 7);
+
+    expect(view.state.selection.main).toMatchObject({ from: 4, to: 7 });
+    expect([...host.querySelectorAll('.cm-sync-flash-range')].map((el) => el.textContent)).toEqual(['dos']);
+    expect(flashed()).toEqual([]);
+  });
+
+  it('un rango fuera del documento se recorta en vez de romper el editor', () => {
+    revealRangeAndFlash(view, 900, 950);
+
+    expect(view.state.selection.main.head).toBe(view.state.doc.length);
   });
 
   it('la marca se retira sola pasado el tiempo', () => {

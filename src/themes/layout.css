@@ -938,13 +938,13 @@
 .cm-sync-flash {
   background: var(--accent-subtle);
   box-shadow: inset 3px 0 0 var(--accent);
-  animation: sync-flash-line 2s ease-out forwards;
+  animation: sync-flash-line 5s ease-out forwards;
 }
 
 .cm-sync-flash-range {
   background: var(--accent-subtle);
   border-bottom: 2px solid var(--accent);
-  animation: sync-flash-line 2s ease-out forwards;
+  animation: sync-flash-line 5s ease-out forwards;
 }
 
 .preview-sync-mark {
@@ -955,7 +955,7 @@
   border-top: 2px solid var(--accent);
   border-bottom: 2px solid var(--accent);
   border-radius: 2px;
-  animation: sync-flash-fade 2.2s ease-out forwards;
+  animation: sync-flash-fade 5.2s ease-out forwards;
 }
 
 /* En el editor se anima SOLO el fondo: la opacidad de la línea haría

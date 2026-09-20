@@ -121,7 +121,7 @@ describe('marca de la sincronización en la vista previa', () => {
     await preview.scrollToSource('cap.typ', 3);
     expect(marks()).toHaveLength(1);
 
-    await vi.advanceTimersByTimeAsync(2300);
+    await vi.advanceTimersByTimeAsync(5300);
 
     expect(marks()).toHaveLength(0);
   });
@@ -142,7 +142,7 @@ describe('marca de la sincronización en la vista previa', () => {
 
   it('flashAnchor (doble clic en el render) marca el bloque resuelto', async () => {
     await preview.scrollToSource('cap.typ', 3); // rellena la tabla de anclas
-    await vi.advanceTimersByTimeAsync(2300);
+    await vi.advanceTimersByTimeAsync(5300);
     expect(marks()).toHaveLength(0);
 
     preview.flashAnchor(ANCHORS[1]);

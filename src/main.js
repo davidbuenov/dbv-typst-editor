@@ -1243,13 +1243,14 @@ async function bootstrap() {
     engineButton.textContent = t(engineMode === 'inproc' ? 'preview.engineInproc' : 'preview.engineClassic');
   }
 
-  // Motor de la vista previa (RF-56). El clásico es el de serie hasta que el
-  // rápido se valide en una ventana real (ADR-MOTOR-002).
+  // Motor de la vista previa (RF-56). El rápido es el de serie desde que el
+  // usuario lo validó en una ventana real (ADR-MOTOR-002); el clásico queda como
+  // respaldo automático y como opción manual.
   const ENGINE_STORAGE_KEY = 'dbv-typst-preview-engine';
   const engineButton = el('btn-preview-engine');
-  let engineMode = 'classic';
+  let engineMode = 'inproc';
   try {
-    if (localStorage.getItem(ENGINE_STORAGE_KEY) === 'inproc') engineMode = 'inproc';
+    if (localStorage.getItem(ENGINE_STORAGE_KEY) === 'classic') engineMode = 'classic';
   } catch {
     // Sin almacenamiento se queda el clásico.
   }

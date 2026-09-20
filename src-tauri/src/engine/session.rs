@@ -157,7 +157,7 @@ pub struct InProcEngine {
 impl Default for InProcEngine {
     fn default() -> Self {
         Self {
-            mode: AtomicU8::new(0),
+            mode: AtomicU8::new(1),
             disabled: Mutex::new(None),
             active: Mutex::new(None),
             latest: Mutex::new(None),
@@ -413,13 +413,13 @@ mod tests {
     }
 
     #[test]
-    fn viene_apagado_y_se_activa_a_peticion() {
+    fn viene_encendido_y_se_apaga_a_peticion() {
         let engine = InProcEngine::default();
 
-        assert_eq!(engine.mode(), Mode::Classic);
-        assert!(!engine.wants_inproc());
-        engine.set_mode(Mode::InProc);
+        assert_eq!(engine.mode(), Mode::InProc, "el motor rápido es el de serie (validado por el usuario)");
         assert!(engine.wants_inproc());
+        engine.set_mode(Mode::Classic);
+        assert!(!engine.wants_inproc());
     }
 
     #[test]

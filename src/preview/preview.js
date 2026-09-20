@@ -545,7 +545,7 @@ export function createPreview({
   }
 
   /** Cuánto dura la marca del salto sobre la vista previa. */
-  const SYNC_MARK_MS = 2200;
+  const SYNC_MARK_MS = 5200;
 
   /**
    * Pone una marca (que se desvanece sola) sobre un rectángulo de una página.

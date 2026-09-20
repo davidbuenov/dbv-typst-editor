@@ -21,7 +21,7 @@ import { Decoration, EditorView } from '@codemirror/view';
 const MAX_BLOCK_LINES = 15;
 
 /** Cuánto dura la marca antes de retirarse sola. */
-export const FLASH_DURATION_MS = 2000;
+export const FLASH_DURATION_MS = 5000;
 
 /**
  * Rango de líneas (1-indexadas, inclusivo) del bloque que empieza en

@@ -96,11 +96,11 @@ mod tests {
     #[test]
     fn el_estado_refleja_el_modo_y_el_motivo_de_desactivacion() {
         let engine = InProcEngine::default();
+        assert_eq!(status(&engine).mode, "inproc", "el rápido es el de serie");
+
+        engine.set_mode(Mode::Classic);
+
         assert_eq!(status(&engine).mode, "classic");
-
-        engine.set_mode(Mode::InProc);
-
-        assert_eq!(status(&engine).mode, "inproc");
         assert_eq!(status(&engine).disabled_reason, None);
     }
 

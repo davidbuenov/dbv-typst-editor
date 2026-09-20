@@ -224,7 +224,7 @@ describe('sincronización exacta con el motor en proceso', () => {
     await preview.revealSource('main.typ', 6, 9);
     expect(marks()).toHaveLength(1);
 
-    await vi.advanceTimersByTimeAsync(2300);
+    await vi.advanceTimersByTimeAsync(5300);
 
     expect(marks()).toHaveLength(0);
   });

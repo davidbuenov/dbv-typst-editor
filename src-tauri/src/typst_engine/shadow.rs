@@ -169,8 +169,30 @@ pub fn seed_anchors(source: &str, file: &str) -> String {
     let mut seeded = String::with_capacity(source.len() + source.len() / 8);
     let mut after_blank = true;
     let mut depth = Depth::default();
+    // Ancla de un encabezado que todavía no se ha escrito: se suelta cuando ya no
+    // le siguen líneas que sean solo una etiqueta (ver `is_label_only`).
+    let mut pending_anchor: Option<String> = None;
 
     for (index, line) in source.lines().enumerate() {
+        // Un encabezado puede llevar su etiqueta en la línea SIGUIENTE
+        // (`=== Título` / `<sec-x>`), y Typst la adjunta al elemento inmediatamente
+        // anterior. Si el ancla se interpusiera, la etiqueta acabaría en nuestro
+        // `#metadata` y cada `@sec-x` fallaría con "cannot reference metadata".
+        // Hallado el 2026-09-20 con `z6-IPbook`: la compilación sembrada fallaba,
+        // el reintento sin anclas la salvaba, y la vista previa se veía bien pero
+        // sin tabla de sincronización — el doble clic no encontraba nada.
+        if let Some(anchor) = pending_anchor.take() {
+            if is_label_only(line) {
+                seeded.push_str(line);
+                seeded.push('\n');
+                pending_anchor = Some(anchor);
+                after_blank = false;
+                depth.consume(line);
+                continue;
+            }
+            seeded.push_str(&anchor);
+            seeded.push('\n');
+        }
         // Solo se ancla en markup de nivel superior. Dentro de un bloque de
         // código un `#metadata(...)` no compila —"the character `#` is not valid
         // in code"—, y eso rompería cualquier proyecto con un fichero de estilo
@@ -188,11 +210,11 @@ pub fn seed_anchors(source: &str, file: &str) -> String {
             let anchor = format!("#metadata((f: \"{safe_file}\", l: {}))<{SYNC_LABEL}>", index + 1);
             if is_heading(line) {
                 // Encabezado: el texto no se toca, el ancla es un hermano que
-                // va JUSTO DESPUÉS — ver la nota de arriba.
+                // va JUSTO DESPUÉS — ver la nota de arriba — y, si le sigue una
+                // etiqueta en su propia línea, detrás de ella.
                 seeded.push_str(line);
                 seeded.push('\n');
-                seeded.push_str(&anchor);
-                seeded.push('\n');
+                pending_anchor = Some(anchor);
             } else {
                 seeded.push_str(&anchor);
                 seeded.push('\n');
@@ -219,7 +241,20 @@ pub fn seed_anchors(source: &str, file: &str) -> String {
         };
         depth.consume(line);
     }
+    // Un encabezado al final del fichero, sin nada detrás.
+    if let Some(anchor) = pending_anchor {
+        seeded.push_str(&anchor);
+        seeded.push('\n');
+    }
     seeded
+}
+
+/// True si `line` es SOLO una etiqueta (`<sec-x>`), sin nada más. Typst la
+/// adjunta al elemento anterior, así que nada puede insertarse entre los dos.
+fn is_label_only(line: &str) -> bool {
+    let trimmed = line.trim();
+    let inner = trimmed.strip_prefix('<').and_then(|rest| rest.strip_suffix('>'));
+    inner.is_some_and(|name| !name.is_empty() && !name.contains(['<', '>', ' ', '\t']))
 }
 
 /// True si `line`, tal cual está, no puede producir NI UN PÍXEL en el render:
@@ -649,6 +684,82 @@ Fin.
         let seeded = seed_anchors(source, "a.typ");
 
         assert!(!seeded.contains("l: 6"), "{seeded}");
+    }
+
+    #[test]
+    fn la_etiqueta_de_la_linea_siguiente_a_un_encabezado_se_queda_con_su_encabezado() {
+        // Caso real (`z6-IPbook`): `=== Titulo` y su `<sec-x>` en la linea de
+        // debajo. Typst adjunta la etiqueta al elemento anterior: si el ancla se
+        // interpone, la etiqueta acaba en nuestro `#metadata` y cada `@sec-x`
+        // falla con "cannot reference metadata".
+        let source = "=== Titulo
+<sec-x>
+
+Texto con @sec-x.
+";
+
+        let seeded = seed_anchors(source, "main.typ");
+        let lines: Vec<&str> = seeded.lines().collect();
+
+        assert_eq!(lines[0], "=== Titulo");
+        assert_eq!(lines[1], "<sec-x>", "la etiqueta debe seguir pegada al encabezado:
+{seeded}");
+        assert!(lines[2].contains("dbv-sync"), "el ancla va detras de la etiqueta:
+{seeded}");
+    }
+
+    #[test]
+    fn varias_etiquetas_seguidas_de_un_encabezado_van_todas_antes_del_ancla() {
+        let source = "== Titulo
+<a>
+<b>
+
+Texto.
+";
+
+        let seeded = seed_anchors(source, "main.typ");
+        let lines: Vec<&str> = seeded.lines().collect();
+
+        assert_eq!(&lines[..3], ["== Titulo", "<a>", "<b>"], "{seeded}");
+        assert!(lines[3].contains("dbv-sync"), "{seeded}");
+    }
+
+    #[test]
+    fn un_encabezado_sin_etiqueta_debajo_sigue_con_su_ancla_justo_despues() {
+        let source = "= Titulo
+Texto pegado.
+";
+
+        let seeded = seed_anchors(source, "main.typ");
+        let lines: Vec<&str> = seeded.lines().collect();
+
+        assert_eq!(lines[0], "= Titulo");
+        assert!(lines[1].contains("dbv-sync"), "{seeded}");
+        assert_eq!(lines[2], "Texto pegado.");
+    }
+
+    #[test]
+    fn un_encabezado_al_final_del_fichero_no_pierde_su_ancla() {
+        let seeded = seed_anchors("Intro.
+
+= Final
+<sec-fin>", "main.typ");
+
+        assert!(seeded.trim_end().ends_with("<dbv-sync>"), "{seeded}");
+        assert!(seeded.contains("= Final
+<sec-fin>
+#metadata"), "{seeded}");
+    }
+
+    #[test]
+    fn is_label_only_reconoce_solo_lineas_que_son_una_etiqueta() {
+        assert!(is_label_only("<sec-x>"));
+        assert!(is_label_only("  <fig:flujo-1>  "));
+        assert!(!is_label_only("texto <sec-x>"));
+        assert!(!is_label_only("<a> <b>"));
+        assert!(!is_label_only("<>"));
+        assert!(!is_label_only("<sec-x> texto"));
+        assert!(!is_label_only(""));
     }
 
     #[test]

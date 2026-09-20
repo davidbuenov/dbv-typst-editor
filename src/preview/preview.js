@@ -24,7 +24,7 @@
 
 import { t } from '../i18n/i18n.js';
 import { cancelPreview, compilePreview, getSyncAnchors, previewPage } from '../services/backend.js';
-import { anchorAtPoint, anchorForLine } from './syncAnchors.js';
+import { anchorAtPoint, anchorForLine, anchorSpan } from './syncAnchors.js';
 
 /** Pausa de escritura tras la que se recompila, en modo automático. */
 const DEBOUNCE_MS = 350;
@@ -511,6 +511,34 @@ export function createPreview({
     pagesEl.scrollTo({ top: Math.max(0, pageEl.offsetTop + yPt * ratio - margin), behavior: 'smooth' });
   }
 
+  /** Cuánto dura la marca del salto sobre la vista previa. */
+  const SYNC_MARK_MS = 2200;
+
+  /**
+   * Pinta unos segundos una banda sobre el bloque de `anchor` (RF-16): sin ella,
+   * tras el salto no se veía QUÉ parte del render correspondía al fuente.
+   *
+   * La banda es un hijo propio del contenedor, posicionado contra la página, y no
+   * un hijo de la página: `fillPage` y el descarte de páginas lejanas vacían la
+   * página al cargar o soltar su marcado, y se llevarían la marca consigo.
+   */
+  function flashAnchor(anchor) {
+    const pageEl = pagesEl.children[anchor.page - 1];
+    if (!pageEl || !pageEl.classList.contains('preview-page')) return;
+
+    const heightPt = pageHeightsPt[anchor.page - 1] || pageEl.offsetHeight;
+    const ratio = pageEl.offsetHeight / heightPt;
+    const mark = document.createElement('div');
+    mark.className = 'preview-sync-mark';
+    mark.style.top = `${pageEl.offsetTop + anchor.yPt * ratio}px`;
+    mark.style.left = `${pageEl.offsetLeft}px`;
+    mark.style.width = `${pageEl.offsetWidth}px`;
+    mark.style.height = `${Math.max(anchorSpan(anchors, anchor) * ratio, 16)}px`;
+    pagesEl.querySelectorAll('.preview-sync-mark').forEach((old) => old.remove());
+    pagesEl.append(mark);
+    setTimeout(() => mark.remove(), SYNC_MARK_MS);
+  }
+
   /**
    * Convierte un punto de pantalla en coordenadas del documento (RF-16).
    * Inverso exacto de `scrollToPage`: la misma razón `offsetHeight / heightPt`.
@@ -624,8 +652,11 @@ export function createPreview({
       const anchor = anchorForLine(table, file, line);
       if (!anchor) return false;
       scrollToPage(anchor.page, anchor.yPt);
+      flashAnchor(anchor);
       return true;
     },
+    /** Marca en la vista previa el bloque de `anchor`, el resuelto por un doble clic. */
+    flashAnchor,
     /** Página 1-indexada que se está leyendo ahora mismo (exportación PNG, Beta). */
     getCurrentPage: () => firstVisiblePage() + 1,
     async clear() {

@@ -1203,6 +1203,10 @@ async function bootstrap() {
       toast.show(t('sync.notFound'));
       return;
     }
+    // Además de marcar el bloque en el editor (lo hace `goToSource`), se marca
+    // en la vista previa cuál fue el bloque resuelto: así se ve si el doble clic
+    // cayó donde se esperaba.
+    preview.flashAnchor(source);
     await workspace.goToSource(source.file, source.line);
   });
 

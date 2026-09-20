@@ -56,6 +56,7 @@ import {
 import { buildToolbarKeymap } from './toolbarActions.js';
 import { createLspCompletionSource, createLspHover } from './lspClient.js';
 import { createUniverseHover } from './universeHover.js';
+import { syncFlashField } from './syncFlash.js';
 
 /**
  * Tema del editor construido sobre los tokens CSS de la aplicación
@@ -159,7 +160,8 @@ export function buildExtensions({
   lspClient,
 }) {
   const toolbarKeymap = buildToolbarKeymap();
-  const extraExtensions = [createUniverseHover()];
+  // `syncFlashField`: marca del bloque al que salta la sincronización (RF-16).
+  const extraExtensions = [createUniverseHover(), syncFlashField];
   let autocompleteExt;
   if (lspClient) {
     autocompleteExt = autocompletion({ override: [createLspCompletionSource(lspClient)] });

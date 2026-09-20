@@ -30,6 +30,7 @@ import { createDotEditor } from '../editor/dotEditor.js';
 import { createToolbar } from '../editor/toolbar.js';
 import { figureActionForPath } from '../editor/toolbarActions.js';
 import { posFromLsp } from '../editor/lspClient.js';
+import { revealAndFlash } from '../editor/syncFlash.js';
 import { t } from '../i18n/i18n.js';
 import { getTheme } from '../themes/theme.js';
 import { readStoredEntrypoint, resolveEntrypoint, storeEntrypoint } from './entrypoint.js';
@@ -799,9 +800,9 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
       if (!view) return false;
       // Una línea fuera del documento (el fuente cambió desde la última
       // compilación) se recorta al final en vez de reventar el editor.
-      const target = Math.min(Math.max(1, line), view.state.doc.lines);
-      const position = view.state.doc.line(target).from;
-      view.dispatch({ selection: { anchor: position }, scrollIntoView: true });
+      // Centrado y con el bloque resaltado unos segundos: sin marca, en un
+      // fichero largo no había forma de ver a qué bloque había saltado.
+      revealAndFlash(view, line);
       view.focus();
       return true;
     },

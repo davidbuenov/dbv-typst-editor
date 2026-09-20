@@ -7,7 +7,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { anchorAtPoint, anchorForLine } from './syncAnchors.js';
+import { anchorAtPoint, anchorForLine, anchorSpan } from './syncAnchors.js';
 
 const a = (file, line, page, xPt, yPt) => ({ file, line, page, xPt, yPt });
 
@@ -102,5 +102,33 @@ describe('anchorForLine (editor → render)', () => {
 
   it('con la tabla vacía no inventa nada', () => {
     expect(anchorForLine([], 'main.typ', 1)).toBeNull();
+  });
+});
+
+describe('anchorSpan', () => {
+  const table = [
+    { file: 'a.typ', line: 1, page: 1, xPt: 56, yPt: 100 },
+    { file: 'a.typ', line: 5, page: 1, xPt: 56, yPt: 180 },
+    { file: 'a.typ', line: 9, page: 2, xPt: 56, yPt: 90 },
+    { file: 'a.typ', line: 12, page: 2, xPt: 300, yPt: 60 },
+  ];
+
+  it('el bloque llega hasta la ancla siguiente de la misma página y columna', () => {
+    expect(anchorSpan(table, table[0])).toBe(80);
+  });
+
+  it('el último bloque de una página usa el alto por defecto', () => {
+    expect(anchorSpan(table, table[1])).toBe(60);
+  });
+
+  it('si la siguiente está en otra columna no se usa su altura', () => {
+    // La segunda columna tiene una y MENOR: restarla daría un alto negativo.
+    expect(anchorSpan(table, table[2])).toBe(60);
+  });
+
+  it('el último de la tabla, o un ancla que no está en ella, usa el alto por defecto', () => {
+    expect(anchorSpan(table, table[3])).toBe(60);
+    expect(anchorSpan(table, { page: 1, xPt: 0, yPt: 0 })).toBe(60);
+    expect(anchorSpan(null, table[0])).toBe(60);
   });
 });

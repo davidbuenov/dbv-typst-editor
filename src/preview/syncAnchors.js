@@ -67,6 +67,27 @@ export function anchorAtPoint(anchors, point) {
   );
 }
 
+/** Alto por defecto de la marca cuando no se sabe dónde acaba el bloque, en puntos. */
+const DEFAULT_SPAN_PT = 60;
+
+/**
+ * Alto en puntos del bloque que empieza en `anchor`: hasta la ancla siguiente si
+ * cae en la MISMA página y columna por debajo; si no (último bloque de la
+ * página, o el siguiente está en otra columna), un alto por defecto. Sirve para
+ * pintar la marca visual del salto de sincronización.
+ *
+ * @param {Array<{page: number, xPt: number, yPt: number}>} anchors
+ * @param {{page: number, xPt: number, yPt: number}} anchor
+ * @returns {number}
+ */
+export function anchorSpan(anchors, anchor) {
+  const index = anchors ? anchors.indexOf(anchor) : -1;
+  const next = index >= 0 ? anchors[index + 1] : null;
+  const sameColumnBelow =
+    next && next.page === anchor.page && band(next.xPt) === band(anchor.xPt) && next.yPt > anchor.yPt;
+  return sameColumnBelow ? next.yPt - anchor.yPt : DEFAULT_SPAN_PT;
+}
+
 /**
  * Posición del render que corresponde a una línea del fuente (editor → render).
  *

@@ -933,6 +933,56 @@
   text-overflow: ellipsis;
 }
 
+/* Marca de la sincronización editor <-> vista previa (RF-16). Un salto sin marca
+   no dice A QUÉ bloque ha saltado: estas dos se desvanecen solas. */
+.cm-sync-flash {
+  background: var(--accent-subtle);
+  box-shadow: inset 3px 0 0 var(--accent);
+  animation: sync-flash-line 2s ease-out forwards;
+}
+
+.preview-sync-mark {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+  background: var(--accent-subtle);
+  border-top: 2px solid var(--accent);
+  border-bottom: 2px solid var(--accent);
+  border-radius: 2px;
+  animation: sync-flash-fade 2.2s ease-out forwards;
+}
+
+/* En el editor se anima SOLO el fondo: la opacidad de la línea haría
+   desaparecer el propio texto del documento. */
+@keyframes sync-flash-line {
+  0%,
+  55% {
+    background-color: var(--accent-subtle);
+    box-shadow: inset 3px 0 0 var(--accent);
+  }
+  100% {
+    background-color: transparent;
+    box-shadow: inset 3px 0 0 transparent;
+  }
+}
+
+@keyframes sync-flash-fade {
+  0%,
+  55% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cm-sync-flash,
+  .preview-sync-mark {
+    animation: none;
+  }
+}
+
 /* Etiqueta del documento principal en el árbol de ficheros. */
 .tree-row__badge {
   flex: 0 0 auto;

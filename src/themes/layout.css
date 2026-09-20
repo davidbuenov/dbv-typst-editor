@@ -1089,6 +1089,22 @@
   white-space: nowrap;
 }
 
+button.document__lsp-badge {
+  border: none;
+  font-family: inherit;
+}
+
+.problems-menu {
+  max-width: min(640px, 92vw);
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.problems-menu .menu-item {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .document__lsp-badge:hover {
   filter: brightness(1.15);
 }

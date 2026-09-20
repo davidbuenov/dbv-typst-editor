@@ -41,6 +41,7 @@ import { createWizard } from './project-wizard/wizard.js';
 import {
   copyAssetIntoProject,
   copyFontIntoProject,
+  engineDiagnostics,
   engineSetMode,
   gitAdd,
   gitClone,
@@ -63,6 +64,7 @@ import {
   pickTypstFile,
 } from './services/backend.js';
 import { createChoiceDialog } from './ui/choiceDialog.js';
+import { countProblems, toProblemList } from './editor/diagnosticsModel.js';
 import { createEditorContextMenu } from './editor/editorContextMenu.js';
 import { createChangeTracker } from './preview/changeTracker.js';
 import { createSplitter } from './ui/splitter.js';
@@ -669,6 +671,62 @@ async function bootstrap() {
   wireFontDrop(workspace, toast.show, getAssetExtensions);
 
   const staleEl = el('preview-stale');
+  // Problemas de la compilación (RF-59): subrayado en el editor, chip con el
+  // recuento y lista que salta al sitio. Solo los da el motor en proceso.
+  const problemsChip = el('problems-chip');
+  let problems = [];
+  async function refreshProblems(result) {
+    // Con el motor clásico no hay rangos: la banda de la vista previa sigue siendo la vía.
+    if (result.ok && result.engine !== 'inproc') return clearProblems();
+    if (!result.ok && engineMode !== 'inproc') return clearProblems();
+    const report = await engineDiagnostics();
+    const list = report.ok ? report.value.diagnostics : [];
+    workspace.setEngineDiagnostics(list);
+    problems = toProblemList(list);
+    const { errors, warnings } = countProblems(list);
+    problemsChip.classList.toggle('hidden', list.length === 0);
+    problemsChip.dataset.status = errors > 0 ? 'error' : 'starting';
+    problemsChip.textContent = `${errors > 0 ? '✖ ' + errors : ''}${errors > 0 && warnings > 0 ? ' · ' : ''}${warnings > 0 ? '⚠ ' + warnings : ''}`;
+  }
+  function clearProblems() {
+    problems = [];
+    workspace.setEngineDiagnostics([]);
+    problemsChip.classList.add('hidden');
+  }
+  problemsChip.addEventListener('click', (event) => {
+    const menu = document.createElement('div');
+    menu.className = 'tree-context-menu problems-menu';
+    menu.setAttribute('role', 'menu');
+    for (const problem of problems.slice(0, 50)) {
+      const item = document.createElement('button');
+      item.type = 'button';
+      item.className = 'menu-item';
+      item.setAttribute('role', 'menuitem');
+      item.textContent = `${problem.level === 'error' ? '✖' : '⚠'} ${problem.file ?? '—'}:${problem.line}  ${problem.message}`;
+      item.title = [problem.message, ...problem.hints].join('
+');
+      item.addEventListener('click', () => {
+        menu.remove();
+        if (problem.file) workspace.goToSource(problem.file, problem.line);
+      });
+      menu.append(item);
+    }
+    document.body.append(menu);
+    const rect = problemsChip.getBoundingClientRect();
+    menu.style.left = `${Math.max(4, Math.min(rect.left, window.innerWidth - menu.offsetWidth - 4))}px`;
+    menu.style.top = `${rect.bottom + 4}px`;
+    const dismiss = (e) => {
+      if (menu.contains(e.target) && e.type === 'mousedown') return;
+      menu.remove();
+      document.removeEventListener('mousedown', dismiss);
+      document.removeEventListener('keydown', dismiss);
+    };
+    setTimeout(() => {
+      document.addEventListener('mousedown', dismiss);
+      document.addEventListener('keydown', (e) => e.key === 'Escape' && dismiss(e), { once: true });
+    });
+    event.stopPropagation();
+  });
   // Posiciones del texto compilado ↔ texto actual del editor (RF-57.5).
   const tracker = createChangeTracker();
   workspace.setListener('editorChanges', (changes) => tracker.record(changes));
@@ -683,6 +741,7 @@ async function bootstrap() {
     onCompileStart: () => tracker.start(workspace.getCursorSource()?.docLength ?? 0),
     onRendered: (id) => tracker.rendered(id),
     onCompiled: (result) => {
+      refreshProblems(result);
       if (result.ok && result.fallbackReason) {
         toast.show(t('preview.engineFallback').replace('{reason}', result.fallbackReason), 'error');
       }

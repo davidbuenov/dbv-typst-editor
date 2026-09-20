@@ -30,6 +30,7 @@ import { createDotEditor } from '../editor/dotEditor.js';
 import { createToolbar } from '../editor/toolbar.js';
 import { figureActionForPath } from '../editor/toolbarActions.js';
 import { posFromLsp } from '../editor/lspClient.js';
+import { mergeDiagnostics, toEditorDiagnostics } from '../editor/diagnosticsModel.js';
 import { revealAndFlash, revealRangeAndFlash } from '../editor/syncFlash.js';
 import { t } from '../i18n/i18n.js';
 import { getTheme } from '../themes/theme.js';
@@ -112,6 +113,20 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     onSelectionChange: () => toolbar?.refresh(),
   });
 
+  // Diagnósticos (RF-59): los de Tinymist y los del motor en proceso se
+  // guardan por separado y se combinan al pintar, sin duplicar. Así el subrayado
+  // sigue funcionando con Tinymist apagado.
+  let tinymistDiagnostics = [];
+  let engineDiagnostics = [];
+
+  function applyDiagnostics() {
+    const view = editor.getView();
+    if (!view) return;
+    const file = state.project && state.document ? relativeToRoot(state.project.root, state.document.path) : null;
+    const own = toEditorDiagnostics(engineDiagnostics, file, view.state.doc);
+    editor.setDiagnostics(mergeDiagnostics(own, tinymistDiagnostics));
+  }
+
   lspClient?.setDiagnosticsHandler?.((diagnostics) => {
     const view = editor.getView();
     if (!view) return;
@@ -127,7 +142,8 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
         source: d.source || 'Tinymist',
       };
     });
-    editor.setDiagnostics(cmDiagnostics);
+    tinymistDiagnostics = cmDiagnostics;
+    applyDiagnostics();
     listeners.diagnosticsUpdated?.(cmDiagnostics);
   });
   // RF-13: la barra de herramientas de inserción vive junto al editor que
@@ -406,6 +422,7 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     // vista previa: se sigue viendo el documento, que es lo que el usuario está
     // escribiendo. Solo se le avisa de que el editor ya no está encima de él,
     // para que deje de usar el contenido en vivo y compile lo que hay en disco.
+    applyDiagnostics();
     if (isTypstPath(payload.path)) {
       state.previewDocument = payload.path;
       listeners.documentOpened?.();
@@ -835,6 +852,11 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     /** Objetivo de compilación vigente (RF-14), o `null` si no hay nada que compilar. */
     getCompileTarget,
     /** Alcance actual de la vista previa: 'document' | 'file'. */
+    /** Diagnósticos del motor en proceso (RF-59): se subrayan y se combinan con los de Tinymist. */
+    setEngineDiagnostics(diagnostics) {
+      engineDiagnostics = diagnostics;
+      applyDiagnostics();
+    },
     /** Vista de CodeMirror del editor (o `null`), para el menú contextual (RF-58). */
     getEditorView: () => editor.getView(),
     getPreviewScope: () => state.previewScope,

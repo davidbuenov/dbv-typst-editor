@@ -116,6 +116,7 @@ const DICTIONARIES = {
     'preview.stale': 'Desactualizada',
     // Sincronización editor ↔ vista previa (RF-16).
     'sync.toPreview': 'Llevar la vista previa a donde está el cursor',
+    'problems.title': 'Problemas de la compilación: pulsa para ver la lista',
     'editorMenu.goToPreview': 'Ir a la vista previa (Ctrl+Alt+P)',
     'editorMenu.cut': 'Cortar',
     'editorMenu.copy': 'Copiar',
@@ -637,6 +638,7 @@ const DICTIONARIES = {
     'preview.stale': 'Out of date',
     // Editor ↔ preview synchronisation (RF-16).
     'sync.toPreview': 'Take the preview to where the cursor is',
+    'problems.title': 'Compile problems: click to see the list',
     'editorMenu.goToPreview': 'Go to preview (Ctrl+Alt+P)',
     'editorMenu.cut': 'Cut',
     'editorMenu.copy': 'Copy',

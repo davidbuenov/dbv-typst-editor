@@ -835,6 +835,8 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     /** Objetivo de compilación vigente (RF-14), o `null` si no hay nada que compilar. */
     getCompileTarget,
     /** Alcance actual de la vista previa: 'document' | 'file'. */
+    /** Vista de CodeMirror del editor (o `null`), para el menú contextual (RF-58). */
+    getEditorView: () => editor.getView(),
     getPreviewScope: () => state.previewScope,
     /** Cambia el alcance y lo recuerda para este proyecto. Devuelve el nuevo. */
     setPreviewScope(scope) {

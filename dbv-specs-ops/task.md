@@ -438,7 +438,7 @@
   - **Medido:** pico de memoria 2,75 GB con `evict(2)` (3,49 GB con `evict(10)`; `evict(0)` deja cada edición en 3,4 s), edición 0,50 s, ejecutable del spike 43,9 MB frente a 19,0 MB de la app.
   - **Desviación consciente de RF-56:** el motor nuevo va detrás de un ajuste y el **clásico es el predeterminado** hasta que el usuario lo valide en una ventana real.
   - [ ] **Slice 70** dependencias `typst*` 0.15.1 + prueba de versiones = sidecar. · [ ] **71** `engine/world.rs`. · [ ] **72** `engine/worker.rs` + `pages.rs`. · [ ] **73** `engine/map.rs` (mapa, locate, reveal, UTF-16). · [ ] **74** `engine/diagnostics.rs`.
-  - [x] **Slice 75** comandos, respaldo automático, ajuste y frontend (sync por palabra/frase). · [ ] **76** RF-58 menú contextual. · [ ] **77** RF-59 Problemas. · [ ] **78** RF-60 ficheros de código. · [ ] **79** RF-60.4 vista viva con `.cpp`. · [ ] **80** `verify:engine`, CI, changelog.
+  - [x] **Slice 75** comandos, respaldo automático, ajuste y frontend (sync por palabra/frase). · [x] **76** RF-58 menú contextual. · [ ] **77** RF-59 Problemas. · [ ] **78** RF-60 ficheros de código. · [ ] **79** RF-60.4 vista viva con `.cpp`. · [ ] **80** `verify:engine`, CI, changelog.
 
 ## 🔄 Context Snapshot / Snapshot de Contexto
 

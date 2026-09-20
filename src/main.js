@@ -63,6 +63,7 @@ import {
   pickTypstFile,
 } from './services/backend.js';
 import { createChoiceDialog } from './ui/choiceDialog.js';
+import { createEditorContextMenu } from './editor/editorContextMenu.js';
 import { createChangeTracker } from './preview/changeTracker.js';
 import { createSplitter } from './ui/splitter.js';
 import { createToast } from './ui/toast.js';
@@ -1295,6 +1296,28 @@ async function bootstrap() {
     if (!found) toast.show(t('sync.notFound'));
   }
   el('btn-sync-preview').addEventListener('click', syncPreviewToCursor);
+
+  // Menú contextual del editor (RF-58): "Ir a la vista previa" + portapapeles.
+  // Si el panel de la vista previa está oculto, se muestra antes de saltar.
+  async function goToPreviewFromEditor() {
+    if (!workspace.getCompileTarget()) {
+      toast.show(t('sync.notInDocument'));
+      return;
+    }
+    if (!getPanelState().preview) {
+      togglePanel('preview', el('workspace-view'));
+      document.querySelector('.mode-switcher__button[data-panel="preview"]')?.setAttribute('aria-pressed', 'true');
+    }
+    await syncPreviewToCursor();
+  }
+  createEditorContextMenu({
+    hostEl: el('editor-host'),
+    getView: () => workspace.getEditorView(),
+    canGoToPreview: () => Boolean(workspace.getCompileTarget()),
+    onGoToPreview: goToPreviewFromEditor,
+    notify: toast.show,
+    t,
+  });
 
   el('btn-zoom-in').addEventListener('click', preview.zoomIn);
   el('btn-zoom-out').addEventListener('click', preview.zoomOut);

@@ -406,6 +406,10 @@ fn main() {
             let t = Instant::now();
             let ok = typst::compile::<PagedDocument>(&world).output;
             times.push(if ok.is_ok() { t.elapsed().as_secs_f64() } else { f64::NAN });
+            drop(ok);
+            // Sin esto la caché incremental crece sin techo; con `evict` se conserva
+            // solo lo usado en las últimas compilaciones.
+            typst::comemo::evict(std::env::var("EVICT").ok().and_then(|v| v.parse().ok()).unwrap_or(10));
         }
         println!(
             "      {label}: {} s  (mediana de 4 ediciones seguidas)",

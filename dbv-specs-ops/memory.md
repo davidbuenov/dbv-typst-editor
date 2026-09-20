@@ -363,6 +363,19 @@
 - **Cómo se revierte:** el motor clásico sigue en el código durante la 0.9.0, así que volver atrás es un ajuste. Retirarlo en la 0.10 es lo que ya no tendría marcha atrás barata.
 - **Registro del estudio y del spike:** `spikes/typst-jump/`. **Documento del alcance:** `SPECIFICATIONS.md` §5i (RNF-MOTOR, RF-56 a RF-60).
 
+### ADR-MOTOR-002 — Decisiones de `/plan` de v0.9.0 tomadas SIN el usuario, y qué se midió
+
+*Registrada el 2026-09-20, en `/plan`. El usuario se fue tras pedir «haz commit /plan y continua con /build sin preguntas»: estas decisiones las habría consultado y se toman con criterio conservador.*
+
+- **Medido en `/plan`** (`z6-IPbook`, 224 páginas, motor en proceso): pico de memoria **3,49 GB** con `comemo::evict(10)`, **2,75 GB** con `evict(2)` y 3,08 GB con `evict(0)` — y `evict(0)` deja cada edición en 3,4 s porque tira la caché incremental, mientras que con `evict(2)` son **0,50 s**. El CLI llegaba a 2,3 GB. Ejecutable del spike 43,9 MB frente a los 19,0 MB de la app. **Lección:** la velocidad incremental depende de conservar la caché de `comemo`; un límite de memoria que la vacíe devuelve la lentitud de hoy.
+- **Decisión 1 — el motor nuevo se entrega detrás de un ajuste, con el clásico como predeterminado.** RF-56 lo pide como principal, pero esta construcción no puede verificarse en una ventana real y un motor nuevo sin verificar como predeterminado arriesga dejar a un usuario sin vista previa. **Es la única desviación consciente de la especificación.** Pasarlo a predeterminado es un cambio de una línea, y lo decide el usuario tras probar `z6-IPbook`.
+- **Decisión 2 — `evict(2)` y techo de 3 GB** para el libro de referencia, comprobados por un test de 40 ediciones con memoria plana.
+- **Decisión 3 — las posiciones cruzan la frontera en UTF-16** (línea y columna), no en bytes: Typst cuenta UTF-8 y CodeMirror UTF-16, y mezclarlos desplazaría el salto en cuanto aparezca una tilde o un símbolo.
+- **Decisión 4 — el Outline se queda con el CLI en esta versión.** Sacarlo del compilado nuevo es una optimización sin riesgo de datos, y ampliar el alcance sin supervisión no compensa.
+- **Decisión 5 — paquetes ausentes: descarga delegada en el sidecar y un reintento**, para no añadir un descargador con TLS (`openssl`) al binario.
+- **Decisión 6 — RF-60 con lista cerrada de extensiones y «Abrir como texto» para el resto**, y lenguajes de resaltado cargados por `import()` dinámico.
+- **No cubierto por la delegación del usuario:** publicar, hacer push, cambiar el motor predeterminado y compilar un `.msix`.
+
 ## 🐛 Primera pasada manual de v0.6.0 en ventana real (2026-09-11)
 
 *El usuario probó el flujo de RF-33 (clonar) en la ventana real y encontró 4 fallos que ninguna prueba automática cogía — mismo patrón que todas las pasadas manuales anteriores de este proyecto. Corregidos en la misma sesión.*

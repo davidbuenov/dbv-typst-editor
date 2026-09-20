@@ -157,6 +157,16 @@
   line-height: 1;
 }
 
+.preview-context-menu .menu-item {
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.menu-item__hint {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
 .menu-separator {
   height: 1px;
   margin: 6px 8px;

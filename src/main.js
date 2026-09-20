@@ -66,6 +66,7 @@ import {
 import { createChoiceDialog } from './ui/choiceDialog.js';
 import { countProblems, toProblemList } from './editor/diagnosticsModel.js';
 import { createEditorContextMenu } from './editor/editorContextMenu.js';
+import { createPreviewContextMenu } from './preview/previewContextMenu.js';
 import { createChangeTracker } from './preview/changeTracker.js';
 import { createSplitter } from './ui/splitter.js';
 import { createToast } from './ui/toast.js';
@@ -1304,8 +1305,8 @@ async function bootstrap() {
   // fuente, abriendo el capítulo que corresponda si no es el que está delante.
   // Typst no da la posición de origen (ADR-SYNC-001), así que esto se apoya en
   // las anclas sembradas por `shadow.rs`.
-  el('preview-pages').addEventListener('dblclick', async (event) => {
-    const source = await preview.sourceAt(event.clientX, event.clientY);
+  async function goToSourceAt(clientX, clientY) {
+    const source = await preview.sourceAt(clientX, clientY);
     if (!source) {
       toast.show(t('sync.notFound'));
       return;
@@ -1327,7 +1328,10 @@ async function bootstrap() {
     }
     preview.flashAnchor(source);
     await workspace.goToSource(source.file, source.line);
-  });
+  }
+  el('preview-pages').addEventListener('dblclick', (event) => goToSourceAt(event.clientX, event.clientY));
+  // Menú contextual (RF-58): lo mismo que el doble clic, para quien no lo conoce.
+  createPreviewContextMenu({ hostEl: el('preview-pages'), onGoToSource: goToSourceAt, t });
 
   /** Rango del texto actual del editor que corresponde al de lo compilado. */
   function mapToCurrent(source) {

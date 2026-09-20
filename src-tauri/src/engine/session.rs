@@ -469,6 +469,31 @@ mod tests {
     }
 
     #[test]
+    fn un_fichero_de_codigo_sin_guardar_llega_al_documento_por_read() {
+        // RF-60.4: el documento incrusta `sim.cpp` con `read()`; lo que hay en el
+        // editor sin guardar debe verse en la vista previa sin tocar el disco.
+        let main = "#let n = int(read(\"sim.cpp\"))
+#for i in range(n) { [Pág.]; if i < n - 1 { pagebreak() } }";
+        let (dir, mut target) = project(&[("main.typ", main), ("sim.cpp", "2")]);
+        let engine = enabled();
+        let Attempt::Done(before) = run(&engine, &target, 1) else { panic!("debía compilar") };
+        assert_eq!(before.geometry.len(), 2);
+
+        target.dirty_path = Some(dir.path().join("sim.cpp").to_string_lossy().to_string());
+        target.dirty_content = Some("4".into());
+        let Attempt::Done(after) = run(&engine, &target, 2) else { panic!("debía compilar") };
+
+        assert_eq!(after.geometry.len(), 4, "la vista previa usa el .cpp sin guardar");
+        assert_eq!(fs::read_to_string(dir.path().join("sim.cpp")).unwrap(), "2", "el disco no se toca");
+
+        // Al guardar (deja de haber cambios sin guardar), vuelve a lo que hay en disco.
+        target.dirty_path = None;
+        target.dirty_content = None;
+        let Attempt::Done(saved) = run(&engine, &target, 3) else { panic!("debía compilar") };
+        assert_eq!(saved.geometry.len(), 2);
+    }
+
+    #[test]
     fn un_documento_con_errores_no_es_un_fallo_del_motor() {
         let (_dir, target) = project(&[("main.typ", "Texto #no-existe fin.")]);
         let engine = enabled();

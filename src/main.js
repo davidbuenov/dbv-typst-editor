@@ -798,6 +798,11 @@ async function bootstrap() {
     preview.onContentChanged();
     outline.onContentChanged();
   });
+  // Fichero de código o datos sin guardar (RF-60.4): solo el motor en proceso
+  // puede leerlo de memoria; con el clásico se recompila al guardar, como siempre.
+  workspace.setListener('companionChanged', () => {
+    if (engineMode === 'inproc') preview.onContentChanged();
+  });
   workspace.setListener('externalChange', (change) => {
     if (!change.isActiveDocument) preview.onExternalChange();
     gitManager.refresh();

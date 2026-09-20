@@ -108,6 +108,10 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
       // como si fuera el documento. Esos ficheros llegan a la vista previa por
       // la vía normal — al guardarlos, el observador dispara la recompilación.
       if (isTypstPath(state.document?.path)) listeners.documentChanged?.(content);
+      // Un `.cpp`, `.csv`… sin guardar que el documento incrusta con `read()`
+      // (RF-60.4): el motor en proceso lo sustituye en memoria, así que la vista
+      // previa puede seguir lo que se escribe. Quién decide si recompilar es main.js.
+      else if (state.project) listeners.companionChanged?.();
     },
     onChanges: (changes) => listeners.editorChanges?.(changes),
     onSave: () => listeners.saveRequested?.(),
@@ -330,6 +334,8 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     saved: null,
     /** @type {null | ((diagnostics: any[]) => void)} */
     diagnosticsUpdated: null,
+    /** @type {null | (() => void)} */
+    companionChanged: null,
   };
 
   function renderDocumentBar() {

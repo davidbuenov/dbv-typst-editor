@@ -234,6 +234,13 @@ impl World for EngineWorld {
     }
 
     fn file(&self, id: FileId) -> FileResult<Bytes> {
+        // Un fichero de código o de datos sin guardar (`read("sim.cpp")`) también
+        // se sustituye: lo que ve el documento es lo del editor, no lo del disco.
+        if let Ok(overrides) = self.overrides.read() {
+            if let Some(source) = overrides.get(&id) {
+                return Ok(Bytes::new(source.text().as_bytes().to_vec()));
+            }
+        }
         match self.files.read() {
             Ok(files) => files.file(id),
             Err(_) => Err(typst::diag::FileError::Other(Some("el mundo de Typst quedó inutilizado".into()))),

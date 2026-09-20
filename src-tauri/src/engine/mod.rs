@@ -17,6 +17,8 @@
 //   · `map`      — el mapa glifo → fuente y sus dos consultas.
 //   · `diagnostics` — errores y avisos como rangos por fichero.
 
+pub mod world;
+
 /// Versión de Typst con la que se compila este motor. Es la MISMA que la del
 /// sidecar vendorizado: solo así la imagen de la vista previa coincide con la
 /// exportación que hace el CLI.

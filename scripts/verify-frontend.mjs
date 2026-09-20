@@ -30,7 +30,8 @@ import { ensureSyntaxTree, language as languageFacet } from '@codemirror/languag
 import { Compartment, EditorState } from '@codemirror/state';
 import { EditorView, keymap } from '@codemirror/view';
 
-import { readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -102,6 +103,33 @@ check('todos los elementos que busca el arranque existen en index.html', () => {
 // menú Archivo repite "Importar proyecto" que ya estaba en el lanzador, y por
 // eso lleva un id propio— y de copiar y pegar marcado, que es como se construye
 // media interfaz.
+// Un salto de línea literal dentro de una cadena en `main.js` rompió `vite build`
+// (v0.9.0) mientras los 700 tests seguían en verde, porque ningún test importa
+// `main.js`. Aquí se analiza la sintaxis de TODOS los ficheros del frontend.
+check('todos los ficheros JS del frontend tienen sintaxis válida', () => {
+  const files = [];
+  const walk = (dir) => {
+    for (const name of readdirSync(dir)) {
+      const full = join(dir, name);
+      if (statSync(full).isDirectory()) walk(full);
+      else if (name.endsWith('.js')) files.push(full);
+    }
+  };
+  walk(join(ROOT, 'src'));
+
+  const broken = [];
+  for (const file of files) {
+    try {
+      execFileSync(process.execPath, ['--check', file], { stdio: 'pipe' });
+    } catch (error) {
+      const detail = String(error.stderr).split(String.fromCharCode(10)).find((line) => line.includes('Error')) ?? 'error de sintaxis';
+      broken.push(`${file.slice(ROOT.length + 1)}: ${detail}`);
+    }
+  }
+  if (broken.length > 0) throw new Error(broken.join(' | '));
+  return `${files.length} ficheros`;
+});
+
 check('ningún id repetido en index.html', () => {
   const html = readFileSync(join(ROOT, 'src', 'index.html'), 'utf8');
   const vistos = new Map();

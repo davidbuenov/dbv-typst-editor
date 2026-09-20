@@ -67,6 +67,7 @@ import { createChoiceDialog } from './ui/choiceDialog.js';
 import { countProblems, toProblemList } from './editor/diagnosticsModel.js';
 import { createEditorContextMenu } from './editor/editorContextMenu.js';
 import { createPreviewContextMenu } from './preview/previewContextMenu.js';
+import { rangeForEditor, rangeForRender } from './preview/syncRange.js';
 import { createChangeTracker } from './preview/changeTracker.js';
 import { createSplitter } from './ui/splitter.js';
 import { createToast } from './ui/toast.js';
@@ -1335,12 +1336,7 @@ async function bootstrap() {
 
   /** Rango del texto actual del editor que corresponde al de lo compilado. */
   function mapToCurrent(source) {
-    const open = workspace.getCursorSource();
-    const raw = { from: source.from, to: source.to };
-    if (!open || open.file !== source.file || !tracker.has(preview.getRenderedStart())) return raw;
-    const mapped = tracker.toCurrent(preview.getRenderedStart(), source.from, source.to);
-    if (!mapped) return raw;
-    return mapped.collapsed ? 'deleted' : { from: mapped.from, to: mapped.to };
+    return rangeForEditor(tracker, preview.getRenderedStart(), workspace.getCursorSource()?.file ?? null, source);
   }
 
   // Dirección contraria, como acción explícita: seguir el cursor de forma
@@ -1351,8 +1347,7 @@ async function bootstrap() {
     if (preview.getEngine() === 'inproc') {
       // Motor en proceso: la palabra o selección exacta, llevada al texto que se
       // compiló con lo tecleado desde entonces.
-      const id = preview.getRenderedStart();
-      const mapped = tracker.has(id) ? tracker.toRendered(id, cursor.from, cursor.to) : { from: cursor.from, to: cursor.to, collapsed: false };
+      const mapped = rangeForRender(tracker, preview.getRenderedStart(), cursor);
       if (mapped.collapsed) {
         toast.show(t('sync.deleted'));
         return;

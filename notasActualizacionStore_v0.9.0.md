@@ -2,6 +2,8 @@
 
 Textos listos para copiar en Partner Center. Store ID `9PCPSVTNJMP0`.
 
+> **Acumulativo:** la última versión publicada en la Store fue la **0.6.0**, así que estos textos recogen todo lo añadido en la 0.7.0, la 0.8.0 y la 0.9.0 que sigue vigente.
+
 ---
 
 ## 1. "Novedades de esta versión" / "What's new in this version"
@@ -11,27 +13,37 @@ Campo del envío: **Descripciones de la Store → Novedades de esta versión** (
 ### 🇪🇸 Español
 
 ```text
-Versión 0.9.0 — Vista previa ultrarrápida y sincronización exacta:
+Versión 0.9.0 — Novedades acumuladas desde la 0.6.0:
 
-• Nuevo motor de vista previa: cada edición de un libro de 220 páginas tarda medio segundo en vez de varios.
-• Sincronización exacta: haz doble clic (o botón derecho → "Ir al código aquí") en la vista previa y el editor selecciona la palabra; desde el editor, Ctrl+Alt+P marca la palabra en la vista previa.
-• Menú contextual en el editor: Ir a la vista previa, Cortar, Copiar, Pegar y Seleccionar todo.
-• Errores y avisos subrayados en el editor, con un contador y una lista para saltar a cada uno.
-• Edita también ficheros de código y texto (.cpp, .java, .py, .json, .csv… y unos 40 tipos más) con resaltado; si el documento los incrusta, la vista previa los sigue sin guardar.
-• Si el motor rápido no puede compilar, la aplicación usa sola el clásico.
+• Vista previa ultrarrápida: nuevo motor; cada edición de un libro de 220 páginas tarda medio segundo. Si falla, la app usa sola el motor anterior.
+• Sincronización exacta editor ↔ vista previa: doble clic (o botón derecho → "Ir al código aquí") selecciona la palabra en el editor; Ctrl+Alt+P la marca en la vista previa.
+• Menú contextual en el editor, y errores subrayados con contador y lista para saltar a cada uno.
+• Edita ficheros de código y texto (.cpp, .java, .py, .json, .csv… unos 40 tipos) con resaltado.
+• Editor visual de ecuaciones con vista previa real y "Pegar LaTeX".
+• Nuevos asistentes en Herramientas: diagramas de secuencia, Gantt, Kanban, DOT/Graphviz y flujogramas con decisiones, cada uno con ayuda contextual.
+• Documento principal elegible: etiqueta "principal" en el árbol y clic derecho → "Establecer como documento principal".
+• Mucho más ágil con libros largos (memoria acotada) y con .typ sueltos en carpetas enormes.
+• Tinymist bajo demanda: actívalo o desactívalo desde su insignia.
+• Zoom con Ctrl +/−/0 y Ctrl+rueda; Guardar y Exportar en el menú Archivo; pantalla de inicio rediseñada.
+• Errores de compilación con tu ruta real y las líneas correctas.
 ```
 
 ### 🇬🇧 English
 
 ```text
-Version 0.9.0 — Ultra-fast preview and exact sync:
+Version 0.9.0 — Cumulative changes since 0.6.0:
 
-• New preview engine: each edit of a 220-page book takes half a second instead of several.
-• Exact sync: double-click (or right-click → "Go to code here") in the preview and the editor selects the word; from the editor, Ctrl+Alt+P marks the word in the preview.
-• Editor context menu: Go to preview, Cut, Copy, Paste and Select all.
-• Errors and warnings underlined in the editor, with a counter and a list to jump to each one.
-• Also edit code and text files (.cpp, .java, .py, .json, .csv… and about 40 more types) with highlighting; if the document embeds them, the preview follows them without saving.
-• If the fast engine cannot compile, the app falls back to the classic one by itself.
+• Ultra-fast preview: new engine; each edit of a 220-page book takes half a second. If it fails, the app falls back to the previous engine by itself.
+• Exact editor ↔ preview sync: double-click (or right-click → "Go to code here") selects the word in the editor; Ctrl+Alt+P marks it in the preview.
+• Editor context menu, and errors underlined with a counter and a list to jump to each one.
+• Edit code and text files (.cpp, .java, .py, .json, .csv… about 40 types) with highlighting.
+• Visual equation editor with a real preview and "Paste LaTeX".
+• New Tools assistants: sequence diagrams, Gantt, Kanban, DOT/Graphviz and flowcharts with decisions, each with contextual help.
+• Selectable main document: "main" badge in the tree and right-click → "Set as main document".
+• Much smoother with long books (bounded memory) and with loose .typ files in huge folders.
+• Tinymist on demand: turn it on or off from its badge.
+• Zoom with Ctrl +/−/0 and Ctrl+wheel; Save and Export in the File menu; redesigned start screen.
+• Compilation errors show your real path and the correct lines.
 ```
 
 ---
@@ -41,15 +53,30 @@ Version 0.9.0 — Ultra-fast preview and exact sync:
 Campo del envío: **Envíos → Notas para la certificación**.
 
 ```text
-SUBMISSION NOTES — v0.9.0 (In-process preview engine release)
+SUBMISSION NOTES — v0.9.0 (cumulative: everything added since the last published version, 0.6.0)
 
-WHAT'S NEW IN THIS VERSION:
-- The live preview now compiles with the Typst engine linked inside the application (no separate process), which makes each edit of a large document take about half a second. If it cannot compile for any reason it falls back automatically to the bundled Typst CLI, so nothing changes for the user.
+WHAT'S NEW SINCE 0.6.0:
+v0.9.0 — In-process preview engine and exact sync
+- The live preview now compiles with the Typst engine linked inside the application (no separate process), which makes each edit of a large document take about half a second. If it cannot compile for any reason it falls back automatically to the bundled Typst CLI, so nothing changes for the user. A setting next to the preview ("Engine: fast (beta) / classic") lets the user choose; the fast one is the default.
 - Exact source sync: double-clicking a word in the preview (or right-click -> "Go to code here") selects that word in the editor; from the editor, Ctrl+Alt+P (or the right-click menu -> "Go to preview") highlights it in the preview.
 - The editor has a context menu (Go to preview, Cut, Copy, Paste, Select all).
 - Compilation errors and warnings are underlined in the editor and listed in a problems chip next to the document name.
 - The editor can open and save code and text files (.cpp, .java, .py, .json, .csv, .md... about 40 extensions), with syntax highlighting; binary, non-UTF-8 and files over 5 MB are refused with a message.
-- The preview engine setting ("Engine: fast (beta) / classic") is next to the preview; the fast one is the default.
+
+v0.8.0 — Performance and usability
+- Performance with large documents: the preview releases the markup of pages far from the viewport (a 220-page book previously grew the process to several GB) and the typing pause before recompiling adapts to how long the last compilation took.
+- A loose .typ file opened from a huge folder (Downloads, Desktop) no longer makes the app copy that folder into a temporary directory on every compilation.
+- Selectable main document: a "main" badge in the file tree, and a context menu (right-click on a .typ file) or the File menu to mark another file as the main document. It is stored per project inside the app; nothing is written to the user's folder.
+- The Tinymist language server starts on demand (automatically for small documents, or by clicking its status badge for large ones) and can be turned off from the same badge.
+- Compilation errors show the user's real project path and correct line numbers; a spurious error caused by a stray closing parenthesis in plain text was fixed.
+
+v0.7.0 — New assistants and interface polish
+- Visual math equation editor (Tools menu) with a REAL preview compiled by Typst on every pause, and "Paste LaTeX" through the MiTeX package.
+- New Tools assistants: sequence diagrams (Chronos), Gantt charts with real dates (Gantty), Kanban boards (Kantan) and DOT/Graphviz graphs (Diagraph), plus a flowchart-with-decisions template in the diagram editor. Each one has a contextual "?" help button linking to the original package documentation. These packages are downloaded from Typst Universe only when the user inserts them.
+- Contextual zoom: Ctrl +/-/0 and Ctrl+wheel resize the editor font or the preview depending on where the focus is.
+- Save, Save As, Export PDF and Export PNG moved to the File menu; the start screen and the recent-projects cards were redesigned; the separator between editor and preview no longer gets stuck when maximizing the window; a benign ResizeObserver browser warning is no longer shown as an application error.
+
+Other platforms (Homebrew for macOS and Linux) were added in v0.8.0; they do not change the Windows/Store package.
 
 CREDENTIALS:
 None required. The application is completely offline, privacy-friendly, and does not use any user accounts or authentication.
@@ -60,7 +87,8 @@ QUICK 2-MINUTE TESTING GUIDE:
 3. Double-click a word in the preview: verify the editor selects that same word and highlights it for a few seconds. Right-click the preview and verify the menu offers "Go to code here" with "double-click" shown as its shortcut.
 4. Click a word in the editor and press Ctrl+Alt+P (or right-click in the editor -> "Go to preview"): verify the word is highlighted in the preview.
 5. Type "#unknown-thing" in the editor and verify it is underlined and a problems chip with a counter appears next to the document name; click the chip and verify the list jumps to the error.
-6. In the file tree, right-click a file with an unknown extension and verify "Open as text" is offered.
+6. In the file tree, right-click a .typ file and verify "Set as main document" is offered (a "main" badge appears on it); right-click a file with an unknown extension and verify "Open as text" is offered.
+7. Open the Tools menu, choose the equation editor, type "x^2 + y^2 = z^2" and verify a rendered preview appears below the field.
 
 ADDITIONAL TECHNICAL CONTEXT:
 - The Typst CLI compiler AND the tinymist Language Server are both bundled inside the application package — two sidecars, no external dependencies, no internet connectivity required. This version adds no new sidecar binaries: the Typst engine is linked into the application executable itself, which is therefore noticeably larger (about 63 MB instead of 19 MB).

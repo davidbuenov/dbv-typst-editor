@@ -343,7 +343,8 @@ Esta aplicación no existiría sin el trabajo de un buen número de proyectos de
 
 ### Motor y lenguaje
 
-- [Typst](https://typst.app) — el motor de composición tipográfica sobre el que se construye toda la aplicación (binario vendorizado como sidecar de compilación).
+- [Typst](https://typst.app) — el motor de composición tipográfica sobre el que se construye toda la aplicación (binario vendorizado como sidecar de compilación y, desde la v0.9.0, sus crates `typst`, `typst-ide`, `typst-layout`, `typst-svg` y `typst-kit` enlazados en la aplicación para el motor de vista previa en proceso; licencia Apache-2.0).
+- [Hilbert Editor](https://github.com/aburousan/hilbert-editor) (MIT) — el estudio de su sincronización clic→fuente con el `Span` de cada glifo inspiró el mapa render↔fuente de la v0.9.0; la implementación es propia.
 - [Tinymist](https://github.com/Myriad-Dreamin/tinymist) — Language Server oficial de Typst, vendorizado para autocompletado semántico, diagnósticos en vivo y formateo.
 
 ### Paquetes de Typst Universe usados por los asistentes visuales de la aplicación

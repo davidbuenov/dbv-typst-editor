@@ -263,7 +263,8 @@ This app wouldn't exist without a good number of open-source projects. Thanks to
 
 ### Engine and language
 
-- [Typst](https://typst.app) — the typesetting engine the whole app is built around (vendored as a compilation sidecar binary).
+- [Typst](https://typst.app) — the typesetting engine the whole app is built around (vendored as a compilation sidecar binary and, since v0.9.0, its `typst`, `typst-ide`, `typst-layout`, `typst-svg` and `typst-kit` crates linked into the app for the in-process preview engine; Apache-2.0 licensed).
+- [Hilbert Editor](https://github.com/aburousan/hilbert-editor) (MIT) — studying its click→source sync through each glyph's `Span` inspired v0.9.0's render↔source map; the implementation is our own.
 - [Tinymist](https://github.com/Myriad-Dreamin/tinymist) — Typst's official Language Server, vendored for semantic autocompletion, live diagnostics and formatting.
 
 ### Typst Universe packages powering the app's own visual assistants

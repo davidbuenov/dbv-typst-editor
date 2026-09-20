@@ -20,6 +20,7 @@
     "verify:templates": "node scripts/verify-templates.mjs",
     "verify:frontend": "node scripts/verify-frontend.mjs",
     "verify:layout": "node scripts/verify-layout.mjs",
+    "verify:engine": "cargo test --manifest-path src-tauri/Cargo.toml --release --target-dir src-tauri/target/verify-engine --test engine_corpus -- --ignored --nocapture",
     "test:frontend": "vitest run",
     "test": "npm run test:frontend && cargo test --manifest-path src-tauri/Cargo.toml --lib",
     "icons": "node scripts/generate-base-icon.mjs && tauri icon src-tauri/icons/base.png",

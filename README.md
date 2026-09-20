@@ -7,7 +7,7 @@
 [![Microsoft Store](https://img.shields.io/badge/Microsoft%20Store-9PCPSVTNJMP0-0078D6?logo=microsoft&logoColor=white)](https://apps.microsoft.com/store/detail/9PCPSVTNJMP0?cid=DevShareMCLPCB)
 ![Status](https://img.shields.io/badge/status-estable%20%7C%20v0.8.0-success)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
-![Windows](https://img.shields.io/badge/Windows-10%20%2F%2011%20(.exe%20%2B%20Store)-0078D6?logo=windows&logoColor=white)
+![Windows](https://img.shields.io/badge/Windows-10%20%2F%2011%20(Microsoft%20Store)-0078D6?logo=windows&logoColor=white)
 ![macOS](https://img.shields.io/badge/macOS-Universal%20(.dmg)-000000?logo=apple&logoColor=white)
 ![Linux](https://img.shields.io/badge/Linux-AppImage%20%7C%20.deb-FCC624?logo=linux&logoColor=black)
 ![Rust](https://img.shields.io/badge/Rust-1.76+-000000?logo=rust&logoColor=white)
@@ -65,7 +65,7 @@ Sigue la misma filosofía que su proyecto hermano [DBV Markdown Reader](https://
 
 - 🌐 **Sitio Web Oficial:** [https://davidbuenov.github.io/dbv-typst-editor/](https://davidbuenov.github.io/dbv-typst-editor/) (con galería interactiva de capturas en alta resolución y selector bilingüe ES/EN).
 - 📦 **Instaladores disponibles en Releases:** [GitHub Releases](https://github.com/davidbuenov/dbv-typst-editor/releases):
-  - 🪟 **Windows**: Instalador `.exe` autónomo (sin dependencias externas).
+  - 🪟 **Windows**: solo a través de la [Microsoft Store](https://apps.microsoft.com/store/detail/9PCPSVTNJMP0?cid=DevShareMCLPCB) (no hay instalador `.exe` en Releases desde `v0.8.0`).
   - 🍎 **macOS**: Archivo `.dmg` universal (compatible con Apple Silicon e Intel).
   - 🐧 **Linux**: Paquetes `.AppImage` (portable) y `.deb` (Debian/Ubuntu/Mint).
 - 🏬 **Microsoft Store:** disponible en la tienda oficial. [🛒 Consíguelo en Microsoft Store (ID 9PCPSVTNJMP0)](https://apps.microsoft.com/store/detail/9PCPSVTNJMP0?cid=DevShareMCLPCB). Si instalaste una versión previa desde la Store, asegúrate de contar con `v0.3.1` o superior (ver [`CHANGELOG.md`](./dbv-specs-ops/CHANGELOG.md)).
@@ -99,31 +99,13 @@ Sigue la misma filosofía que su proyecto hermano [DBV Markdown Reader](https://
 
 ### 🪟 Windows
 
-#### 🏬 Microsoft Store (recomendado en Windows 11)
-
 **[🛒 Consíguelo en Microsoft Store](https://apps.microsoft.com/store/detail/9PCPSVTNJMP0?cid=DevShareMCLPCB)**
 
-Es la vía más directa y cómoda para Windows: el paquete lo firma la propia Store (sin avisos de SmartScreen), se instala con un clic y se actualiza solo en segundo plano con cada nueva versión de la tienda.
+Desde `v0.8.0`, Microsoft Store es el **único** canal de instalación para Windows: el paquete lo firma la propia Store (sin avisos de SmartScreen), se instala con un clic y se actualiza solo en segundo plano. Se eligió porque la Store publica las actualizaciones muy rápido y es la forma más segura de recibirlas: no depende de que cada usuario descargue y ejecute un instalador a mano.
 
-*(Nota: disponible con Store ID `9PCPSVTNJMP0`. Si descargaste una versión previa desde la Store, comprueba que tienes `v0.3.1` o superior —la versión actual es `v0.6.0` e incluye el compilador Typst embebido; ver [`CHANGELOG.md`](./dbv-specs-ops/CHANGELOG.md)). Si prefieres no usar la Store, usa el instalador `.exe` independiente de abajo.*
+El instalador `.exe` de GitHub Releases queda **descontinuado**. Si ya lo tenías instalado así, instala desde la Store para seguir recibiendo actualizaciones: son dos identidades de aplicación distintas, así que convivirán como dos entradas separadas en "Aplicaciones instaladas" hasta que desinstales la antigua. La instalación por `.exe` no recibirá la `v0.8.0` ni posteriores desde "Buscar actualizaciones".
 
-#### 📦 Instalador independiente (.exe)
-
-#### 1️⃣ Descarga
-
-**[⬇️ Ver todas las versiones (Releases)](https://github.com/davidbuenov/dbv-typst-editor/releases)**
-
-Descarga el instalador de la última versión: `DBV Typst Editor_x.y.z_x64-setup.exe`.
-
-El navegador puede avisar de que el archivo "no se descarga habitualmente" (SmartScreen). Es normal en instaladores nuevos sin firma comercial: en Edge, abre el panel de descargas y pulsa **Mostrar más → Mantener**.
-
-#### 2️⃣ Instala
-
-Doble clic sobre el instalador. No requiere permisos de administrador ni conexión a internet durante la instalación — el compilador Typst ya viaja incluido. Windows puede mostrar un aviso de "Editor no reconocido" — pulsa **Más información → Ejecutar de todas formas**.
-
-#### 3️⃣ Actualiza
-
-Abre el panel **Acerca de** (icono ⓘ) y pulsa **Buscar actualizaciones** — la comprobación es siempre bajo demanda, nunca se ejecuta sola al arrancar. Este mecanismo solo aplica a la instalación por `.exe`; una instalación desde Microsoft Store se actualiza sola vía Windows Update.
+*(Store ID `9PCPSVTNJMP0`. La versión que ofrece la Store es siempre la última que Microsoft ha certificado; puede ir unos días por detrás de la de GitHub. Ver [`CHANGELOG.md`](./dbv-specs-ops/CHANGELOG.md).)*
 
 ### 🍺 Homebrew (macOS y Linux)
 
@@ -313,20 +295,17 @@ npm run build
 # equipos sin WebView2 y sin conexión — aulas aisladas, por ejemplo
 npm run build:win:offline
 
-# Solo Windows, con TAURI_SIGNING_PRIVATE_KEY/_PASSWORD puestas: genera el
-# manifiesto de actualización a partir del .exe firmado que acaba de compilar
-npm run updater:manifest
-
-# Solo Windows, sobre el .exe ya compilado: genera el .msix para Microsoft Store
+# Solo Windows: genera el .msix para Microsoft Store (el único canal de Windows
+# desde v0.8.0). No necesita ninguna clave de firma propia: la Store re-firma el
+# paquete con la suya al recibirlo
 npm run tauri:windows:build
 ```
 
-Pasos completos del build de Windows firmado (variables de entorno, orden exacto, qué sube a dónde):
-[`dbv-specs-ops/docs/WINDOWS_RELEASE.md`](./dbv-specs-ops/docs/WINDOWS_RELEASE.md).
+Pasos del build de Windows para la Store: [`dbv-specs-ops/docs/WINDOWS_RELEASE.md`](./dbv-specs-ops/docs/WINDOWS_RELEASE.md).
 
 | Plataforma | Quién compila | Release |
 | --- | --- | --- |
-| **Windows** | El mantenedor, en local (`npm run build`, requiere la clave de firma del actualizador) | Sube el `.exe` + `.sig` + `latest.json` al borrador de Release a mano; el `.msix` se sube aparte a Partner Center |
+| **Windows** | El mantenedor, en local (`npm run tauri:windows:build`); no requiere clave de firma | Solo Microsoft Store: el `.msixbundle` se sube a Partner Center. Ya no se sube ningún `.exe` a la Release |
 | **Linux** | GitHub Actions (`release-linux.yml`) al empujar un tag `vX.Y.Z` | Adjunta AppImage y `.deb` al borrador automáticamente |
 | **macOS** | GitHub Actions (`release-macos.yml`), build universal | Adjunta `.dmg` al borrador automáticamente |
 

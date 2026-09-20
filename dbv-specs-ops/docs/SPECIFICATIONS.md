@@ -1,7 +1,8 @@
 # 📋 Especificaciones: DBV Typst Editor
 
-> **Fase:** `/spec` (Especificación) → **v0.7.0 especificada**
-> **Estado:** 🔒 **CONGELADO v1.11 — 2026-09-19.** v1.11 añade §5h (**RNF-PERF, RF-53, RF-54, RF-55**), registrada **a posteriori** en `/ship` de v0.8.0 (ver `ADR-V080-001` en `memory.md`).
+> **Fase:** `/spec` (Especificación) → **v0.9.0 especificada**
+> **Estado:** 🔒 **CONGELADO v1.12 — 2026-09-20.** v1.12 abre v0.9.0 (§5i: **RNF-MOTOR, RF-56 a RF-60**): motor de vista previa **en proceso** (Typst como librería) con sincronización exacta por palabra y frase en los dos sentidos, velocidad tras cada edición, menú contextual del editor, diagnósticos en línea y edición de ficheros de texto/código con resaltado. Decisión de arquitectura en `ADR-MOTOR-001` (`memory.md`); **RF-16 queda sustituido por RF-57 en el motor en proceso** y se conserva en el motor clásico de respaldo.
+> **v1.11 (2026-09-19):** v1.11 añade §5h (**RNF-PERF, RF-53, RF-54, RF-55**), registrada **a posteriori** en `/ship` de v0.8.0 (ver `ADR-V080-001` en `memory.md`).
 > **v1.10 (2026-09-15):** v1.10 añade **RF-52** (botón "?" de ayuda contextual en cada asistente de diagramación) tras probar el usuario en vivo el asistente de DOT/Graphviz recién construido: sin ninguna ayuda visual de sintaxis (a diferencia de los otros cinco asistentes, que sí construyen el código por ti), quien no conoce el lenguaje DOT se queda sin saber qué escribir. Ver criterios de aceptación al final de §5g.
 > **v1.9:** v1.9 activó RF-50 (Kanban) y RF-51 (DOT/Graphviz) de forma incondicional: v1.8 los había dejado como un único RF-50 condicional ("si sobra alcance de `/plan`"); con `/build`, `/test` y `/code-simplify` de los otros 9 RF de v0.7.0 (RF-40 a RF-49) cerrados y probados en vivo por el usuario el mismo día, el usuario decidió completar también esta parte para cerrar v0.7.0 con el alcance íntegro del `/spec` original, en vez de diferir nada a una versión futura. Los dos requisitos quedan detallados al mismo nivel que RF-46 a RF-49 (criterios de aceptación concretos, no solo el nombre del paquete), con nombre/versión/licencia/API de `kantan` y `diagraph` verificados contra el registro real de Typst Universe y sus READMEs reales, no asumidos — ver `ADR-DECISION-006` en `memory.md`.
 > **v1.8:** v1.8 abrió v0.7.0 (§5g, RF-40 a RF-50) tras una pasada de uso real del usuario con un proyecto externo (un glosario técnico-administrativo con imágenes y fuentes propias) que destapó tres defectos de UX vivos en la aplicación —un aviso benigno de `ResizeObserver` mostrado como error de la app, el separador editor/vista previa bloqueable al arrastrarlo, y los atajos de zoom capturados por el zoom nativo del webview en vez de por la app— más dos reorganizaciones de menú pedidas al ver la app en marcha (Guardar/Guardar como/PDF/PNG a "Archivo"; el editor de diagramas de RF-31 visible en "Herramientas" en vez de un icono suelto en la barra del editor), un rediseño de la pantalla de inicio, un **nuevo editor visual interactivo de ecuaciones matemáticas**, y tres ampliaciones de diagramación (flujogramas con decisiones, diagramas de secuencia, diagramas de Gantt) priorizadas explícitamente contra la Sección XI ("Application of Typst for Computer Science") de Voynov, A., Corbi, A., López-Oliver, P., & Gil, D. (2026), *"Typst: A Modern Typesetting Engine for Science"*, IJIMAI 9(7), 107–120, ya indexado como referencia en `README.md`/`README.en.md` — uno de sus autores, Alberto Corbi, es colaborador de este proyecto.
@@ -125,7 +126,7 @@ Toda la aplicación (lanzador, asistente de creación, explorador de ficheros, e
     descarta de momento un tercer modo "cada N segundos": paga el coste completo igual, solo que con
     menos frecuencia, y el usuario no sabe cuándo le caerá.
 
-- [ ] **RF-16 Sincronización editor ↔ vista previa (bidireccional).** Doble clic en la vista previa
+- [ ] **RF-16 Sincronización editor ↔ vista previa (bidireccional).** *(Desde v0.9.0, sustituido por RF-57 en el motor en proceso; este mecanismo por anclas se conserva solo en el motor clásico de respaldo.)* Doble clic en la vista previa
   lleva el cursor al punto correspondiente del fuente, **abriendo el fichero que corresponda** si no
   es el que está abierto; y desde el editor, una acción explícita lleva la vista previa al punto que
   se está escribiendo. *Sustituye* a la cláusula de §6 sobre sync por posición real.
@@ -765,6 +766,80 @@ un olvido, es una decisión de alcance tomada en esta misma sesión de `/spec`, 
 2. El Cask instala el comando de consola **`typs`**: `typs`, `typs fichero.typ`, `typs carpeta/` y `typs .`, que devuelven el terminal en cuanto se abre la ventana.
 3. La aplicación acepta, al arrancar o por instancia única, **ficheros `.typ` y carpetas existentes** (una carpeta se abre como proyecto), y resuelve las rutas relativas contra el directorio de quien la invocó.
 4. **Pendiente de verificación en un Mac real:** que `open -a "DBV Typst Editor" <carpeta>` llegue a la aplicación como Apple Event con la carpeta, y el bucle de recompilación de macOS (hipótesis: eventos de solo metadatos de Spotlight; mitigado descartándolos en el observador de ficheros).
+
+---
+
+## ✨ 5i. Funcionalidades — v0.9.0 (Motor en proceso: sincronización exacta + velocidad tras cada edición)
+
+> **Origen (2026-09-20):** tras publicar v0.8.0, el usuario probó la sincronización con un libro real (`z6-IPbook`, 224 páginas) y pidió que "vaya directamente al punto correspondiente", no solo al bloque; y quiere recuperar el lema del producto —la velocidad— tras cada edición. Se estudió Hilbert Editor (MIT), que resuelve el clic → fuente cargando el crate `typst` y leyendo el `Span` de cada glifo, y se midió el **Spike S-3** (`spikes/typst-jump/README.md`) sobre ese mismo libro. **No se busca copiar su solución sino superarla**: un solo compilado, en proceso, del que salen la imagen y el mapa exacto al fuente. Decisión de arquitectura en `ADR-MOTOR-001` (`memory.md`) y `ARCHITECTURE.md` §7.17.
+>
+> **Decisiones del usuario (2026-09-20):** (1) el motor clásico (CLI + réplica + anclas) queda como **respaldo automático** durante esta versión y se retira en la 0.10; (2) las **exportaciones (PDF/PNG) siguen con el CLI**; (3) entre las mejoras extra propuestas, solo entra **diagnósticos en línea** (RF-59); (4) se añade **editar ficheros de texto y código** (RF-60) y el **menú contextual del editor** (RF-58). La v0.8.0 queda como está (sin instalador de Windows: solo Store, `ADR-WINDOWS-001`); lo construido después —arreglo de etiquetas tras encabezados, marca visual por bloque— **entra en la 0.9.0** como parte del motor clásico de respaldo.
+
+### RNF-MOTOR — Presupuesto de rendimiento y método de medida
+1. **Edición → vista previa actualizada** (página visible repintada): ≤ **1,5 s** (p95) en un libro de ≥ 220 páginas; ≤ **150 ms** en un documento de menos de 20 páginas. *Punto de partida medido (S-3):* 0,54–0,72 s de compilación incremental + 2–5 ms por página SVG, frente a ≈ 5 s hoy.
+2. **Compilación en frío** (abrir el proyecto): no peor que la del CLI + 10 % (medido: 4,4 s frente a 4,6 s — *no hay ventaja en frío, y no se promete*).
+3. **Salto de sincronización:** ≤ **50 ms** con el mapa ya construido; ≤ **500 ms** cuando hay que construirlo (0,33 s para el libro de 224 páginas, medido).
+4. **Memoria:** sin crecimiento sin techo tras 100 ediciones consecutivas y al recorrer el documento entero. El **techo concreto se fija en `/plan`** tras medirlo: el Spike S-3 no midió memoria.
+5. **Binario y CI:** el incremento de tamaño del ejecutable y de tiempo de compilación en CI se **miden en `/plan`** antes de comprometerse (el Spike S-3 solo midió que las dependencias compilan en ≈ 2 minutos).
+6. **Método:** un corpus sintético versionado de ≥ 200 páginas en `testfiles/` (no dependiente de material con derechos) para las pruebas automáticas, y el libro real como prueba manual del usuario. Las cifras de aceptación se comprueban con un guion (`npm run verify:engine`), no a ojo.
+
+### RF-56 — Motor de vista previa en proceso (compilación incremental)
+1. La vista previa compila con **Typst como librería** (`typst`, `typst-ide`, `typst-layout`, `typst-svg`, `typst-kit`), con versiones **exactas iguales a las del sidecar vendorizado** (hoy 0.15.1). Una prueba falla si dejan de coincidir: es la condición para que la imagen y las exportaciones con el CLI sean idénticas.
+2. Un **mundo persistente por proyecto** conserva la caché incremental de Typst entre compilaciones. El contenido sin guardar entra como **sustitución en memoria**: **desaparecen la réplica del proyecto, las anclas sembradas y las escrituras en temporales** del motor nuevo. Los ficheros de disco se vuelven a leer cuando cambian.
+3. Cada compilación se ejecuta **fuera del hilo de la interfaz**, y **gana la última**: una compilación obsoleta se descarta al terminar y no se pinta. Una compilación en proceso **no se puede cancelar a mitad**; se acepta y se documenta (el CLI sí, matando el proceso).
+4. Del mismo documento compuesto se genera el **SVG solo de las páginas visibles** (más un margen); las demás, bajo demanda. La memoria del documento anterior se libera al sustituirlo, al cerrar el proyecto y tras un periodo de inactividad.
+5. **Fuentes idénticas a las del CLI** (carpeta `fonts/` del proyecto, variables `TYPST_*` que hoy respeta el sidecar, mismo orden de prioridad). Sin red en el motor: si falta un paquete de Typst Universe, **la descarga se delega en el sidecar**, que la deja en la caché compartida, y se reintenta.
+6. **Respaldo automático al motor clásico** si el motor en proceso entra en pánico, falla su arranque, se detecta una incompatibilidad, o una compilación supera el tiempo máximo actual (45 s). Se avisa en la barra de estado ("motor clásico") y se puede **forzar** desde un ajuste. Tras un tiempo máximo, el hilo colgado se abandona y el mundo se recrea.
+7. **Exportar PDF/PNG y Universe/paquetes siguen con el CLI** (decisión del usuario). El panel de navegación (Outline) sale del mismo compilado del motor nuevo y del CLI en el clásico.
+8. **Criterios de aceptación:** los de RNF-MOTOR-1 a 4; el árbol de ficheros, los alcances (RF-14), el refresco manual/automático (RF-15) y el documento principal (RF-53) funcionan sin cambios; el comportamiento con errores es el de hoy (se conserva la última vista buena).
+
+### RF-57 — Mapa render↔fuente y sincronización exacta (sustituye a RF-16 en el motor en proceso)
+1. **Mapa por glifo** construido del mismo documento compuesto: cada glifo dibujado con el **rango de bytes del fuente** del que salió (`Span` + desplazamiento dentro del nodo de texto), a **nivel de palabra y de frase**, atravesando grupos y transformaciones (girados, escalados, recortes) y ficheros incluidos.
+2. **Casos que se resuelven aparte, no por el glifo:** las **referencias** (`@sec-x`, "Ecuación (1)") y las **citas** responden con la referencia tal como se escribió, no con el destino; el texto **generado sin fuente propio** (numeración, "Figura 1:", marcador de nota al pie) responde con el elemento al que pertenece; imágenes y formas con el elemento que las produjo; ecuaciones a nivel de símbolo (subíndices, superíndices, delimitadores grandes).
+3. **Render → fuente (doble clic):** el cursor va al **byte exacto**, **abriendo el fichero** que corresponda, y la **palabra queda seleccionada**. Los huecos entre letras y un punto justo bajo la línea base pertenecen a la palabra.
+4. **Fuente → render** (menú contextual, atajo o botón, RF-58): la vista previa se desplaza a la posición exacta, y se **resalta la palabra bajo el cursor**; **con una selección en el editor se resalta la selección completa (la frase)**, con una caja por línea cuando ocupa varias. Sustituye a la marca por bloque de la v0.8.x.
+5. **Frescura del mapa:** el mapa pertenece a la **generación** del render que se ve. Si el fuente ha cambiado desde esa compilación (se está escribiendo, o el refresco es manual, RF-15), las posiciones se **reasignan con los cambios pendientes del editor**; si el trozo fue borrado, se cae al vecino más cercano **y se avisa**. Un salto nunca aterriza en un sitio equivocado en silencio.
+6. **Sin anclas ni réplica** en el motor nuevo. En el motor clásico se conserva el mecanismo de RF-16 (anclas entre bloques), con su precisión de bloque y su marca por bloque, como degradación aceptada.
+7. **Criterios de aceptación medibles:** sobre el corpus de RNF-MOTOR-6 y el libro real, ≥ **95 %** de las palabras de prosa (excluyendo código, comentarios y texto generado) se localizan por **palabra** en ambos sentidos (*Spike S-3, con una métrica más tosca: 93,5 % fuente→render y 83,8 % clic→fuente*); tests con fixtures de: prosa, encabezados numerados, listas, tablas, notas al pie, ecuaciones y referencias, dos columnas, figuras flotantes, texto girado y escrituras de derecha a izquierda; ningún salto del corpus aterriza en un fichero distinto del que contiene el texto marcado.
+
+### RF-58 — Menú contextual del editor con "Ir a la vista previa"
+1. El **botón derecho en el editor** abre un menú propio (hoy solo existe el del árbol de ficheros): **Ir a la vista previa** (con su atajo a la vista), separador, **Cortar, Copiar, Pegar, Seleccionar todo**. Cortar y Copiar se desactivan sin selección.
+2. **Ir a la vista previa** lleva la vista previa a la palabra bajo el cursor —o marca la selección— según RF-57. Si el panel de la vista previa está oculto (modo Escritura/Edición), **lo muestra primero**. Si el fichero abierto **no forma parte del documento que se está viendo**, lo dice y ofrece cambiar el alcance (RF-14); nunca falla en silencio.
+3. **Atajo de teclado propio**, fijado en `/plan` comprobando conflictos con la barra de inserción y el resto de atajos, y listado en la Ayuda. El botón ⇥ de la barra de la vista previa y el doble clic se conservan.
+4. **Accesible:** se abre también con la tecla de menú contextual / `Mays+F10`, se recorre con flechas, se cierra con `Esc` devolviendo el foco al editor, con `role="menu"`; textos en español e inglés.
+5. **Riesgo a resolver en `/plan`:** Cortar/Copiar/Pegar deben funcionar en los tres motores web (WebView2, WKWebView y WebKitGTK); pegar exige el permiso de lectura del portapapeles, que no se concede igual en los tres. Se verifica en cada plataforma, no se supone.
+
+### RF-59 — Diagnósticos en línea desde el mismo compilado
+1. Los **errores y avisos** del compilador salen del **mismo compilado** del motor en proceso, con su **fichero y rango exacto** (y las pistas que Typst aporta): **subrayado en el editor** del fichero abierto y un **panel de Problemas** con la lista, el recuento en la barra de estado y **clic para saltar** (abriendo el fichero si hace falta).
+2. **No dependen de Tinymist**, que ahora arranca bajo demanda (RF-54): con Tinymist apagado siguen viéndose. Si está activo y también informa, **se deduplica por (rango, mensaje)** y prevalecen los del compilador para los errores de compilación; Tinymist conserva lo suyo (análisis y autocompletado).
+3. **Números de línea y rutas correctos por construcción** (sin la réplica temporal ni el remapeo de rutas del motor clásico).
+4. En el motor clásico se conserva la banda de mensajes actual (`stderr` del CLI).
+5. **Criterios de aceptación:** un error en un capítulo incluido y no abierto aparece en el panel con su fichero y línea reales, y al abrirlo está subrayado en el sitio exacto; al corregirlo desaparece en la siguiente compilación; los avisos no bloquean la vista previa.
+
+### RF-60 — Editar ficheros de texto y de código con resaltado
+1. **Qué se puede abrir y editar:** además de `.typ` y de los tres acompañantes de hoy (`.bib`, `.toml`, `.yml`), una lista de extensiones de **código y texto** sin necesidad de salir a otro editor: `.c .h .cpp .cc .hpp .cs .java .kt .py .js .ts .rs .go .rb .php .sh .ps1 .sql .r .m .swift .lua .css .html .xml .json .yaml .csv .tsv .txt .md .tex .ini .log .csl`. El árbol las marca editables **por extensión, sin leer el fichero** (listar carpetas no debe costar E/S). Para cualquier otra, el menú contextual ofrece **"Abrir como texto"**.
+2. **Solo texto, sin comportamiento especial:** sin barra de inserción de Typst, sin asistentes, sin LSP ni diagnósticos de Typst. Editar un `.cpp` **no cambia el documento que se previsualiza**.
+3. **Resaltado de sintaxis** con **paquetes de lenguaje cargados a demanda** (uno por lenguaje, solo cuando se abre un fichero de ese tipo), sin red y sin engordar el arranque: el tamaño del paquete inicial **no crece** (se mide). Los colores usan los **mismos tokens `--code-*`** que el resaltado de Typst, así que respetan los **tres temas** (claro, oscuro y sepia) sin colores propios. Se muestra el **nombre del lenguaje** en la barra del documento.
+4. **La vista previa se entera de lo que se edita:** un `.cpp` que el documento incrusta con `read()` **actualiza la vista previa mientras se escribe, sin guardar** (con el motor en proceso el coste es de décimas de segundo); en el motor clásico, al guardar (como hoy los `.bib`).
+5. **Guardarraíles:** el fichero se guarda **byte a byte como estaba** salvo lo editado: se **conservan los finales de línea** (CRLF/LF), el BOM y la ausencia o presencia de salto de línea final; se rechaza —o se ofrece abrir en solo lectura— lo que **no sea UTF-8 válido o contenga bytes NUL**; y hay un **tamaño máximo** (a fijar en `/plan`, orientativo 5 MB) con aviso claro.
+6. **Fuera de alcance de este requisito (registrado):** autocompletado, formateo, ejecución o compilación de esos lenguajes; el runner de Python (RF-22) sigue siendo independiente.
+7. **Criterios de aceptación:** abrir un `.cpp`, un `.java` y un `.py` los muestra coloreados en los tres temas; guardar un `.cpp` con CRLF lo deja con CRLF; un fichero binario no se abre como texto; el tamaño del paquete inicial no cambia; un `.cpp` incrustado con `read()` refleja la edición en la vista previa.
+
+### Diferido y registrado (NO entra en la 0.9.0, decisión del usuario)
+- **Sincronización continua** (que editor y vista previa se sigan al mover cursor o scroll): con el mapa cuesta microsegundos; candidata a la 0.10.
+- **Vista previa interactiva:** buscar y copiar texto, enlaces y referencias clicables. Hoy el SVG solo lleva glifos; el mapa lo haría posible.
+- **Apertura instantánea** (última imagen conocida al abrir), **tiempo de compilación en la barra de estado** y **repintado solo de las páginas que cambian**.
+- **Exportar PDF/PNG en proceso** (mismo compilado, con progreso).
+- **Retirada del motor clásico** (réplica, anclas, reintento sin anclas): prevista para la 0.10, cuando el motor nuevo lleve una versión en uso.
+
+### Preguntas abiertas para `/plan` (no se resuelven aquí a propósito)
+- Techo de memoria del motor en proceso, incremento de tamaño del binario y de tiempo de CI (RNF-MOTOR-4/5).
+- Estrategia exacta de fallo y reinicio del hilo de compilación (RF-56.6) y de comunicación de resultados obsoletos.
+- Cómo se reutiliza el documento compuesto del motor nuevo para el Outline (hoy `typst eval`).
+- Atajo de RF-58 y comprobación de portapapeles en las tres plataformas.
+- Lista definitiva de lenguajes de RF-60 y su paquete de resaltado (`@codemirror/lang-*` o `legacy-modes`); tamaño máximo de fichero.
+- Auditoría de licencias de los crates nuevos (Typst es Apache-2.0, compatible con la licencia MIT del proyecto; requiere conservar los avisos) y de la versión mínima de Rust.
+- Cómo coexisten, durante una versión, el motor nuevo y el clásico en `EngineState` sin duplicar la lógica de alcance y de refresco.
 
 ---
 

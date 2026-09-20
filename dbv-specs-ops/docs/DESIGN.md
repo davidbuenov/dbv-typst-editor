@@ -183,3 +183,14 @@ Restricciones que cualquier propuesta visual debe respetar. Existen porque cada 
 ---
 
 > 🛠️ Framework SDD creado por **[David Bueno Vallejo](https://github.com/davidbuenov)** · [dbv-specs-ops](https://github.com/davidbuenov/dbv-specs-ops)
+
+## 11. v0.9.0: componentes nuevos (menú contextual, Problemas, marca de sincronización, insignia de lenguaje)
+
+Reglas para los cuatro componentes que trae `SPECIFICATIONS.md` §5i. Ninguno introduce un color, una fuente ni una sombra que no esté ya en los tokens.
+
+- **Menú contextual del editor (RF-58).** Misma pieza que el menú del árbol de ficheros (`.tree-context-menu` + `.menu-item`): fondo `--bg-secondary`, borde `--border`, radio `--radius`, sombra `--shadow`, `z-index` por encima de los paneles flotantes. La primera entrada, **Ir a la vista previa**, lleva su atajo alineado a la derecha en `--text-muted`; los elementos desactivados usan la opacidad de `.menu-item:disabled`. Se coloca contra el puntero y se recoloca dentro de la ventana; foco visible con el mismo contorno `--accent`.
+- **Panel de Problemas (RF-59).** Vive junto a la banda de mensajes de la vista previa, no en una ventana aparte. Cada fila: icono de gravedad (`--status-error` / `--status-warn`), mensaje, y `fichero:línea` en `--text-muted`. Recuento en la barra de estado con los mismos colores de estado que la insignia de Tinymist. Sin animación de entrada.
+- **Marca de sincronización (RF-57).** Palabra o frase resaltada con `--accent-subtle` y un trazo de `--accent`; **una caja por línea** cuando la selección ocupa varias. Se desvanece a los 2 s animando **solo el fondo** (nunca la opacidad de la línea del editor: haría desaparecer el texto) y respeta `prefers-reduced-motion`.
+- **Insignia de lenguaje (RF-60).** Junto al nombre del documento, con el estilo de la insignia de Tinymist (`.document__lsp-badge`) en su variante neutra (`--text-muted` sobre `--bg-tertiary`). Solo el nombre ("C++", "Python"…), sin icono de marca.
+- **Resaltado de código de otros lenguajes (RF-60).** Solo los tokens `--code-*` ya definidos para Typst, para que los tres temas (claro, oscuro y sepia) funcionen sin trabajo extra. `verify:layout` sigue prohibiendo los colores literales fuera de `tokens.css`.
+

@@ -248,6 +248,8 @@ El Spec Addendum pide evaluar **Monaco Editor como opción principal**, citando 
 
 ### 7.2. Integración del compilador Typst — CLI oficial como sidecar (decisión revisada 2026-09-04)
 
+> **Enmendada el 2026-09-20 (`ADR-MOTOR-001`, §7.17):** desde la v0.9.0 la **vista previa** compila en proceso con Typst como librería; el sidecar sigue siendo el compilador de las **exportaciones**, de Universe y de la descarga de paquetes, y el motor clásico que lo usa queda como respaldo automático.
+
 > **Esta decisión sustituye a la versión anterior de esta sección** (que proponía embeber las crates Rust `typst`/`typst-pdf`/`typst-svg`/`typst-ide`/`typst-kit`). El usuario ha indicado explícitamente ("TYPST CLI INTEGRATION") que DBV Typst Editor debe integrar y usar internamente el **CLI oficial de Typst** para creación de proyectos, resolución de paquetes, compilación, vista previa en vivo y exportación — el usuario normal no debe invocar comandos manualmente, pero el mecanismo interno de la app sí se apoya en el binario oficial. Registrado como reversión explícita de ADR en `memory.md`.
 
 **Decisión:** vendorizar el binario oficial `typst` (CLI) **como sidecar de Tauri** (`tauri-plugin-shell`, ya presente en el stack heredado de DBV Markdown Reader — `capabilities/main.json` ya anticipaba "revisar permisos de shell si se añade sidecar", §3 fila 18), una copia por plataforma en `src-tauri/binaries/typst-<target-triple>[.exe]`, con versión fijada y actualizada junto con el resto de la app (mismo canal de auto-actualización ya heredado, no `typst update`, ver `TYPST_ECOSYSTEM_RESEARCH.md` §1.6). **No** se embebe ninguna de las crates Rust de Typst como librería del backend.
@@ -667,6 +669,33 @@ Especificado en `SPECIFICATIONS.md` §5f (RF-31 a RF-38, congelado v1.7 el 2026-
 | Runtime JavaScript (`jogs`) | 🟡 Media | Paquete `@preview/jogs`, sandboxing sin verificar |
 
 ---
+
+### 7.17. Arquitectura v0.9.0: motor de vista previa en proceso *(directriz de `/spec`; el diseño detallado se hace en `/plan`)*
+
+> Decisión y alternativas en `ADR-MOTOR-001`; alcance en `SPECIFICATIONS.md` §5i. Esta sección **enmienda §7.2 solo para la vista previa**: el compilador sigue viajando como sidecar para exportar, Universe y descargar paquetes.
+
+**Idea rectora:** un solo compilado, en proceso, del que salen la imagen **y** el mapa al fuente. La imagen y el mapa nunca pueden desincronizarse porque son el mismo `PagedDocument`.
+
+**Piezas previstas** (nombres provisionales, se fijan en `/plan`):
+
+| Pieza | Responsabilidad |
+| --- | --- |
+| `engine::world` | Implementa `World` e `IdeWorld` sobre `typst-kit` (`FileStore`, `FontStore`, paquetes). Persistente por proyecto: conserva la caché incremental (`comemo`). Sustituciones en memoria para el contenido sin guardar. Sin red. |
+| `engine::worker` | Hilo de compilación con cola de **una plaza** ("gana la última"); descarta resultados obsoletos; contiene los pánicos (`catch_unwind`) para disparar el respaldo; abandona una compilación colgada y recrea el mundo. |
+| `engine::pages` | SVG de páginas concretas del documento vigente (`typst-svg`), bajo demanda; conserva solo el documento de la generación vigente. |
+| `engine::map` | Recorre las páginas y construye el mapa glifo → (fichero, bytes del fuente), a nivel de palabra/frase. Cachea la resolución por `Span` (el Spike S-3 pasó de 6,5 s a 0,33 s con esa caché). Consultas en ambos sentidos. |
+| `engine::diagnostics` | Convierte los `SourceDiagnostic` del compilado en rangos por fichero (RF-59). |
+| `EngineState` (existente) | Elige el motor (nuevo o clásico), lleva la generación, y aplica el **respaldo automático**. Los comandos Tauri de hoy (`typst_compile_preview`, `typst_preview_page`, `typst_sync_anchors`) conservan su forma para el motor clásico. |
+
+**Reglas de diseño que ya son requisitos:**
+- Las versiones de `typst*` **coinciden exactamente** con la del sidecar; una prueba lo comprueba.
+- El motor nuevo **no escribe** en la carpeta del usuario ni en temporales (sin réplica, sin anclas).
+- Toda consulta del mapa se hace contra la **generación** que el usuario está viendo; las posiciones se reasignan con los cambios pendientes del editor (`ChangeSet` de CodeMirror) para que un salto nunca caiga en un sitio equivocado en silencio.
+- Las exportaciones y la descarga de paquetes **siguen con el CLI**; si falta un paquete, el sidecar lo deja en la caché compartida y el motor reintenta.
+
+**Riesgos que `/plan` debe resolver con datos** (ver también `ADR-MOTOR-001`): techo de memoria, tamaño del binario y tiempo de CI; cancelación imposible de una compilación en curso; contención de pánicos; manejo de grupos transformados, flotantes y texto de derecha a izquierda en el mapa; convivencia del motor nuevo y el clásico sin duplicar la lógica de alcance y refresco.
+
+**Frontera con el frontend:** el frontend pide páginas (`engine_page`) y consultas de mapa (`engine_locate`, `engine_reveal`) por generación; recibe diagnósticos como rangos. Nunca ve el `Span` ni el documento.
 
 ## 🔑 Decisiones Técnicas Clave (resumen)
 

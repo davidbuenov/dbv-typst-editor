@@ -7,7 +7,7 @@
 [![Microsoft Store](https://img.shields.io/badge/Microsoft%20Store-9PCPSVTNJMP0-0078D6?logo=microsoft&logoColor=white)](https://apps.microsoft.com/store/detail/9PCPSVTNJMP0?cid=DevShareMCLPCB)
 ![Status](https://img.shields.io/badge/status-stable%20%7C%20v0.8.0-success)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
-![Windows](https://img.shields.io/badge/Windows-10%20%2F%2011%20(.exe%20%2B%20Store)-0078D6?logo=windows&logoColor=white)
+![Windows](https://img.shields.io/badge/Windows-10%20%2F%2011%20(Microsoft%20Store)-0078D6?logo=windows&logoColor=white)
 ![macOS](https://img.shields.io/badge/macOS-Universal%20(.dmg)-000000?logo=apple&logoColor=white)
 ![Linux](https://img.shields.io/badge/Linux-AppImage%20%7C%20.deb-FCC624?logo=linux&logoColor=black)
 ![Rust](https://img.shields.io/badge/Rust-1.76+-000000?logo=rust&logoColor=white)
@@ -63,7 +63,7 @@ It follows the same philosophy as its sibling project [DBV Markdown Reader](http
 
 - 🌐 **Official Website:** [https://davidbuenov.github.io/dbv-typst-editor/en/](https://davidbuenov.github.io/dbv-typst-editor/en/) (featuring full-resolution interactive screenshot gallery and bilingual ES/EN switch).
 - 📦 **Installers available on Releases:** [GitHub Releases](https://github.com/davidbuenov/dbv-typst-editor/releases):
-  - 🪟 **Windows**: Standalone `.exe` installer (no external dependencies).
+  - 🪟 **Windows**: only through the [Microsoft Store](https://apps.microsoft.com/store/detail/9PCPSVTNJMP0?cid=DevShareMCLPCB) (there is no `.exe` installer on Releases since `v0.8.0`).
   - 🍎 **macOS**: Universal `.dmg` (compatible with Apple Silicon & Intel).
   - 🐧 **Linux**: `.AppImage` (portable) and `.deb` (Debian/Ubuntu/Mint) packages.
 - 🏬 **Microsoft Store:** published on the official store. [🛒 Get it from Microsoft Store (ID 9PCPSVTNJMP0)](https://apps.microsoft.com/store/detail/9PCPSVTNJMP0?cid=DevShareMCLPCB). If you installed an earlier Store package, make sure you get `v0.3.1` or later (see [`CHANGELOG.en.md`](./dbv-specs-ops/CHANGELOG.en.md)).
@@ -97,19 +97,13 @@ It follows the same philosophy as its sibling project [DBV Markdown Reader](http
 
 ### 🪟 Windows
 
-#### 🏬 Microsoft Store (Recommended for Windows)
-
 **[🛒 Get it from Microsoft Store](https://apps.microsoft.com/store/detail/9PCPSVTNJMP0?cid=DevShareMCLPCB)**
 
-The most seamless experience on Windows 10 and 11: packaged and signed directly by Microsoft Store (no SmartScreen warnings), one-click installation, and automatic background updates.
+Since `v0.8.0`, Microsoft Store is the **only** install channel for Windows: the package is signed by the Store itself (no SmartScreen warnings), installs with one click and updates itself in the background. It was chosen because the Store publishes updates very quickly and is the safest way to receive them: it does not depend on every user downloading and running an installer by hand.
 
-*(Note: available with Store ID `9PCPSVTNJMP0`. If you previously installed an earlier build from the Store, ensure you update to `v0.3.1` or newer; the current Store version is `v0.6.0` with full embedded Typst compiler; see [`CHANGELOG.en.md`](./dbv-specs-ops/CHANGELOG.en.md)). If you prefer not to use the Store, use the standalone `.exe` installer below.*
+The `.exe` installer on GitHub Releases is **discontinued**. If you already installed it that way, install from the Store to keep receiving updates: they are two different application identities, so they will coexist as two separate entries in "Installed apps" until you uninstall the old one. The `.exe` install will not receive `v0.8.0` or later through "Check for updates".
 
-#### 📦 Standalone Installer (.exe)
-
-**[⬇️ See all versions (Releases)](https://github.com/davidbuenov/dbv-typst-editor/releases)** — download `DBV Typst Editor_x.y.z_x64-setup.exe`.
-
-Your browser may warn that the file "isn't commonly downloaded" (SmartScreen) — this is normal for new installers without a commercial signature. Double-click to install (no admin rights or internet connection required), then check for updates any time from the "About" panel (ⓘ icon) — never automatic on launch.
+*(Store ID `9PCPSVTNJMP0`. The version the Store offers is always the latest one Microsoft has certified; it can lag a few days behind GitHub. See [`CHANGELOG.en.md`](./dbv-specs-ops/CHANGELOG.en.md).)*
 
 ### 🍺 Homebrew (macOS & Linux)
 

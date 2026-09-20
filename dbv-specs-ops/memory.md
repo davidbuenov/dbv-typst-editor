@@ -9,7 +9,7 @@
 
 ## 🎯 Contexto Activo
 
-- **Estado actual (2026-09-19): v0.8.0 PUBLICADA en GitHub** (tag, Release como Latest con Linux y macOS, tap de Homebrew actualizado solo por el workflow) — rendimiento con documentos grandes, documento principal elegible, Tinymist bajo demanda y comando `typs`/canal Homebrew (`ADR-V080-001`, `SPECIFICATIONS.md` §5h). La Release lleva un `latest.json` PROVISIONAL (apunta a la v0.7.0). Pendiente del usuario: firmar el instalador de Windows y regenerar `latest.json` con el script corregido; instalar/probar el `.msix` y enviarlo a Partner Center; probar `z6-IPbook` y `typs` en un Mac real.
+- **Estado actual (2026-09-19): v0.8.0 PUBLICADA en GitHub** (tag, Release como Latest con Linux y macOS, tap de Homebrew actualizado solo por el workflow) — rendimiento con documentos grandes, documento principal elegible, Tinymist bajo demanda y comando `typs`/canal Homebrew (`ADR-V080-001`, `SPECIFICATIONS.md` §5h). **Windows solo por Microsoft Store desde la 0.8.0 (`ADR-WINDOWS-001`, 2026-09-20)**: no hay instalador `.exe` en la Release y su `latest.json` es una copia de la 0.7.0 con la URL corregida. **2026-09-20: la v0.8.0 se queda como está y NO habrá 0.8.1** (el arreglo de sincronización y la marca visual, aún sin commitear, entran en la 0.9.0). **`/spec` de v0.9.0 cerrado (SPECIFICATIONS v1.12, §5i)**: motor de vista previa EN PROCESO (Typst como crate) con sincronización exacta por palabra/frase y compilación incremental ≈0,6 s, con el motor clásico como respaldo automático (`ADR-MOTOR-001`); RF-56 a RF-60 (incluye menú contextual del editor, diagnósticos en línea y edición de ficheros de código con resaltado). **Siguiente: `/plan`.** Pendiente del usuario: probar `z6-IPbook` y `typs` en un Mac real.
 - **Ubicación:** `d:/Programacion/github-davidbuenov/dbv-typst-editor` (renombrado el 2026-09-05 desde `dbv-academic-writer`; si esa ruta no existe, probar el nombre antiguo).
 - **Estado actual (2026-09-13): v0.6.0 CERRADA Y PUBLICADA DEL TODO.** `/test` (Fase 14) → `/code-simplify` (Fase 15, 9 bugs Críticos corregidos por 8 agentes de revisión sobre el diff `v0.5.0..HEAD` — el más interesante, una carrera real en el timeout de compilación de 45s que podía matar el proceso de la generación SIGUIENTE, y una tercera variante del bug de sincronización RF-16) → `/ship` (Fase 16, versionado 0.5.0 → 0.6.0) → **Release de GitHub publicada** (`releases/tag/v0.6.0`, los 7 artefactos: Linux, macOS sin firmar, Windows firmado con `latest.json`) → **enviada a Microsoft Store el mismo día, sin incidencias en el envío** (confirmado por el usuario) — pendiente de que Microsoft complete la certificación. Todo en una sola sesión, a petición explícita del usuario de completar el ciclo entero sin pausas. Dos bugs de infraestructura reales aparecieron y se corrigieron DESPUÉS del primer push del tag (no los detecta ningún test, solo ejecutar los workflows de verdad): `release-macos.yml` firmaba con secretos `APPLE_*` vacíos y fallaba (`env:` deja existir la variable con `""`, corregido separando en dos steps mutuamente excluyentes), y a la Release `v0.5.0` le faltaba el ejecutable de Windows desde su publicación (subido a mano). 5 hallazgos Importantes y 11 Nits de `/code-simplify` quedaron registrados en `CHANGELOG.md`/`.en.md` sin corregir (no bloqueaban `/ship`). **Nada pendiente de código — próximo paso: `/spec` de la siguiente versión, cuando el usuario decida el alcance.**
 - **Verificación viva (2026-09-13):** 405 Vitest · 226 Rust · `verify:frontend` 11/11 · `verify:layout` 15/15 · `verify:templates` 40/40.
@@ -196,6 +196,8 @@
 
 ### ADR-SYNC-001 — La sincronización editor↔vista previa se hace con anclas, no con posición real de fuente
 
+> **Enmendada el 2026-09-20 por `ADR-MOTOR-001`:** con Typst como librería (motor en proceso, v0.9.0) el puente sí existe y llega a la palabra; esta decisión —anclas entre bloques— **se conserva solo en el motor clásico de respaldo**.
+
 *Registrada el 2026-09-08 en el `/spec` de v0.4.0, sobre los resultados del Spike S-2 (`spikes/preview-sync/README.md`). Enmienda una cláusula de `SPECIFICATIONS.md` §6/§11 que decía justo lo contrario.*
 
 - **Contexto:** un usuario pide el doble clic bidireccional editor↔render que tienen otros editores. `SPECIFICATIONS.md` ya lo prometía en Beta, pero **"por posición real de fuente (no por anclas)"**, apoyado en el LSP `tinymist`.
@@ -321,6 +323,45 @@
 - **Decisión 3 — la réplica temporal se acota por tipo y por bytes, no por profundidad.** El diseño original limitaba solo la profundidad de un `.typ` suelto ("solo el primer nivel"), y el primer nivel de `Descargas` eran 59 GB. Un `.typ` suelto replica solo extensiones que Typst puede leer; cualquier réplica omite lo mayor de 32 MB que no pueda enlazar. El filtro por extensión se limita al modelo de `.typ` suelto porque un proyecto puede leer cualquier cosa con `read()`.
 - **Decisión 4 — un único Cask para macOS y Linux en un tap propio, y no `homebrew-core`.** Homebrew 6.0.0 admite AppImage en casks, así que no hace falta una fórmula aparte. `homebrew-core` exige una notoriedad que el proyecto no tiene (misma conclusión que dbv-md-reader, `ADR-045` de ese repo). El tap se valida en CI en las dos plataformas: eso destapó dos fallos que ninguna lectura de la documentación habría mostrado.
 - **Consecuencias / pendiente:** el bucle de recompilación de macOS es una hipótesis mitigada, no confirmada. Un documento con un error real se compila dos veces (el reintento sin anclas), a cambio de mostrar el error con sus números de línea reales. El secreto `HOMEBREW_TAP_TOKEN` y la firma del instalador de Windows son acciones del usuario.
+
+### ADR-WINDOWS-001 — Windows se distribuye solo por Microsoft Store desde v0.8.0; se descontinúa el instalador NSIS de GitHub Releases
+
+*Registrada el 2026-09-20, a petición explícita del usuario. Misma decisión que en dbv-md-reader (`ADR-047` de ese repo).*
+
+- **Contexto:** al publicar la v0.8.0 la Release quedó sin instalador de Windows porque la clave de firma del actualizador (`TAURI_SIGNING_PRIVATE_KEY` y su contraseña) solo vive en la máquina del usuario y no la tenía a mano; se subió un `latest.json` provisional para no dejar el endpoint del actualizador en 404. Al retomarlo, el usuario decidió no mantener ese canal.
+- **Decisión del usuario:** Windows se ofrece **únicamente a través de Microsoft Store**. Motivo explícito: la Store actualiza muy rápido y es la forma más segura de recibir el software. Igual que dbv-md-reader, sin réplica del `.exe` en GitHub Releases.
+- **Consecuencias:**
+  - El `.msix` NO necesita la clave del actualizador: la Store lo re-firma con su certificado al recibirlo. `npm run tauri:windows:build` basta, y `npm run build` sin clave produce igualmente el `.exe` que consume `tauri-windows-bundle` (solo omite el `.sig`).
+  - Las instalaciones `.exe` ya existentes NO se rompen pero se quedan en su versión: el `latest.json` de la Release v0.8.0 es una copia de la 0.7.0 con la URL corregida (`DBV.Typst.Editor_…`, 200), así que comprobar actualizaciones dice "estás al día" en vez de fallar. Deben pasarse a la Store (identidad de aplicación distinta: conviven hasta que se desinstala la antigua).
+  - El código del auto-actualizador (`tauri-plugin-updater`, `app/updater.js`, `scripts/updater-manifest.mjs`) se **conserva** para esas instalaciones heredadas; una instalación de la Store ya lo desactiva (`is_packaged_app`). Se puede retirar más adelante sin urgencia.
+  - Ya no hace falta firmar, generar `latest.json` ni subir el `.exe` a cada Release. Un `/ship` de Windows se reduce a generar el `.msixbundle` y subirlo a Partner Center.
+- **Lo que se gana y lo que se pierde:** se gana no depender de una clave que solo existe en una máquina (el mismo problema que ya bloqueó a dbv-md-reader), y actualizaciones más rápidas y seguras. Se pierde un canal directo, sin intermediario ni certificación: la Store puede ir unos días por detrás de GitHub y Microsoft puede rechazar un envío.
+- **Se puede revertir:** el canal NSIS se reabre recuperando o rotando la clave `minisign` (rotarla invalida el auto-update de las instalaciones existentes, que llevan la clave pública antigua incrustada).
+
+### ADR-MOTOR-001 — La vista previa pasa a compilarse EN PROCESO con Typst como librería (v0.9.0); el motor clásico queda de respaldo
+
+*Registrada el 2026-09-20, en `/spec` de v0.9.0. Enmienda `ADR-SYNC-001` y la decisión de sidecar de `ARCHITECTURE.md` §7.2 solo para la vista previa.*
+
+- **Contexto:** el usuario probó la sincronización con un libro real (`z6-IPbook`, 224 páginas) y pidió que llegue **al punto exacto**, no al bloque, y recuperar la velocidad tras cada edición. Con el CLI como sidecar eso **no es posible**: su SVG solo lleva `<use>` de glifos (sin texto ni origen en el fuente) y `ADR-SYNC-001` fabricaba el puente con anclas entre bloques en una réplica del proyecto. Se estudió Hilbert Editor (MIT): resuelve el clic → fuente con el crate `typst` y el `Span` de cada glifo, pero el sentido fuente → PDF sigue emparejando texto y compila dos veces (una para el PDF, otra para los saltos).
+- **Alternativas consideradas:**
+  1. *Mejorar el mecanismo de anclas* (más densas, por línea). Descartada: el SVG del CLI no tiene información de palabra; un libro con un párrafo por línea de fuente seguiría al nivel de párrafo, y cada ancla añadida engorda la réplica y arriesga romper etiquetas o el texto (el fallo de `<sec-x>` tras un encabezado ya lo demostró).
+  2. *Incrustar la vista previa de `tinymist preview`* (ya vendorizado). Descartada por ahora: sustituiría toda la vista previa (SVG perezoso, refresco manual, alcances, RF-14/15/53) por una página ajena en un iframe, con un protocolo de control por websocket y sin mapa que podamos consultar nosotros; un cambio mayor con menos control.
+  3. **Typst como librería, en proceso (elegida):** un solo compilado del que salen la imagen y el mapa al fuente. Medido en el Spike S-3 (`spikes/typst-jump/README.md`) sobre ese libro: compilación **incremental de 0,54–0,72 s** frente a ≈ 5 s hoy, SVG de una página en 2–5 ms (hoy se exportan las 224, 86 MB), mapa de todo el libro en 0,33 s, y `jump_from_click` en 29 µs.
+- **Decisión (del usuario, 2026-09-20):**
+  - La vista previa compila **en proceso** con `typst`, `typst-ide`, `typst-layout`, `typst-svg` y `typst-kit`, con versiones **exactas iguales a las del sidecar** (0.15.1); una prueba falla si divergen.
+  - El **motor clásico** (CLI + réplica + anclas + reintento) queda como **respaldo automático** durante la 0.9.0 y se **retira en la 0.10**.
+  - **Exportar PDF/PNG, Universe y paquetes siguen con el CLI**; la descarga de paquetes que falten se delega en el sidecar (sin red en el motor nuevo).
+  - Solo se añade una mejora extra de las propuestas: **diagnósticos en línea**.
+- **Riesgos aceptados conscientemente** (a mitigar en `/plan`, no a ignorar):
+  - Una compilación en proceso **no se puede cancelar a mitad** (el CLI sí, matando el proceso): se ejecuta en un hilo aparte, gana la última y una colgada se abandona. Un documento que tardara 45 s seguiría gastando CPU tras abandonarlo.
+  - **Acoplamiento de versión:** actualizar Typst exige nueva versión de la app (antes bastaba cambiar el sidecar). Aceptable con Microsoft Store y con Homebrew, que actualizan deprisa.
+  - **Un pánico del motor puede tumbar el proceso** de la aplicación si no se contiene: el respaldo automático depende de aislarlo.
+  - **Tamaño del binario, tiempo de CI y memoria** del motor no están medidos (el spike solo midió que las dependencias compilan en ≈ 2 minutos y que la memoria del CLI llegaba a 2,3 GB).
+  - **Sin ventaja en el arranque en frío** (4,4 s frente a 4,6 s): la mejora es por edición, no al abrir. Se dice sin adornos en `SPECIFICATIONS.md` §5i.
+  - **Cobertura del mapa:** el Spike S-3 ignoró grupos transformados y no midió ecuaciones, referencias, tablas ni flotantes por separado; la especificación exige fixtures para cada caso.
+- **Licencias:** los crates de Typst son Apache-2.0, compatibles con la licencia MIT de la aplicación siempre que se conserven los avisos (auditoría formal en `/plan`). Del código de Hilbert **no se copia nada**; solo se ha estudiado la técnica, que es la API pública de `typst-ide` y los `Span` de Typst.
+- **Cómo se revierte:** el motor clásico sigue en el código durante la 0.9.0, así que volver atrás es un ajuste. Retirarlo en la 0.10 es lo que ya no tendría marcha atrás barata.
+- **Registro del estudio y del spike:** `spikes/typst-jump/`. **Documento del alcance:** `SPECIFICATIONS.md` §5i (RNF-MOTOR, RF-56 a RF-60).
 
 ## 🐛 Primera pasada manual de v0.6.0 en ventana real (2026-09-11)
 

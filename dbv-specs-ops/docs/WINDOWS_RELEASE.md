@@ -1,5 +1,7 @@
 # 🪟 Build de Windows firmado: pasos exactos
 
+> ⚠️ **Desde v0.8.0 Windows se distribuye SOLO por Microsoft Store (`ADR-WINDOWS-001` en `memory.md`).** El instalador NSIS firmado de GitHub Releases queda **descontinuado**: los pasos 3, 4 y 5 de abajo (clave de firma, `npm run build` firmado, `latest.json`) ya **no se ejecutan** y solo sirven de referencia si algún día se reabre ese canal. El flujo vigente es: paso 2 (vendorizar sidecars) y paso 6 (`npm run tauri:windows:build`), que **no necesita ninguna clave**: la Store re-firma el `.msix` con la suya.
+>
 > Documento operativo — la ÚNICA plataforma que se compila y firma en local, nunca en CI (ver
 > `NATIVE_APPS_RELEASE_CI.md` §7): la clave de firma del actualizador vive solo en esta máquina.
 > Existe porque estos pasos se han repetido de memoria varias veces — a partir de ahora, se consultan

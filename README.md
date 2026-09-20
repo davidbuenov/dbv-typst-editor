@@ -3,9 +3,9 @@
 **🇪🇸 Español · [🇬🇧 English](./README.en.md)**
 
 [![Sitio Web](https://img.shields.io/badge/Sitio%20Web-davidbuenov.github.io%2Fdbv--typst--editor-2563eb?style=flat&logo=googlechrome&logoColor=white)](https://davidbuenov.github.io/dbv-typst-editor/)
-[![Releases](https://img.shields.io/badge/Releases-v0.8.0-brightgreen?logo=github)](https://github.com/davidbuenov/dbv-typst-editor/releases)
+[![Releases](https://img.shields.io/badge/Releases-v0.9.0-brightgreen?logo=github)](https://github.com/davidbuenov/dbv-typst-editor/releases)
 [![Microsoft Store](https://img.shields.io/badge/Microsoft%20Store-9PCPSVTNJMP0-0078D6?logo=microsoft&logoColor=white)](https://apps.microsoft.com/store/detail/9PCPSVTNJMP0?cid=DevShareMCLPCB)
-![Status](https://img.shields.io/badge/status-estable%20%7C%20v0.8.0-success)
+![Status](https://img.shields.io/badge/status-estable%20%7C%20v0.9.0-success)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
 ![Windows](https://img.shields.io/badge/Windows-10%20%2F%2011%20(Microsoft%20Store)-0078D6?logo=windows&logoColor=white)
 ![macOS](https://img.shields.io/badge/macOS-Universal%20(.dmg)-000000?logo=apple&logoColor=white)
@@ -61,7 +61,7 @@ Sigue la misma filosofía que su proyecto hermano [DBV Markdown Reader](https://
 
 ## 🚦 Estado actual
 
-**Versión actual:** `v0.8.0` · **Estado:** 🟢 Estable y listo para producción
+**Versión actual:** `v0.9.0` · **Estado:** 🟢 Estable y listo para producción
 
 - 🌐 **Sitio Web Oficial:** [https://davidbuenov.github.io/dbv-typst-editor/](https://davidbuenov.github.io/dbv-typst-editor/) (con galería interactiva de capturas en alta resolución y selector bilingüe ES/EN).
 - 📦 **Instaladores disponibles en Releases:** [GitHub Releases](https://github.com/davidbuenov/dbv-typst-editor/releases):
@@ -69,8 +69,9 @@ Sigue la misma filosofía que su proyecto hermano [DBV Markdown Reader](https://
   - 🍎 **macOS**: Archivo `.dmg` universal (compatible con Apple Silicon e Intel).
   - 🐧 **Linux**: Paquetes `.AppImage` (portable) y `.deb` (Debian/Ubuntu/Mint).
 - 🏬 **Microsoft Store:** disponible en la tienda oficial. [🛒 Consíguelo en Microsoft Store (ID 9PCPSVTNJMP0)](https://apps.microsoft.com/store/detail/9PCPSVTNJMP0?cid=DevShareMCLPCB). Si instalaste una versión previa desde la Store, asegúrate de contar con `v0.3.1` o superior (ver [`CHANGELOG.md`](./dbv-specs-ops/CHANGELOG.md)).
-- 🧪 **Calidad y estabilidad:** 875 pruebas automatizadas pasando al 100% (618 tests de frontend + 257 tests de backend en Rust) y validación de layout en motor Chromium/WebKit real.
+- 🧪 **Calidad y estabilidad:** 1.096 pruebas automatizadas pasando al 100% (742 tests de frontend + 354 tests de backend en Rust) y validación de layout en motor Chromium/WebKit real.
 - 🚀 **Funcionalidades destacadas incluidas:**
+  - **Motor de vista previa rápido (v0.9.0):** Typst como librería dentro de la aplicación — cada edición de un libro de 224 páginas tarda ≈0,5 s en vez de ≈4,6 s — con sincronización exacta palabra a palabra en los dos sentidos (doble clic o botón derecho en el render; Ctrl+Alt+P desde el editor), diagnósticos subrayados en el editor, menús contextuales y edición de ficheros de código (`.cpp`, `.java`, `.py` y ~40 tipos más). El motor clásico es el respaldo automático.
   - Rendimiento con documentos grandes: la vista previa suelta las páginas que quedan lejos (un libro de 220 páginas ya no crece hasta ocupar varios GB), la pausa de escritura se adapta a lo que tarda en compilar, y un `.typ` suelto en una carpeta enorme (Descargas, Escritorio) abre en segundos en vez de casi un minuto.
   - Documento principal elegible: etiqueta **principal** en el árbol de ficheros y menú contextual (botón derecho) o menú Archivo para marcar cuál compila la vista previa — imprescindible en proyectos sin `main.typ`. Se recuerda por proyecto y no escribe nada en tu carpeta.
   - Tinymist bajo demanda y desactivable desde su insignia: arranca solo con documentos pequeños y espera a que lo actives con los grandes.

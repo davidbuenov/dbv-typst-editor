@@ -14,6 +14,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Fixed
+
+
+## [0.9.0] - 2026-09-20
+
+In-process preview engine (Typst as a library) with exact word-by-word sync, context menus, inline diagnostics and code-file editing. Background: v0.8.0's block-level sync was not enough and every edit of a large book took several seconds. Validated by the user in a real window; the classic engine remains as an automatic fallback.
+
+
+
+### Added
 - **Visual mark on editor ↔ preview sync, in both directions.** Before, the cursor or the scroll moved on a jump, but nothing said which block had been reached: in a 6,000-line file the user lost track of it. Now, when double-clicking the render, the editor **centres** the line and **highlights the source block** (up to the next blank line, capped at 15 lines) and the preview **marks the resolved block**; with the "sync from cursor" button the preview scrolls and marks a band from the anchor to the next one (same page and column, or 60 pt by default). Marks fade out on their own (2 s); in the editor only the background is animated, because animating the line's opacity would make the document's own text disappear; `prefers-reduced-motion` is respected. **A block is marked, not a word**: anchors sit between blocks (`ADR-SYNC-001`), which is all the mechanism can claim without lying. The preview band is a child of the container rather than of the page, because page loading (`innerHTML`) and page release would empty the page and take the mark with it. New `editor/syncFlash.js` and `anchorSpan`, with 23 tests (the behaviour ones checked red without the code).
 - **In-process preview engine (beta, opt-in; RNF-MOTOR, RF-56, ADR-MOTOR-001/002).** Typst 0.15.1 as a library (`typst`, `typst-ide`, `typst-layout`, `typst-svg`, `typst-kit`, pinned to the exact sidecar version, with a test enforcing it): a persistent world (`engine/world.rs`), a compile thread with a one-slot "last wins" queue (`catch_unwind`, 45 s cap) and SVG pages served only for the visible ones. Incremental compile measured on the real 224-page book: **0.5 s per edit** versus 4.6 s for the CLI (peak memory 2.75 GB with `comemo::evict(2)`). If the engine fails (panic, timeout, package not downloaded) it **falls back to the classic engine on its own** and says so; document errors do NOT count as engine failures. An "Engine: classic / fast (beta)" selector sits next to the preview; **the fast engine is the default** (validated by the user in a real window) and classic remains as automatic fallback and manual option. Sync marks last 5 s (was 2) so they can be seen properly in both directions. PDF/PNG export, Universe, package downloads and Outline still use the CLI.
 - **Exact word/phrase sync in both directions (RF-57).** Double-clicking the render selects the **word** (not the block) in the editor and marks it; from the editor, "⇥" or Ctrl+Alt+P mark the word or selection in the preview, one box per line. Glyph→source map built from `glyph.span` (`engine/map.rs`), handling references, numbering, equations, footnotes, rotated text and emoji (positions in UTF-16). Spike S-3 on the real book: click→word 83.8 %, source→render 93.5 % (words) and 87.9 % (6-word phrases). Whatever is typed while compiling is corrected with a CodeMirror `ChangeSet` (`changeTracker.js`); if the piece was deleted it says so instead of landing somewhere else.

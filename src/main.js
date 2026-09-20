@@ -704,8 +704,7 @@ async function bootstrap() {
       item.className = 'menu-item';
       item.setAttribute('role', 'menuitem');
       item.textContent = `${problem.level === 'error' ? '✖' : '⚠'} ${problem.file ?? '—'}:${problem.line}  ${problem.message}`;
-      item.title = [problem.message, ...problem.hints].join('
-');
+      item.title = [problem.message, ...problem.hints].join(chr(10));
       item.addEventListener('click', () => {
         menu.remove();
         if (problem.file) workspace.goToSource(problem.file, problem.line);

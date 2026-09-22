@@ -386,6 +386,15 @@
 - **RF-61:** la causa está en que `typstOnlyLsp` copia `formatDocument` con su estado interno. La guarda va dentro de la función, no en el envoltorio.
 - **RF-67 (retirar el clásico):** el usuario tiene dudas —ahorro real frente a perder el respaldo— y pidió analizarlo con pruebas. Se hace una Spike S-4 con paridad contra el CLI, inyección de fallos y un worktree sin el clásico. **La decisión es suya y va después del informe.**
 
+### ADR-V0100-002 — Spike S-4 (RF-67): retirar el motor clásico ahorra menos de lo que parece
+
+*Registrada el 2026-09-22, en `/build` (slice 88). Informe completo en `spikes/engine-review/README.md`.*
+
+- **Solo ≈1.715 de las 3.187 líneas de `typst_engine/` son realmente retirables.** `compile.rs` mezcla `typst_export_pdf`/`typst_export_png` (se quedan, exportar sigue con el CLI) con `typst_compile_preview`/`typst_preview_page`/`remap_shadow_root` (motor clásico) en el MISMO fichero — retirar no es borrar una carpeta, es cirugía dentro de ese fichero con riesgo real para la exportación si se hace sin cuidado.
+- **El binario combinado actual (ambos motores) mide 60,6 MiB** (release del 20-09). El salto de tamaño de la Store 0.8.0→0.9.0 (+19 MB) es casi con toda seguridad de las dependencias del motor EN PROCESO (`typst`/`typst-svg`/`typst-layout`/`typst-kit`), que se quedan decida lo que decida el usuario — el código propio del motor clásico no arrastra dependencias nuevas. Retirarlo probablemente no reduce el tamaño de forma perceptible.
+- **Sin telemetría (offline-first, por diseño) no hay forma de saber con qué frecuencia el respaldo salva a alguien en la práctica** — ni build de prueba sin el motor clásico para medir binario/CI real. Ambas cosas quedan como huecos explícitos del informe, no como cifras estimadas.
+- **Recomendación del informe: (c) dejarlo como está** (motor nuevo predeterminado, clásico como respaldo mantenido) — el ahorro es incierto y pequeño, y el motor nuevo usa MÁS memoria de pico que el CLI (2,75 GB vs 2,3 GB, `ADR-MOTOR-002`), así que el respaldo no es solo red de seguridad ante fallos sino también la opción en máquinas con poca RAM. **Pendiente de que el usuario decida entre (a), (b) y (c).**
+
 ## 🐛 Primera pasada manual de v0.6.0 en ventana real (2026-09-11)
 
 *El usuario probó el flujo de RF-33 (clonar) en la ventana real y encontró 4 fallos que ninguna prueba automática cogía — mismo patrón que todas las pasadas manuales anteriores de este proyecto. Corregidos en la misma sesión.*

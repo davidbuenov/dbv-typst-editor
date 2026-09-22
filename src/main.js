@@ -72,6 +72,7 @@ import { createChangeTracker } from './preview/changeTracker.js';
 import { createSplitter } from './ui/splitter.js';
 import { createToast } from './ui/toast.js';
 import { cycleTheme, getTheme, initTheme, setTheme } from './themes/theme.js';
+import { getPref, onPrefsChanged, togglePref } from './app/prefs.js';
 import { getCurrentWebview } from '@tauri-apps/api/webview';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 
@@ -1092,6 +1093,31 @@ async function bootstrap() {
   el('tools-menu').addEventListener('click', (event) => {
     if (event.target.closest('.menu-item')) toolsMenu.close();
   });
+
+  // Menú Preferencias (v0.10.0, RF-63/RF-64/RF-65). A diferencia de Archivo y
+  // Herramientas, NO se cierra al pulsar una casilla: es habitual querer
+  // tocar más de un ajuste seguido. `getPref`/`togglePref`/`onPrefsChanged`
+  // viven en `app/prefs.js`; aquí solo se pinta `aria-checked` (el CSS del
+  // check cuelga de ese atributo, nunca de una clase aparte).
+  registerPanel(el('preferences-menu'), {
+    trigger: el('btn-preferences-menu'),
+    toggle: true,
+    closeOnOutsideClick: true,
+  });
+  const prefCheckboxes = {
+    showHiddenFiles: el('pref-show-hidden'),
+    showLineNumbers: el('pref-line-numbers'),
+    autoSave: el('pref-auto-save'),
+    showFullPath: el('pref-full-path'),
+  };
+  const renderPrefCheckbox = (key) => {
+    prefCheckboxes[key]?.setAttribute('aria-checked', String(getPref(key)));
+  };
+  for (const key of Object.keys(prefCheckboxes)) {
+    renderPrefCheckbox(key);
+    prefCheckboxes[key].addEventListener('click', () => togglePref(key));
+  }
+  onPrefsChanged(({ key }) => renderPrefCheckbox(key));
 
   // Asistente de inserción jogs (RF-38): inyecta #import + plantilla de
   // eval-js, mismo patrón que el asistente de diagramas CeTZ — no un runner

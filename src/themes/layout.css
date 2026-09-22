@@ -157,6 +157,25 @@
   line-height: 1;
 }
 
+/* Menú Preferencias (v0.10.0): casilla de un `role="menuitemcheckbox"`. El
+   `::before` cuelga de `aria-checked`, así que el estado visual y el que lee
+   un lector de pantalla nunca se pueden desincronizar. */
+.menu-item__check {
+  width: 16px;
+  flex: none;
+  color: var(--accent);
+  font-weight: 700;
+  text-align: center;
+}
+
+.menu-item__check::before {
+  content: '';
+}
+
+[aria-checked='true'] > .menu-item__check::before {
+  content: '✓';
+}
+
 .preview-context-menu .menu-item {
   justify-content: space-between;
   gap: 24px;

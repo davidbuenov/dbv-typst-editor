@@ -191,6 +191,31 @@
             </button>
           </div>
         </div>
+        <!-- Menú Preferencias (v0.10.0, RF-63/RF-64/RF-65): 4 ajustes que no
+             tenían dónde vivir. Casillas `role="menuitemcheckbox"`, no botones
+             que cierran el menú al pulsarlos — al contrario que Archivo/
+             Herramientas, aquí conviene poder tocar varias seguidas. -->
+        <div class="header-menu">
+          <button id="btn-preferences-menu" class="button button--ghost button--icon-label" type="button" aria-haspopup="menu" aria-expanded="false">
+            <svg class="button__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="10" cy="10" r="2.6"/><path d="M10 2.8v2M10 15.2v2M17.2 10h-2M4.8 10h-2M15.1 4.9l-1.4 1.4M6.3 13.7l-1.4 1.4M15.1 15.1l-1.4-1.4M6.3 6.3 4.9 4.9"/></svg>
+            <span data-i18n="action.preferencesMenu"></span>
+            <span class="header-menu__caret" aria-hidden="true">▾</span>
+          </button>
+          <div id="preferences-menu" class="floating-panel floating-panel--menu hidden" role="menu">
+            <button id="pref-show-hidden" class="menu-item" type="button" role="menuitemcheckbox" aria-checked="false">
+              <span class="menu-item__check" aria-hidden="true"></span><span data-i18n="prefs.showHiddenFiles"></span>
+            </button>
+            <button id="pref-line-numbers" class="menu-item" type="button" role="menuitemcheckbox" aria-checked="true">
+              <span class="menu-item__check" aria-hidden="true"></span><span data-i18n="prefs.showLineNumbers"></span>
+            </button>
+            <button id="pref-auto-save" class="menu-item" type="button" role="menuitemcheckbox" aria-checked="false">
+              <span class="menu-item__check" aria-hidden="true"></span><span data-i18n="prefs.autoSave"></span>
+            </button>
+            <button id="pref-full-path" class="menu-item" type="button" role="menuitemcheckbox" aria-checked="false">
+              <span class="menu-item__check" aria-hidden="true"></span><span data-i18n="prefs.showFullPath"></span>
+            </button>
+          </div>
+        </div>
         <div id="lang-switcher" class="segmented-control" data-i18n-title="action.toggleLang">
           <button id="btn-lang-es" class="segmented-control__btn" type="button">ES</button>
           <button id="btn-lang-en" class="segmented-control__btn" type="button">EN</button>

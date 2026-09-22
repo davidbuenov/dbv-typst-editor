@@ -44,6 +44,7 @@ import {
   decideUnsavedChangesAction,
   stillDirtyAfterSave,
 } from './autoSave.js';
+import { shortPathLabel } from './pathLabel.js';
 import { getPref, onPrefsChanged } from './prefs.js';
 import {
   PROJECT_CHANGE_EVENT,
@@ -385,13 +386,25 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
 
   function renderDocumentBar() {
     const hasDocument = Boolean(state.document);
-    elements.documentName.textContent = hasDocument ? state.document.fileName : '—';
+    // RF-65: por defecto solo el nombre, ampliado tramo a tramo SOLO si otro
+    // fichero del proyecto comparte nombre (`tree.getKnownFiles()`, los ya
+    // cargados en el árbol — no hace falta una lista completa para acertar en
+    // el caso normal). La ruta completa siempre va en el tooltip, la muestre
+    // o no `.document__path` (ajuste "Mostrar ruta completa").
+    if (hasDocument) {
+      const knownPaths = tree.getKnownFiles().map((f) => f.path);
+      elements.documentName.textContent = shortPathLabel(state.document.path, knownPaths);
+      elements.documentName.title = state.document.path;
+    } else {
+      elements.documentName.textContent = '—';
+      elements.documentName.title = '';
+    }
     // RF-64.3: punto de modificado estilo Mac, no solo color — el texto vive
     // en `title`/`aria-label` (lector de pantalla y tooltip), no en la forma.
     elements.documentDirty.classList.toggle('hidden', !state.dirty);
     elements.documentDirty.title = t('doc.unsaved');
     elements.documentDirty.setAttribute('aria-label', t('doc.unsaved'));
-    elements.documentPath.textContent = hasDocument ? state.document.path : '';
+    elements.documentPath.textContent = hasDocument && getPref('showFullPath') ? state.document.path : '';
 
     // Insignia del lenguaje (RF-60.5): solo para lo que no es Typst, que es
     // lo que el usuario da por supuesto en esta aplicación.
@@ -875,6 +888,12 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     notify(t('doc.saved'));
     return true;
   }
+
+  // RF-65.2: "Mostrar ruta completa" repinta la barra del documento al
+  // vuelo, igual que las demás casillas del menú Preferencias.
+  onPrefsChanged(({ key }) => {
+    if (key === 'showFullPath') renderDocumentBar();
+  });
 
   renderProjectBar();
   renderDocumentBar();

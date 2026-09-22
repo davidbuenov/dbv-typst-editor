@@ -15,6 +15,8 @@ import {
 } from '../services/backend.js';
 import { hoverTooltip } from '@codemirror/view';
 import { snippet } from '@codemirror/autocomplete';
+import { isTypstPath } from '../app/paths.js';
+import { t } from '../i18n/i18n.js';
 
 /**
  * Convierte una ruta del sistema a un URI file:// según el formato LSP.
@@ -415,8 +417,43 @@ export function createLspClient({ onDiagnostics: initialOnDiagnostics, notify, o
     }
   }
 
-  async function formatDocument(view) {
-    if (!active || !currentDoc || !view) return false;
+  /**
+   * Formatea el documento activo con Typstyle vía Tinymist (RF-61).
+   *
+   * La guarda de tipo de fichero vive AQUÍ, no en el llamador — y compara
+   * contra `activePath`, no solo contra `currentDoc.path`. Antes de este
+   * arreglo, `editor.js` envolvía el cliente en `typstOnlyLsp` para
+   * sobrescribir `isActive` con un `.cpp`/`.bib` delante, pero copiaba esta
+   * función con `...lspClient`, que conservaba el `currentDoc` real de este
+   * cierre. Y `currentDoc` SOLO se actualiza en `openDocument`, que
+   * `editor.js` únicamente llama para ficheros Typst (RF-60.2: los demás no
+   * tocan Tinymist) — así que con un `.bib` abierto, `currentDoc` seguía
+   * apuntando al ÚLTIMO `.typ` visto, y ese era el que se formateaba, con las
+   * ediciones resultantes aplicadas al buffer equivocado. Por eso la
+   * comprobación correcta no es "¿`currentDoc` es Typst?" (siempre lo es)
+   * sino "¿`currentDoc` es EL FICHERO QUE ESTÁ ABIERTO AHORA MISMO?".
+   *
+   * @param {import('@codemirror/view').EditorView} view
+   * @param {string | null} activePath Ruta del fichero realmente abierto en el
+   *   editor en este momento (la pasa el llamador: `lspClient` no la conoce
+   *   por sí solo cuando ese fichero no es Typst).
+   * @returns {Promise<{status: 'formatted'|'unchanged'|'lsp-off'|'starting'|'not-typst'|'error', message?: string}>}
+   */
+  async function formatDocument(view, activePath) {
+    if (!isTypstPath(activePath) || !currentDoc || currentDoc.path !== activePath) {
+      // Sin aviso: el botón debe estar deshabilitado en este caso (RF-61.2), y
+      // avisar aquí sería alarmar por una carrera de UI, no por un fallo real.
+      return { status: 'not-typst' };
+    }
+    if (isStarting) {
+      notify?.(t('format.starting'));
+      return { status: 'starting' };
+    }
+    if (!active) {
+      notify?.(t('format.lspOff'));
+      return { status: 'lsp-off' };
+    }
+    if (!view) return { status: 'error' };
 
     try {
       const res = await tinymistSendRequest('textDocument/formatting', {
@@ -424,7 +461,14 @@ export function createLspClient({ onDiagnostics: initialOnDiagnostics, notify, o
         options: { tabSize: 2, insertSpaces: true },
       });
 
-      if (!res.ok || !Array.isArray(res.value) || res.value.length === 0) return false;
+      if (!res.ok) {
+        notify?.(`${t('format.error')}${res.error?.message ? ` — ${res.error.message}` : ''}`, 'error');
+        return { status: 'error', message: res.error?.message };
+      }
+      if (!Array.isArray(res.value) || res.value.length === 0) {
+        notify?.(t('format.unchanged'));
+        return { status: 'unchanged' };
+      }
 
       const edits = res.value;
       const changes = edits.map((edit) => {
@@ -434,10 +478,11 @@ export function createLspClient({ onDiagnostics: initialOnDiagnostics, notify, o
       });
 
       view.dispatch({ changes });
-      notify?.('Documento formateado con Typstyle');
-      return true;
-    } catch {
-      return false;
+      notify?.(t('format.formatted'));
+      return { status: 'formatted' };
+    } catch (e) {
+      notify?.(`${t('format.error')} — ${e?.message ?? e}`, 'error');
+      return { status: 'error', message: e?.message ?? String(e) };
     }
   }
 

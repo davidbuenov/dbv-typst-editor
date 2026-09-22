@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **Formatear ya no puede corromper un fichero que no es Typst (RF-61).** Con un `.bib`, `.cpp` u otro fichero abierto, el botón "Formatear" y `Mayús+Alt+F` formateaban el último `.typ` visto por Tinymist y aplicaban esas ediciones al buffer equivocado. La causa: `editor.js` solo sobrescribía `isActive` para bloquear ficheros no Typst, pero `formatDocument` se copiaba con `...lspClient` y conservaba el estado interno real. La guarda ahora vive dentro de `lspClient.formatDocument`, que compara el fichero realmente abierto contra el que Tinymist tiene cargado. El botón se deshabilita fuera de Typst, y el resultado siempre es uno de cuatro avisos distinguibles: formateado, ya estaba formateado, Tinymist apagado/arrancando, o error.
+
 
 ## [0.9.0] - 2026-09-20
 

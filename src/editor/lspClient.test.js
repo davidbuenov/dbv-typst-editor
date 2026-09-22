@@ -184,7 +184,7 @@ describe('lspClient', () => {
 
     it('formatDocument aplica ediciones devueltas por typstyle', async () => {
       vi.spyOn(backend, 'tinymistStart').mockResolvedValue({ ok: true, value: null });
-      vi.spyOn(backend, 'tinymistSendRequest').mockResolvedValue({
+      const requestSpy = vi.spyOn(backend, 'tinymistSendRequest').mockResolvedValue({
         ok: true,
         value: [
           {
@@ -208,10 +208,76 @@ describe('lspClient', () => {
         dispatch: dispatchSpy,
       };
 
-      const ok = await client.formatDocument(mockView);
-      expect(ok).toBe(true);
+      const result = await client.formatDocument(mockView, '/ruta/proyecto/doc.typ');
+      expect(result).toEqual({ status: 'formatted' });
       expect(dispatchSpy).toHaveBeenCalled();
       expect(notifications.length).toBe(1);
+      expect(requestSpy).toHaveBeenCalledOnce();
+    });
+
+    it('formatDocument NO formatea un documento distinto al que Tinymist tiene abierto (RF-61) — protege un .bib de que se le apliquen ediciones de otro fichero', async () => {
+      // Reproduce el bug real: `editor.js` solo llama a `openDocument` con
+      // ficheros Typst (RF-60.2), así que `currentDoc` de Tinymist se queda
+      // apuntando a `main.typ` aunque el usuario haya abierto después
+      // `refs.bib`. Antes del arreglo, pulsar Formatear con `refs.bib`
+      // delante formateaba igualmente `main.typ` y volcaba esas ediciones en
+      // el buffer de `refs.bib`.
+      vi.spyOn(backend, 'tinymistStart').mockResolvedValue({ ok: true, value: null });
+      const requestSpy = vi.spyOn(backend, 'tinymistSendRequest').mockResolvedValue({
+        ok: true,
+        value: [
+          {
+            range: { start: { line: 0, character: 0 }, end: { line: 0, character: 6 } },
+            newText: '= Formateado',
+          },
+        ],
+      });
+
+      await client.start('/ruta/proyecto');
+      await client.openDocument('/ruta/proyecto/main.typ', '= Hola');
+
+      const dispatchSpy = vi.fn();
+      const mockView = { state: { doc: { lines: 1, line: () => ({ from: 0, to: 6 }) } }, dispatch: dispatchSpy };
+
+      // El usuario tiene `refs.bib` abierto en el editor: se pasa esa ruta
+      // como la ACTIVA, aunque `currentDoc` de Tinymist siga en `main.typ`.
+      const result = await client.formatDocument(mockView, '/ruta/proyecto/refs.bib');
+
+      expect(result).toEqual({ status: 'not-typst' });
+      expect(requestSpy).not.toHaveBeenCalled();
+      expect(dispatchSpy).not.toHaveBeenCalled();
+      expect(notifications.length).toBe(0);
+    });
+
+    it('formatDocument avisa sin formatear cuando Tinymist está apagado', async () => {
+      const requestSpy = vi.spyOn(backend, 'tinymistSendRequest');
+      // Sin `start()`: el cliente nunca llega a `active`.
+      const mockView = { state: { doc: { lines: 1, line: () => ({ from: 0, to: 0 }) } }, dispatch: vi.fn() };
+
+      // `currentDoc` solo se rellena vía `openDocument`, que aquí queda en
+      // cola porque Tinymist no está activo — simula el mismo documento Typst
+      // abierto con el LSP apagado (o sin arrancar aún).
+      await client.openDocument('/ruta/proyecto/main.typ', '= Hola');
+
+      const result = await client.formatDocument(mockView, '/ruta/proyecto/main.typ');
+
+      expect(result.status).toBe('lsp-off');
+      expect(requestSpy).not.toHaveBeenCalled();
+      expect(notifications).toEqual([expect.stringContaining('Tinymist')]);
+    });
+
+    it('formatDocument avisa "ya estaba formateado" cuando Tinymist no devuelve ediciones', async () => {
+      vi.spyOn(backend, 'tinymistStart').mockResolvedValue({ ok: true, value: null });
+      vi.spyOn(backend, 'tinymistSendRequest').mockResolvedValue({ ok: true, value: [] });
+      const mockView = { state: { doc: { lines: 1, line: () => ({ from: 0, to: 0 }) } }, dispatch: vi.fn() };
+
+      await client.start('/ruta/proyecto');
+      await client.openDocument('/ruta/proyecto/main.typ', '= Hola');
+
+      const result = await client.formatDocument(mockView, '/ruta/proyecto/main.typ');
+
+      expect(result).toEqual({ status: 'unchanged' });
+      expect(mockView.dispatch).not.toHaveBeenCalled();
     });
 
     it('encola openDocument si el LSP aun no esta activo y lo envia al terminar start', async () => {

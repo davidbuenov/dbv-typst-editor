@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **Format can no longer corrupt a non-Typst file (RF-61).** With a `.bib`, `.cpp`, or any other file open, the "Format" button and `Shift+Alt+F` would format the last `.typ` file Tinymist had seen and apply those edits to the wrong buffer. Root cause: `editor.js` only overrode `isActive` to block non-Typst files, but `formatDocument` was copied with `...lspClient` and kept its real internal state. The guard now lives inside `lspClient.formatDocument`, which compares the file actually open against the one Tinymist has loaded. The button is disabled outside Typst, and the outcome is always one of four distinguishable results: formatted, already formatted, Tinymist off/starting, or error.
+
 
 ## [0.9.0] - 2026-09-20
 

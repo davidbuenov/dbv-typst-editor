@@ -353,6 +353,15 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
       elements.documentLanguage.textContent = show ? language.name : '';
     }
 
+    // RF-61: Formatear solo tiene sentido en Typst — con un `.bib`/`.cpp`
+    // delante, el LSP no tiene forma de formatearlo (Tinymist solo entiende
+    // Typst), así que el botón se apaga en vez de fallar en silencio.
+    if (elements.formatButton) {
+      const isTypst = hasDocument && isTypstPath(state.document.path);
+      elements.formatButton.disabled = !isTypst;
+      elements.formatButton.title = isTypst ? t('format.buttonTitle') : t('format.buttonTitleDisabled');
+    }
+
     // RF-26.10, a observación del usuario: un paquete se importa EN el documento
     // abierto, así que sin documento la única acción posible del panel acaba en
     // un aviso de error. Ofrecerlo igualmente es ofrecer algo que no puede

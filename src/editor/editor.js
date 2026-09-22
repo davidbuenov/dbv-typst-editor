@@ -153,6 +153,10 @@ function buildTheme(isDark) {
  * @param {import('@codemirror/state').Extension} deps.updateListener
  * @param {boolean} deps.isDark
  * @param {ReturnType<import('./lspClient.js').createLspClient>} [deps.lspClient]
+ * @param {() => string | null} [deps.getCurrentPath] Ruta del fichero abierto
+ *   AHORA MISMO (RF-61): `lspClient.formatDocument` la necesita para negarse
+ *   con un fichero que no es Typst, sin depender de su propio `currentDoc`
+ *   (que solo se actualiza para Typst, ver el comentario en `lspClient.js`).
  */
 export function buildExtensions({
   themeCompartment,
@@ -163,6 +167,7 @@ export function buildExtensions({
   updateListener,
   isDark,
   lspClient,
+  getCurrentPath,
 }) {
   const toolbarKeymap = buildToolbarKeymap();
   // `syncFlashField`: marca del bloque al que salta la sincronización (RF-16).
@@ -176,7 +181,7 @@ export function buildExtensions({
         {
           key: 'Shift-Alt-f',
           run: (v) => {
-            lspClient.formatDocument(v);
+            lspClient.formatDocument(v, getCurrentPath?.());
             return true;
           },
         },
@@ -301,6 +306,7 @@ export function createEditor(
         saveKeymap,
         isDark: theme === 'dark',
         lspClient: typstOnlyLsp,
+        getCurrentPath: () => currentPath,
         updateListener: EditorView.updateListener.of((update) => {
           if (loading) return;
           if (update.docChanged) {
@@ -350,7 +356,7 @@ export function createEditor(
       applyLanguage(currentPath);
       loading = false;
     },
-    formatDocument: () => lspClient?.formatDocument(view),
+    formatDocument: () => lspClient?.formatDocument(view, currentPath),
     setDiagnostics(diagnostics) {
       view.dispatch(setDiagnostics(view.state, diagnostics));
     },

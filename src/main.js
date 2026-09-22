@@ -572,6 +572,7 @@ async function bootstrap() {
       documentDirty: el('document-dirty'),
       documentPath: el('document-path'),
       documentLanguage: el('document-language'),
+      formatButton: el('btn-format-doc'),
       projectName: el('project-name'),
       projectKind: el('project-kind'),
       projectActions: el('project-actions'),

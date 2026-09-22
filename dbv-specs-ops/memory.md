@@ -376,6 +376,16 @@
 - **Decisión 6 — RF-60 con lista cerrada de extensiones y «Abrir como texto» para el resto**, y lenguajes de resaltado cargados por `import()` dinámico.
 - **No cubierto por la delegación del usuario:** publicar, hacer push, cambiar el motor predeterminado y compilar un `.msix`.
 
+### ADR-V0100-001 — v0.10.0: se filtra una lista externa, el guardado automático no abre diálogos y la retirada del motor clásico se mide antes de decidir
+
+*Registrada el 2026-09-21, en `/plan`, con el usuario presente.*
+
+- **Origen:** lista de sugerencias de un amigo del usuario. Se analizó cada punto contra el código; el usuario decidió. Entran RF-61 a RF-67; quedan aparcados esquema de macros, links del output y gestión de ficheros en el panel.
+- **Corrección de un supuesto del `/spec`:** RF-67.1 decía que el motor en proceso iba apagado por defecto. Ya es el predeterminado (`9d82c45`). `ADR-MOTOR-002` describe el estado anterior a que el usuario lo validara en ventana real.
+- **Guardado automático (RF-64):** `save({ auto: true })` nunca abre el diálogo de conflicto de RF-07: se pausa y avisa. Compara contra una instantánea del contenido (carrera con `writeFile` asíncrono) y no recompila ni ejecuta `git status` en cada pausa. Preferencia en `localStorage` (por usuario del sistema), en un módulo `prefs.js` nuevo.
+- **RF-61:** la causa está en que `typstOnlyLsp` copia `formatDocument` con su estado interno. La guarda va dentro de la función, no en el envoltorio.
+- **RF-67 (retirar el clásico):** el usuario tiene dudas —ahorro real frente a perder el respaldo— y pidió analizarlo con pruebas. Se hace una Spike S-4 con paridad contra el CLI, inyección de fallos y un worktree sin el clásico. **La decisión es suya y va después del informe.**
+
 ## 🐛 Primera pasada manual de v0.6.0 en ventana real (2026-09-11)
 
 *El usuario probó el flujo de RF-33 (clonar) en la ventana real y encontró 4 fallos que ninguna prueba automática cogía — mismo patrón que todas las pasadas manuales anteriores de este proyecto. Corregidos en la misma sesión.*

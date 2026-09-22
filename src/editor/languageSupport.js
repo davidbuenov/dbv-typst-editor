@@ -16,9 +16,15 @@
 import { LanguageDescription } from '@codemirror/language';
 import { languages } from '@codemirror/language-data';
 import { isTypstPath } from '../app/paths.js';
+import { bibtexLanguageDescription } from './bibtexLanguage.js';
 
 /** Nombre del lenguaje que se enseña en la insignia del documento. */
 export const TYPST_LABEL = 'Typst';
+
+/** True si `path` es un fichero de bibliografía BibTeX (RF-62). */
+function isBibPath(path) {
+  return /\.bib$/i.test(path ?? '');
+}
 
 /**
  * Qué lenguaje corresponde a `path`. Función pura: no carga nada.
@@ -29,6 +35,12 @@ export const TYPST_LABEL = 'Typst';
 export function detectLanguage(path) {
   if (!path) return { kind: 'text', name: 'Texto', description: null };
   if (isTypstPath(path)) return { kind: 'typst', name: TYPST_LABEL, description: null };
+  // BibTeX no viene en `@codemirror/language-data` (RF-62): se resuelve antes
+  // de consultarla, con la misma forma de resultado que el resto de lenguajes
+  // de código para que `applyLanguage`/`loadLanguageExtension` no distingan.
+  if (isBibPath(path)) {
+    return { kind: 'code', name: bibtexLanguageDescription.name, description: bibtexLanguageDescription };
+  }
   const fileName = path.split(/[\\/]/).pop() ?? path;
   const description = LanguageDescription.matchFilename(languages, fileName);
   if (description) return { kind: 'code', name: description.name, description };

@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+### Added
+
+- **Resaltado de sintaxis para BibTeX (RF-62).** `@codemirror/language-data` no trae ningún paquete para `.bib` (solo `sTeX` y `LaTeX`), así que se abría como texto plano sin colorear. Modo propio con `StreamLanguage` (`src/editor/bibtexLanguage.js`), sin dependencias nuevas: tipo de entrada (`@book{`), clave de cita, nombres de campo, valores entre llaves o comillas —con anidamiento y repartidos en varias líneas, como `{Problem Solving with {C++}}`— números sueltos y comentarios `%`/`%%` (convención de BibDesk). Usa las mismas etiquetas estándar que el resto de lenguajes de código de RF-60, así que hereda sus colores en los tres temas sin CSS propio. La insignia del documento pasa a decir "BibTeX".
+
 ### Fixed
 
 - **Formatear ya no puede corromper un fichero que no es Typst (RF-61).** Con un `.bib`, `.cpp` u otro fichero abierto, el botón "Formatear" y `Mayús+Alt+F` formateaban el último `.typ` visto por Tinymist y aplicaban esas ediciones al buffer equivocado. La causa: `editor.js` solo sobrescribía `isActive` para bloquear ficheros no Typst, pero `formatDocument` se copiaba con `...lspClient` y conservaba el estado interno real. La guarda ahora vive dentro de `lspClient.formatDocument`, que compara el fichero realmente abierto contra el que Tinymist tiene cargado. El botón se deshabilita fuera de Typst, y el resultado siempre es uno de cuatro avisos distinguibles: formateado, ya estaba formateado, Tinymist apagado/arrancando, o error.

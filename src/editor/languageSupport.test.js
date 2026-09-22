@@ -28,6 +28,12 @@ describe('detectLanguage', () => {
     expect(detectLanguage('/p/main.typ')).toMatchObject({ kind: 'typst', name: 'Typst', description: null });
   });
 
+  it('un .bib se reconoce como BibTeX (RF-62) sin pasar por @codemirror/language-data', () => {
+    // No lo trae el paquete de datos (solo sTeX/LaTeX): se resuelve antes.
+    expect(detectLanguage('/p/IP.bib')).toMatchObject({ kind: 'code', name: 'BibTeX' });
+    expect(detectLanguage('/p/IP.bib').description).toBeTruthy();
+  });
+
   it('una extensión desconocida se edita como texto plano', () => {
     expect(detectLanguage('/p/notas.zzz')).toMatchObject({ kind: 'text', description: null });
     expect(detectLanguage(null)).toMatchObject({ kind: 'text' });
@@ -74,6 +80,12 @@ describe('el editor aplica el lenguaje del fichero', () => {
     editor.setDocument('def f():\n    return 1\n', '/p/a.py');
 
     await vi.waitFor(() => expect(languageName()).toBe('python'));
+  });
+
+  it('un .bib se resalta como BibTeX (RF-62)', async () => {
+    editor.setDocument('@book{x,\n  year = {2023}\n}', '/p/refs.bib');
+
+    await vi.waitFor(() => expect(languageName()).toBe('bibtex'));
   });
 
   it('volver a un .typ recupera el lenguaje de Typst', async () => {

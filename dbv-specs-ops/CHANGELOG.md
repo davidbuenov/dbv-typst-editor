@@ -13,8 +13,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Sin publicar] / [Unreleased]
 
+## [0.10.0] - 2026-09-22
+
+Cuatro arreglos y tres funcionalidades pequeñas, filtradas una por una a partir de una lista de sugerencias de un amigo del usuario que probó la v0.9.0. Guardado automático opcional, resaltado de BibTeX, ruta corta en la barra del documento, dotfiles ocultos, números de línea optativos y botón de refresco siempre visible. Análisis (sin decisión) sobre retirar el motor clásico de vista previa: `spikes/engine-review/README.md`.
+
 ### Added
 
+- **Menú "Preferencias" en la cabecera**, con 4 casillas que no cierran el menú al tocarlas: ocultar dotfiles, números de línea, guardado automático y ruta completa. Se recuerdan entre sesiones.
+- **Ficheros ocultos fuera del panel Archivos por defecto (RF-63.1).** Lo que empieza por punto (`.git`, `.claude`, `.gitignore`…) deja de listarse — es un filtro de presentación, no cambia qué existe de verdad ni lo que ven Git o el motor. Nunca oculta el fichero abierto, el documento principal, ni la carpeta que los contiene. Ajuste "Mostrar ficheros ocultos" para volver a verlos.
+- **Números de línea optativos (RF-63.2).** Activados por defecto (la 0.9.0 no cambia si no se toca el ajuste); se alternan en caliente desde Preferencias, sin perder el cursor ni el historial de deshacer.
+- **Botón de refresco de la vista previa siempre visible (RF-63.3).** Antes solo existía en modo manual — el amigo del usuario que probó la 0.9.0 lo describió como "escondido". En automático sigue siendo útil: fuerza una compilación inmediata en vez de esperar a la pausa de escritura.
 - **Resaltado de sintaxis para BibTeX (RF-62).** `@codemirror/language-data` no trae ningún paquete para `.bib` (solo `sTeX` y `LaTeX`), así que se abría como texto plano sin colorear. Modo propio con `StreamLanguage` (`src/editor/bibtexLanguage.js`), sin dependencias nuevas: tipo de entrada (`@book{`), clave de cita, nombres de campo, valores entre llaves o comillas —con anidamiento y repartidos en varias líneas, como `{Problem Solving with {C++}}`— números sueltos y comentarios `%`/`%%` (convención de BibDesk). Usa las mismas etiquetas estándar que el resto de lenguajes de código de RF-60, así que hereda sus colores en los tres temas sin CSS propio. La insignia del documento pasa a decir "BibTeX".
 
 - **Ruta corta y desambiguada en la barra del documento (RF-65).** Por defecto se muestra solo el nombre del fichero, con la ruta completa en el tooltip; si otro fichero del proyecto ya cargado en el árbol comparte nombre, se amplía tramo a tramo SOLO hasta donde las rutas difieren (`a/main.typ` frente a `b/main.typ`). Ajuste "Mostrar ruta completa" para volver al comportamiento de antes.

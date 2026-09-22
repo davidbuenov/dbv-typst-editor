@@ -13,8 +13,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-09-22
+
+Four fixes and three small features, filtered one by one from a list of suggestions a friend of the user's sent after trying v0.9.0. Optional auto-save, BibTeX highlighting, short document-bar path, hidden dotfiles, optional line numbers, and an always-visible refresh button. Analysis (no decision) on retiring the classic preview engine: `spikes/engine-review/README.md`.
+
 ### Added
 
+- **"Preferences" menu in the header**, with 4 checkboxes that don't close the menu on click: hide dotfiles, line numbers, auto-save and full path. Remembered across sessions.
+- **Hidden files out of the Files panel by default (RF-63.1).** Anything starting with a dot (`.git`, `.claude`, `.gitignore`…) no longer lists — a presentation-only filter, it doesn't change what exists or what Git/the engine see. Never hides the open file, the main document, or the folder containing them. "Show hidden files" setting to see them again.
+- **Optional line numbers (RF-63.2).** On by default (0.9.0 behavior unchanged unless the setting is touched); toggled live from Preferences, without losing cursor position or undo history.
+- **Preview refresh button always visible (RF-63.3).** It used to exist only in manual mode — the friend who tried 0.9.0 described it as "hidden". Still useful in automatic mode: forces an immediate compile instead of waiting for the typing pause.
 - **BibTeX syntax highlighting (RF-62).** `@codemirror/language-data` ships no package for `.bib` (only `sTeX` and `LaTeX`), so it opened as plain, uncolored text. Custom `StreamLanguage` mode (`src/editor/bibtexLanguage.js`), no new dependencies: entry type (`@book{`), citation key, field names, brace- or quote-delimited values — nested and spanning several lines, like `{Problem Solving with {C++}}` — bare numbers, and `%`/`%%` comments (BibDesk convention). Uses the same standard tags as the rest of RF-60's code languages, so it inherits their colors across the three themes with no CSS of its own. The document badge now reads "BibTeX".
 
 - **Short, disambiguated path in the document bar (RF-65).** By default only the file name shows, with the full path in the tooltip; if another file already loaded in the tree shares that name, it expands segment by segment ONLY as far as the paths differ (`a/main.typ` vs `b/main.typ`). "Show full path" setting to go back to the old behavior.

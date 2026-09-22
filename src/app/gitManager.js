@@ -79,17 +79,20 @@ export function createGitManager({
       popoverBranchEl.textContent = `Rama: ${status.branch}`;
 
       const totalMod = status.modifiedFiles.length + status.untrackedFiles.length;
+      // RF-64.4 (decisión del usuario, 2026-09-21): se oculta SOLO el texto
+      // "Limpio" — la rama de arriba ya dice de sobra que no hay nada que
+      // avisar. Los conflictos, modificados y el adelanto/atraso se
+      // conservan tal cual.
       let summaryText = '';
       if (status.conflictedFiles.length > 0) {
         summaryText = `${status.conflictedFiles.length} ${t('git.conflicted')}`;
       } else if (totalMod > 0) {
         summaryText = `${totalMod} ${t('git.modified')}`;
-      } else {
-        summaryText = t('git.clean');
       }
 
       if (status.ahead > 0 || status.behind > 0) {
-        summaryText += ` · ↑${status.ahead} ↓${status.behind}`;
+        const aheadBehind = `↑${status.ahead} ↓${status.behind}`;
+        summaryText = summaryText ? `${summaryText} · ${aheadBehind}` : aheadBehind;
         popoverAbEl.textContent = `↑${status.ahead} adelantado, ↓${status.behind} atrasado`;
       } else {
         popoverAbEl.textContent = '';

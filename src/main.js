@@ -1209,13 +1209,42 @@ async function bootstrap() {
 
   // Guardado: botones, Ctrl/Cmd+S desde el editor y refresco de la vista previa.
   workspace.setListener('saveRequested', () => workspace.save());
-  workspace.setListener('saved', () => {
-    preview.onContentChanged();
-    outline.onContentChanged();
-    gitManager.refresh();
+  // RF-64 (R-A3): un guardado automático llega cada pausa de 2 s — recompilar
+  // y consultar Git ahí, sin más, sería trabajo duplicado. Con el motor en
+  // proceso, el contenido en vivo ya compiló al escribir (`documentChanged`);
+  // con el clásico, que solo se entera al guardar, sí hace falta. Git se
+  // limita a una consulta cada 5 s como mucho durante el autoguardado.
+  let lastAutoSaveGitRefreshMs = 0;
+  workspace.setListener('saved', (auto) => {
+    if (!auto || engineMode !== 'inproc') {
+      preview.onContentChanged();
+      outline.onContentChanged();
+    }
+    const now = Date.now();
+    if (!auto || now - lastAutoSaveGitRefreshMs > 5000) {
+      lastAutoSaveGitRefreshMs = now;
+      gitManager.refresh();
+    }
   });
   el('btn-save').addEventListener('click', () => workspace.save());
   el('btn-save-as').addEventListener('click', () => workspace.saveAs());
+  // RF-64.1: "…o el editor" cubre la ventana entera perdiendo el foco (Alt+Tab,
+  // clic en otra ventana); el blur DEL EDITOR ya está cableado en `editor.js`.
+  window.addEventListener('blur', () => workspace.flushAutoSaveOnBlur());
+
+  // RF-64.6: cerrar la ventana con cambios sin guardar queda protegido
+  // SIEMPRE — no es deuda técnica pase lo que pase con el guardado
+  // automático (petición explícita del usuario). Reutiliza exactamente la
+  // misma decisión que cambiar de fichero (`confirmDiscardChanges`): con el
+  // guardado automático encendido guarda y cierra sin preguntar; apagado,
+  // pregunta con el diálogo de siempre. Cubre Alt+F4, el botón ✕ y el menú
+  // del sistema — todos piden el cierre por esta misma vía en Tauri.
+  const appWindow = getCurrentWindow();
+  await appWindow.onCloseRequested(async (event) => {
+    if (!workspace.state.dirty) return; // se deja cerrar tal cual.
+    event.preventDefault();
+    if (await workspace.confirmDiscardChanges()) await appWindow.destroy();
+  });
 
   // Exportación PDF (RF-10): el artefacto final que se comparte, no la vista previa.
   el('btn-export-pdf').addEventListener('click', async () => {

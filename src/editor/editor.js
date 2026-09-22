@@ -160,6 +160,7 @@ function buildTheme(isDark) {
  *   AHORA MISMO (RF-61): `lspClient.formatDocument` la necesita para negarse
  *   con un fichero que no es Typst, sin depender de su propio `currentDoc`
  *   (que solo se actualiza para Typst, ver el comentario en `lspClient.js`).
+ * @param {() => void} [deps.onBlur] El editor pierde el foco (RF-64.1).
  */
 export function buildExtensions({
   themeCompartment,
@@ -173,10 +174,14 @@ export function buildExtensions({
   showLineNumbers,
   lspClient,
   getCurrentPath,
+  onBlur,
 }) {
   const toolbarKeymap = buildToolbarKeymap();
   // `syncFlashField`: marca del bloque al que salta la sincronización (RF-16).
-  const extraExtensions = [createUniverseHover(), syncFlashField];
+  // `domEventHandlers` va suelto (no en un Compartment): no cambia en la vida
+  // del editor, solo el callback al que reenvía (`onBlur`, capturado por
+  // cierre desde `createEditor`).
+  const extraExtensions = [createUniverseHover(), syncFlashField, EditorView.domEventHandlers({ blur: () => onBlur?.() })];
   let autocompleteExt;
   if (lspClient) {
     autocompleteExt = autocompletion({ override: [createLspCompletionSource(lspClient)] });
@@ -258,12 +263,14 @@ export function buildExtensions({
  * @param {(view: EditorView) => void} [options.onSelectionChange] Cursor o
  *   selección movidos — lo usa la barra de herramientas (RF-13) para refrescar
  *   la sensibilidad al contexto (dentro/fuera de una ecuación, §7.7.3.3).
+ * @param {() => void} [options.onBlur] El editor pierde el foco (RF-64.1: el
+ *   guardado automático también se dispara aquí, no solo tras la pausa).
  * @param {'dark'|'light'|'sepia'} [options.theme] Tema inicial.
  * @param {ReturnType<import('./lspClient.js').createLspClient>} [options.lspClient]
  */
 export function createEditor(
   hostEl,
-  { onChange, onChanges, onSave, onSelectionChange, theme = 'dark', lspClient } = {}
+  { onChange, onChanges, onSave, onSelectionChange, onBlur, theme = 'dark', lspClient } = {}
 ) {
   if (!(hostEl instanceof HTMLElement)) {
     throw new TypeError('createEditor: hostEl debe ser un HTMLElement');
@@ -320,6 +327,7 @@ export function createEditor(
         showLineNumbers: getPref('showLineNumbers'),
         lspClient: typstOnlyLsp,
         getCurrentPath: () => currentPath,
+        onBlur,
         updateListener: EditorView.updateListener.of((update) => {
           if (loading) return;
           if (update.docChanged) {

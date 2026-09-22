@@ -15,11 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
-### Changed
-
-### Added
-
 - **Resaltado de sintaxis para BibTeX (RF-62).** `@codemirror/language-data` no trae ningún paquete para `.bib` (solo `sTeX` y `LaTeX`), así que se abría como texto plano sin colorear. Modo propio con `StreamLanguage` (`src/editor/bibtexLanguage.js`), sin dependencias nuevas: tipo de entrada (`@book{`), clave de cita, nombres de campo, valores entre llaves o comillas —con anidamiento y repartidos en varias líneas, como `{Problem Solving with {C++}}`— números sueltos y comentarios `%`/`%%` (convención de BibDesk). Usa las mismas etiquetas estándar que el resto de lenguajes de código de RF-60, así que hereda sus colores en los tres temas sin CSS propio. La insignia del documento pasa a decir "BibTeX".
+
+- **Guardado automático, opcional, apagado por defecto (RF-64).** Se guarda tras 2 s de pausa de escritura y al perder el foco la ventana o el editor. Usa el mismo camino que Guardar (RF-07): guardado atómico, guardarraíles de RF-60.5, y **nunca sobrescribe** un fichero cambiado por otro programa — si hay conflicto, se detiene y avisa una vez, sin diálogo modal ni bucle de avisos. El texto "sin guardar" de la barra se sustituye por un **punto de modificado** (color de aviso, con `title`/`aria-label` propios: el color no es la única señal). El indicador de Git solo oculta el texto "Limpio"; conserva rama, modificados, conflictos y adelanto/atraso. **Cerrar la ventana con cambios sin guardar queda protegido siempre**, con o sin guardado automático — con él encendido guarda y cierra sin preguntar; apagado, pregunta con el mismo diálogo de siempre.
 
 ### Fixed
 

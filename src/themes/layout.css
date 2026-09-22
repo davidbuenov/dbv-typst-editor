@@ -1094,9 +1094,16 @@
   font-size: 13px;
 }
 
+/* RF-64.3: punto de modificado estilo Mac — sustituye al texto "sin
+   guardar". El color no es la única señal: `aria-label`/`title` (puestos en
+   JS, `renderDocumentBar`) llevan el mismo aviso en texto para quien usa un
+   lector de pantalla o no distingue el color. */
 .document__dirty {
-  font-size: 11px;
-  color: var(--code-function);
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--status-warn);
 }
 
 .document__path {

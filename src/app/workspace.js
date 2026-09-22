@@ -39,6 +39,13 @@ import { readStoredEntrypoint, resolveEntrypoint, storeEntrypoint } from './entr
 import { isTypstPath, joinPath, relativeToRoot } from './paths.js';
 import { buildCompileTarget, hasRootDocument } from './compileTarget.js';
 import {
+  decideAutoSaveAttempt,
+  decideAutoSaveConflict,
+  decideUnsavedChangesAction,
+  stillDirtyAfterSave,
+} from './autoSave.js';
+import { getPref, onPrefsChanged } from './prefs.js';
+import {
   PROJECT_CHANGE_EVENT,
   addRecentProject,
   copyAssetIntoProject,
@@ -96,12 +103,49 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
   let ganttEditor;
   let kanbanEditor;
   let dotEditor;
+  // Guardado automático (RF-64), opción apagada por defecto. El temporizador
+  // se arma en CADA edición y se cancela si llega otra antes de cumplirse —
+  // "última gana", igual que el resto de pausas de la aplicación (RNF-MOTOR).
+  const AUTO_SAVE_DEBOUNCE_MS = 2000;
+  let autoSaveTimer = null;
+  // Evita repetir el aviso de conflicto en cada pausa de 2 s mientras el
+  // usuario no lo resuelve (recargar o guardar a mano) — decidido en
+  // `decideAutoSaveConflict` (`app/autoSave.js`).
+  let autoSaveConflictNotified = false;
+
+  function scheduleAutoSave() {
+    if (!getPref('autoSave')) return;
+    if (autoSaveTimer) clearTimeout(autoSaveTimer);
+    autoSaveTimer = setTimeout(() => {
+      autoSaveTimer = null;
+      save({ auto: true });
+    }, AUTO_SAVE_DEBOUNCE_MS);
+  }
+
+  function cancelScheduledAutoSave() {
+    if (!autoSaveTimer) return;
+    clearTimeout(autoSaveTimer);
+    autoSaveTimer = null;
+  }
+
+  /**
+   * Guarda de inmediato al perder el foco (RF-64.1: "…o el editor"), sin
+   * esperar a la pausa de 2 s. La llama tanto un `blur` del propio editor
+   * como uno de la ventana entera (este último, desde `main.js`).
+   */
+  function flushAutoSaveOnBlur() {
+    if (!getPref('autoSave') || !state.dirty) return;
+    cancelScheduledAutoSave();
+    save({ auto: true });
+  }
+
   const editor = createEditor(elements.editorHost, {
     theme: getTheme(),
     lspClient,
     onChange: (content) => {
       state.dirty = true;
       renderDocumentBar();
+      scheduleAutoSave();
       // La vista previa solo se alimenta en vivo si lo que se está editando es
       // el documento que ella compila. Al editar `refs.bib` o un `.toml`, ese
       // contenido no es un documento Typst: mandarlo compilaría la bibliografía
@@ -116,6 +160,7 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     onChanges: (changes) => listeners.editorChanges?.(changes),
     onSave: () => listeners.saveRequested?.(),
     onSelectionChange: () => toolbar?.refresh(),
+    onBlur: flushAutoSaveOnBlur,
   });
 
   // Diagnósticos (RF-59): los de Tinymist y los del motor en proceso se
@@ -341,7 +386,11 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
   function renderDocumentBar() {
     const hasDocument = Boolean(state.document);
     elements.documentName.textContent = hasDocument ? state.document.fileName : '—';
+    // RF-64.3: punto de modificado estilo Mac, no solo color — el texto vive
+    // en `title`/`aria-label` (lector de pantalla y tooltip), no en la forma.
     elements.documentDirty.classList.toggle('hidden', !state.dirty);
+    elements.documentDirty.title = t('doc.unsaved');
+    elements.documentDirty.setAttribute('aria-label', t('doc.unsaved'));
     elements.documentPath.textContent = hasDocument ? state.document.path : '';
 
     // Insignia del lenguaje (RF-60.5): solo para lo que no es Typst, que es
@@ -407,9 +456,23 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
    * llamada la intercepta el plugin de diálogos y exige el permiso
    * `dialog:allow-confirm`, así que fallaba con "dialog.confirm not allowed".
    * El modal propio además está traducido y sigue el tema de la aplicación.
+   *
+   * RF-64.5/RF-64.6: con el guardado automático encendido, esto YA NO
+   * pregunta — guarda y sigue. Si ese guardado no consigue dejar el
+   * documento limpio (conflicto con disco, fallo de escritura), cae al
+   * diálogo de siempre: no se descarta nada en silencio solo porque la
+   * opción esté activada. Es también el único sitio que decide esto, así que
+   * cerrar la VENTANA (main.js, `onCloseRequested`) reutiliza esta misma
+   * función en vez de duplicar la regla.
    */
   async function confirmDiscardChanges() {
     if (!state.dirty) return true;
+    const decision = decideUnsavedChangesAction({ dirty: state.dirty, autoSave: getPref('autoSave') });
+    if (decision === 'save-then-continue') {
+      cancelScheduledAutoSave();
+      await save({ auto: true });
+      if (!state.dirty) return true;
+    }
     const choice = await dialog.ask({
       titleKey: 'doc.discardTitle',
       textKey: 'doc.discardConfirm',
@@ -425,6 +488,7 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
   /** Abre un documento del proyecto en el editor. */
   async function openDocument(path, { force = false } = {}) {
     if (!force && path !== state.document?.path && !(await confirmDiscardChanges())) return false;
+    cancelScheduledAutoSave();
 
     const result = await readFile(path);
     if (!result.ok) {
@@ -440,6 +504,9 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
       modifiedMs: payload.modifiedMs,
     };
     state.dirty = false;
+    // Otro documento es otro episodio: el conflicto del anterior, si lo
+    // hubiera, ya no aplica.
+    autoSaveConflictNotified = false;
     tree.setActivePath(payload.path);
     renderDocumentBar();
 
@@ -700,18 +767,32 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
   });
 
   /**
-   * Guarda el documento activo (RF-07).
+   * Guarda el documento activo (RF-07, RF-64).
    *
    * Antes de escribir compara la marca de modificación del disco con la que se
    * leyó al abrir: si no coinciden, otro programa ha tocado el fichero y
    * sobrescribirlo sin preguntar destruiría ese trabajo.
+   *
+   * @param {{auto?: boolean}} [options] `auto: true` es un guardado automático
+   *   (RF-64): nunca abre un diálogo, nunca sobrescribe un conflicto y no
+   *   avisa de "Documento guardado" en cada pausa de 2 s — el punto de
+   *   modificado que se apaga ya es la señal.
    */
-  async function save() {
+  async function save({ auto = false } = {}) {
     if (!state.document) return false;
+    if (auto && decideAutoSaveAttempt({ dirty: state.dirty }) === 'skip') return false;
 
     const stamp = await fileModifiedMs(state.document.path);
     const changedOnDisk = stamp.ok && stamp.value !== state.document.modifiedMs;
     if (changedOnDisk) {
+      if (auto) {
+        const { shouldNotify } = decideAutoSaveConflict({ alreadyNotified: autoSaveConflictNotified });
+        if (shouldNotify) {
+          autoSaveConflictNotified = true;
+          notify(`${t('doc.autoSaveConflict')} — ${state.document.fileName}`, 'error');
+        }
+        return false;
+      }
       const choices = [
         { key: 'cancel', labelKey: 'action.cancel' },
       ];
@@ -746,7 +827,11 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
       }
     }
 
-    const result = await writeFile(state.document.path, editor.getContent());
+    // R-A2: se guarda una instantánea del contenido ANTES de `writeFile` — si
+    // el usuario sigue escribiendo mientras la escritura está en vuelo, lo
+    // que llega a disco es esta instantánea, no lo último tecleado.
+    const snapshot = editor.getContent();
+    const result = await writeFile(state.document.path, snapshot);
     if (!result.ok) {
       notify(`${t('doc.saveError')} — ${result.error.message}`, 'error');
       return false;
@@ -755,10 +840,11 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     // La supresión se arma ANTES de que llegue el evento del watcher.
     state.suppressSelfWriteUntil = Date.now() + SELF_WRITE_GRACE_MS;
     state.document.modifiedMs = result.value;
-    state.dirty = false;
+    autoSaveConflictNotified = false;
+    state.dirty = stillDirtyAfterSave({ snapshot, currentContent: editor.getContent() });
     renderDocumentBar();
-    listeners.saved?.();
-    notify(t('doc.saved'));
+    listeners.saved?.(auto);
+    if (!auto) notify(t('doc.saved'));
     return true;
   }
 
@@ -872,6 +958,8 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     revealProject,
     save,
     saveAs,
+    /** RF-64.1: guardado automático al perder el foco de la VENTANA (main.js escucha `blur`); el del editor ya está cableado dentro de `createEditor`. */
+    flushAutoSaveOnBlur,
     suggestedPdfName,
     exportPdf: exportToPdf,
     /** Objetivo de compilación vigente (RF-14), o `null` si no hay nada que compilar. */

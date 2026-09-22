@@ -116,6 +116,49 @@ describe('gitManager', () => {
     expect(items.length).toBe(2);
   });
 
+  it('un repositorio limpio no muestra ningún texto de resumen (RF-64.4: solo se oculta "Limpio")', async () => {
+    vi.spyOn(backend, 'gitStatus').mockResolvedValue({
+      ok: true,
+      value: {
+        isRepo: true,
+        branch: 'main',
+        ahead: 0,
+        behind: 0,
+        modifiedFiles: [],
+        untrackedFiles: [],
+        conflictedFiles: [],
+      },
+    });
+
+    const manager = setup();
+    await manager.refresh();
+
+    // La rama se conserva — solo desaparece el texto "Limpio".
+    expect(indicatorEl.classList.contains('hidden')).toBe(false);
+    expect(branchEl.textContent).toBe('main');
+    expect(summaryEl.textContent).toBe('');
+  });
+
+  it('un repositorio limpio pero adelantado muestra el adelanto SIN el separador "·" colgando', async () => {
+    vi.spyOn(backend, 'gitStatus').mockResolvedValue({
+      ok: true,
+      value: {
+        isRepo: true,
+        branch: 'main',
+        ahead: 2,
+        behind: 0,
+        modifiedFiles: [],
+        untrackedFiles: [],
+        conflictedFiles: [],
+      },
+    });
+
+    const manager = setup();
+    await manager.refresh();
+
+    expect(summaryEl.textContent).toBe('↑2 ↓0');
+  });
+
   it('handles commit flow with notification and input clear', async () => {
     const statusSpy = vi.spyOn(backend, 'gitStatus').mockResolvedValue({
       ok: true,

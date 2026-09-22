@@ -277,12 +277,16 @@ const DICTIONARIES = {
     'project.singleFile': 'documento suelto',
     'project.openError': 'No se ha podido abrir el proyecto',
     'project.noEntrypoint': 'La carpeta no contiene ningún documento .typ.',
-    'doc.unsaved': 'sin guardar',
+    // RF-64.3: el punto de modificado (ya no el texto "sin guardar" en la
+    // barra) usa esta frase en `title`/`aria-label`.
+    'doc.unsaved': 'Cambios sin guardar',
     'doc.openError': 'No se ha podido abrir el documento',
     'doc.discardTitle': 'Hay cambios sin guardar',
     'doc.discardConfirm': 'Si continúas, se perderán los cambios que no has guardado en:',
     'doc.discardAction': 'Descartar los cambios',
     'doc.saved': 'Documento guardado.',
+    // RF-64.2: el guardado automático nunca sobrescribe un conflicto externo.
+    'doc.autoSaveConflict': 'Guardado automático en pausa: otro programa ha modificado el fichero',
     // RF-61: Formatear solo actúa sobre Typst — la guarda vive en
     // `lspClient.formatDocument`, y estos 4 resultados sustituyen al `false`
     // silencioso de antes (Tinymist apagado, ya formateado, formateado, error).
@@ -819,12 +823,13 @@ const DICTIONARIES = {
     'project.singleFile': 'standalone document',
     'project.openError': 'The project could not be opened',
     'project.noEntrypoint': 'This folder contains no .typ document.',
-    'doc.unsaved': 'unsaved',
+    'doc.unsaved': 'Unsaved changes',
     'doc.openError': 'The document could not be opened',
     'doc.discardTitle': 'There are unsaved changes',
     'doc.discardConfirm': 'If you continue, the unsaved changes will be lost in:',
     'doc.discardAction': 'Discard changes',
     'doc.saved': 'Document saved.',
+    'doc.autoSaveConflict': 'Auto-save paused: another program has modified the file',
     'action.formatDoc': 'Format',
     'format.buttonTitle': 'Format document with Typstyle / Tinymist (Shift+Alt+F)',
     'format.buttonTitleDisabled': 'Format only works on Typst (.typ) documents',

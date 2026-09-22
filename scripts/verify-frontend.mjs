@@ -63,9 +63,11 @@ function createState(doc = '') {
       readOnlyCompartment: new Compartment(),
       historyCompartment: new Compartment(),
       languageCompartment: new Compartment(),
+      lineNumbersCompartment: new Compartment(),
       saveKeymap: keymap.of([{ key: 'Mod-s', run: () => true }]),
       updateListener: EditorView.updateListener.of(() => {}),
       isDark: true,
+      showLineNumbers: true,
     }),
   });
 }
@@ -183,9 +185,11 @@ check('el tema claro también resuelve', () => {
       readOnlyCompartment: new Compartment(),
       historyCompartment: new Compartment(),
       languageCompartment: new Compartment(),
+      lineNumbersCompartment: new Compartment(),
       saveKeymap: keymap.of([{ key: 'Mod-s', run: () => true }]),
       updateListener: EditorView.updateListener.of(() => {}),
       isDark: false,
+      showLineNumbers: true,
     }),
   });
 });

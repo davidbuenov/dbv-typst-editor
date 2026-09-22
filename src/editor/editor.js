@@ -60,6 +60,7 @@ import { buildToolbarKeymap } from './toolbarActions.js';
 import { createLspCompletionSource, createLspHover } from './lspClient.js';
 import { createUniverseHover } from './universeHover.js';
 import { syncFlashField } from './syncFlash.js';
+import { getPref, onPrefsChanged } from '../app/prefs.js';
 
 /**
  * Tema del editor construido sobre los tokens CSS de la aplicación
@@ -149,9 +150,11 @@ function buildTheme(isDark) {
  * @param {import('@codemirror/state').Compartment} deps.readOnlyCompartment
  * @param {import('@codemirror/state').Compartment} deps.historyCompartment
  * @param {import('@codemirror/state').Compartment} deps.languageCompartment Lenguaje del fichero abierto (RF-60).
+ * @param {import('@codemirror/state').Compartment} deps.lineNumbersCompartment Números de línea optativos (RF-63.2).
  * @param {import('@codemirror/state').Extension} deps.saveKeymap
  * @param {import('@codemirror/state').Extension} deps.updateListener
  * @param {boolean} deps.isDark
+ * @param {boolean} deps.showLineNumbers Valor inicial del compartimento anterior.
  * @param {ReturnType<import('./lspClient.js').createLspClient>} [deps.lspClient]
  * @param {() => string | null} [deps.getCurrentPath] Ruta del fichero abierto
  *   AHORA MISMO (RF-61): `lspClient.formatDocument` la necesita para negarse
@@ -163,9 +166,11 @@ export function buildExtensions({
   readOnlyCompartment,
   historyCompartment,
   languageCompartment,
+  lineNumbersCompartment,
   saveKeymap,
   updateListener,
   isDark,
+  showLineNumbers,
   lspClient,
   getCurrentPath,
 }) {
@@ -192,7 +197,11 @@ export function buildExtensions({
   }
 
   return [
-    lineNumbers(),
+    // RF-63.2: optativo, activado por defecto (el comportamiento de la 0.9.0
+    // no cambia salvo que el usuario lo apague). Un `Compartment` propio para
+    // poder alternarlo EN CALIENTE, sin recrear el editor ni perder cursor,
+    // selección o historial de deshacer.
+    lineNumbersCompartment.of(showLineNumbers ? lineNumbers() : []),
     highlightActiveLineGutter(),
     highlightActiveLine(),
     historyCompartment.of(history()),
@@ -269,6 +278,8 @@ export function createEditor(
   const historyCompartment = new Compartment();
   // Lenguaje del fichero abierto (RF-60): Typst, un paquete de código o nada.
   const languageCompartment = new Compartment();
+  // Números de línea optativos (RF-63.2).
+  const lineNumbersCompartment = new Compartment();
 
   let currentPath = null;
   // Cada apertura invalida la carga de lenguaje anterior: si el usuario cambia de
@@ -303,8 +314,10 @@ export function createEditor(
         readOnlyCompartment,
         historyCompartment,
         languageCompartment,
+        lineNumbersCompartment,
         saveKeymap,
         isDark: theme === 'dark',
+        showLineNumbers: getPref('showLineNumbers'),
         lspClient: typstOnlyLsp,
         getCurrentPath: () => currentPath,
         updateListener: EditorView.updateListener.of((update) => {
@@ -319,6 +332,13 @@ export function createEditor(
         }),
       }),
     }),
+  });
+
+  // Reacciona en caliente al menú Preferencias (RF-63.2): reconfigurar el
+  // compartimento no pierde ni el cursor ni el historial de deshacer.
+  const unsubscribeLineNumbers = onPrefsChanged(({ key, value }) => {
+    if (key !== 'showLineNumbers') return;
+    view.dispatch({ effects: lineNumbersCompartment.reconfigure(value ? lineNumbers() : []) });
   });
 
   /** Pone el resaltado del fichero: el de Typst al momento, el de código cuando llegue su paquete. */
@@ -388,6 +408,7 @@ export function createEditor(
       view.focus();
     },
     destroy() {
+      unsubscribeLineNumbers();
       view.destroy();
     },
   };

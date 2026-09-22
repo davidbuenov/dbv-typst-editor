@@ -941,6 +941,13 @@
   display: none;
 }
 
+/* RF-63.1: dotfiles ocultos por defecto — filtro de presentación, aplicado al
+   `.tree-item` entero (fila + hijos) para que una carpeta oculta no deje sus
+   hijos huérfanos en pantalla. */
+.tree-item--dotfile-hidden {
+  display: none;
+}
+
 .tree-row__toggle {
   width: 10px;
   flex: 0 0 auto;

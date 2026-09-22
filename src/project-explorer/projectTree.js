@@ -15,6 +15,7 @@
 
 import { t } from '../i18n/i18n.js';
 import { listDirectory, revealInFileManager } from '../services/backend.js';
+import { getPref, onPrefsChanged } from '../app/prefs.js';
 
 /**
  * @typedef {object} TreeEntry
@@ -28,6 +29,17 @@ import { listDirectory, revealInFileManager } from '../services/backend.js';
 /** Compara rutas sin depender del separador de la plataforma. */
 const sameFile = (a, b) => Boolean(a && b) && a.replaceAll('\\', '/') === b.replaceAll('\\', '/');
 
+/** True si `filePath` cuelga de la carpeta `dirPath` (a cualquier profundidad). */
+function isAncestorOf(dirPath, filePath) {
+  if (!dirPath || !filePath) return false;
+  const dir = dirPath.replaceAll('\\', '/').replace(/\/+$/, '');
+  const file = filePath.replaceAll('\\', '/');
+  return file.startsWith(`${dir}/`);
+}
+
+/** True si `name` es un dotfile (`.git`, `.gitignore`, `.claude`…). */
+const isDotEntry = (name) => name.startsWith('.');
+
 export function createProjectTree(containerEl, { onOpenFile, onSetEntrypoint } = {}) {
   if (!(containerEl instanceof HTMLElement)) {
     throw new TypeError('createProjectTree: containerEl debe ser un HTMLElement');
@@ -37,15 +49,47 @@ export function createProjectTree(containerEl, { onOpenFile, onSetEntrypoint } =
   let generation = 0;
   /** @type {TreeEntry[]} Ficheros abribles ya conocidos (niveles cargados). */
   const knownFiles = [];
+  /** @type {Array<{wrapper: HTMLElement, entry: TreeEntry}>} Toda fila pintada, para poder re-evaluar el filtro de ocultos sin repintar el árbol (RF-63.1). */
+  const renderedEntries = [];
   let activePath = null;
   /** Ruta ABSOLUTA del documento principal del proyecto, para marcarlo. */
   let entrypointPath = null;
   let openMenuEl = null;
 
+  /**
+   * RF-63.1: un dotfile no se lista salvo que el usuario active "Mostrar
+   * ficheros ocultos", o salvo que sea (o contenga a) el fichero abierto o el
+   * principal — nunca se esconde el camino de vuelta a lo que ya se está
+   * editando. Es un filtro de PRESENTACIÓN: no toca qué existe de verdad ni lo
+   * que ve Git o el motor.
+   * @param {TreeEntry} entry
+   */
+  function isHiddenByDotfileFilter(entry) {
+    if (!isDotEntry(entry.name)) return false;
+    if (getPref('showHiddenFiles')) return false;
+    if (sameFile(entry.path, activePath) || sameFile(entry.path, entrypointPath)) return false;
+    if (entry.isDir && (isAncestorOf(entry.path, activePath) || isAncestorOf(entry.path, entrypointPath))) {
+      return false;
+    }
+    return true;
+  }
+
+  /** Reevalúa el filtro de ocultos en todas las filas ya pintadas. */
+  function applyHiddenFilter() {
+    for (const { wrapper, entry } of renderedEntries) {
+      wrapper.classList.toggle('tree-item--dotfile-hidden', isHiddenByDotfileFilter(entry));
+    }
+  }
+
+  onPrefsChanged(({ key }) => {
+    if (key === 'showHiddenFiles') applyHiddenFilter();
+  });
+
   function reset() {
     generation += 1;
     containerEl.innerHTML = '';
     knownFiles.length = 0;
+    renderedEntries.length = 0;
   }
 
   function showMessage(key) {
@@ -61,6 +105,7 @@ export function createProjectTree(containerEl, { onOpenFile, onSetEntrypoint } =
     for (const row of containerEl.querySelectorAll('.tree-row')) {
       row.classList.toggle('is-active', row.dataset.path === path);
     }
+    applyHiddenFilter();
   }
 
   /** Pone o quita la etiqueta "principal" en una fila según `entrypointPath`. */
@@ -83,6 +128,7 @@ export function createProjectTree(containerEl, { onOpenFile, onSetEntrypoint } =
   function setEntrypointPath(path) {
     entrypointPath = path;
     for (const row of containerEl.querySelectorAll('.tree-row')) applyEntrypointBadge(row);
+    applyHiddenFilter();
   }
 
   function closeContextMenu() {
@@ -236,9 +282,12 @@ export function createProjectTree(containerEl, { onOpenFile, onSetEntrypoint } =
     const fragment = document.createDocumentFragment();
     for (const entry of entries) {
       if (!entry.isDir && entry.isEditable) knownFiles.push(entry);
-      fragment.append(buildRow(entry, depth));
+      const wrapper = buildRow(entry, depth);
+      renderedEntries.push({ wrapper, entry });
+      fragment.append(wrapper);
     }
     hostEl.append(fragment);
+    applyHiddenFilter();
     return true;
   }
 

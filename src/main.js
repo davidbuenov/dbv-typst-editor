@@ -1253,8 +1253,11 @@ async function bootstrap() {
     if (picked.ok && picked.value) await workspace.exportPng(picked.value, page);
   });
 
-  // Alcance (RF-14) y refresco (RF-15). El botón "Refrescar" solo existe en modo
-  // manual: en automático no tendría nada que hacer que la pausa no haga ya.
+  // Alcance (RF-14) y refresco (RF-15). El botón "Refrescar" (RF-63.3) es
+  // siempre visible — antes solo existía en modo manual, y el amigo del
+  // usuario que probó la 0.9.0 lo describió como "escondido". En automático
+  // sigue teniendo sentido: fuerza una compilación inmediata en vez de
+  // esperar a la pausa de escritura (`preview.refreshNow()` no distingue modo).
   const scopeButton = el('btn-preview-scope');
   const refreshModeButton = el('btn-preview-refresh-mode');
   const refreshButton = el('btn-preview-refresh');
@@ -1268,7 +1271,6 @@ async function bootstrap() {
 
     const mode = preview.getRefreshMode();
     refreshModeButton.textContent = t(mode === 'manual' ? 'preview.refreshManual' : 'preview.refreshAuto');
-    refreshButton.classList.toggle('hidden', mode !== 'manual');
     engineButton.textContent = t(engineMode === 'inproc' ? 'preview.engineInproc' : 'preview.engineClassic');
   }
 

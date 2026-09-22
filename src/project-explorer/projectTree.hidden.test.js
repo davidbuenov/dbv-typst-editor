@@ -30,8 +30,8 @@ const entry = (name, extra = {}) => ({
 });
 
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
-const isHidden = (container, name) =>
-  container.querySelector(`.tree-row[data-name="${name}"]`)?.closest('.tree-item')?.classList.contains('tree-item--dotfile-hidden');
+const rowOf = (container, name) => container.querySelector(`.tree-row[data-name="${name}"]`);
+const isHidden = (container, name) => rowOf(container, name)?.closest('.tree-item')?.classList.contains('tree-item--dotfile-hidden');
 
 describe('filtro de ficheros ocultos (RF-63.1)', () => {
   let container;
@@ -101,5 +101,35 @@ describe('filtro de ficheros ocultos (RF-63.1)', () => {
     // La carpeta `.trabajo` contiene al principal: se sigue viendo para poder
     // llegar hasta él, aunque su nombre empiece por punto.
     expect(isHidden(container, '.trabajo')).toBe(false);
+  });
+
+  it('un dotfile dentro de una subcarpeta cargada bajo demanda también se oculta', async () => {
+    // `figs` solo se lista al expandirla (carga por niveles, ARCHITECTURE.md):
+    // el filtro tiene que aplicarse en ESE momento, no solo al abrir la raíz.
+    listDirectory.mockImplementation((dirPath) => {
+      if (dirPath === win('figs')) {
+        return Promise.resolve({
+          ok: true,
+          value: [entry('.thumbnails', { isDir: true, isTypst: false, isEditable: false }), entry('portada.png', { isEditable: false, isTypst: false })],
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        value: [entry('main.typ'), entry('figs', { isDir: true, isTypst: false, isEditable: false })],
+      });
+    });
+
+    const tree = createProjectTree(container, { onOpenFile: vi.fn(), onSetEntrypoint: vi.fn() });
+    await tree.setRoot(win());
+    await settle();
+
+    expect(isHidden(container, 'figs')).toBe(false); // no es un dotfile.
+    expect(container.querySelector('.tree-row[data-name=".thumbnails"]')).toBeNull(); // aún no cargada.
+
+    rowOf(container, 'figs').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await settle();
+
+    expect(isHidden(container, '.thumbnails')).toBe(true);
+    expect(isHidden(container, 'portada.png')).toBe(false);
   });
 });

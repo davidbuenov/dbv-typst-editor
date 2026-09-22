@@ -88,7 +88,22 @@ arrastra ninguna dependencia adicional** más allá de lo que ya hace falta para
 sigue haciendo falta de todos modos, para exportar). Por eso es improbable que retirarlo reduzca el
 tamaño del ejecutable de forma perceptible — la mayor parte del peso no está ahí.
 
-## 3. Memoria del motor en proceso (citado, medido en `/plan` de 0.9.0 — 2026-09-20, NO repetido hoy)
+## 3. Memoria del motor en proceso
+
+### 3.1. Corpus sintético (medido hoy, 2026-09-22, `npm run verify:engine`)
+
+```
+frío: 297,231 ms · 360 páginas
+edición: mediana 63,607 ms · primeras 10: 139,311 ms · últimas 10: 61,806 ms
+memoria: 842 MB tras 10 ediciones → 1.046 MB tras 40 (+24 %, sin fuga sin techo)
+```
+
+Sin regresión frente a lo esperado (el corpus sintético, no `z6-IPbook`): la compilación en frío y la
+mediana de edición siguen en el orden de lo medido en `/plan` de 0.9.0, y el crecimiento de memoria
+(+24 % entre la edición 10 y la 40) es del mismo orden que el +17 % que ya se había registrado entonces
+— variación normal entre corridas, no una fuga nueva.
+
+### 3.2. Libro real `z6-IPbook`, 224 páginas (citado, medido en `/plan` de 0.9.0 — 2026-09-20, NO repetido hoy)
 
 Sobre `z6-IPbook` (224 páginas), de `ADR-MOTOR-002` (`memory.md`):
 

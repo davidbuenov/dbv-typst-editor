@@ -395,6 +395,14 @@
 - **Sin telemetría (offline-first, por diseño) no hay forma de saber con qué frecuencia el respaldo salva a alguien en la práctica** — ni build de prueba sin el motor clásico para medir binario/CI real. Ambas cosas quedan como huecos explícitos del informe, no como cifras estimadas.
 - **Recomendación del informe: (c) dejarlo como está** (motor nuevo predeterminado, clásico como respaldo mantenido) — el ahorro es incierto y pequeño, y el motor nuevo usa MÁS memoria de pico que el CLI (2,75 GB vs 2,3 GB, `ADR-MOTOR-002`), así que el respaldo no es solo red de seguridad ante fallos sino también la opción en máquinas con poca RAM. **Pendiente de que el usuario decida entre (a), (b) y (c).**
 
+### Lección — los permisos ACL de Tauri no los ve ninguna herramienta de este repo (2026-09-22)
+
+`appWindow.destroy()` (RF-64.6) se escribió, se testeó con Vitest y pasó `verify:frontend`/`verify:layout` — y aun así fallaba en la ventana real: "Promesa rechazada: Command plugin:window|destroy not allowed by ACL". `src-tauri/capabilities/main.json` no declaraba `core:window:allow-destroy`. Ninguna comprobación sin Tauri real puede detectar esto: Vitest simula el DOM, no el puente de comandos de Tauri.
+
+**Cómo se cerró el hueco:** `src/app/windowCapabilities.test.js`, un test estático que escanea el código en busca de `appWindow.<método>()` y comprueba por texto que `core:window:allow-<método>` está en `capabilities/main.json`. No sustituye a probar en la ventana real, pero atrapa la próxima vez que alguien (yo) añada una llamada a `appWindow` sin su permiso.
+
+**Para la próxima vez:** cualquier llamada nueva a `appWindow.*`/`getCurrentWindow().*` que invoque un comando (no un evento como `onCloseRequested`) necesita su permiso en `capabilities/main.json` — y lo suyo es probarlo una vez en el `.exe` real antes de darlo por cerrado, no solo confiar en la suite.
+
 ## 🐛 Primera pasada manual de v0.6.0 en ventana real (2026-09-11)
 
 *El usuario probó el flujo de RF-33 (clonar) en la ventana real y encontró 4 fallos que ninguna prueba automática cogía — mismo patrón que todas las pasadas manuales anteriores de este proyecto. Corregidos en la misma sesión.*

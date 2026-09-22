@@ -113,6 +113,10 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
   // usuario no lo resuelve (recargar o guardar a mano) — decidido en
   // `decideAutoSaveConflict` (`app/autoSave.js`).
   let autoSaveConflictNotified = false;
+  // Un solo `save()` a la vez (auto o manual): el diálogo de conflicto le
+  // quita el foco al editor, y eso puede disparar un `blur` que intente
+  // arrancar OTRO guardado mientras el primero sigue en curso.
+  let saveInFlight = false;
 
   function scheduleAutoSave() {
     if (!getPref('autoSave')) return;
@@ -793,72 +797,84 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
    */
   async function save({ auto = false } = {}) {
     if (!state.document) return false;
+    // Reentrada (encontrado en /code-simplify): un guardado manual que abre
+    // el diálogo de conflicto le quita el foco al editor — eso dispara el
+    // `blur` de RF-64.1 y, con el guardado automático encendido, arrancaría
+    // un SEGUNDO `save()` mientras el primero sigue esperando la respuesta
+    // del usuario (dos escrituras a la vez, o un aviso de "en pausa" por
+    // encima del propio diálogo). Un guardado a la vez, sea auto o manual.
+    if (saveInFlight) return false;
     if (auto && decideAutoSaveAttempt({ dirty: state.dirty }) === 'skip') return false;
 
-    const stamp = await fileModifiedMs(state.document.path);
-    const changedOnDisk = stamp.ok && stamp.value !== state.document.modifiedMs;
-    if (changedOnDisk) {
-      if (auto) {
-        const { shouldNotify } = decideAutoSaveConflict({ alreadyNotified: autoSaveConflictNotified });
-        if (shouldNotify) {
-          autoSaveConflictNotified = true;
-          notify(`${t('doc.autoSaveConflict')} — ${state.document.fileName}`, 'error');
+    saveInFlight = true;
+    try {
+      const stamp = await fileModifiedMs(state.document.path);
+      const changedOnDisk = stamp.ok && stamp.value !== state.document.modifiedMs;
+      if (changedOnDisk) {
+        if (auto) {
+          const { shouldNotify } = decideAutoSaveConflict({ alreadyNotified: autoSaveConflictNotified });
+          if (shouldNotify) {
+            autoSaveConflictNotified = true;
+            notify(`${t('doc.autoSaveConflict')} — ${state.document.fileName}`, 'error');
+          }
+          return false;
         }
-        return false;
-      }
-      const choices = [
-        { key: 'cancel', labelKey: 'action.cancel' },
-      ];
-      if (diffModal) {
-        choices.push({ key: 'diff', labelKey: 'conflict.viewDiff' });
-      }
-      choices.push(
-        { key: 'reload', labelKey: 'conflict.reload' },
-        { key: 'overwrite', labelKey: 'conflict.overwrite', tone: 'danger' },
-      );
-      let choice = await dialog.ask({
-        titleKey: 'conflict.title',
-        textKey: 'conflict.saveText',
-        text: state.document.path,
-        choices,
-      });
-      if (choice === 'diff' && diffModal) {
-        const diskRead = await readFile(state.document.path);
-        const diskContent = diskRead.ok ? diskRead.value.content : '';
-        const diffChoice = await diffModal.open({
-          localContent: editor.getContent(),
-          diskContent,
+        const choices = [
+          { key: 'cancel', labelKey: 'action.cancel' },
+        ];
+        if (diffModal) {
+          choices.push({ key: 'diff', labelKey: 'conflict.viewDiff' });
+        }
+        choices.push(
+          { key: 'reload', labelKey: 'conflict.reload' },
+          { key: 'overwrite', labelKey: 'conflict.overwrite', tone: 'danger' },
+        );
+        let choice = await dialog.ask({
+          titleKey: 'conflict.title',
+          textKey: 'conflict.saveText',
+          text: state.document.path,
+          choices,
         });
-        if (diffChoice === 'keep') choice = 'overwrite';
-        else if (diffChoice === 'reload') choice = 'reload';
-        else choice = 'cancel';
+        if (choice === 'diff' && diffModal) {
+          const diskRead = await readFile(state.document.path);
+          const diskContent = diskRead.ok ? diskRead.value.content : '';
+          const diffChoice = await diffModal.open({
+            localContent: editor.getContent(),
+            diskContent,
+          });
+          if (diffChoice === 'keep') choice = 'overwrite';
+          else if (diffChoice === 'reload') choice = 'reload';
+          else choice = 'cancel';
+        }
+        if (choice === 'cancel') return false;
+        if (choice === 'reload') {
+          await openDocument(state.document.path, { force: true });
+          return false;
+        }
       }
-      if (choice === 'cancel') return false;
-      if (choice === 'reload') {
-        await openDocument(state.document.path, { force: true });
+
+      // R-A2: se guarda una instantánea del contenido ANTES de `writeFile` —
+      // si el usuario sigue escribiendo mientras la escritura está en vuelo,
+      // lo que llega a disco es esta instantánea, no lo último tecleado.
+      const snapshot = editor.getContent();
+      const result = await writeFile(state.document.path, snapshot);
+      if (!result.ok) {
+        notify(`${t('doc.saveError')} — ${result.error.message}`, 'error');
         return false;
       }
-    }
 
-    // R-A2: se guarda una instantánea del contenido ANTES de `writeFile` — si
-    // el usuario sigue escribiendo mientras la escritura está en vuelo, lo
-    // que llega a disco es esta instantánea, no lo último tecleado.
-    const snapshot = editor.getContent();
-    const result = await writeFile(state.document.path, snapshot);
-    if (!result.ok) {
-      notify(`${t('doc.saveError')} — ${result.error.message}`, 'error');
-      return false;
+      // La supresión se arma ANTES de que llegue el evento del watcher.
+      state.suppressSelfWriteUntil = Date.now() + SELF_WRITE_GRACE_MS;
+      state.document.modifiedMs = result.value;
+      autoSaveConflictNotified = false;
+      state.dirty = stillDirtyAfterSave({ snapshot, currentContent: editor.getContent() });
+      renderDocumentBar();
+      listeners.saved?.(auto);
+      if (!auto) notify(t('doc.saved'));
+      return true;
+    } finally {
+      saveInFlight = false;
     }
-
-    // La supresión se arma ANTES de que llegue el evento del watcher.
-    state.suppressSelfWriteUntil = Date.now() + SELF_WRITE_GRACE_MS;
-    state.document.modifiedMs = result.value;
-    autoSaveConflictNotified = false;
-    state.dirty = stillDirtyAfterSave({ snapshot, currentContent: editor.getContent() });
-    renderDocumentBar();
-    listeners.saved?.(auto);
-    if (!auto) notify(t('doc.saved'));
-    return true;
   }
 
   /** Guardar como… (RF-07): escribe en un destino nuevo y sigue editándolo. */
@@ -891,8 +907,13 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
 
   // RF-65.2: "Mostrar ruta completa" repinta la barra del documento al
   // vuelo, igual que las demás casillas del menú Preferencias.
-  onPrefsChanged(({ key }) => {
+  // Apagar el guardado automático a media pausa cancela lo ya programado
+  // (encontrado en /code-simplify): sin esto, una pausa de 2 s que ya
+  // estaba en marcha se completaba igual justo después de apagar la
+  // opción, en contra de lo que el usuario acababa de pedir.
+  onPrefsChanged(({ key, value }) => {
     if (key === 'showFullPath') renderDocumentBar();
+    if (key === 'autoSave' && !value) cancelScheduledAutoSave();
   });
 
   renderProjectBar();

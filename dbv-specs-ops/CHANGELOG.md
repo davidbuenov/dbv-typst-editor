@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **Guardado automático: dos guardados a la vez si el conflicto externo abría el diálogo (`/code-simplify`).** El diálogo de conflicto de un `Guardar` manual le quita el foco al editor; con el guardado automático encendido, ese `blur` disparaba un SEGUNDO `save()` mientras el primero seguía esperando la respuesta del usuario (dos escrituras concurrentes, o un aviso de "guardado en pausa" superpuesto al propio diálogo). Un solo guardado a la vez ahora, sea automático o manual. De paso, apagar el guardado automático a media pausa de 2 s ya cancela lo programado, en vez de completarlo igual.
 - **Formatear ya no puede corromper un fichero que no es Typst (RF-61).** Con un `.bib`, `.cpp` u otro fichero abierto, el botón "Formatear" y `Mayús+Alt+F` formateaban el último `.typ` visto por Tinymist y aplicaban esas ediciones al buffer equivocado. La causa: `editor.js` solo sobrescribía `isActive` para bloquear ficheros no Typst, pero `formatDocument` se copiaba con `...lspClient` y conservaba el estado interno real. La guarda ahora vive dentro de `lspClient.formatDocument`, que compara el fichero realmente abierto contra el que Tinymist tiene cargado. El botón se deshabilita fuera de Typst, y el resultado siempre es uno de cuatro avisos distinguibles: formateado, ya estaba formateado, Tinymist apagado/arrancando, o error.
 
 

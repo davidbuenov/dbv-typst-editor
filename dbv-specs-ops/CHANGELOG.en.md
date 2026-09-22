@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **Auto-save: two concurrent saves when the external-conflict dialog was open (`/code-simplify`).** A manual Save's conflict dialog takes focus away from the editor; with auto-save on, that `blur` triggered a SECOND `save()` while the first was still waiting for the user's answer (two concurrent writes, or an "auto-save paused" toast overlapping the dialog itself). Only one save runs at a time now, auto or manual. While at it, turning auto-save off mid-pause now cancels the pending 2 s timer instead of letting it complete anyway.
 - **Format can no longer corrupt a non-Typst file (RF-61).** With a `.bib`, `.cpp`, or any other file open, the "Format" button and `Shift+Alt+F` would format the last `.typ` file Tinymist had seen and apply those edits to the wrong buffer. Root cause: `editor.js` only overrode `isActive` to block non-Typst files, but `formatDocument` was copied with `...lspClient` and kept its real internal state. The guard now lives inside `lspClient.formatDocument`, which compares the file actually open against the one Tinymist has loaded. The button is disabled outside Typst, and the outcome is always one of four distinguishable results: formatted, already formatted, Tinymist off/starting, or error.
 
 

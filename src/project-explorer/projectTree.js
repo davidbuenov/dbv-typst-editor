@@ -284,10 +284,14 @@ export function createProjectTree(containerEl, { onOpenFile, onSetEntrypoint } =
       if (!entry.isDir && entry.isEditable) knownFiles.push(entry);
       const wrapper = buildRow(entry, depth);
       renderedEntries.push({ wrapper, entry });
+      // Cada fila se clasifica al crearse (encontrado en /code-simplify): el
+      // estado de las filas ya pintadas no cambia por cargar un nivel más, así
+      // que no hace falta un `applyHiddenFilter()` completo aquí — evita un
+      // repaso O(n) de todo lo ya pintado por cada carpeta que se expande.
+      wrapper.classList.toggle('tree-item--dotfile-hidden', isHiddenByDotfileFilter(entry));
       fragment.append(wrapper);
     }
     hostEl.append(fragment);
-    applyHiddenFilter();
     return true;
   }
 

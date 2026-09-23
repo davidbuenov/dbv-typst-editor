@@ -75,13 +75,15 @@ qué: es donde se cuela una firma pegada a medias o una URL con la versión ante
 dejan creado como borrador al empujar el tag — ver `task.md`): el `-setup.exe`, su `.sig` y este
 `latest.json`.
 
-## 6. (Opcional) Generar el `.msix` para Microsoft Store
+## 6. Generar el `.msix` para Microsoft Store (obligatorio en cada `/ship`)
 
 ```powershell
 npm run tauri:windows:build
 ```
 
-Necesita el `.exe` del paso 4 ya compilado (usa el mismo build, no vuelve a compilar). Antes de
+Se ejecuta en **cada `/ship`**, tras el bump de versión (regla de `.claude/commands/ship.md`). El
+propio bundler compila el `.exe` con `tauri build --no-bundle`, así que no depende del paso 4 ni de la
+clave del actualizador. Antes de
 enviarlo a Partner Center, sigue el checklist completo de verificación de
 [`MICROSOFT_STORE.md` §6](./MICROSOFT_STORE.md#6--el-paquete-publicado-salió-sin-el-compilador-dentro-incidencia-real-2026-09-07)
 (los dos sidecars dentro, tamaño del `.msix`, instalación y prueba de 2 minutos) — es el único paso

@@ -41,6 +41,7 @@ import { createFileOperations } from './project-explorer/fileOperations.js';
 import { dropTargetDir } from './project-explorer/treeDrag.js';
 import { createReferenceUpdater } from './project-explorer/referenceUpdates.js';
 import { createChapterDialog, createChapterFlow } from './project-explorer/chapters.js';
+import { createHistoryPanel } from './history/historyPanel.js';
 import { createWizard } from './project-wizard/wizard.js';
 import {
   copyAssetIntoProject,
@@ -52,6 +53,7 @@ import {
   getAppInfo,
   savePastedImage,
   openDocumentLink,
+  historyClear,
   readFile,
   writeFile,
   isPackagedApp,
@@ -484,7 +486,7 @@ async function bootstrap() {
     onCommitName: (request) => fileOps.commitName(request),
     onAction: (action, context) => fileOps.handleAction(action, context),
     onMove: (paths, destDir) => fileOps.move(paths, destDir),
-    features: { chapter: true },
+    features: { chapter: true, history: true },
   });
 
   // Cabecera del panel Archivos (RF-69.1): nuevo fichero, nueva carpeta y
@@ -654,6 +656,35 @@ async function bootstrap() {
     }),
   });
   el('btn-new-chapter').addEventListener('click', () => chapterFlow.newChapter());
+  const historyPanel = createHistoryPanel({
+    dialogEl: el('history-dialog'),
+    fileEl: el('history-file'),
+    listEl: el('history-list'),
+    closeEl: el('history-close'),
+    diffModal,
+    workspace,
+    notify: toast.show,
+  });
+  const showHistory = (path) => {
+    if (!getPref('localHistory')) {
+      toast.show(t('history.disabled'));
+      return;
+    }
+    historyPanel.open(path);
+  };
+  el('pref-clear-history').addEventListener('click', async () => {
+    const choice = await dialog.ask({
+      titleKey: 'history.clearTitle',
+      textKey: 'history.clearText',
+      choices: [
+        { key: 'cancel', labelKey: 'action.cancel' },
+        { key: 'clear', labelKey: 'prefs.clearHistory', tone: 'danger' },
+      ],
+    });
+    if (choice !== 'clear') return;
+    const cleared = await historyClear();
+    toast.show(cleared.ok ? t('history.cleared') : `${t('history.readError')} — ${cleared.error.message}`, cleared.ok ? 'info' : 'error');
+  });
   fileOps = createFileOperations({
     tree,
     workspace,
@@ -661,6 +692,7 @@ async function bootstrap() {
     notify: toast.show,
     afterMove: (moved) => referenceUpdater.afterMove(moved),
     onNewChapter: (context) => chapterFlow.newChapter({ dirPath: context.dirPath }),
+    onHistory: (entry) => showHistory(entry.path),
   });
 
   // Punto de una soltada nativa (píxeles físicos) → ¿cae sobre el árbol?
@@ -1126,6 +1158,7 @@ async function bootstrap() {
     autoSave: el('pref-auto-save'),
     showFullPath: el('pref-full-path'),
     askBeforeUpdatingRefs: el('pref-ask-refs'),
+    localHistory: el('pref-local-history'),
   };
   const renderPrefCheckbox = (key) => {
     prefCheckboxes[key]?.setAttribute('aria-checked', String(getPref(key)));
@@ -1461,6 +1494,11 @@ async function bootstrap() {
     onGoToPreview: goToPreviewFromEditor,
     notify: toast.show,
     t,
+    canShowHistory: () => Boolean(workspace.getDocumentPath()),
+    onShowHistory: () => {
+      const path = workspace.getDocumentPath();
+      if (path) showHistory(path);
+    },
   });
 
   el('btn-zoom-in').addEventListener('click', preview.zoomIn);

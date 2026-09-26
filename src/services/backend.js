@@ -89,7 +89,8 @@ export const getStartupDocument = () => call('startup_document');
 // ─── Ficheros ────────────────────────────────────────────────────────────────
 
 export const readFile = (path) => call('read_file', { path });
-export const writeFile = (path, content) => call('write_file', { path, content });
+/** `reason` (`save`, `auto`…) acompaña a la copia que guarda el historial local (RF-73). */
+export const writeFile = (path, content, reason = 'save') => call('write_file', { path, content, reason });
 export const fileModifiedMs = (path) => call('file_modified_ms', { path });
 /** Huella actual en disco (RF-68): `{ missing, modifiedMs, contentHash }`. */
 export const fileFingerprint = (path) => call('file_fingerprint', { path });
@@ -114,6 +115,13 @@ export const fsRevertMoves = (root, moved) => call('fs_revert_moves', { root, mo
 // documento abierto: se edita en memoria y sus ediciones vuelven en UTF-16.
 export const refsPlan = (root, moved, openDocument) => call('refs_plan', { root, moved, openDocument });
 export const refsApply = (root, moved, openDocument) => call('refs_apply', { root, moved, openDocument });
+
+// Historial local de versiones (RF-73).
+export const historyConfigure = (root, enabled) => call('history_configure', { root, enabled });
+export const historySnapshot = (path, content, reason) => call('history_snapshot', { path, content, reason });
+export const historyList = (path) => call('history_list', { path });
+export const historyRead = (path, id) => call('history_read', { path, id });
+export const historyClear = () => call('history_clear');
 
 // «Nuevo capítulo…» (RF-71).
 export const chapterFolder = (root, mainPath, mainContent) => call('chapter_folder', { root, mainPath, mainContent });

@@ -220,6 +220,13 @@
             <button id="pref-ask-refs" class="menu-item" type="button" role="menuitemcheckbox" aria-checked="false">
               <span class="menu-item__check" aria-hidden="true"></span><span data-i18n="prefs.askBeforeUpdatingRefs"></span>
             </button>
+            <button id="pref-local-history" class="menu-item" type="button" role="menuitemcheckbox" aria-checked="true">
+              <span class="menu-item__check" aria-hidden="true"></span><span data-i18n="prefs.localHistory"></span>
+            </button>
+            <div class="menu-separator" role="separator"></div>
+            <button id="pref-clear-history" class="menu-item" type="button" role="menuitem">
+              <span class="menu-item__check" aria-hidden="true"></span><span data-i18n="prefs.clearHistory"></span>
+            </button>
           </div>
         </div>
         <div id="lang-switcher" class="segmented-control" data-i18n-title="action.toggleLang">
@@ -577,6 +584,18 @@
           <button id="chapter-create" class="button button--primary" type="submit" data-i18n="chapter.create"></button>
         </div>
       </form>
+    </div>
+
+    <!-- RF-73: historial local de versiones de un fichero. -->
+    <div class="modal hidden" id="history-dialog" role="dialog" aria-modal="true" aria-labelledby="history-title">
+      <div class="modal__card modal__card--wide">
+        <h2 class="modal__title" id="history-title" data-i18n="history.title"></h2>
+        <p class="modal__text history-file" id="history-file"></p>
+        <ul class="history-list" id="history-list"></ul>
+        <div class="modal__actions">
+          <button id="history-close" class="button" type="button" data-i18n="refs.close"></button>
+        </div>
+      </div>
     </div>
 
     <!-- Modal de diferencias Side-by-Side (RF-19) -->

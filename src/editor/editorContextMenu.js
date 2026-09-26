@@ -21,17 +21,20 @@ export function isGoToPreviewShortcut(event) {
 /**
  * Entradas del menú según el contexto.
  *
- * @param {{hasSelection: boolean, canGoToPreview: boolean, readOnly?: boolean}} context
+ * @param {{hasSelection: boolean, canGoToPreview: boolean, readOnly?: boolean, canShowHistory?: boolean}} context
  * @returns {{id: string, enabled: boolean, separatorAfter?: boolean}[]}
  */
-export function buildMenuItems({ hasSelection, canGoToPreview, readOnly = false }) {
-  return [
+export function buildMenuItems({ hasSelection, canGoToPreview, readOnly = false, canShowHistory = false }) {
+  const items = [
     { id: 'goToPreview', enabled: canGoToPreview, separatorAfter: true },
     { id: 'cut', enabled: hasSelection && !readOnly },
     { id: 'copy', enabled: hasSelection },
     { id: 'paste', enabled: !readOnly },
-    { id: 'selectAll', enabled: true },
+    { id: 'selectAll', enabled: true, separatorAfter: canShowHistory },
   ];
+  // RF-73: el historial local del fichero que se está editando.
+  if (canShowHistory) items.push({ id: 'history', enabled: true });
+  return items;
 }
 
 /**
@@ -42,8 +45,10 @@ export function buildMenuItems({ hasSelection, canGoToPreview, readOnly = false 
  * @param {() => void | Promise<void>} deps.onGoToPreview
  * @param {(message: string) => void} deps.notify
  * @param {(key: string) => string} deps.t
+ * @param {() => boolean} [deps.canShowHistory]
+ * @param {() => void} [deps.onShowHistory]
  */
-export function createEditorContextMenu({ hostEl, getView, canGoToPreview, onGoToPreview, notify, t }) {
+export function createEditorContextMenu({ hostEl, getView, canGoToPreview, onGoToPreview, notify, t, canShowHistory, onShowHistory }) {
   let menuEl = null;
 
   function close() {
@@ -56,6 +61,9 @@ export function createEditorContextMenu({ hostEl, getView, canGoToPreview, onGoT
     try {
       if (id === 'goToPreview') {
         await onGoToPreview();
+      } else if (id === 'history') {
+        onShowHistory?.();
+        return;
       } else if (id === 'copy') {
         await navigator.clipboard.writeText(view.state.sliceDoc(from, to));
       } else if (id === 'cut') {
@@ -82,6 +90,7 @@ export function createEditorContextMenu({ hostEl, getView, canGoToPreview, onGoT
       hasSelection: !view.state.selection.main.empty,
       canGoToPreview: canGoToPreview(),
       readOnly: view.state.readOnly,
+      canShowHistory: Boolean(canShowHistory?.()),
     });
     const menu = document.createElement('div');
     menu.className = 'tree-context-menu editor-context-menu';

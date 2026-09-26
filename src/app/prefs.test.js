@@ -24,6 +24,7 @@ describe('prefs', () => {
       autoSave: false,
       showFullPath: false,
       askBeforeUpdatingRefs: false,
+      localHistory: true,
     });
   });
 
@@ -60,6 +61,7 @@ describe('prefs', () => {
       autoSave: false,
       showFullPath: false,
       askBeforeUpdatingRefs: false,
+      localHistory: true,
     });
   });
 

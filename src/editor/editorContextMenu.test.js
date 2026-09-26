@@ -12,6 +12,15 @@ import { buildMenuItems, createEditorContextMenu, isGoToPreviewShortcut } from '
 
 const labels = (key) => key;
 
+describe('buildMenuItems: historial local (RF-73)', () => {
+  it('añade «Historial local…» al final, separado, solo si hay fichero', () => {
+    const withHistory = buildMenuItems({ hasSelection: false, canGoToPreview: true, canShowHistory: true });
+    expect(withHistory.at(-1)).toEqual({ id: 'history', enabled: true });
+    expect(withHistory.at(-2).separatorAfter).toBe(true);
+    expect(buildMenuItems({ hasSelection: false, canGoToPreview: true }).map((item) => item.id)).not.toContain('history');
+  });
+});
+
 describe('buildMenuItems', () => {
   const enabled = (context) => Object.fromEntries(buildMenuItems(context).map((i) => [i.id, i.enabled]));
 

@@ -56,6 +56,8 @@ import {
   exportProjectArchive,
   fileFingerprint,
   fileModifiedMs,
+  historyConfigure,
+  historySnapshot,
   on,
   openProject,
   pickImageFile,
@@ -567,6 +569,7 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     }
 
     state.project = result.value;
+    configureHistory();
     // El documento principal elegido a mano manda sobre la heurística, si el
     // fichero sigue existiendo (se comprueba: pudo borrarse o renombrarse).
     const storedEntrypoint = state.project.isSingleFile ? null : readStoredEntrypoint(state.project.root);
@@ -614,6 +617,7 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     await unwatchProject();
     lspClient?.stop();
     state.project = null;
+    configureHistory();
     state.document = null;
     state.dirty = false;
     renderProjectBar();
@@ -804,7 +808,7 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
       }
 
       if (choice === 'reload') {
-        await openDocument(path, { force: true });
+        await reloadFromDisk(path);
         return;
       }
       // "Conservar lo mío": la huella del disco pasa a ser la conocida, para que
@@ -998,7 +1002,7 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
         }
         if (choice === 'cancel') return false;
         if (choice === 'reload') {
-          await openDocument(state.document.path, { force: true });
+          await reloadFromDisk(state.document.path);
           return false;
         }
       }
@@ -1007,7 +1011,7 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
       // si el usuario sigue escribiendo mientras la escritura está en vuelo,
       // lo que llega a disco es esta instantánea, no lo último tecleado.
       const snapshot = editor.getContent();
-      const result = await writeFile(state.document.path, snapshot);
+      const result = await writeFile(state.document.path, snapshot, auto ? 'auto' : 'save');
       if (!result.ok) {
         notify(`${t('doc.saveError')} — ${result.error.message}`, 'error');
         return false;
@@ -1030,6 +1034,39 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
         handleActiveDocumentChanged();
       }
     }
+  }
+
+  /**
+   * «Recargar desde disco» descarta lo que hay en el editor: antes se guarda
+   * como versión del historial local (RF-73.1), para que un clic por error no
+   * pierda trabajo. Solo si había cambios: si no, editor y disco coinciden.
+   */
+  async function reloadFromDisk(path) {
+    if (state.dirty && getPref('localHistory')) {
+      await historySnapshot(path, editor.getContent(), 'reload');
+    }
+    return openDocument(path, { force: true });
+  }
+
+  /** El historial sabe qué proyecto está abierto y si está activo (RF-73.7). */
+  function configureHistory() {
+    historyConfigure(state.project?.root ?? null, getPref('localHistory')).catch(console.error);
+  }
+  onPrefsChanged(({ key }) => {
+    if (key === 'localHistory') configureHistory();
+  });
+
+  /**
+   * Restaura `content` (una versión del historial) en el editor como cambio
+   * sin guardar, sin escribir en disco (RF-73.5). Abre antes el fichero si no
+   * es el que está delante. Ctrl+Z lo deshace de una vez.
+   * @returns {Promise<boolean>}
+   */
+  async function restoreVersion(path, content) {
+    if (state.document?.path !== path && !(await openDocument(path))) return false;
+    const view = editor.getView();
+    view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: content } });
+    return true;
   }
 
   /**
@@ -1232,6 +1269,9 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
       editor.setTheme(theme);
     },
     runOwnOperation,
+    restoreVersion,
+    /** Contenido actual del editor. */
+    getContent: () => editor.getContent(),
     applyPathMoves,
     handleDeletedPaths,
     /** Ruta del documento abierto, o `null`. */

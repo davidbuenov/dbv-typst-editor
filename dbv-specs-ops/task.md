@@ -503,7 +503,8 @@
   - `README.md`/`.en.md`: insignias, versión, 1.289 pruebas (887 + 402) y funcionalidades destacadas. `walkthrough.md` reescrito.
   - `notasActualizacionStore_v0.11.0.md` generado (novedades de 911 y 825 caracteres; guía de prueba de 2 minutos).
   - **`.msix`:** `src-tauri/target/msix/dbv-typst-editor_0.11.0.0.msixbundle`, 76,8 MB. Verificado según `MICROSOFT_STORE.md` §6: `typst.exe`, `tinymist.exe`, 53 ficheros de `templates/` y `Version="0.11.0.0"`.
-  - **Pendiente, decisión aparte del usuario:** tag `v0.11.0` (el `v0.10.0` tampoco existe), `git push` (`master` va 17 commits por delante de `origin`), publicación de la Release y subida a Partner Center.
+  - **2026-09-26, a petición del usuario:** la Release `v0.10.0` estaba en borrador y sin notas (el tag sí existía, en `9d7512b`); se le añadieron las notas (ES + EN) y se publicó. Después, `git push` de `master` y tag `v0.11.0` en `96bd3c6` para lanzar `release-linux.yml` y `release-macos.yml`.
+  - **Pendiente:** revisar y publicar el borrador de la Release `v0.11.0` cuando terminen los workflows, y subir el `.msixbundle` a Partner Center.
   - **Siguiente:** `/build`, empezando por el slice 81. Pendiente del usuario: decidir sobre el motor clásico tras el informe de S-4 (slice 88).
 
 - [ ] **Backlog v0.10.0 — analizar con detalle la publicación en Flathub (anotado el 2026-09-21, a petición del usuario; varios usuarios de Linux lo recomiendan).** Solo anotado: **no hay análisis ni decisión**, y va después del `/test` real de la 0.9.0. Hoy Linux se cubre con `.AppImage`/`.deb` en las Releases y con el Cask de Homebrew. Primera valoración (a confirmar en `/spec` y `/plan`), puntos a resolver:

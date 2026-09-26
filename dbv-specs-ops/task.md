@@ -456,6 +456,16 @@
 
 - [x] **Fase 40: `/ship` de v0.10.0 — cerrada el 2026-09-22, versión Minor (0.9.0 → 0.10.0).** Bump en `package.json`/`package-lock.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml` (`Cargo.lock` regenerado con `cargo check`). `CHANGELOG.md`/`.en.md`: sección `[0.10.0] - 2026-09-22` cerrada en los dos ficheros (incluye la entrada de RF-63 que faltaba desde el slice 84, añadida ahora). `README.md`/`README.en.md`: insignias, versión actual, contador de tests (1.143 = 789 Vitest + 354 Rust) y "Funcionalidades destacadas" con el resumen de v0.10.0. `walkthrough.md` reescrito (no versionado). `notasActualizacionStore_v0.10.0.md` generado (novedades ES/EN bajo el límite de 1.500 caracteres, Submission Notes con guía de prueba de 2 minutos adaptada a esta versión, checklist del `.msix` — frontend-only, sin sidecars nuevos). Verificación final tras el bump: **789 Vitest, `verify:frontend` 12/12**, sin regresión. **Pendiente, decisión aparte del usuario:** tag `v0.10.0`, `git push` y publicación de la Release / subida a Partner Center.
   - **`.msix` para la Store generado el 2026-09-23** (faltaba en el `/ship`): `src-tauri/target/msix/dbv-typst-editor_0.10.0.0.msixbundle`, 76,7 MB. Verificado con `MICROSOFT_STORE.md` §6: `typst.exe` (50 MB), `tinymist.exe` (61 MB), 53 ficheros de `templates/`, identidad `davidbuenov.dbv-typst-editor`, versión `0.10.0.0`. Sin instalar ni probar (certificado de pruebas + guía de 2 minutos: acción del usuario). Desde ahora `/ship` genera SIEMPRE el `.msix` (`.claude/commands/ship.md`).
+
+- [x] **Fase 41: `/spec` de v0.11.0 — cerrada el 2026-09-26** (`SPECIFICATIONS.md` v1.14, §5k, **RF-68 a RF-73**; `ADR-V0110-001` en `memory.md`). Origen: uso intensivo de la 0.10.0 por el usuario con `z6-IPbook`. Alcance:
+  - **RF-68:** conflicto externo decidido por hash del contenido. Arregla el diálogo que salta sin parar con el guardado automático; diagnóstico hecho leyendo el código, pendiente de confirmar en `/test`.
+  - **RF-69:** operaciones de ficheros en el panel Archivos: crear, renombrar, duplicar, eliminar a la papelera, selección múltiple, mover arrastrando y copiar desde el sistema.
+  - **RF-70:** actualización automática de referencias al mover o renombrar, usando el analizador sintáctico de Typst, con Deshacer.
+  - **RF-71:** «Nuevo capítulo…».
+  - **RF-72:** enlaces funcionales en la vista previa con una capa sobre el SVG; los externos se abren con clic directo.
+  - **RF-73:** historial local de versiones.
+  - Todo en v0.11.0 por decisión del usuario, sin parche v0.10.1.
+- [ ] **Fase 42: `/plan` de v0.11.0** — siguiente. Empezar por el spike de enlaces (RF-72) y resolver las preguntas abiertas del final de §5k. Orden sugerido para `/build`: RF-68 primero (corrección de algo ya publicado y base de RF-69).
   - **Siguiente:** `/build`, empezando por el slice 81. Pendiente del usuario: decidir sobre el motor clásico tras el informe de S-4 (slice 88).
 
 - [ ] **Backlog v0.10.0 — analizar con detalle la publicación en Flathub (anotado el 2026-09-21, a petición del usuario; varios usuarios de Linux lo recomiendan).** Solo anotado: **no hay análisis ni decisión**, y va después del `/test` real de la 0.9.0. Hoy Linux se cubre con `.AppImage`/`.deb` en las Releases y con el Cask de Homebrew. Primera valoración (a confirmar en `/spec` y `/plan`), puntos a resolver:

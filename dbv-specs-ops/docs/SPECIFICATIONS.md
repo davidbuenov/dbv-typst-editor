@@ -1,7 +1,8 @@
 # 📋 Especificaciones: DBV Typst Editor
 
-> **Fase:** `/spec` (Especificación) → **v0.10.0 especificada**
-> **Estado:** 🔒 **CONGELADO v1.13 — 2026-09-21.** v1.13 abre v0.10.0 (§5j: **RF-61 a RF-67**): arreglo de Formatear, resaltado de BibTeX, pulido (ocultos, números de línea, refresco), guardado automático opcional con indicador de modificado, ruta corta, no compilar los no principales y análisis previo sobre retirar el motor clásico. **Anterior — v1.12 (2026-09-20).** v1.12 abre v0.9.0 (§5i: **RNF-MOTOR, RF-56 a RF-60**): motor de vista previa **en proceso** (Typst como librería) con sincronización exacta por palabra y frase en los dos sentidos, velocidad tras cada edición, menú contextual del editor, diagnósticos en línea y edición de ficheros de texto/código con resaltado. Decisión de arquitectura en `ADR-MOTOR-001` (`memory.md`); **RF-16 queda sustituido por RF-57 en el motor en proceso** y se conserva en el motor clásico de respaldo.
+> **Fase:** `/spec` (Especificación) → **v0.11.0 especificada**
+> **Estado:** 🔒 **CONGELADO v1.14 — 2026-09-26.** v1.14 abre v0.11.0 (§5k: **RF-68 a RF-73**): conflicto externo decidido por contenido (arregla el guardado automático), operaciones de ficheros en el panel Archivos, actualización automática de referencias al mover o renombrar, acción «Nuevo capítulo…», enlaces funcionales en la vista previa e historial local de versiones. Decisiones en `ADR-V0110-001` (`memory.md`).
+> **v1.13 (2026-09-21):** v1.13 abre v0.10.0 (§5j: **RF-61 a RF-67**): arreglo de Formatear, resaltado de BibTeX, pulido (ocultos, números de línea, refresco), guardado automático opcional con indicador de modificado, ruta corta, no compilar los no principales y análisis previo sobre retirar el motor clásico. **Anterior — v1.12 (2026-09-20).** v1.12 abre v0.9.0 (§5i: **RNF-MOTOR, RF-56 a RF-60**): motor de vista previa **en proceso** (Typst como librería) con sincronización exacta por palabra y frase en los dos sentidos, velocidad tras cada edición, menú contextual del editor, diagnósticos en línea y edición de ficheros de texto/código con resaltado. Decisión de arquitectura en `ADR-MOTOR-001` (`memory.md`); **RF-16 queda sustituido por RF-57 en el motor en proceso** y se conserva en el motor clásico de respaldo.
 > **v1.11 (2026-09-19):** v1.11 añade §5h (**RNF-PERF, RF-53, RF-54, RF-55**), registrada **a posteriori** en `/ship` de v0.8.0 (ver `ADR-V080-001` en `memory.md`).
 > **v1.10 (2026-09-15):** v1.10 añade **RF-52** (botón "?" de ayuda contextual en cada asistente de diagramación) tras probar el usuario en vivo el asistente de DOT/Graphviz recién construido: sin ninguna ayuda visual de sintaxis (a diferencia de los otros cinco asistentes, que sí construyen el código por ti), quien no conoce el lenguaje DOT se queda sin saber qué escribir. Ver criterios de aceptación al final de §5g.
 > **v1.9:** v1.9 activó RF-50 (Kanban) y RF-51 (DOT/Graphviz) de forma incondicional: v1.8 los había dejado como un único RF-50 condicional ("si sobra alcance de `/plan`"); con `/build`, `/test` y `/code-simplify` de los otros 9 RF de v0.7.0 (RF-40 a RF-49) cerrados y probados en vivo por el usuario el mismo día, el usuario decidió completar también esta parte para cerrar v0.7.0 con el alcance íntegro del `/spec` original, en vez de diferir nada a una versión futura. Los dos requisitos quedan detallados al mismo nivel que RF-46 a RF-49 (criterios de aceptación concretos, no solo el nombre del paquete), con nombre/versión/licencia/API de `kantan` y `diagraph` verificados contra el registro real de Typst Universe y sus READMEs reales, no asumidos — ver `ADR-DECISION-006` en `memory.md`.
@@ -847,7 +848,7 @@ un olvido, es una decisión de alcance tomada en esta misma sesión de `/spec`, 
 
 > **Origen (2026-09-21):** un amigo del usuario, entusiasmado con la 0.9.0, le pasó una lista de cosas a arreglar. **No se dieron por buenas**: se analizaron una a una contra el código y el usuario decidió cuáles entran. El diagnóstico de RF-61 y RF-62 se hizo **leyendo el código, sin ejecutar la aplicación**: la causa de RF-61 está por confirmar en `/test` con una ventana real.
 >
-> **Fuera de alcance, aparcado por decisión del usuario (2026-09-21):** esquema de macros cuando no hay encabezados `==`; enlaces de la salida; gestión de ficheros en el panel (crear, renombrar, borrar, mover). Quedan registrados aquí para no perderlos.
+> **Fuera de alcance, aparcado por decisión del usuario (2026-09-21):** esquema de macros cuando no hay encabezados `==`; enlaces de la salida; gestión de ficheros en el panel (crear, renombrar, borrar, mover). Quedan registrados aquí para no perderlos. *(Los enlaces de la salida y la gestión de ficheros se recuperan en v0.11.0: RF-72 y RF-69, §5k.)*
 >
 > **Convención de estilo, sin cambios:** los ficheros en gris en el panel Archivos (p. ej. `.gitignore`, `IP.pdf`) significan «existe pero no se puede abrir». Es intencionado y **no se toca**.
 
@@ -907,6 +908,119 @@ un olvido, es una decisión de alcance tomada en esta misma sesión de `/spec`, 
 - Comportamiento actual al abrir un `.typ` secundario y superficie de cambio real de RF-66 (¿ajuste pequeño o cambio de comportamiento?).
 - Si RF-65 y RF-66 caben en esta versión o se aplazan.
 - ~~Método y umbrales para RF-67~~ → resuelto en `/plan`: Spike S-4 (slice 88), sin retirada decidida.
+
+---
+
+## ✨ 5k. Funcionalidades — v0.11.0 (Explorador de archivos, conflictos por contenido y enlaces en la vista previa)
+
+> **Origen (2026-09-26):** uso intensivo de la 0.10.0 por el usuario con un libro real de varios capítulos (`z6-IPbook`). Tres problemas encontrados: (1) para añadir un capítulo hay que salir al explorador del sistema, porque el panel Archivos no permite crear, renombrar ni mover nada; (2) el guardado automático de RF-64 es inutilizable en la práctica porque salta una y otra vez el diálogo «El documento cambió fuera del editor» sin que nadie haya tocado el fichero; (3) los enlaces del documento no funcionan en la vista previa, así que no se comporta como el PDF final. Se recuperan dos puntos que §5j había aparcado (enlaces de la salida y gestión de ficheros en el panel). El usuario decidió que todo, incluidas las dos propuestas añadidas durante la discusión (RF-71 y RF-73), entra en la v0.11.0 y no en un parche aparte. Decisiones en `ADR-V0110-001` (`memory.md`).
+>
+> **Fuera de alcance (no pedido o sin decidir):** pestañas en el editor; búsqueda global en el proyecto (Ctrl+Mayús+F); cortar, copiar y pegar ficheros con Ctrl+X/C/V en el árbol; «Contraer todo»; `git mv` (los movimientos son del sistema de ficheros y Git detecta los renombrados solo); vista previa en PDF nativo (el visor de PDF que trae WebView2 no existe en WebKitGTK, y se perdería la sincronización de RF-57).
+
+### RF-68 — Conflicto externo decidido por contenido, no por avisos del sistema *(corrección, prioridad 1)*
+1. **Causa (leyendo el código; hay que confirmarla en `/test` con una ventana real):** el diálogo de la captura del usuario (*Conservar lo mío / Ver diferencias / Recargar desde disco*) es el del **observador de ficheros** (`workspace.js::handleActiveDocumentChanged`), no el de Guardar. Hoy cualquier aviso del observador sobre el documento abierto que llegue más de 1,5 s después de un guardado propio (`SELF_WRITE_GRACE_MS`) se trata como un cambio real. En Windows, `notify` notifica los cambios de **atributos** como `Modify(Any)`. Por eso el filtro de solo metadatos (`watcher.rs::is_relevant_kind`, pensado para Spotlight en macOS) no los descarta. Y el antivirus, el indexador o un cliente de sincronización tocan el fichero segundos después de guardarlo. Con el guardado automático casi siempre hay cambios sin guardar, así que cada uno de esos avisos acaba en el diálogo. La comprobación previa de Guardar compara solo la **marca de tiempo** (`modifiedMs`).
+2. **Regla nueva:** hay conflicto externo **solo si el contenido en disco es distinto del último conocido**, es decir, del que se leyó al abrir o del que se escribió en el último guardado. El backend devuelve un **hash del contenido** al leer y al escribir. En la escritura es el hash de los bytes que llegan a disco, después de los guardarraíles de RF-60.5.
+3. **Aviso del observador:** se calcula el hash del disco. Si coincide con el último conocido, se **ignora en silencio**, haya o no cambios sin guardar. Si no coincide, se mantiene el comportamiento actual: recarga silenciosa si no hay cambios locales y diálogo si los hay.
+4. **Comprobación previa de Guardar** (manual y automático): se cambia la comparación de marcas de tiempo por la de hash. La marca de tiempo puede seguir sirviendo como filtro barato: si no ha cambiado, no hace falta leer el fichero.
+5. La ventana de gracia de 1,5 s **deja de ser lo que garantiza que no haya falsos conflictos**. Si se conserva como optimización o se retira se decide en `/plan`.
+6. «Conservar lo mío» guarda como conocido el hash del disco, para no volver a preguntar por el mismo cambio. RF-64.2 no cambia: el guardado automático **nunca** sobrescribe un conflicto real.
+7. Se aplica igual a los ficheros que no son Typst abiertos en el editor (RF-60).
+8. **Criterios de aceptación:**
+   - Tests de la lógica pura: un aviso con el mismo contenido no abre diálogo ni recarga; un aviso con contenido distinto y cambios sin guardar sí abre el diálogo; Guardar tras un cambio que solo toca la marca de tiempo o los atributos no pregunta.
+   - En el `.exe` real, con el guardado automático encendido y `z6-IPbook`: escribir de forma continuada durante 10 minutos **sin que aparezca ni un solo diálogo**, y cambiar los atributos del fichero desde fuera (`attrib +A`) mientras tanto sin efecto visible.
+   - Un cambio real hecho con otro editor sigue detectándose.
+
+### RF-69 — Operaciones de ficheros en el panel Archivos
+1. **Cabecera del panel:** al pasar el ratón aparecen los botones **Nuevo fichero**, **Nueva carpeta** y **Refrescar**, igual que en el explorador de VS Code. También se puede llegar a ellos con el teclado. El destino es la carpeta seleccionada; si lo seleccionado es un fichero, la carpeta que lo contiene; si no hay selección, la raíz del proyecto.
+2. **Crear:** aparece una fila editable dentro del propio árbol; Enter confirma y Escape cancela. El nombre se respeta tal cual, sin imponer extensión. Un fichero editable recién creado se abre en el editor.
+3. **Menú contextual:**
+   - Sobre una carpeta: *Nuevo fichero…* y *Nueva carpeta…*, dentro de ella.
+   - Sobre un fichero: las mismas dos opciones, en su carpeta.
+   - En ambos casos: *Renombrar* (F2), *Duplicar*, *Eliminar* (Supr), *Copiar ruta* y *Copiar ruta relativa*.
+   - Se conservan las opciones actuales: documento principal, abrir como texto y mostrar en el explorador del sistema.
+4. **Selección múltiple:** clic selecciona uno; Ctrl+clic (Cmd en macOS) añade o quita; Mayús+clic selecciona un rango. *Eliminar* y el arrastre actúan sobre toda la selección. *Renombrar* y *Duplicar* solo se ofrecen con un elemento seleccionado.
+5. **Mover arrastrando:** los elementos seleccionados se sueltan sobre una carpeta o sobre la raíz.
+   - El destino se resalta mientras se arrastra, y una carpeta cerrada se abre si el puntero se queda un momento encima.
+   - Mover una carpeta dentro de sí misma o de una subcarpeta suya se rechaza. Soltar en la misma carpeta no hace nada.
+6. **Soltar ficheros del sistema sobre una carpeta del árbol** los **copia** en esa carpeta. Si ya existe uno con el mismo nombre, se usa un nombre único y nunca se sobrescribe. Fuera del árbol, el arrastre de imágenes y fuentes de RF-18 funciona igual que ahora.
+7. **Eliminar** envía a la **papelera del sistema** tras una confirmación que lista lo que se va a eliminar. Si la papelera no está disponible (unidad de red, por ejemplo), se pide confirmación explícita de **borrado definitivo**.
+8. **Validación del nombre**, con el mensaje en línea y sin crear nada: nombre vacío, caracteres no válidos, nombres reservados de Windows (`CON`, `PRN`, `AUX`, `NUL`, `COM1`…), punto o espacio final en Windows, y colisión con un elemento existente (incluida la que solo difiere en mayúsculas en Windows y macOS). Renombrar **solo cambiando mayúsculas** (`cap1.typ` → `Cap1.typ`) debe funcionar.
+9. **Confinamiento:** el backend comprueba en **cada** operación que el origen y el destino, ya canónicos, están dentro de la raíz del proyecto, sin `..` ni enlaces simbólicos que escapen. Es el mismo criterio anti-escape que la importación `.dbvt` (RF-11).
+10. **Coherencia con el estado de la aplicación:**
+    - Renombrar o mover el **documento abierto** (o la carpeta que lo contiene) actualiza su ruta sin perder los cambios sin guardar ni el historial de deshacer del editor.
+    - Lo mismo con el **documento principal** (RF-53): su preferencia se actualiza.
+    - Eliminar el documento abierto lo cierra, preguntando antes si tiene cambios sin guardar. Eliminar el principal le quita la marca.
+11. **Observador y árbol:** las operaciones propias **no** provocan avisos de conflicto ni recargas (RF-68). Al refrescarse, el árbol conserva las carpetas abiertas y la selección, y el indicador de Git se actualiza.
+12. **Ocultos (RF-63.1):** si se crea un elemento que empieza por punto con los ocultos filtrados, se avisa de que se ha creado pero no se ve.
+13. Textos en español e inglés, tokens de `DESIGN.md`, uso completo con teclado y etiquetas accesibles en los botones de solo icono.
+14. **Criterios de aceptación:**
+    - Tests de las funciones puras: validación de nombres, confinamiento (incluido un intento con `..` y otro con un enlace simbólico) y nombre único al copiar.
+    - Crear `capitulos/cap7.typ` desde el árbol lo abre en el editor.
+    - Arrastrar tres ficheros seleccionados a otra carpeta los mueve.
+    - Renombrar el documento abierto con cambios sin guardar no pierde nada.
+    - Eliminar manda a la papelera.
+    - Ninguna de estas operaciones hace saltar el diálogo de conflicto.
+
+### RF-70 — Actualización automática de referencias al mover o renombrar
+1. Al renombrar o mover (RF-69) un fichero o una carpeta, la aplicación **actualiza automáticamente**, en todos los `.typ` del proyecto, las rutas que apuntan a ellos. *(Decisión del usuario, 2026-09-26: automático, no solo avisar.)*
+2. **Detección con el analizador sintáctico de Typst**, nunca con búsqueda de texto: se buscan las **cadenas literales** que son la ruta en `#include`, `#import` (con `: …` o `as …`), `image`, `bibliography` (cadena o array de cadenas), `read`, `json`, `csv`, `yaml`, `toml`, `xml`, `cbor` y `plugin`. Los paquetes (`@preview/…`) se ignoran.
+3. **Resolución igual que Typst:** una ruta sin `/` inicial es relativa al **fichero que la contiene**, y una con `/` inicial lo es a la raíz del proyecto (comportamiento verificado en `memory.md`, 2026-09-06). La ruta nueva conserva el estilo de la original, relativa o absoluta al proyecto, y siempre usa `/` como separador.
+4. **Referencias salientes:**
+   - Si se mueve un `.typ`, se reescriben también sus **propias** rutas relativas, porque ahora parten de otra carpeta.
+   - Si se mueve una carpeta, se actualizan las referencias que entran desde fuera y las que salen hacia fuera. Las internas a la carpeta no se tocan.
+5. **Documentos abiertos con cambios sin guardar:** el cambio se aplica **al contenido del editor**, no al disco, y el documento queda como modificado. Nunca se pisa trabajo sin guardar.
+6. Solo cambia el texto de la cadena: formato, comentarios, finales de línea y BOM se conservan (RF-60.5). Cada fichero se escribe de forma atómica (RF-24).
+7. **Resultado visible:** un aviso del tipo «Actualizadas N referencias en M ficheros», con **Ver cambios** (lista `fichero:línea`, ruta antigua → nueva) y **Deshacer**.
+8. **Deshacer** revierte el último movimiento o renombrado **junto con** sus reescrituras, todo o nada. Si algún fichero afectado ha cambiado desde entonces, avisa y no deshace nada.
+9. **Preferencia** «Preguntar antes de actualizar referencias», **desactivada por defecto** y recordada entre sesiones. Si está activa, muestra la lista antes de aplicar y permite *Actualizar* o *Mover sin actualizar*.
+10. **Límites declarados** (no son fallos):
+    - No se tocan las rutas construidas en tiempo de ejecución (`"figs/" + nombre`), las guardadas en variables ni las que se pasan a una plantilla o función (`#show: tesis.with(logo: "img/logo.png")`).
+    - Tampoco las referencias desde ficheros que no son Typst.
+    - Si alguna queda rota, los diagnósticos del compilador (RF-59) la muestran como fichero no encontrado.
+    - En un fichero con errores de sintaxis se actualizan las referencias que el analizador reconozca.
+11. **Criterios de aceptación:**
+    - Batería de tests de la función pura (en Rust) con: ruta relativa, absoluta al proyecto, en subcarpeta, referencias salientes del fichero movido, carpeta movida con referencias internas y externas, `bibliography` con array, `import` con alias, una cadena en variable que **no** se toca, una cadena con escapes y diferencias de mayúsculas en Windows.
+    - Test de Deshacer.
+    - Con `z6-IPbook`: mover un capítulo a otra carpeta y renombrar una imagen deja el libro **compilando sin errores nuevos**.
+
+### RF-71 — Acción «Nuevo capítulo…»
+1. Disponible en el **menú contextual de las carpetas** del árbol y en el **menú Archivo**.
+2. **Diálogo:**
+   - Pide el **título** del capítulo y propone un nombre de fichero derivado de él (minúsculas, sin acentos ni espacios, `.typ`) que se puede editar.
+   - Propone también una carpeta: la seleccionada; si no, la carpeta donde ya están los capítulos incluidos por el documento principal; si no, la raíz.
+3. Crea el fichero con el encabezado `= Título` y una línea en blanco.
+4. **Lo enlaza:** inserta `#include "ruta"` en el **documento principal** (RF-53), justo después del último `#include` de nivel superior, o al final si no hay ninguno. La ruta sigue el estilo de las existentes.
+   - Si el principal está abierto con cambios sin guardar, se edita el contenido del editor (como en RF-70.5).
+   - Si no hay documento principal, se crea el fichero igualmente, se avisa de que no se ha podido enlazar y se ofrece elegir uno.
+5. Abre el capítulo nuevo en el editor.
+6. **Criterios de aceptación:** tests puros del nombre derivado del título (acentos, espacios, colisión) y del punto de inserción del `#include` (con varios `#include`, sin ninguno, y con un `#include` dentro de un bloque que no es de nivel superior). En `z6-IPbook`, «Nuevo capítulo» deja el capítulo visible en la vista previa del documento completo sin tocar nada más.
+
+### RF-72 — Enlaces funcionales en la vista previa
+1. **Causa:** `typst-svg` no escribe el `href` de los enlaces (solo aparecen en la exportación a PDF), y `preview.js` anula a propósito cualquier clic sobre un `<a>` del SVG para evitar el fallo de `SVGAElement.href` (Slice 11).
+2. **Capa de enlaces:** el motor en proceso (RF-56) saca de cada página maquetada sus enlaces (rectángulo y destino), y el frontend pinta encima del SVG zonas clicables transparentes. Estas zonas se alinean con el zoom y con «Ajustar al ancho», y se crean y descartan junto con la página (paginación perezosa, RNF-PERF).
+3. **Enlaces externos:** se abren con un **clic directo** en el navegador del sistema *(decisión del usuario, 2026-09-26)*. Al pasar el ratón se ve la URL y el cursor de mano. Solo se permiten `http`, `https` y `mailto`; cualquier otro esquema (`file:`, `javascript:`…) se ignora y se avisa. Hace falta una **lista de esquemas permitidos propia para el documento**, porque la actual de `open_external_url` (solo `https`, para la documentación de la ayuda) es otra.
+4. **Enlaces internos** (índice, `@ref`, citas a la bibliografía, notas al pie, `link(<etiqueta>)`, `link((page: …))`): desplazan la **vista previa** hasta la página y altura del destino y lo señalan con la misma marca visual de RF-57. El editor no se mueve.
+5. No interfieren con el doble clic de sincronización hacia el editor (RF-57), con la selección ni con el menú contextual de la vista previa. En ese menú, sobre un enlace externo, se añade *Copiar dirección del enlace*.
+6. **Motor clásico de respaldo:** sin enlaces clicables (degradación documentada, sin errores). Se sigue anulando el clic sobre `<a>` como hoy.
+7. **Criterios de aceptación:** test de la conversión de rectángulos de enlace a coordenadas de pantalla con varios zooms, y test de la lista de esquemas. En `z6-IPbook`, un clic en una entrada del índice lleva a su capítulo, un clic en una cita lleva a la bibliografía y un clic en una URL abre el navegador. La sincronización por doble clic sigue funcionando.
+
+### RF-73 — Historial local de versiones
+1. **Qué se guarda:** una copia del contenido **anterior** de un fichero antes de sobrescribirlo, en estos casos: guardado manual, guardado automático, reescritura por RF-70 o RF-71, y antes de descartar cambios locales con «Recargar desde disco». En este último caso se guarda el contenido del editor, para que un clic por error no pierda trabajo.
+2. Se guarda **fuera del proyecto**, en la carpeta de datos de la aplicación y separado por proyecto, para no ensuciar el proyecto ni Git.
+3. **Consolidación:** las copias del guardado automático se agrupan (orientativo: como mucho una cada 5 minutos por fichero). Las de las demás causas se guardan siempre.
+4. **Retención:** orientativo, las últimas 50 versiones o 30 días por fichero, con un tope total de espacio (orientativo 200 MB) que purga lo más antiguo. Los valores se fijan en `/plan`.
+5. **Interfaz:** *Historial local…* en el menú contextual del árbol y del editor abre una lista de versiones con fecha y causa (manual, automático, antes de recargar, antes de actualizar referencias). Se pueden **ver las diferencias** con el contenido actual, reutilizando el diff de RF-19, y **restaurar**. Restaurar pone esa versión en el editor como cambio sin guardar, que se puede deshacer con Ctrl+Z; nunca escribe directamente en disco.
+6. Solo para ficheros de texto editables, con el mismo límite de tamaño que RF-60. El historial sigue al fichero cuando se renombra o se mueve desde la aplicación (RF-69).
+7. **Preferencias:** activar o desactivar (activado por defecto) y *Vaciar historial local*. Todo es local; nada sale del equipo.
+8. **Criterios de aceptación:** tests puros de la consolidación y la retención (por número, por antigüedad y por tamaño total). Tras un «Recargar desde disco» por error, lo descartado se recupera desde el historial. Restaurar deja el documento como modificado sin escribir en disco.
+
+### Preguntas abiertas para `/plan` (no se resuelven aquí a propósito)
+- **Spike de enlaces (RF-72):** cómo exponen los enlaces las páginas maquetadas en `typst` 0.15.1 (elemento de frame o etiqueta), cómo se resuelven los destinos internos a página y posición, y cómo se reutiliza el mapa de RF-57.
+- **Hash de RF-68:** algoritmo (basta uno rápido, no criptográfico) y coste con ficheros grandes. Si la ventana de gracia de 1,5 s se conserva o se retira.
+- **Papelera (RF-69.7):** crate y comportamiento en Windows (MSIX), macOS y Linux, y qué hacer en unidades de red.
+- **RF-70:** si el analizador sintáctico se usa desde el crate que ya enlaza el motor en proceso, y el rendimiento con proyectos grandes (orientativo: menos de 1 s con 200 `.typ`). Confirmar contra el binario real las reglas de resolución de rutas de la 0.15.1.
+- **RF-73:** valores definitivos de consolidación y retención, formato de almacenamiento y cómo se identifica un proyecto si se mueve de carpeta.
+- Qué secciones de `ARCHITECTURE.md` hay que ampliar (operaciones de ficheros en el backend, reescritura de referencias, capa de enlaces, historial).
 
 ---
 
@@ -1011,7 +1125,8 @@ Orden de prioridad para toda decisión de diseño/arquitectura (fijado explícit
 | **v0.5.0** | **Integración con Git y diffs side-by-side (RF-19)**, **Galería visual de plantillas con preview (RF-20)**, **LSP Tinymist vendorizado (RF-21)**, **Figuras y datos dinámicos con Python (RF-22)**, **Asistente visual de diagramas CeTZ (RF-23)**, **Robustez de entorno Windows y guardado atómico (RF-24)**, consolidación del lanzador (RF-25 a RF-27), pulido de ventana y previsualización (RF-28 a RF-30). Cerrado y publicado. | ✅ Completado (2026-09-09) |
 | **v0.6.0** | **Editor WYSIWYG de diagramas (RF-31, sustituye a RF-23)**, **menú Herramientas (RF-32)**, **clonar repositorio por URL (RF-33)**, **Universe Browser completo (RF-34)**, **bibliografía visual completa (RF-35)**, **empaquetado macOS (RF-36)**, **auto-actualizador (RF-37)**, **ejecución de módulos JavaScript con `jogs` (RF-38)**. Especificado el 2026-09-11 en una sola pasada. | ✅ Completado (2026-09-13) |
 | **v0.7.0** | **Filtrado del aviso de `ResizeObserver` (RF-40)**, **arreglo del separador bloqueable (RF-41)**, **zoom contextual con teclado/rueda (RF-42)**, **Guardar/PDF/PNG al menú Archivo (RF-43)**, **rediseño de la pantalla de inicio (RF-44)**, **editor de diagramas visible en Herramientas (RF-45)**, **editor visual interactivo de ecuaciones (RF-46)**, **flujogramas con decisiones (RF-47)**, **diagramas de secuencia (RF-48)**, **diagramas de Gantt (RF-49)**, **tableros Kanban (RF-50)**, **render DOT/Graphviz (RF-51)** y **botón de ayuda contextual en cada asistente (RF-52)**. Especificado el 2026-09-14 en una sola pasada; RF-50/RF-51 activados sin condición el día siguiente (v1.9); RF-52 añadido el mismo día tras probar RF-51 en vivo (v1.10). | 📋 Especificado |
-| **v0.10.0** | **Formatear solo en Typst con avisos claros (RF-61)**, **resaltado de BibTeX (RF-62)**, **pulido: ocultos, números de línea y refresco visibles (RF-63)**, **guardado automático opcional e indicador de modificado (RF-64)**, **ruta corta (RF-65)** y **compilar solo el principal (RF-66)** *(si caben)*, y **análisis previo sobre el motor clásico (RF-67)**. Especificado el 2026-09-21 tras filtrar una lista externa de sugerencias. | 📋 Especificado |
+| **v0.10.0** | **Formatear solo en Typst con avisos claros (RF-61)**, **resaltado de BibTeX (RF-62)**, **pulido: ocultos, números de línea y refresco visibles (RF-63)**, **guardado automático opcional e indicador de modificado (RF-64)**, **ruta corta (RF-65)** y **compilar solo el principal (RF-66)** *(si caben)*, y **análisis previo sobre el motor clásico (RF-67)**. Especificado el 2026-09-21 tras filtrar una lista externa de sugerencias. | ✅ `/ship` hecho (2026-09-22) |
+| **v0.11.0** | **Conflicto externo por contenido — arregla el guardado automático (RF-68)**, **operaciones de ficheros en el panel Archivos (RF-69)**, **actualización automática de referencias al mover o renombrar (RF-70)**, **«Nuevo capítulo…» (RF-71)**, **enlaces funcionales en la vista previa (RF-72)** e **historial local de versiones (RF-73)**. Especificado el 2026-09-26 tras el uso intensivo de la 0.10.0 con un libro real. | 📋 Especificado |
 | **Beta (v0.2–v0.4)** | Navegación estructural, asistentes de inserción con formulario (la barra en sí es v0.2, RF-13), gestión de imágenes por arrastre, modos de escritura, exportación PNG, terminal avanzado, LSP `tinymist`. | ✅ Completado / absorbido por v0.5.0–v0.6.0 |
 | **v1.0** | Ecosistema completo de plantillas, exportación SVG, asistentes avanzados, Paquete Docente, publicación en stores, accesibilidad WCAG AA. | Futuro |
 | **Futuro (post-1.0)** | IA, repositorio comunitario, sincronización, colaboración en tiempo real, integración Zotero/Mendeley, asistentes de redacción académica. | Exploratorio |

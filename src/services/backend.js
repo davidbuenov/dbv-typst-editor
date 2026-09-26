@@ -114,6 +114,13 @@ export const fsRevertMoves = (root, moved) => call('fs_revert_moves', { root, mo
 // documento abierto: se edita en memoria y sus ediciones vuelven en UTF-16.
 export const refsPlan = (root, moved, openDocument) => call('refs_plan', { root, moved, openDocument });
 export const refsApply = (root, moved, openDocument) => call('refs_apply', { root, moved, openDocument });
+
+// «Nuevo capítulo…» (RF-71).
+export const chapterFolder = (root, mainPath, mainContent) => call('chapter_folder', { root, mainPath, mainContent });
+export const chapterCreate = (root, folder, fileName, title) => call('chapter_create', { root, folder, fileName, title });
+/** `openContent`: contenido del principal si está abierto (vuelve la edición), o `null` (se escribe en disco). */
+export const chapterLink = (root, mainPath, openContent, chapterPath) =>
+  call('chapter_link', { root, mainPath, openContent, chapterPath });
 export const listDirectory = (path) => call('list_directory', { path });
 export const revealInFileManager = (path) => call('reveal_in_file_manager', { path });
 

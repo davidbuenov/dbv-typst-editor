@@ -40,6 +40,7 @@ import { createProjectTree } from './project-explorer/projectTree.js';
 import { createFileOperations } from './project-explorer/fileOperations.js';
 import { dropTargetDir } from './project-explorer/treeDrag.js';
 import { createReferenceUpdater } from './project-explorer/referenceUpdates.js';
+import { createChapterDialog, createChapterFlow } from './project-explorer/chapters.js';
 import { createWizard } from './project-wizard/wizard.js';
 import {
   copyAssetIntoProject,
@@ -482,6 +483,7 @@ async function bootstrap() {
     onCommitName: (request) => fileOps.commitName(request),
     onAction: (action, context) => fileOps.handleAction(action, context),
     onMove: (paths, destDir) => fileOps.move(paths, destDir),
+    features: { chapter: true },
   });
 
   // Cabecera del panel Archivos (RF-69.1): nuevo fichero, nueva carpeta y
@@ -552,6 +554,7 @@ async function bootstrap() {
         el('btn-save'),
         el('btn-save-as'),
         el('btn-set-entrypoint'),
+        el('btn-new-chapter'),
         el('btn-export-pdf'),
         el('btn-export-png'),
         el('btn-export-archive'),
@@ -635,12 +638,28 @@ async function bootstrap() {
   const getAssetExtensions = () => assetExtensions;
 
   const referenceUpdater = createReferenceUpdater({ tree, workspace, dialog, notify: toast.show });
+  const chapterFlow = createChapterFlow({
+    tree,
+    workspace,
+    notify: toast.show,
+    dialog: createChapterDialog({
+      dialogEl: el('chapter-dialog'),
+      formEl: el('chapter-form'),
+      headingEl: el('chapter-heading'),
+      fileEl: el('chapter-file'),
+      folderEl: el('chapter-folder'),
+      errorEl: el('chapter-error'),
+      cancelEl: el('chapter-cancel'),
+    }),
+  });
+  el('btn-new-chapter').addEventListener('click', () => chapterFlow.newChapter());
   fileOps = createFileOperations({
     tree,
     workspace,
     dialog,
     notify: toast.show,
     afterMove: (moved) => referenceUpdater.afterMove(moved),
+    onNewChapter: (context) => chapterFlow.newChapter({ dirPath: context.dirPath }),
   });
 
   // Punto de una soltada nativa (píxeles físicos) → ¿cae sobre el árbol?

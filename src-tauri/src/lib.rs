@@ -12,6 +12,7 @@
 pub mod archive;
 pub mod assets;
 pub mod bibliography;
+pub mod chapters;
 pub mod commands;
 pub mod error;
 pub mod engine;
@@ -114,6 +115,9 @@ pub fn run() {
             commands::fs_ops::fs_revert_moves,
             refs::refs_plan,
             refs::refs_apply,
+            chapters::chapter_folder,
+            chapters::chapter_create,
+            chapters::chapter_link,
             commands::file_io::list_directory,
             commands::file_io::open_file_dialog,
             commands::file_io::open_folder_dialog,

@@ -1059,6 +1059,12 @@
   animation: sync-flash-line 5s ease-out forwards;
 }
 
+/* RF-72: puntero de enlace sobre la vista previa (sin capa encima del SVG). */
+#preview-pages.is-over-link,
+#preview-pages.is-over-link * {
+  cursor: pointer;
+}
+
 .preview-sync-mark {
   position: absolute;
   z-index: 2;

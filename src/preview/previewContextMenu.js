@@ -15,8 +15,10 @@
  * @param {HTMLElement} deps.hostEl Contenedor de las páginas.
  * @param {(clientX: number, clientY: number) => void | Promise<void>} deps.onGoToSource
  * @param {(key: string) => string} deps.t
+ * @param {(clientX: number, clientY: number) => Promise<{url?: string | null} | null>} [deps.getLinkAt]
+ *   Enlace bajo el punto (RF-72): si es externo, se ofrece copiar su dirección.
  */
-export function createPreviewContextMenu({ hostEl, onGoToSource, t }) {
+export function createPreviewContextMenu({ hostEl, onGoToSource, t, getLinkAt }) {
   let menuEl = null;
 
   function close() {
@@ -24,10 +26,11 @@ export function createPreviewContextMenu({ hostEl, onGoToSource, t }) {
     menuEl = null;
   }
 
-  hostEl.addEventListener('contextmenu', (event) => {
+  hostEl.addEventListener('contextmenu', async (event) => {
     event.preventDefault();
     close();
     const { clientX, clientY } = event;
+    const link = getLinkAt ? await getLinkAt(clientX, clientY) : null;
 
     const menu = document.createElement('div');
     menu.className = 'tree-context-menu preview-context-menu';
@@ -49,6 +52,20 @@ export function createPreviewContextMenu({ hostEl, onGoToSource, t }) {
       onGoToSource(clientX, clientY);
     });
     menu.append(item);
+
+    if (link?.url) {
+      const copy = document.createElement('button');
+      copy.type = 'button';
+      copy.className = 'menu-item';
+      copy.setAttribute('role', 'menuitem');
+      copy.dataset.action = 'copyLink';
+      copy.textContent = t('previewMenu.copyLink');
+      copy.addEventListener('click', () => {
+        close();
+        navigator.clipboard?.writeText(link.url).catch(() => {});
+      });
+      menu.append(copy);
+    }
 
     document.body.append(menu);
     const { width, height } = menu.getBoundingClientRect();

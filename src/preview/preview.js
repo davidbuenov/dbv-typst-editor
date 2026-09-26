@@ -26,12 +26,14 @@ import { t } from '../i18n/i18n.js';
 import {
   cancelPreview,
   compilePreview,
+  engineLinks,
   engineLocate,
   engineReveal,
   getSyncAnchors,
   previewPage,
 } from '../services/backend.js';
 import { anchorAtPoint, anchorForLine, anchorSpan } from './syncAnchors.js';
+import { createLinkClickGate, linkAt, linkTitle } from './linkHits.js';
 
 /** Pausa de escritura tras la que se recompila, en modo automático. */
 const DEBOUNCE_MS = 350;
@@ -191,6 +193,7 @@ export function createPreview({
   onCompileStart,
   onRendered,
   onCompiled,
+  onOpenLink,
 }) {
   let debounceTimer = null;
   /**
@@ -253,9 +256,89 @@ export function createPreview({
         event.preventDefault();
         event.stopImmediatePropagation();
       }
+      // RF-72: el clic sí navega, pero con la prueba de puntería propia
+      // (`linkAtPoint`), no con el `<a>` del SVG, que no lleva destino en los
+      // enlaces internos.
+      followLinkAt(event.clientX, event.clientY);
     },
     { capture: true }
   );
+
+  // ── Enlaces (RF-72) ─────────────────────────────────────────────────────────
+  //
+  // Solo con el motor en proceso: el documento maquetado sabe dónde está cada
+  // enlace y a dónde lleva. Con el motor clásico (respaldo) no hay enlaces, y
+  // el clic sobre un `<a>` se sigue anulando como antes.
+
+  /** Enlaces de cada página de la generación pintada (promesas, para no pedir dos veces). */
+  const linksCache = new Map();
+
+  function linksForPage(page) {
+    if (renderedEngine !== 'inproc') return Promise.resolve([]);
+    const key = `${renderedGeneration}:${page}`;
+    if (!linksCache.has(key)) {
+      linksCache.set(
+        key,
+        engineLinks(renderedGeneration, page).then((result) => (result.ok ? result.value : [])),
+      );
+    }
+    return linksCache.get(key);
+  }
+
+  /** Enlace bajo un punto de pantalla, o `null`. */
+  async function linkAtPoint(clientX, clientY) {
+    const point = documentPointAt(clientX, clientY);
+    if (!point) return null;
+    return linkAt(await linksForPage(point.page), point);
+  }
+
+  /** Salta a un destino interno y lo marca, como el resto de saltos de la vista previa. */
+  function goToInternal(link) {
+    scrollToPage(link.targetPage, link.targetYPt);
+    const pageEl = pagesEl.children[link.targetPage - 1];
+    const heightPt = pageHeightsPt[link.targetPage - 1] || pageEl?.offsetHeight || 1;
+    const ratio = pageEl ? pageEl.offsetHeight / heightPt : 1;
+    clearMarks();
+    placeMark(link.targetPage, 0, Math.max(0, link.targetYPt - 4), pageEl ? pageEl.offsetWidth / ratio : 0, 22);
+  }
+
+  const linkGate = createLinkClickGate({
+    onActivate: (link) => {
+      if (link.url) onOpenLink?.(link.url);
+      else if (link.targetPage) goToInternal(link);
+    },
+  });
+
+  async function followLinkAt(clientX, clientY) {
+    const link = await linkAtPoint(clientX, clientY);
+    if (link) linkGate.click(link);
+  }
+
+  // Un doble clic sobre un enlace es la sincronización hacia el editor (RF-57):
+  // cancela la navegación que dejó pendiente su primer clic.
+  pagesEl.addEventListener('dblclick', () => linkGate.cancel(), { capture: true });
+
+  // Cursor de mano y dirección al pasar por encima, sin repetir el cálculo
+  // más de una vez por fotograma y descartando respuestas que ya no tocan.
+  let hoverFrame = 0;
+  let hoverToken = 0;
+  pagesEl.addEventListener('pointermove', (event) => {
+    if (renderedEngine !== 'inproc' || hoverFrame) return;
+    const { clientX, clientY } = event;
+    hoverFrame = requestAnimationFrame(async () => {
+      hoverFrame = 0;
+      const token = ++hoverToken;
+      const link = await linkAtPoint(clientX, clientY);
+      if (token !== hoverToken) return;
+      pagesEl.classList.toggle('is-over-link', Boolean(link));
+      pagesEl.title = link ? linkTitle(link, t) : '';
+    });
+  });
+  pagesEl.addEventListener('pointerleave', () => {
+    hoverToken += 1;
+    pagesEl.classList.remove('is-over-link');
+    pagesEl.title = '';
+  });
 
   // Trae el marcado de una página en cuanto su hueco se acerca al viewport.
   const observer = new IntersectionObserver(
@@ -479,6 +562,7 @@ export function createPreview({
 
     renderedGeneration = outcome.generation;
     renderedEngine = outcome.engine === 'inproc' ? 'inproc' : 'classic';
+    linksCache.clear();
     renderedStart = startId ?? null;
     hasRendered = true;
     setStale(false);
@@ -688,6 +772,8 @@ export function createPreview({
       return refreshMode;
     },
     isStale: () => stale,
+    /** Enlace bajo un punto de pantalla (RF-72), para el menú contextual. */
+    linkAt: linkAtPoint,
     /**
      * Punto del fuente que corresponde a un punto de la vista previa (RF-16),
      * o `null` si ahí no hay nada que resolver. Lo usa el doble clic.

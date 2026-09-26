@@ -206,6 +206,10 @@ export const getBibliographyKeys = (root) => call('bibliography_keys', { root })
  * el fuente, y un error `PreviewExpired` si esa generación ya no es la vigente.
  * @returns {Promise<import('./backend.js').Result<null | EngineLocated>>}
  */
+/** Enlaces de una página de la vista previa (RF-72). */
+export const engineLinks = (generation, page) => call('engine_links', { generation, page });
+/** Abre un enlace del documento; el backend decide qué esquemas se permiten. */
+export const openDocumentLink = (url) => call('open_document_link', { url });
 export const engineLocate = (generation, page, xPt, yPt) =>
   call('engine_locate', { generation, page, xPt, yPt });
 /** Cajas (una por línea dibujada) de lo escrito entre `from` y `to` (UTF-16) de `file`. */

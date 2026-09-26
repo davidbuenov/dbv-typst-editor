@@ -51,6 +51,7 @@ import {
   gitClone,
   getAppInfo,
   savePastedImage,
+  openDocumentLink,
   readFile,
   writeFile,
   isPackagedApp,
@@ -751,6 +752,11 @@ async function bootstrap() {
     statusEl: el('preview-status'),
     zoomLabelEl: el('preview-zoom-label'),
     getTarget: () => workspace.getCompileTarget(),
+    // RF-72: enlace externo pulsado en la vista previa.
+    onOpenLink: async (url) => {
+      const opened = await openDocumentLink(url);
+      if (!opened.ok) toast.show(`${t('preview.linkError')} — ${opened.error.message}`, 'error');
+    },
     onStaleChange: (stale) => staleEl.classList.toggle('hidden', !stale),
     onCompileStart: () => tracker.start(workspace.getCursorSource()?.docLength ?? 0),
     onRendered: (id) => tracker.rendered(id),
@@ -1401,7 +1407,12 @@ async function bootstrap() {
   }
   el('preview-pages').addEventListener('dblclick', (event) => goToSourceAt(event.clientX, event.clientY));
   // Menú contextual (RF-58): lo mismo que el doble clic, para quien no lo conoce.
-  createPreviewContextMenu({ hostEl: el('preview-pages'), onGoToSource: goToSourceAt, t });
+  createPreviewContextMenu({
+    hostEl: el('preview-pages'),
+    onGoToSource: goToSourceAt,
+    t,
+    getLinkAt: (clientX, clientY) => preview.linkAt(clientX, clientY),
+  });
 
   /** Rango del texto actual del editor que corresponde al de lo compilado. */
   function mapToCurrent(source) {

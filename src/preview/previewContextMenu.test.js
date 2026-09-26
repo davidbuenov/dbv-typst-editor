@@ -55,6 +55,28 @@ describe('createPreviewContextMenu', () => {
     expect(onGoToSource).toHaveBeenCalledWith(200, 300);
   });
 
+  it('sobre un enlace externo ofrece copiar su dirección (RF-72); sobre uno interno, no', async () => {
+    menu.close();
+    const writeText = vi.fn(async () => {});
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+    const getLinkAt = vi.fn(async () => ({ url: 'https://typst.app' }));
+    const linked = createPreviewContextMenu({ hostEl: host, onGoToSource, t: (key) => key, getLinkAt });
+
+    rightClick(50, 60);
+    await Promise.resolve();
+    const copy = document.querySelector('.preview-context-menu [data-action="copyLink"]');
+    expect(getLinkAt).toHaveBeenCalledWith(50, 60);
+    copy.click();
+    expect(writeText).toHaveBeenCalledWith('https://typst.app');
+    linked.close();
+
+    getLinkAt.mockResolvedValue({ targetPage: 3 });
+    rightClick();
+    await Promise.resolve();
+    expect(document.querySelector('.preview-context-menu [data-action="copyLink"]')).toBeNull();
+    linked.close();
+  });
+
   it('Escape y pulsar fuera lo cierran sin saltar', () => {
     rightClick();
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));

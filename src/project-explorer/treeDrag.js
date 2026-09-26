@@ -9,8 +9,7 @@
 // backend (`fs_move`) vuelve a comprobarlo todo; esto solo decide qué se
 // resalta mientras se arrastra, para no ofrecer un destino que se rechazará.
 
-/** Ruta normalizada para comparar: separador `/`, sin barra final, sin mayúsculas. */
-const key = (path) => (path || '').replaceAll('\\', '/').replace(/\/+$/, '').toLowerCase();
+import { pathKey as key } from '../app/paths.js';
 
 /** Carpeta que contiene `path`. */
 function parentKey(path) {

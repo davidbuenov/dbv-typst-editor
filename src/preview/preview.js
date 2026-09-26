@@ -259,7 +259,7 @@ export function createPreview({
       // RF-72: el clic sí navega, pero con la prueba de puntería propia
       // (`linkAtPoint`), no con el `<a>` del SVG, que no lleva destino en los
       // enlaces internos.
-      followLinkAt(event.clientX, event.clientY);
+      followLinkAt(event.clientX, event.clientY, event.detail);
     },
     { capture: true }
   );
@@ -309,14 +309,29 @@ export function createPreview({
     },
   });
 
-  async function followLinkAt(clientX, clientY) {
+  /** Sube con cada doble clic: una búsqueda de enlace que empezó antes ya no navega. */
+  let doubleClickToken = 0;
+
+  async function followLinkAt(clientX, clientY, detail = 1) {
+    // El segundo clic de un doble clic no navega: lo que manda es el doble clic.
+    if (detail > 1) return;
+    const token = doubleClickToken;
     const link = await linkAtPoint(clientX, clientY);
-    if (link) linkGate.click(link);
+    // Si la primera consulta de enlaces de la página tardó, el doble clic pudo
+    // llegar mientras tanto: entonces no se programa ninguna navegación.
+    if (link && token === doubleClickToken) linkGate.click(link);
   }
 
   // Un doble clic sobre un enlace es la sincronización hacia el editor (RF-57):
   // cancela la navegación que dejó pendiente su primer clic.
-  pagesEl.addEventListener('dblclick', () => linkGate.cancel(), { capture: true });
+  pagesEl.addEventListener(
+    'dblclick',
+    () => {
+      doubleClickToken += 1;
+      linkGate.cancel();
+    },
+    { capture: true },
+  );
 
   // Cursor de mano y dirección al pasar por encima, sin repetir el cálculo
   // más de una vez por fotograma y descartando respuestas que ya no tocan.

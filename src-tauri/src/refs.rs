@@ -321,13 +321,18 @@ fn to_relative(root: &str, path: &str) -> Option<String> {
     }
 }
 
-/// Todos los `.typ` del proyecto, sin entrar en carpetas de ruido (`.git`…).
+/// Todos los `.typ` del proyecto, sin entrar en carpetas de ruido (`.git`…)
+/// ni seguir enlaces simbólicos (un enlace a un antepasado sería un bucle).
 fn typst_files(dir: &Path, out: &mut Vec<PathBuf>) {
     let Ok(entries) = fs::read_dir(dir) else { return };
     for entry in entries.flatten() {
+        let Ok(kind) = entry.file_type() else { continue };
+        if kind.is_symlink() {
+            continue;
+        }
         let path = entry.path();
         let name = entry.file_name().to_string_lossy().to_string();
-        if path.is_dir() {
+        if kind.is_dir() {
             if !is_noise_dir(&name) {
                 typst_files(&path, out);
             }
@@ -570,6 +575,23 @@ Esto "capitulos/cap1.typ" es texto, no una ruta.
         assert_eq!(report.open_document_edits, vec![BufferEdit { from: 23, to: 33, insert: "\"capitulos/cap1.typ\"".into() }]);
         assert_eq!(report.total, 3);
         assert_eq!(report.files.len(), 3);
+    }
+
+    /// Hallazgo Crítico de `/code-simplify`: un enlace simbólico a un
+    /// antepasado dentro del proyecto colgaba el recorrido de los `.typ`.
+    #[cfg(unix)]
+    #[test]
+    fn un_bucle_de_enlaces_en_el_proyecto_no_cuelga_el_recorrido() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dunce::canonicalize(dir.path()).unwrap();
+        fs::create_dir(root.join("partes")).unwrap();
+        fs::write(root.join("partes").join("a.typ"), "#include \"../cap1.typ\"").unwrap();
+        std::os::unix::fs::symlink(&root, root.join("partes").join("raiz")).unwrap();
+        let moved = vec![Moved { from: path_to_string(&root.join("cap1.typ")), to: path_to_string(&root.join("c").join("cap1.typ")) }];
+
+        let report = refs_plan(path_to_string(&root), moved, None).unwrap();
+
+        assert_eq!(report.total, 1);
     }
 
     #[test]

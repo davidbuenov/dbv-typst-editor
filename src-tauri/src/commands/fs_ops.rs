@@ -152,17 +152,33 @@ fn file_name_of(path: &Path) -> Result<String, AppError> {
 }
 
 /// Copia `source` (fichero o carpeta, de forma recursiva) en `target`.
+///
+/// Los enlaces simbólicos DENTRO de una carpeta copiada se omiten: seguirlos
+/// podría sacar la copia del proyecto o entrar en un bucle (un enlace a un
+/// antepasado) sin final. `symlink_metadata` no los atraviesa, a diferencia de
+/// `is_dir()`. Un tope de profundidad cubre además las uniones de Windows.
 fn copy_recursive(source: &Path, target: &Path) -> std::io::Result<()> {
-    if source.is_dir() {
-        fs::create_dir(target)?;
-        for entry in fs::read_dir(source)? {
-            let entry = entry?;
-            copy_recursive(&entry.path(), &target.join(entry.file_name()))?;
-        }
-        Ok(())
-    } else {
-        fs::copy(source, target).map(|_| ())
+    copy_tree(source, target, 0)
+}
+
+const MAX_COPY_DEPTH: usize = 64;
+
+fn copy_tree(source: &Path, target: &Path, depth: usize) -> std::io::Result<()> {
+    if depth > MAX_COPY_DEPTH {
+        return Err(std::io::Error::other("carpeta demasiado profunda (¿un bucle de enlaces?)"));
     }
+    if !source.is_dir() {
+        return fs::copy(source, target).map(|_| ());
+    }
+    fs::create_dir(target)?;
+    for entry in fs::read_dir(source)? {
+        let entry = entry?;
+        if entry.file_type()?.is_symlink() {
+            continue;
+        }
+        copy_tree(&entry.path(), &target.join(entry.file_name()), depth + 1)?;
+    }
+    Ok(())
 }
 
 fn io(error: std::io::Error) -> AppError {
@@ -294,7 +310,7 @@ pub fn fs_revert_moves(root: String, moved: Vec<Moved>) -> Result<Vec<Moved>, Ap
                 file_name_of(&original)?
             )));
         }
-        plan.push((current, PathBuf::from(&step.from)));
+        plan.push((current, original));
     }
     let mut reverted = Vec::with_capacity(plan.len());
     for (current, original) in plan {
@@ -517,6 +533,22 @@ mod tests {
         fs::write(at(&root, "img/sub/a.png"), "x").unwrap();
         let folder_copy = fs_duplicate(root.clone(), at(&root, "img")).unwrap();
         assert!(Path::new(&folder_copy).join("sub").join("a.png").is_file());
+    }
+
+    /// Hallazgo Crítico de `/code-simplify`: duplicar una carpeta con un enlace
+    /// a su propio padre era una recursión infinita. Ahora el enlace se omite.
+    #[cfg(unix)]
+    #[test]
+    fn duplicar_una_carpeta_con_un_bucle_de_enlaces_termina_y_lo_omite() {
+        let (_dir, root) = project();
+        fs::create_dir(at(&root, "img")).unwrap();
+        fs::write(at(&root, "img/a.png"), "x").unwrap();
+        std::os::unix::fs::symlink(at(&root, "img"), at(&root, "img/bucle")).unwrap();
+
+        let copy = fs_duplicate(root.clone(), at(&root, "img")).unwrap();
+
+        assert!(Path::new(&copy).join("a.png").is_file());
+        assert!(!Path::new(&copy).join("bucle").exists());
     }
 
     #[test]

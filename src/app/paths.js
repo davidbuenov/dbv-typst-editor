@@ -37,6 +37,22 @@ function normalize(path) {
 }
 
 /**
+ * Clave para comparar rutas como lo hace el sistema de ficheros en Windows y
+ * macOS: separador `/`, sin barra final y sin distinguir mayúsculas. En Linux
+ * puede confundir dos ficheros que solo difieren en mayúsculas; donde se usa,
+ * eso solo silencia un aviso o deja de abrir algo, nunca pierde datos.
+ * @param {string | null | undefined} path
+ */
+export function pathKey(path) {
+  return normalize(path ?? '').toLowerCase();
+}
+
+/** True si `a` y `b` son la misma ruta según `pathKey`. */
+export function samePath(a, b) {
+  return Boolean(a && b) && pathKey(a) === pathKey(b);
+}
+
+/**
  * Ruta de `path` relativa a `root`, siempre con `/`, o `null` si no cuelga de
  * ella (RF-16: es la forma en que las anclas identifican cada fichero, y la
  * misma que produce `shadow::seed_anchors` en el backend).
@@ -89,9 +105,9 @@ export function truncateParentPath(path, segments = 2) {
 export function remapMovedPath(path, moved) {
   if (!path) return path;
   const target = normalize(path);
-  const key = target.toLowerCase();
+  const key = pathKey(path);
   for (const { from, to } of moved) {
-    const source = normalize(from).toLowerCase();
+    const source = pathKey(from);
     if (key === source) return to;
     if (key.startsWith(`${source}/`)) {
       const rest = target.slice(source.length + 1);

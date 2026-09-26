@@ -13,7 +13,7 @@
 
 import { t } from '../i18n/i18n.js';
 import { getPref } from '../app/prefs.js';
-import { baseName, relativeToRoot } from '../app/paths.js';
+import { baseName, relativeToRoot, samePath } from '../app/paths.js';
 import {
   fsCopyInto,
   fsCreateDir,
@@ -64,7 +64,7 @@ export function createFileOperations({ tree, workspace, dialog, notify, afterMov
   /** Abre en el editor un fichero recién creado, si el editor sabe abrirlo. */
   async function openIfEditable(dirPath, path) {
     const listing = await listDirectory(dirPath);
-    const entry = listing.ok ? listing.value.find((item) => item.path === path) : null;
+    const entry = listing.ok ? listing.value.find((item) => samePath(item.path, path)) : null;
     if (entry?.isEditable) await workspace.openDocument(path);
   }
 

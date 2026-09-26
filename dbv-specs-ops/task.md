@@ -488,7 +488,15 @@
   - Comprobado leyendo el código de Tauri y de sus plugins: los comandos nuevos no necesitan permiso ACL (no hay manifiesto de comandos de la app), y `Shell::open` llamado desde Rust no aplica alcance, así que la lista de esquemas de `open_document_link` es la única barrera.
   - **Suite:** 887 Vitest · 402 Rust (+1 ignorado) · `verify:frontend` 12/12 · `verify:layout` 16/16 · `verify:templates` 40/40 · `verify:typst` 8/8 · `verify:engine` en verde (frío 289 ms, edición mediana 62,5 ms, memoria 899 → 1.054 MB, igual que en la 0.10.0). **Sin bugs nuevos.**
   - **Pendiente, solo lo puede hacer el usuario en el `.exe` real:** 10 minutos con el guardado automático y `z6-IPbook` sin diálogos; `attrib +A` desde fuera; arrastrar ficheros en el árbol y soltar desde el Explorador de Windows; renombrar el principal abierto con cambios; clic en el índice, una cita y una URL de la vista previa; «Nuevo capítulo…»; Historial local.
-- [ ] **Fase 45: `/code-simplify` de v0.11.0** — siguiente.
+- [x] **Fase 45: `/code-simplify` de v0.11.0 — cerrada el 2026-09-26.** Revisión en tres pases del diff `81fd31a..HEAD` (51 ficheros, unas 6.300 líneas).
+  - **Bugs, 2 Críticos corregidos:** recursión infinita al duplicar o copiar una carpeta con un enlace simbólico a un antepasado (`copy_recursive`), y el mismo cuelgue en `refs::typst_files`. Los enlaces se omiten, con un tope de profundidad; tests `#[cfg(unix)]` para la CI de Linux.
+  - **Bugs, 2 Importantes corregidos:** carrera entre clic y doble clic en los enlaces con la caché vacía (`event.detail` + contador de doble clic), y comparación de rutas sin normalizar al abrir el fichero recién creado.
+  - **Seguridad, 0 hallazgos:** confinamiento en todas las operaciones; lista de esquemas en Rust (y `Shell::open` desde Rust no aplica alcance propio); el historial solo lee dentro del proyecto abierto y los `id` son números, sin posibilidad de salir de la carpeta; la única dependencia nueva es `trash` (MIT, crates.io, muy usada).
+  - **Cumplimiento:** cabeceras en todos los ficheros nuevos; el estilo de varios `return` es el del resto del proyecto (no se reabre).
+  - **Nits:** tres funciones de «ruta relativa» casi iguales en Rust (`refs::to_relative`, `chapters::relative_to`, `history::relative_in`), con matices distintos; se dejan así. `editor.setPath` abre el documento nuevo en Tinymist sin cerrar antes el viejo.
+  - **Simplificación:** cinco copias de la normalización de rutas pasan a `pathKey`/`samePath` en `paths.js`.
+  - **887 Vitest · 402 Rust · `verify:frontend` 12/12, sin regresión.**
+- [ ] **Siguiente: prueba del usuario en el `.exe` real** (lista en la Fase 44) y, después, `/ship` de v0.11.0 (con `.msix` y `notasActualizacionStore_v0.11.0.md`).
   - **Siguiente:** `/build`, empezando por el slice 81. Pendiente del usuario: decidir sobre el motor clásico tras el informe de S-4 (slice 88).
 
 - [ ] **Backlog v0.10.0 — analizar con detalle la publicación en Flathub (anotado el 2026-09-21, a petición del usuario; varios usuarios de Linux lo recomiendan).** Solo anotado: **no hay análisis ni decisión**, y va después del `/test` real de la 0.9.0. Hoy Linux se cubre con `.AppImage`/`.deb` en las Releases y con el Cask de Homebrew. Primera valoración (a confirmar en `/spec` y `/plan`), puntos a resolver:

@@ -16,6 +16,8 @@
 // Mismo patrón que `autoSave.js`: aquí el "qué hacer", en `workspace.js` el
 // "cómo hacerlo".
 
+import { pathKey } from './paths.js';
+
 /**
  * Qué hacer con un aviso del observador sobre el documento abierto.
  *
@@ -66,10 +68,9 @@ export function changedOnDiskBeforeSave({ knownHash, fingerprint }) {
  * @returns {boolean}
  */
 export function isWithinAny(path, roots) {
-  const normalize = (value) => value.replaceAll('\\', '/').replace(/\/+$/, '').toLowerCase();
-  const target = normalize(path);
+  const target = pathKey(path);
   for (const root of roots) {
-    const base = normalize(root);
+    const base = pathKey(root);
     if (target === base || target.startsWith(`${base}/`)) return true;
   }
   return false;

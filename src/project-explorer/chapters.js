@@ -12,7 +12,7 @@
 // el `#include` tras el último de nivel superior del documento principal.
 
 import { t } from '../i18n/i18n.js';
-import { joinPath, relativeToRoot } from '../app/paths.js';
+import { joinPath, relativeToRoot, samePath } from '../app/paths.js';
 import { chapterCreate, chapterFolder, chapterLink, readFile } from '../services/backend.js';
 
 /**
@@ -32,8 +32,6 @@ export function slugifyTitle(title) {
     .replace(/-+$/, '');
   return `${slug || 'capitulo'}.typ`;
 }
-
-const samePath = (a, b) => Boolean(a && b) && a.replaceAll('\\', '/').toLowerCase() === b.replaceAll('\\', '/').toLowerCase();
 
 /**
  * Modal del capítulo. `open` resuelve cuando se crea o se cancela; `submit`

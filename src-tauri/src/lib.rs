@@ -19,6 +19,7 @@ pub mod engine;
 pub mod macos_menu;
 pub mod platform;
 pub mod project;
+pub mod refs;
 pub mod templates;
 pub mod typst_engine;
 pub mod universe;
@@ -110,6 +111,9 @@ pub fn run() {
             commands::fs_ops::fs_copy_into,
             commands::fs_ops::fs_trash,
             commands::fs_ops::fs_delete_permanently,
+            commands::fs_ops::fs_revert_moves,
+            refs::refs_plan,
+            refs::refs_apply,
             commands::file_io::list_directory,
             commands::file_io::open_file_dialog,
             commands::file_io::open_folder_dialog,

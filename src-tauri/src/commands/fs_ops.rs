@@ -23,7 +23,7 @@
 use std::fs;
 use std::path::{Component, Path, PathBuf};
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::assets::unique_destination;
 use crate::commands::file_io::path_to_string;
@@ -171,7 +171,7 @@ fn io(error: std::io::Error) -> AppError {
 
 /// Un movimiento hecho: de dónde a dónde. El frontend lo usa para actualizar
 /// el documento abierto, el principal y las referencias (RF-70).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Moved {
     pub from: String,
@@ -264,6 +264,41 @@ pub fn fs_move(root: String, paths: Vec<String>, dest_dir: String) -> Result<Vec
         moved.push(Moved { from: path_to_string(&source), to: path_to_string(&target) });
     }
     Ok(moved)
+}
+
+/// Deshace movimientos o renombrados (RF-70.8): cada `to` vuelve a su `from`,
+/// en orden inverso. Se valida todo antes de mover nada: si algo ya no está
+/// donde se dejó, o su sitio original está ocupado, no se deshace nada.
+/// Devuelve los movimientos hechos (`to → from`), para que el frontend
+/// actualice el estado y vuelva a reescribir las referencias en sentido inverso.
+#[tauri::command]
+pub fn fs_revert_moves(root: String, moved: Vec<Moved>) -> Result<Vec<Moved>, AppError> {
+    let root = canonical_root(&root)?;
+    let mut plan = Vec::with_capacity(moved.len());
+    for step in moved.iter().rev() {
+        let current = ensure_strictly_inside(&root, Path::new(&step.to))?;
+        if !current.exists() {
+            return Err(AppError::Denied(format!(
+                "«{}» ya no está donde se movió; no se puede deshacer.",
+                file_name_of(&current)?
+            )));
+        }
+        let original = ensure_strictly_inside(&root, Path::new(&step.from))?;
+        let parent_missing = original.parent().is_none_or(|parent| !parent.is_dir());
+        if parent_missing || collides(&original, Some(&current)) {
+            return Err(AppError::Denied(format!(
+                "El sitio original de «{}» ya no está libre; no se puede deshacer.",
+                file_name_of(&original)?
+            )));
+        }
+        plan.push((current, PathBuf::from(&step.from)));
+    }
+    let mut reverted = Vec::with_capacity(plan.len());
+    for (current, original) in plan {
+        fs::rename(&current, &original).map_err(io)?;
+        reverted.push(Moved { from: path_to_string(&current), to: path_to_string(&original) });
+    }
+    Ok(reverted)
 }
 
 /// Duplica `path` (fichero o carpeta) en su misma carpeta, con un nombre libre
@@ -444,6 +479,26 @@ mod tests {
         fs::create_dir_all(at(&root, "partes/sub")).unwrap();
         assert!(fs_move(root.clone(), vec![at(&root, "partes")], at(&root, "partes/sub")).is_err());
         assert!(fs_move(root.clone(), vec![at(&root, "partes")], at(&root, "partes")).is_err());
+    }
+
+    #[test]
+    fn revertir_movimientos_devuelve_cada_cosa_a_su_sitio_o_no_toca_nada() {
+        let (_dir, root) = project();
+        fs::create_dir(at(&root, "capitulos")).unwrap();
+        fs::write(at(&root, "a.typ"), "a").unwrap();
+        fs::write(at(&root, "b.typ"), "b").unwrap();
+        let moved = fs_move(root.clone(), vec![at(&root, "a.typ"), at(&root, "b.typ")], at(&root, "capitulos")).unwrap();
+
+        // Si el sitio original de uno está ocupado, no se deshace NINGUNO.
+        fs::write(at(&root, "b.typ"), "otro b").unwrap();
+        assert!(fs_revert_moves(root.clone(), moved.clone()).is_err());
+        assert!(Path::new(&at(&root, "capitulos/a.typ")).exists());
+
+        fs::remove_file(at(&root, "b.typ")).unwrap();
+        let reverted = fs_revert_moves(root.clone(), moved).unwrap();
+        assert_eq!(reverted.len(), 2);
+        assert_eq!(fs::read_to_string(at(&root, "a.typ")).unwrap(), "a");
+        assert_eq!(fs::read_to_string(at(&root, "b.typ")).unwrap(), "b");
     }
 
     #[test]

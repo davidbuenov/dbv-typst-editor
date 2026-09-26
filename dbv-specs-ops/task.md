@@ -496,7 +496,14 @@
   - **Nits:** tres funciones de «ruta relativa» casi iguales en Rust (`refs::to_relative`, `chapters::relative_to`, `history::relative_in`), con matices distintos; se dejan así. `editor.setPath` abre el documento nuevo en Tinymist sin cerrar antes el viejo.
   - **Simplificación:** cinco copias de la normalización de rutas pasan a `pathKey`/`samePath` en `paths.js`.
   - **887 Vitest · 402 Rust · `verify:frontend` 12/12, sin regresión.**
-- [ ] **Siguiente: prueba del usuario en el `.exe` real** (lista en la Fase 44) y, después, `/ship` de v0.11.0 (con `.msix` y `notasActualizacionStore_v0.11.0.md`).
+- [x] **Fase 46: prueba del usuario en el `.exe` real — 2026-09-26: «probado, todo funciona».**
+- [x] **Fase 47: `/ship` de v0.11.0 — cerrada el 2026-09-26, versión Minor (0.10.0 → 0.11.0).**
+  - Versión subida en `package.json`/`package-lock.json`, `src-tauri/tauri.conf.json` y `src-tauri/Cargo.toml` (`Cargo.lock` regenerado con `cargo check`).
+  - `CHANGELOG.md`/`.en.md`: sección `[0.11.0] - 2026-09-26` cerrada en los dos, con 12 entradas en cada uno.
+  - `README.md`/`.en.md`: insignias, versión, 1.289 pruebas (887 + 402) y funcionalidades destacadas. `walkthrough.md` reescrito.
+  - `notasActualizacionStore_v0.11.0.md` generado (novedades de 911 y 825 caracteres; guía de prueba de 2 minutos).
+  - **`.msix`:** `src-tauri/target/msix/dbv-typst-editor_0.11.0.0.msixbundle`, 76,8 MB. Verificado según `MICROSOFT_STORE.md` §6: `typst.exe`, `tinymist.exe`, 53 ficheros de `templates/` y `Version="0.11.0.0"`.
+  - **Pendiente, decisión aparte del usuario:** tag `v0.11.0` (el `v0.10.0` tampoco existe), `git push` (`master` va 17 commits por delante de `origin`), publicación de la Release y subida a Partner Center.
   - **Siguiente:** `/build`, empezando por el slice 81. Pendiente del usuario: decidir sobre el motor clásico tras el informe de S-4 (slice 88).
 
 - [ ] **Backlog v0.10.0 — analizar con detalle la publicación en Flathub (anotado el 2026-09-21, a petición del usuario; varios usuarios de Linux lo recomiendan).** Solo anotado: **no hay análisis ni decisión**, y va después del `/test` real de la 0.9.0. Hoy Linux se cubre con `.AppImage`/`.deb` en las Releases y con el Cask de Homebrew. Primera valoración (a confirmar en `/spec` y `/plan`), puntos a resolver:

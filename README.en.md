@@ -3,9 +3,9 @@
 **[🇪🇸 Español](./README.md) · 🇬🇧 English**
 
 [![Website](https://img.shields.io/badge/Website-davidbuenov.github.io%2Fdbv--typst--editor-2563eb?style=flat&logo=googlechrome&logoColor=white)](https://davidbuenov.github.io/dbv-typst-editor/en/)
-[![Releases](https://img.shields.io/badge/Releases-v0.10.0-brightgreen?logo=github)](https://github.com/davidbuenov/dbv-typst-editor/releases)
+[![Releases](https://img.shields.io/badge/Releases-v0.11.0-brightgreen?logo=github)](https://github.com/davidbuenov/dbv-typst-editor/releases)
 [![Microsoft Store](https://img.shields.io/badge/Microsoft%20Store-9PCPSVTNJMP0-0078D6?logo=microsoft&logoColor=white)](https://apps.microsoft.com/store/detail/9PCPSVTNJMP0?cid=DevShareMCLPCB)
-![Status](https://img.shields.io/badge/status-stable%20%7C%20v0.10.0-success)
+![Status](https://img.shields.io/badge/status-stable%20%7C%20v0.11.0-success)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
 ![Windows](https://img.shields.io/badge/Windows-10%20%2F%2011%20(Microsoft%20Store)-0078D6?logo=windows&logoColor=white)
 ![macOS](https://img.shields.io/badge/macOS-Universal%20(.dmg)-000000?logo=apple&logoColor=white)
@@ -59,7 +59,7 @@ It follows the same philosophy as its sibling project [DBV Markdown Reader](http
 
 ## 🚦 Current status
 
-**Current version:** `v0.10.0` · **Status:** 🟢 Stable and production ready
+**Current version:** `v0.11.0` · **Status:** 🟢 Stable and production ready
 
 - 🌐 **Official Website:** [https://davidbuenov.github.io/dbv-typst-editor/en/](https://davidbuenov.github.io/dbv-typst-editor/en/) (featuring full-resolution interactive screenshot gallery and bilingual ES/EN switch).
 - 📦 **Installers available on Releases:** [GitHub Releases](https://github.com/davidbuenov/dbv-typst-editor/releases):
@@ -67,8 +67,9 @@ It follows the same philosophy as its sibling project [DBV Markdown Reader](http
   - 🍎 **macOS**: Universal `.dmg` (compatible with Apple Silicon & Intel).
   - 🐧 **Linux**: `.AppImage` (portable) and `.deb` (Debian/Ubuntu/Mint) packages.
 - 🏬 **Microsoft Store:** published on the official store. [🛒 Get it from Microsoft Store (ID 9PCPSVTNJMP0)](https://apps.microsoft.com/store/detail/9PCPSVTNJMP0?cid=DevShareMCLPCB). If you installed an earlier Store package, make sure you get `v0.3.1` or later (see [`CHANGELOG.en.md`](./dbv-specs-ops/CHANGELOG.en.md)).
-- 🧪 **Quality & Stability:** 1,143 automated tests passing at 100% (789 frontend tests + 354 Rust backend tests) and layout verification in real rendering engines.
+- 🧪 **Quality & Stability:** 1,289 automated tests passing at 100% (887 frontend tests + 402 Rust backend tests) and layout verification in real rendering engines.
 - 🚀 **Key Highlights:**
+  - **File explorer, self-updating references, preview links and local history (v0.11.0):** the Files panel can create, rename (F2), duplicate, delete to the trash and drag files and folders; when moving or renaming, the `#include`, `image()`, `bibliography()`… of the whole project are rewritten with Typst's own parser, with "View changes" and "Undo". "New chapter…" creates the file and links it from the main document. Preview links work (web to the browser; outline, references, citations and footnotes to their target), and every save keeps a local copy you can compare and restore. It also fixes the external-change warning that kept popping up with auto-save on.
   - **Optional auto-save, a modified dot, and closing the window always protected (v0.10.0):** saves only after a typing pause or when focus is lost, never overwriting an external change; the "unsaved" text becomes a discreet dot next to the document name. Also: BibTeX syntax highlighting, hidden files out of the tree by default, optional line numbers, an always-visible refresh button, and a short, disambiguated path in the document bar — seven improvements born from a friend of the user's trying v0.9.0 and sending a list of "things to fix".
   - **Fast preview engine (v0.9.0):** Typst as a library inside the app — each edit of a 224-page book takes ≈0.5 s instead of ≈4.6 s — with exact word-by-word sync in both directions (double-click or right-click on the render; Ctrl+Alt+P from the editor), diagnostics underlined in the editor, context menus and code-file editing (`.cpp`, `.java`, `.py` and ~40 more types). The classic engine is the automatic fallback.
   - Performance with large documents: the preview releases pages that scroll far away (a 220-page book no longer grows to several GB), the typing pause adapts to how long compiling takes, and a loose `.typ` in a huge folder (Downloads, Desktop) opens in seconds instead of almost a minute.

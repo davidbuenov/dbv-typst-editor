@@ -376,8 +376,11 @@ pub fn write_atomic(path: &Path, content: &str) -> Result<(), std::io::Error> {
 /// Escribe `content` en `path` de forma atómica y devuelve la nueva marca de
 /// modificación y la huella de lo escrito, para que el frontend actualice su
 /// referencia de conflicto (RF-68) sin releer.
+///
+/// `reason` (`save`, `auto`…) va al historial local (RF-73): antes de
+/// sobrescribir se guarda allí lo que había.
 #[tauri::command]
-pub fn write_file(path: String, content: String) -> Result<WriteReceipt, AppError> {
+pub fn write_file(path: String, content: String, reason: Option<String>) -> Result<WriteReceipt, AppError> {
     let path_buf = PathBuf::from(&path);
     let parent_missing = path_buf
         .parent()
@@ -388,6 +391,7 @@ pub fn write_file(path: String, content: String) -> Result<WriteReceipt, AppErro
     }
 
     let content = with_original_format(&path_buf, &content);
+    crate::history::capture_before_write(&path_buf, reason.as_deref().unwrap_or("save"));
     write_atomic(&path_buf, &content).map_err(|e| AppError::Io(e.to_string()))?;
     Ok(WriteReceipt { modified_ms: modified_ms(&path_buf), content_hash: content_hash(content.as_bytes()) })
 }
@@ -590,7 +594,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let target = dir.path().join("nuevo.typ");
 
-        let receipt = write_file(path_to_string(&target), "contenido".into()).unwrap();
+        let receipt = write_file(path_to_string(&target), "contenido".into(), None).unwrap();
         assert_eq!(fs::read_to_string(&target).unwrap(), "contenido");
         assert!(receipt.modified_ms > 0);
         assert_eq!(receipt.content_hash, content_hash(b"contenido"));
@@ -605,7 +609,7 @@ mod tests {
         let target = dir.path().join("refs.bib");
         fs::write(&target, b"\xEF\xBB\xBF@book{a,\r\n  title={X}\r\n}\r\n").unwrap();
 
-        let receipt = write_file(path_to_string(&target), "@book{a,\n  title={Y}\n}\n".into()).unwrap();
+        let receipt = write_file(path_to_string(&target), "@book{a,\n  title={Y}\n}\n".into(), None).unwrap();
         let read = read_file(path_to_string(&target)).unwrap();
         let fingerprint = file_fingerprint(path_to_string(&target)).unwrap();
 
@@ -643,7 +647,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let target = dir.path().join("sin").join("crear").join("x.typ");
         assert!(matches!(
-            write_file(path_to_string(&target), "x".into()),
+            write_file(path_to_string(&target), "x".into(), None),
             Err(AppError::InvalidPath(_))
         ));
     }
@@ -726,7 +730,7 @@ mod tests {
         let path = dir.path().join("a.cpp");
         fs::write(&path, b"\xEF\xBB\xBFuno\r\ndos\r\n").unwrap();
 
-        write_file(path_to_string(&path), "uno\ndos\ntres\n".into()).unwrap();
+        write_file(path_to_string(&path), "uno\ndos\ntres\n".into(), None).unwrap();
 
         assert_eq!(fs::read(&path).unwrap(), b"\xEF\xBB\xBFuno\r\ndos\r\ntres\r\n");
     }
@@ -737,7 +741,7 @@ mod tests {
         let path = dir.path().join("a.py");
         fs::write(&path, "uno\ndos\n").unwrap();
 
-        write_file(path_to_string(&path), "uno\ndos\ntres\n".into()).unwrap();
+        write_file(path_to_string(&path), "uno\ndos\ntres\n".into(), None).unwrap();
 
         assert_eq!(fs::read(&path).unwrap(), b"uno\ndos\ntres\n");
     }
@@ -747,7 +751,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("nuevo.cpp");
 
-        write_file(path_to_string(&path), "a\nb\n".into()).unwrap();
+        write_file(path_to_string(&path), "a\nb\n".into(), None).unwrap();
 
         assert_eq!(fs::read(&path).unwrap(), b"a\nb\n");
     }
@@ -758,7 +762,7 @@ mod tests {
         let path = dir.path().join("a.typ");
         fs::write(&path, "uno\r\ndos\r\n").unwrap();
 
-        write_file(path_to_string(&path), "uno\ndos\n".into()).unwrap();
+        write_file(path_to_string(&path), "uno\ndos\n".into(), None).unwrap();
 
         assert_eq!(fs::read(&path).unwrap(), b"uno\ndos\n");
     }

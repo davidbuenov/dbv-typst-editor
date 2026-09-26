@@ -169,6 +169,7 @@ pub fn chapter_link(
     }
     let mut updated = text;
     updated.insert_str(offset, &insert);
+    crate::history::capture_before_write(&main, "refs");
     write_atomic(&main, &updated).map_err(|e| AppError::Io(e.to_string()))?;
     Ok(ChapterLink { edit: None, include_value: value })
 }

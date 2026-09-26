@@ -15,6 +15,7 @@ pub mod bibliography;
 pub mod chapters;
 pub mod commands;
 pub mod error;
+pub mod history;
 pub mod engine;
 #[cfg(target_os = "macos")]
 pub mod macos_menu;
@@ -78,13 +79,18 @@ pub fn run() {
         .manage(commands::startup::PendingDocument::default())
         .manage(commands::tinymist::TinymistState::default())
         .manage(commands::universe_index::UniverseIndexState::default())
-        .setup(|_app| {
+        .setup(|app| {
+            // Historial local (RF-73): en la carpeta de datos de la aplicación,
+            // nunca dentro del proyecto.
+            if let Ok(dir) = tauri::Manager::path(app).app_data_dir() {
+                history::init(dir.join("history"));
+            }
             // Menú nativo de macOS (Beta): Tauri v2 no trae uno por defecto en
             // esta plataforma, y sin él no hay Cmd+Q, Cmd+H ni el Edit del
             // sistema (NATIVE_DESKTOP_APPS.md §6.10). No es un plugin, por
             // eso se registra aquí y no arriba con `.plugin(...)`.
             #[cfg(target_os = "macos")]
-            macos_menu::setup(_app)?;
+            macos_menu::setup(app)?;
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -118,6 +124,11 @@ pub fn run() {
             chapters::chapter_folder,
             chapters::chapter_create,
             chapters::chapter_link,
+            history::history_configure,
+            history::history_snapshot,
+            history::history_list,
+            history::history_read,
+            history::history_clear,
             engine::commands::engine_links,
             commands::app_info::open_document_link,
             commands::file_io::list_directory,

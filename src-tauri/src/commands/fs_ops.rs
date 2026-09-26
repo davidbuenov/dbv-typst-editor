@@ -226,7 +226,9 @@ pub fn fs_rename(root: String, path: String, new_name: String) -> Result<Moved, 
         return Err(collision_error(&target));
     }
     fs::rename(&source, &target).map_err(io)?;
-    Ok(Moved { from: path_to_string(&source), to: path_to_string(&target) })
+    let moved = Moved { from: path_to_string(&source), to: path_to_string(&target) };
+    crate::history::follow_moved(std::slice::from_ref(&moved));
+    Ok(moved)
 }
 
 /// Mueve `paths` a la carpeta `dest_dir`. Lo que ya está en esa carpeta se
@@ -263,6 +265,7 @@ pub fn fs_move(root: String, paths: Vec<String>, dest_dir: String) -> Result<Vec
         fs::rename(&source, &target).map_err(io)?;
         moved.push(Moved { from: path_to_string(&source), to: path_to_string(&target) });
     }
+    crate::history::follow_moved(&moved);
     Ok(moved)
 }
 
@@ -298,6 +301,7 @@ pub fn fs_revert_moves(root: String, moved: Vec<Moved>) -> Result<Vec<Moved>, Ap
         fs::rename(&current, &original).map_err(io)?;
         reverted.push(Moved { from: path_to_string(&current), to: path_to_string(&original) });
     }
+    crate::history::follow_moved(&reverted);
     Ok(reverted)
 }
 

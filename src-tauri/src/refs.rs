@@ -379,7 +379,10 @@ fn plan_project(root: &str, moved: &[Moved], open: Option<&OpenDocument>, write:
                     insert: change.replacement.clone(),
                 })
                 .collect();
-        } else if write && write_atomic(&path, &apply_changes(&text, &changes)).is_err() {
+        } else if write && {
+            crate::history::capture_before_write(&path, "refs");
+            write_atomic(&path, &apply_changes(&text, &changes)).is_err()
+        } {
             report.failed.push(absolute.clone());
             continue;
         }

@@ -221,6 +221,68 @@ describe('explorador de archivos (RF-69)', () => {
     expect(onCommitName).toHaveBeenCalledWith({ mode: 'create-file', dirPath: `${ROOT}/capitulos`, name: 'cap3.typ' });
   });
 
+  describe('arrastrar para mover (RF-69.5, eventos de puntero)', () => {
+    const pointer = (type, target, x, y) =>
+      target.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: y, button: 0 }));
+
+    /** Arrastra `sourceName` hasta la fila `targetName` (o hasta el hueco con `null`). */
+    function dragTo(sourceName, targetName) {
+      const target = targetName ? rowOf(container, targetName) : container;
+      document.elementFromPoint = vi.fn(() => target);
+      pointer('pointerdown', rowOf(container, sourceName), 10, 10);
+      pointer('pointermove', document, 30, 40);
+      pointer('pointerup', document, 30, 40);
+    }
+
+    it('soltar sobre una carpeta mueve la selección allí', () => {
+      const onMove = vi.fn();
+      container.innerHTML = '';
+      return (async () => {
+        const moving = createProjectTree(container, { onMove, onCommitName, onAction });
+        await moving.setRoot(ROOT);
+        await wait();
+        click(rowOf(container, 'main.typ'));
+        click(rowOf(container, 'refs.bib'), { ctrlKey: true });
+
+        dragTo('refs.bib', 'capitulos');
+
+        expect(onMove).toHaveBeenCalledWith([`${ROOT}/main.typ`, `${ROOT}/refs.bib`], `${ROOT}/capitulos`);
+      })();
+    });
+
+    it('un movimiento por debajo del umbral es un clic, no un arrastre', async () => {
+      const onMove = vi.fn();
+      container.innerHTML = '';
+      const moving = createProjectTree(container, { onMove });
+      await moving.setRoot(ROOT);
+      await wait();
+      document.elementFromPoint = vi.fn(() => rowOf(container, 'capitulos'));
+      pointer('pointerdown', rowOf(container, 'main.typ'), 10, 10);
+      pointer('pointermove', document, 12, 11);
+      pointer('pointerup', document, 12, 11);
+      expect(onMove).not.toHaveBeenCalled();
+      expect(document.querySelector('.tree-drag-ghost')).toBeNull();
+    });
+
+    it('soltar donde ya estaba no mueve nada, y Escape cancela', async () => {
+      const onMove = vi.fn();
+      container.innerHTML = '';
+      const moving = createProjectTree(container, { onMove });
+      await moving.setRoot(ROOT);
+      await wait();
+
+      dragTo('main.typ', null);
+      expect(onMove).not.toHaveBeenCalled();
+
+      document.elementFromPoint = vi.fn(() => rowOf(container, 'capitulos'));
+      pointer('pointerdown', rowOf(container, 'main.typ'), 10, 10);
+      pointer('pointermove', document, 40, 40);
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+      pointer('pointerup', document, 40, 40);
+      expect(onMove).not.toHaveBeenCalled();
+    });
+  });
+
   it('un refresco durante una edición espera a que termine para no borrar el campo', async () => {
     await tree.startCreate('file', ROOT);
     tree.refresh();

@@ -532,6 +532,17 @@ mod tests {
         assert_eq!(fs::read_to_string(at(&root, "logo.png")).unwrap(), "original");
     }
 
+    /// Manda un fichero temporal a la papelera REAL del sistema: por eso va
+    /// ignorado y se ejecuta a mano (`cargo test --lib -- --ignored papelera`).
+    #[test]
+    #[ignore]
+    fn la_papelera_del_sistema_recibe_el_fichero() {
+        let (_dir, root) = project();
+        fs::write(at(&root, "dbv-typst-editor-prueba-papelera.txt"), "x").unwrap();
+        fs_trash(root.clone(), vec![at(&root, "dbv-typst-editor-prueba-papelera.txt")]).unwrap();
+        assert!(!Path::new(&at(&root, "dbv-typst-editor-prueba-papelera.txt")).exists());
+    }
+
     #[test]
     fn borrar_definitivamente_quita_ficheros_y_carpetas() {
         let (_dir, root) = project();

@@ -480,7 +480,15 @@
   - **99-100, RF-72:** `engine/links.rs` (el hallazgo del plan queda confirmado con un compilado real), prueba de puntería sin capa DOM, espera de 250 ms frente al doble clic, y lista de esquemas en Rust.
   - **101-102, RF-73:** `history.rs` (FNV-1a, consolidación, retención y tope total) y panel con Comparar y Restaurar. «Recargar desde disco» guarda antes lo que había en el editor.
   - **103:** §7.18 de `ARCHITECTURE.md` y sección de ayuda «Archivos, capítulos y enlaces».
-- [ ] **Fase 44: `/test` de v0.11.0** — siguiente.
+- [x] **Fase 44: `/test` de v0.11.0 — cerrada el 2026-09-26.**
+  - **Cierra el hueco que el proyecto arrastraba desde la 0.1:** `createWorkspace` se prueba **montado** (`app/workspace.flows.test.js`, 14 tests) con el editor, los paneles y el backend simulados. Cubre el cambio externo por contenido, el aplazamiento durante un guardado (R-C1), un solo diálogo aunque lleguen más avisos, el fichero desaparecido, el motivo del guardado, mover y borrar el documento abierto y el principal, la copia al historial antes de recargar y restaurar.
+  - **Verificado por mutación:** desactivar el aplazamiento, o la guarda del diálogo abierto, hace fallar exactamente su test.
+  - Tests nuevos del arrastre en el árbol, simulando `elementFromPoint`.
+  - La papelera real de Windows se probó una vez con un test `#[ignore]` (deja un fichero temporal en la papelera del usuario).
+  - Comprobado leyendo el código de Tauri y de sus plugins: los comandos nuevos no necesitan permiso ACL (no hay manifiesto de comandos de la app), y `Shell::open` llamado desde Rust no aplica alcance, así que la lista de esquemas de `open_document_link` es la única barrera.
+  - **Suite:** 887 Vitest · 402 Rust (+1 ignorado) · `verify:frontend` 12/12 · `verify:layout` 16/16 · `verify:templates` 40/40 · `verify:typst` 8/8 · `verify:engine` en verde (frío 289 ms, edición mediana 62,5 ms, memoria 899 → 1.054 MB, igual que en la 0.10.0). **Sin bugs nuevos.**
+  - **Pendiente, solo lo puede hacer el usuario en el `.exe` real:** 10 minutos con el guardado automático y `z6-IPbook` sin diálogos; `attrib +A` desde fuera; arrastrar ficheros en el árbol y soltar desde el Explorador de Windows; renombrar el principal abierto con cambios; clic en el índice, una cita y una URL de la vista previa; «Nuevo capítulo…»; Historial local.
+- [ ] **Fase 45: `/code-simplify` de v0.11.0** — siguiente.
   - **Siguiente:** `/build`, empezando por el slice 81. Pendiente del usuario: decidir sobre el motor clásico tras el informe de S-4 (slice 88).
 
 - [ ] **Backlog v0.10.0 — analizar con detalle la publicación en Flathub (anotado el 2026-09-21, a petición del usuario; varios usuarios de Linux lo recomiendan).** Solo anotado: **no hay análisis ni decisión**, y va después del `/test` real de la 0.9.0. Hoy Linux se cubre con `.AppImage`/`.deb` en las Releases y con el Cask de Homebrew. Primera valoración (a confirmar en `/spec` y `/plan`), puntos a resolver:

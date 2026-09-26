@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - **Content fingerprint on every read and write (RF-68, backend).** `read_file` returns `contentHash`, and `write_file` returns `{ modifiedMs, contentHash }` for the bytes that actually reach the disk, after preserving CRLF and BOM (RF-60.5). New `file_fingerprint` command, which reports a missing file (`missing`) instead of failing. This is the basis for deciding external conflicts by content rather than by timestamp.
 
+### Fixed
+
+- **The "The document changed outside the editor" dialog kept popping up with auto-save on (RF-68).** The dialog came from the file watcher, not from Save: any event on the open document that arrived more than 1.5 s after our own save was treated as a real change. On Windows, `notify` also reports it when the antivirus, the indexer or a sync client touches the file's attributes, and with auto-save there are almost always unsaved changes. Now there is an external change only if the **content fingerprint** on disk is not the last known one, both for watcher events and for the pre-save check. The 1.5 s grace window is removed. Also: an event arriving mid-save is deferred and re-checked when the save finishes (avoiding a false conflict in the gap between the atomic rename and the `write_file` reply); while the conflict dialog is open, no second dialog opens on top of it; and if the open file disappears from disk, the user is told once and the text is kept as modified so that Save recreates it, instead of trying to reload a path that no longer exists.
+
 ## [0.10.0] - 2026-09-22
 
 Four fixes and three small features, filtered one by one from a list of suggestions a friend of the user's sent after trying v0.9.0. Optional auto-save, BibTeX highlighting, short document-bar path, hidden dotfiles, optional line numbers, and an always-visible refresh button. Analysis (no decision) on retiring the classic preview engine: `spikes/engine-review/README.md`.

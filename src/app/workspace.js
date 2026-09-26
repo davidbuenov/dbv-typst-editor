@@ -44,6 +44,7 @@ import {
   decideUnsavedChangesAction,
   stillDirtyAfterSave,
 } from './autoSave.js';
+import { changedOnDiskBeforeSave, decideExternalChange, isWithinAny } from './externalChange.js';
 import { shortPathLabel } from './pathLabel.js';
 import { getPref, onPrefsChanged } from './prefs.js';
 import {
@@ -53,6 +54,7 @@ import {
   exportPdf,
   exportPng as backendExportPng,
   exportProjectArchive,
+  fileFingerprint,
   fileModifiedMs,
   on,
   openProject,
@@ -64,14 +66,6 @@ import {
   watchProject,
   writeFile,
 } from '../services/backend.js';
-
-/**
- * Ventana durante la que se ignoran los avisos del watcher sobre el documento
- * activo tras un guardado propio. Sin ella, cada `Guardar` se detectaría a sí
- * mismo como "alguien ha modificado el fichero por fuera" — el mismo mecanismo
- * de supresión de auto-eco (`suppressSelfWriteUntil`) de DBV Markdown Reader.
- */
-const SELF_WRITE_GRACE_MS = 1500;
 
 // `joinPath`/`isTypstPath`/`baseName` viven en `paths.js` (Beta, §7.11): un
 // módulo hoja del que `bibliography/bibEntryPanel.js` puede importar sin
@@ -117,6 +111,14 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
   // quita el foco al editor, y eso puede disparar un `blur` que intente
   // arrancar OTRO guardado mientras el primero sigue en curso.
   let saveInFlight = false;
+  // RF-68: un aviso del observador que llega con un guardado en vuelo se
+  // aplaza y se reevalúa al terminar (ver `decideExternalChange`).
+  let externalCheckPending = false;
+  // Mientras el diálogo de conflicto está abierto, los avisos siguientes no
+  // abren otro encima: al responder se toma la huella que haya entonces.
+  let conflictDialogOpen = false;
+  // El aviso de "el fichero ya no existe" se da una vez por episodio.
+  let missingNotified = false;
 
   function scheduleAutoSave() {
     if (!getPref('autoSave')) return;
@@ -233,11 +235,13 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
   const state = {
     /** @type {null | {root: string, name: string, entrypoint: string|null, isSingleFile: boolean, hasManifest: boolean}} */
     project: null,
-    /** @type {null | {path: string, fileName: string, modifiedMs: number}} */
+    /**
+     * `contentHash` es la huella del último contenido conocido en disco (RF-68):
+     * el que se leyó al abrir o el que se escribió en el último guardado.
+     * @type {null | {path: string, fileName: string, modifiedMs: number, contentHash: string}}
+     */
     document: null,
     dirty: false,
-    /** Instante hasta el que se ignora el eco del propio guardado. */
-    suppressSelfWriteUntil: 0,
     /**
      * Último documento Typst abierto (RF-14). No coincide siempre con
      * `document`: abrir `refs.bib` cambia lo que hay en el editor pero no lo que
@@ -525,6 +529,7 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     // Otro documento es otro episodio: el conflicto del anterior, si lo
     // hubiera, ya no aplica.
     autoSaveConflictNotified = false;
+    missingNotified = false;
     tree.setActivePath(payload.path);
     renderDocumentBar();
 
@@ -724,20 +729,50 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
   }
 
   /**
-   * Alguien ha modificado por fuera el documento que hay abierto.
-   *
-   * Tres casos distintos, y la diferencia importa:
-   *   · es el eco de nuestro propio guardado → se ignora;
-   *   · no hay cambios locales → se recarga en silencio (es lo que espera quien
-   *     acaba de hacer `git pull` o de editar en otro programa);
-   *   · hay cambios locales → conflicto real, y solo entonces se interrumpe.
+   * El observador avisa de un cambio en el documento que hay abierto (RF-07,
+   * RF-68). El aviso solo dice que "algo" pasó; lo que se hace depende del
+   * CONTENIDO del disco, no de cuándo llegó el aviso:
+   *   · mismo contenido que el último conocido (nuestro propio guardado, o el
+   *     antivirus tocando atributos) → nada;
+   *   · contenido nuevo sin cambios locales → recarga silenciosa (lo que espera
+   *     quien acaba de hacer `git pull` o de editar en otro programa);
+   *   · contenido nuevo con cambios locales → conflicto real, se pregunta;
+   *   · el fichero ya no existe → se avisa y el texto se conserva.
    */
   async function handleActiveDocumentChanged() {
-    if (Date.now() < state.suppressSelfWriteUntil) return;
-    if (!state.document) return;
+    if (!state.document || conflictDialogOpen) return;
+    const path = state.document.path;
+    const fingerprint = await fileFingerprint(path);
+    // Un fallo leyendo (bloqueo transitorio) no es motivo para molestar: el
+    // siguiente aviso o el siguiente guardado volverán a mirar.
+    if (!fingerprint.ok || state.document?.path !== path) return;
 
-    if (!state.dirty) {
-      await openDocument(state.document.path, { force: true });
+    const action = decideExternalChange({
+      knownHash: state.document.contentHash,
+      fingerprint: fingerprint.value,
+      dirty: state.dirty,
+      saving: saveInFlight,
+      ownOperation: isOwnOperation(path),
+    });
+
+    if (action === 'defer') {
+      externalCheckPending = true;
+      return;
+    }
+    if (action === 'ignore') return;
+    if (action === 'missing') {
+      if (missingNotified) return;
+      missingNotified = true;
+      // El texto sigue en el editor; marcarlo como modificado hace que Guardar
+      // (o el guardado automático) lo vuelva a crear en disco.
+      state.dirty = true;
+      renderDocumentBar();
+      notify(`${t('doc.missingOnDisk')} — ${state.document.fileName}`, 'error');
+      return;
+    }
+    missingNotified = false;
+    if (action === 'reload') {
+      await openDocument(path, { force: true });
       notify(t('conflict.reloaded'));
       return;
     }
@@ -750,31 +785,50 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     }
     choices.push({ key: 'reload', labelKey: 'conflict.reload', tone: 'danger' });
 
-    let choice = await dialog.ask({
-      titleKey: 'conflict.title',
-      textKey: 'conflict.text',
-      text: state.document.path,
-      choices,
-    });
-
-    if (choice === 'diff' && diffModal) {
-      const diskRead = await readFile(state.document.path);
-      const diskContent = diskRead.ok ? diskRead.value.content : '';
-      choice = await diffModal.open({
-        localContent: editor.getContent(),
-        diskContent,
+    conflictDialogOpen = true;
+    try {
+      let choice = await dialog.ask({
+        titleKey: 'conflict.title',
+        textKey: 'conflict.text',
+        text: path,
+        choices,
       });
-    }
 
-    if (choice === 'reload') {
-      await openDocument(state.document.path, { force: true });
-      return;
+      if (choice === 'diff' && diffModal) {
+        const diskRead = await readFile(path);
+        const diskContent = diskRead.ok ? diskRead.value.content : '';
+        choice = await diffModal.open({
+          localContent: editor.getContent(),
+          diskContent,
+        });
+      }
+
+      if (choice === 'reload') {
+        await openDocument(path, { force: true });
+        return;
+      }
+      // "Conservar lo mío": la huella del disco pasa a ser la conocida, para que
+      // ni el siguiente aviso ni el siguiente `Guardar` pregunten otra vez por
+      // el mismo cambio ya visto.
+      const latest = await fileFingerprint(path);
+      if (latest.ok && latest.value.contentHash && state.document?.path === path) {
+        state.document.contentHash = latest.value.contentHash;
+        state.document.modifiedMs = latest.value.modifiedMs;
+      }
+    } finally {
+      conflictDialogOpen = false;
     }
-    // "Conservar lo mío": se actualiza la referencia de disco para que el
-    // siguiente `Guardar` no vuelva a preguntar por el mismo cambio ya visto.
-    const stamp = await fileModifiedMs(state.document.path);
-    if (stamp.ok) state.document.modifiedMs = stamp.value;
   }
+
+  /**
+   * Rutas que una operación propia (mover, renombrar, eliminar — RF-69) está
+   * tocando ahora mismo: sus avisos del observador no son cambios externos.
+   * Es una lista explícita, no una ventana de tiempo.
+   * @type {Set<string>}
+   */
+  const ownOperationPaths = new Set();
+
+  const isOwnOperation = (path) => isWithinAny(path, ownOperationPaths);
 
   // Un cambio en disco refresca el árbol (ficheros nuevos de un `git pull`, por
   // ejemplo) y se reenvía a la vista previa para que recompile.
@@ -787,9 +841,10 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
   /**
    * Guarda el documento activo (RF-07, RF-64).
    *
-   * Antes de escribir compara la marca de modificación del disco con la que se
-   * leyó al abrir: si no coinciden, otro programa ha tocado el fichero y
-   * sobrescribirlo sin preguntar destruiría ese trabajo.
+   * Antes de escribir compara la huella del disco con la última conocida
+   * (RF-68): si no coinciden, otro programa ha cambiado el contenido y
+   * sobrescribirlo sin preguntar destruiría ese trabajo. Que solo cambie la
+   * fecha (antivirus, indexador) ya no cuenta como cambio.
    *
    * @param {{auto?: boolean}} [options] `auto: true` es un guardado automático
    *   (RF-64): nunca abre un diálogo, nunca sobrescribe un conflicto y no
@@ -809,8 +864,10 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
 
     saveInFlight = true;
     try {
-      const stamp = await fileModifiedMs(state.document.path);
-      const changedOnDisk = stamp.ok && stamp.value !== state.document.modifiedMs;
+      const fingerprint = await fileFingerprint(state.document.path);
+      const changedOnDisk =
+        fingerprint.ok &&
+        changedOnDiskBeforeSave({ knownHash: state.document.contentHash, fingerprint: fingerprint.value });
       if (changedOnDisk) {
         if (auto) {
           const { shouldNotify } = decideAutoSaveConflict({ alreadyNotified: autoSaveConflictNotified });
@@ -864,11 +921,9 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
         return false;
       }
 
-      // La supresión se arma ANTES de que llegue el evento del watcher.
-      state.suppressSelfWriteUntil = Date.now() + SELF_WRITE_GRACE_MS;
-      state.document.modifiedMs = result.value.modifiedMs;
-      state.document.contentHash = result.value.contentHash;
+      rememberWritten(result.value);
       autoSaveConflictNotified = false;
+      missingNotified = false;
       state.dirty = stillDirtyAfterSave({ snapshot, currentContent: editor.getContent() });
       renderDocumentBar();
       listeners.saved?.(auto);
@@ -876,7 +931,26 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
       return true;
     } finally {
       saveInFlight = false;
+      // Un aviso llegado durante la escritura se mira ahora, ya con la huella
+      // nueva: si era el eco de este guardado, coincidirá y no pasará nada.
+      if (externalCheckPending) {
+        externalCheckPending = false;
+        handleActiveDocumentChanged();
+      }
     }
+  }
+
+  /**
+   * Único sitio donde se apunta lo que acabamos de escribir en el documento
+   * activo (RF-68, R-C2). Cualquier camino que escriba en él —guardar,
+   * reescribir referencias, restaurar una versión— pasa por aquí; si alguno no
+   * lo hiciera, su propio eco volvería a verse como un cambio externo.
+   * @param {{modifiedMs: number, contentHash: string}} receipt
+   */
+  function rememberWritten(receipt) {
+    if (!state.document) return;
+    state.document.modifiedMs = receipt.modifiedMs;
+    state.document.contentHash = receipt.contentHash;
   }
 
   /** Guardar como… (RF-07): escribe en un destino nuevo y sigue editándolo. */
@@ -892,7 +966,6 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
       return false;
     }
 
-    state.suppressSelfWriteUntil = Date.now() + SELF_WRITE_GRACE_MS;
     state.dirty = false;
     // Guardar fuera del proyecto activo convierte el destino en el proyecto
     // nuevo; dentro, basta con seguir editando el fichero recién creado.
@@ -1066,9 +1139,10 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     setTheme(theme) {
       editor.setTheme(theme);
     },
-    markSaved(modifiedMs) {
+    /** @param {{modifiedMs: number, contentHash: string}} receipt */
+    markSaved(receipt) {
       if (!state.document) return;
-      state.document.modifiedMs = modifiedMs;
+      rememberWritten(receipt);
       state.dirty = false;
       renderDocumentBar();
     },

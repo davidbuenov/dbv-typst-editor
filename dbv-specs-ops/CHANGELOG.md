@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - **Huella del contenido en cada lectura y escritura (RF-68, backend).** `read_file` devuelve `contentHash` y `write_file` devuelve `{ modifiedMs, contentHash }` de los bytes que de verdad llegan a disco, después de conservar CRLF y BOM (RF-60.5). Comando nuevo `file_fingerprint`, que distingue un fichero ausente (`missing`) en vez de dar error. Es la base para decidir los conflictos externos por contenido y no por fecha.
 
+### Fixed
+
+- **El diálogo «El documento cambió fuera del editor» saltaba sin parar con el guardado automático (RF-68).** El diálogo venía del observador de ficheros, no de Guardar: cualquier aviso sobre el documento abierto que llegara más de 1,5 s después de un guardado propio se tomaba por un cambio real. En Windows, `notify` también avisa cuando el antivirus, el indexador o un cliente de sincronización tocan los atributos del fichero, y con el guardado automático casi siempre hay cambios sin guardar. Ahora solo hay cambio externo si la **huella del contenido** en disco no es la última conocida, tanto en el aviso del observador como en la comprobación previa de Guardar. Se retira la ventana de gracia de 1,5 s. Además: un aviso que llega en pleno guardado se aplaza y se revisa al terminar (evita un conflicto falso en el hueco entre el renombrado atómico y la respuesta de `write_file`); mientras el diálogo de conflicto está abierto no se abre otro encima; y si el fichero abierto desaparece del disco, se avisa una vez y el texto queda como modificado para que Guardar lo vuelva a crear, en vez de intentar recargar una ruta inexistente.
+
 ## [0.10.0] - 2026-09-22
 
 Cuatro arreglos y tres funcionalidades pequeñas, filtradas una por una a partir de una lista de sugerencias de un amigo del usuario que probó la v0.9.0. Guardado automático opcional, resaltado de BibTeX, ruta corta en la barra del documento, dotfiles ocultos, números de línea optativos y botón de refresco siempre visible. Análisis (sin decisión) sobre retirar el motor clásico de vista previa: `spikes/engine-review/README.md`.

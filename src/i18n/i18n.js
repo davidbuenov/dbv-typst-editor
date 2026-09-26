@@ -287,6 +287,7 @@ const DICTIONARIES = {
     'doc.saved': 'Documento guardado.',
     // RF-64.2: el guardado automático nunca sobrescribe un conflicto externo.
     'doc.autoSaveConflict': 'Guardado automático en pausa: otro programa ha modificado el fichero',
+    'doc.missingOnDisk': 'El fichero ya no existe en disco; Guardar lo volverá a crear',
     // RF-61: Formatear solo actúa sobre Typst — la guarda vive en
     // `lspClient.formatDocument`, y estos 4 resultados sustituyen al `false`
     // silencioso de antes (Tinymist apagado, ya formateado, formateado, error).
@@ -830,6 +831,7 @@ const DICTIONARIES = {
     'doc.discardAction': 'Discard changes',
     'doc.saved': 'Document saved.',
     'doc.autoSaveConflict': 'Auto-save paused: another program has modified the file',
+    'doc.missingOnDisk': 'The file no longer exists on disk; Save will create it again',
     'action.formatDoc': 'Format',
     'format.buttonTitle': 'Format document with Typstyle / Tinymist (Shift+Alt+F)',
     'format.buttonTitleDisabled': 'Format only works on Typst (.typ) documents',

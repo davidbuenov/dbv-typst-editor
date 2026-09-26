@@ -93,6 +93,20 @@ export const writeFile = (path, content) => call('write_file', { path, content }
 export const fileModifiedMs = (path) => call('file_modified_ms', { path });
 /** Huella actual en disco (RF-68): `{ missing, modifiedMs, contentHash }`. */
 export const fileFingerprint = (path) => call('file_fingerprint', { path });
+
+// Operaciones de ficheros del panel Archivos (RF-69). `root` es la raíz del
+// proyecto: el backend rechaza cualquier ruta que quede fuera de ella.
+export const fsCreateFile = (root, dir, name) => call('fs_create_file', { root, dir, name });
+export const fsCreateDir = (root, dir, name) => call('fs_create_dir', { root, dir, name });
+/** Devuelve `{ from, to }`. */
+export const fsRename = (root, path, newName) => call('fs_rename', { root, path, newName });
+/** Devuelve `[{ from, to }]` (lo que ya estaba en destino se omite). */
+export const fsMove = (root, paths, destDir) => call('fs_move', { root, paths, destDir });
+export const fsDuplicate = (root, path) => call('fs_duplicate', { root, path });
+export const fsCopyInto = (root, sources, destDir) => call('fs_copy_into', { root, sources, destDir });
+/** Error `trashUnavailable` si la papelera no está disponible para esas rutas. */
+export const fsTrash = (root, paths) => call('fs_trash', { root, paths });
+export const fsDeletePermanently = (root, paths) => call('fs_delete_permanently', { root, paths });
 export const listDirectory = (path) => call('list_directory', { path });
 export const revealInFileManager = (path) => call('reveal_in_file_manager', { path });
 

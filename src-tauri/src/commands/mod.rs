@@ -11,6 +11,7 @@
 
 pub mod app_info;
 pub mod file_io;
+pub mod fs_ops;
 pub mod git;
 pub mod python_runner;
 pub mod recent_projects;

@@ -86,7 +86,7 @@ fn find_existing_copy_of_bytes(dir: &Path, bytes: &[u8]) -> Option<PathBuf> {
 /// Nombre de destino libre dentro de `dir`: si `file_name` ya existe, prueba
 /// `nombre-1.ext`, `nombre-2.ext`... Nunca sobrescribe una imagen que el
 /// usuario ya tuviera con ese nombre.
-fn unique_destination(dir: &Path, file_name: &str) -> PathBuf {
+pub(crate) fn unique_destination(dir: &Path, file_name: &str) -> PathBuf {
     let candidate = dir.join(file_name);
     if !candidate.exists() {
         return candidate;

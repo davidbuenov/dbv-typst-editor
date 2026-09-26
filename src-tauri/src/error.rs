@@ -33,6 +33,10 @@ pub enum AppError {
     /// encontrar de verdad al escribir un identificador a mano, y el frontend
     /// puede explicarlo sin parsear el texto del compilador.
     NotATemplate(String),
+    /// La papelera del sistema no está disponible para esa ruta (unidad de
+    /// red, sistema sin papelera). El frontend ofrece entonces el borrado
+    /// definitivo, con confirmación explícita (RF-69.7).
+    TrashUnavailable(String),
 }
 
 impl std::fmt::Display for AppError {
@@ -43,7 +47,8 @@ impl std::fmt::Display for AppError {
             | AppError::Io(m)
             | AppError::Parse(m)
             | AppError::Denied(m)
-            | AppError::NotATemplate(m) => m,
+            | AppError::NotATemplate(m)
+            | AppError::TrashUnavailable(m) => m,
         };
         write!(f, "{message}")
     }

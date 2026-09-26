@@ -519,6 +519,7 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
       path: payload.path,
       fileName: payload.fileName,
       modifiedMs: payload.modifiedMs,
+      contentHash: payload.contentHash,
     };
     state.dirty = false;
     // Otro documento es otro episodio: el conflicto del anterior, si lo
@@ -865,7 +866,8 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
 
       // La supresión se arma ANTES de que llegue el evento del watcher.
       state.suppressSelfWriteUntil = Date.now() + SELF_WRITE_GRACE_MS;
-      state.document.modifiedMs = result.value;
+      state.document.modifiedMs = result.value.modifiedMs;
+      state.document.contentHash = result.value.contentHash;
       autoSaveConflictNotified = false;
       state.dirty = stillDirtyAfterSave({ snapshot, currentContent: editor.getContent() });
       renderDocumentBar();

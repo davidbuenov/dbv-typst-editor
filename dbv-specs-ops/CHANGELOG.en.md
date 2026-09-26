@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- **Content fingerprint on every read and write (RF-68, backend).** `read_file` returns `contentHash`, and `write_file` returns `{ modifiedMs, contentHash }` for the bytes that actually reach the disk, after preserving CRLF and BOM (RF-60.5). New `file_fingerprint` command, which reports a missing file (`missing`) instead of failing. This is the basis for deciding external conflicts by content rather than by timestamp.
+
 ## [0.10.0] - 2026-09-22
 
 Four fixes and three small features, filtered one by one from a list of suggestions a friend of the user's sent after trying v0.9.0. Optional auto-save, BibTeX highlighting, short document-bar path, hidden dotfiles, optional line numbers, and an always-visible refresh button. Analysis (no decision) on retiring the classic preview engine: `spikes/engine-review/README.md`.

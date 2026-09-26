@@ -101,6 +101,7 @@ pub fn run() {
             commands::app_info::is_packaged_app,
             commands::app_info::open_external_url,
             commands::file_io::file_modified_ms,
+            commands::file_io::file_fingerprint,
             commands::file_io::list_directory,
             commands::file_io::open_file_dialog,
             commands::file_io::open_folder_dialog,

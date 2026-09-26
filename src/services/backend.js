@@ -91,6 +91,8 @@ export const getStartupDocument = () => call('startup_document');
 export const readFile = (path) => call('read_file', { path });
 export const writeFile = (path, content) => call('write_file', { path, content });
 export const fileModifiedMs = (path) => call('file_modified_ms', { path });
+/** Huella actual en disco (RF-68): `{ missing, modifiedMs, contentHash }`. */
+export const fileFingerprint = (path) => call('file_fingerprint', { path });
 export const listDirectory = (path) => call('list_directory', { path });
 export const revealInFileManager = (path) => call('reveal_in_file_manager', { path });
 

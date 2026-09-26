@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Sin publicar] / [Unreleased]
 
+### Changed
+
+- **Huella del contenido en cada lectura y escritura (RF-68, backend).** `read_file` devuelve `contentHash` y `write_file` devuelve `{ modifiedMs, contentHash }` de los bytes que de verdad llegan a disco, después de conservar CRLF y BOM (RF-60.5). Comando nuevo `file_fingerprint`, que distingue un fichero ausente (`missing`) en vez de dar error. Es la base para decidir los conflictos externos por contenido y no por fecha.
+
 ## [0.10.0] - 2026-09-22
 
 Cuatro arreglos y tres funcionalidades pequeñas, filtradas una por una a partir de una lista de sugerencias de un amigo del usuario que probó la v0.9.0. Guardado automático opcional, resaltado de BibTeX, ruta corta en la barra del documento, dotfiles ocultos, números de línea optativos y botón de refresco siempre visible. Análisis (sin decisión) sobre retirar el motor clásico de vista previa: `spikes/engine-review/README.md`.

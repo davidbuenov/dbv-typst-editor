@@ -55,6 +55,28 @@ pub struct FilePayload {
     /// Marca de tiempo de modificación (ms desde epoch) en el instante de leer.
     /// Es la referencia contra la que el Slice 6 detecta ediciones externas.
     pub modified_ms: u64,
+    /// Huella del contenido en disco al leerlo (RF-68). Es lo que decide si un
+    /// aviso del observador es un cambio real o solo un toque de atributos.
+    pub content_hash: String,
+}
+
+/// Lo que devuelve una escritura: la marca de tiempo y la huella de los bytes
+/// que de verdad llegaron a disco (con el formato original conservado, RF-60.5).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WriteReceipt {
+    pub modified_ms: u64,
+    pub content_hash: String,
+}
+
+/// Estado actual de un fichero en disco, sin devolver su contenido (RF-68).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Fingerprint {
+    /// El fichero ya no existe (borrado o movido por otro programa).
+    pub missing: bool,
+    pub modified_ms: u64,
+    pub content_hash: Option<String>,
 }
 
 /// Una entrada de un nivel del árbol de proyecto, leída bajo demanda al
@@ -94,6 +116,18 @@ pub fn has_extension(name: &str, extensions: &[&str]) -> bool {
         .and_then(|e| e.to_str())
         .map(|ext| extensions.iter().any(|candidate| candidate.eq_ignore_ascii_case(ext)))
         .unwrap_or(false)
+}
+
+/// Huella del contenido (RF-68): un hash rápido de 64 bits en hexadecimal.
+///
+/// No es criptográfico ni estable entre versiones de Rust, y no hace falta: solo
+/// se compara con otra huella calculada en la MISMA ejecución de la aplicación.
+/// Se devuelve como cadena porque un `u64` no cabe sin pérdida en un número de JS.
+pub fn content_hash(bytes: &[u8]) -> String {
+    use std::hash::{Hash, Hasher};
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    bytes.hash(&mut hasher);
+    format!("{:016x}", hasher.finish())
 }
 
 /// Milisegundos desde epoch de la última modificación de `path`. Devuelve 0 si
@@ -274,6 +308,9 @@ pub fn read_file(path: String) -> Result<FilePayload, AppError> {
     } else {
         read_text_guarded(&canonical)?
     };
+    // Se relee en bytes para la huella: `content` ya no lleva el BOM ni, en su
+    // caso, es byte a byte lo que hay en disco, y la huella debe ser la del disco.
+    let disk_bytes = fs::read(&canonical).map_err(|e| AppError::Io(e.to_string()))?;
 
     let payload = FilePayload {
         file_name: canonical
@@ -282,6 +319,7 @@ pub fn read_file(path: String) -> Result<FilePayload, AppError> {
             .unwrap_or_else(|| "documento.typ".to_string()),
         dir_path: canonical.parent().map(path_to_string).unwrap_or_default(),
         modified_ms: modified_ms(&canonical),
+        content_hash: content_hash(&disk_bytes),
         path: path_to_string(&canonical),
         content,
     };
@@ -335,10 +373,11 @@ pub fn write_atomic(path: &Path, content: &str) -> Result<(), std::io::Error> {
     }
 }
 
-/// Escribe `content` en `path` de forma atómica y devuelve la nueva marca de modificación,
-/// para que el frontend pueda actualizar su referencia de conflicto sin releer.
+/// Escribe `content` en `path` de forma atómica y devuelve la nueva marca de
+/// modificación y la huella de lo escrito, para que el frontend actualice su
+/// referencia de conflicto (RF-68) sin releer.
 #[tauri::command]
-pub fn write_file(path: String, content: String) -> Result<u64, AppError> {
+pub fn write_file(path: String, content: String) -> Result<WriteReceipt, AppError> {
     let path_buf = PathBuf::from(&path);
     let parent_missing = path_buf
         .parent()
@@ -350,7 +389,24 @@ pub fn write_file(path: String, content: String) -> Result<u64, AppError> {
 
     let content = with_original_format(&path_buf, &content);
     write_atomic(&path_buf, &content).map_err(|e| AppError::Io(e.to_string()))?;
-    Ok(modified_ms(&path_buf))
+    Ok(WriteReceipt { modified_ms: modified_ms(&path_buf), content_hash: content_hash(content.as_bytes()) })
+}
+
+/// Huella actual de `path` (RF-68). Un fichero que ya no existe NO es un error:
+/// es un estado que el frontend tiene que poder distinguir (el documento abierto
+/// fue borrado o movido por otro programa).
+#[tauri::command]
+pub fn file_fingerprint(path: String) -> Result<Fingerprint, AppError> {
+    let path_buf = PathBuf::from(&path);
+    if !path_buf.is_file() {
+        return Ok(Fingerprint { missing: true, modified_ms: 0, content_hash: None });
+    }
+    let bytes = fs::read(&path_buf).map_err(|e| AppError::Io(e.to_string()))?;
+    Ok(Fingerprint {
+        missing: false,
+        modified_ms: modified_ms(&path_buf),
+        content_hash: Some(content_hash(&bytes)),
+    })
 }
 
 /// Marca de modificación actual de `path`, sin leer el contenido. La usa la
@@ -534,9 +590,52 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let target = dir.path().join("nuevo.typ");
 
-        let stamp = write_file(path_to_string(&target), "contenido".into()).unwrap();
+        let receipt = write_file(path_to_string(&target), "contenido".into()).unwrap();
         assert_eq!(fs::read_to_string(&target).unwrap(), "contenido");
-        assert!(stamp > 0);
+        assert!(receipt.modified_ms > 0);
+        assert_eq!(receipt.content_hash, content_hash(b"contenido"));
+    }
+
+    // RF-68: la huella de lo escrito debe coincidir con la que se lee después,
+    // también cuando el guardado conserva CRLF y BOM de un fichero ajeno —
+    // si no, el propio guardado se vería como un cambio externo.
+    #[test]
+    fn la_huella_escrita_coincide_con_la_leida_aunque_se_conserve_crlf_y_bom() {
+        let dir = tempfile::tempdir().unwrap();
+        let target = dir.path().join("refs.bib");
+        fs::write(&target, b"\xEF\xBB\xBF@book{a,\r\n  title={X}\r\n}\r\n").unwrap();
+
+        let receipt = write_file(path_to_string(&target), "@book{a,\n  title={Y}\n}\n".into()).unwrap();
+        let read = read_file(path_to_string(&target)).unwrap();
+        let fingerprint = file_fingerprint(path_to_string(&target)).unwrap();
+
+        assert_eq!(read.content_hash, receipt.content_hash);
+        assert_eq!(fingerprint.content_hash.as_deref(), Some(receipt.content_hash.as_str()));
+        assert!(!fingerprint.missing);
+    }
+
+    #[test]
+    fn la_huella_distingue_contenidos_y_no_cambia_si_solo_cambia_la_fecha() {
+        let dir = tempfile::tempdir().unwrap();
+        let target = dir.path().join("cap.typ");
+        fs::write(&target, "= Uno").unwrap();
+        let before = file_fingerprint(path_to_string(&target)).unwrap();
+
+        // Reescribir el MISMO contenido (lo que hace un antivirus o un cliente de
+        // sincronización al tocar el fichero) no cambia la huella.
+        fs::write(&target, "= Uno").unwrap();
+        assert_eq!(file_fingerprint(path_to_string(&target)).unwrap().content_hash, before.content_hash);
+
+        fs::write(&target, "= Dos").unwrap();
+        assert_ne!(file_fingerprint(path_to_string(&target)).unwrap().content_hash, before.content_hash);
+    }
+
+    #[test]
+    fn la_huella_de_un_fichero_ausente_no_es_un_error_sino_missing() {
+        let dir = tempfile::tempdir().unwrap();
+        let fingerprint = file_fingerprint(path_to_string(&dir.path().join("borrado.typ"))).unwrap();
+        assert!(fingerprint.missing);
+        assert_eq!(fingerprint.content_hash, None);
     }
 
     #[test]

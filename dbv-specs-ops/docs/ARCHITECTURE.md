@@ -697,6 +697,19 @@ Especificado en `SPECIFICATIONS.md` §5f (RF-31 a RF-38, congelado v1.7 el 2026-
 
 **Frontera con el frontend:** el frontend pide páginas (`engine_page`) y consultas de mapa (`engine_locate`, `engine_reveal`) por generación; recibe diagnósticos como rangos. Nunca ve el `Span` ni el documento.
 
+### 7.18. Arquitectura v0.11.0: explorador de archivos, referencias, enlaces e historial (RF-68 a RF-73)
+
+| Pieza | Dónde | Qué decide |
+| --- | --- | --- |
+| Conflicto externo por contenido (RF-68) | `commands/file_io.rs` (`content_hash`, `file_fingerprint`), `app/externalChange.js` | Un aviso del observador solo es un cambio si la huella del disco no es la última conocida. Los avisos que llegan con un guardado en vuelo se aplazan; `rememberWritten` es el único sitio donde se apunta lo escrito. |
+| Operaciones de ficheros (RF-69) | `commands/fs_ops.rs` | Confinamiento sobre rutas canónicas (`ensure_inside`), validación portable de nombres, nunca sobrescribir, validar todo antes de mover varios. Papelera con el crate `trash`. |
+| Árbol | `project-explorer/projectTree.js` (DOM), `treeDrag.js` (puro), `fileOperations.js` (orquestación) | Selección, filas editables, menú, arrastre con eventos de puntero (el arrastre nativo de ficheros de RF-18 inutiliza el drag & drop HTML5 en Windows), refresco agrupado que conserva carpetas abiertas. |
+| Coherencia tras mover | `workspace.applyPathMoves` / `handleDeletedPaths` / `runOwnOperation` | El documento abierto, el que compila la vista previa y el principal siguen a su fichero (`editor.setPath` conserva el historial de deshacer). |
+| Referencias (RF-70) | `refs.rs`, `project-explorer/referenceUpdates.js` | Analizador de `typst::syntax`, reglas de resolución de Typst 0.15.1. Se calcula DESPUÉS de mover. El documento abierto se edita en el editor (posiciones UTF-16). Deshacer = movimiento inverso (`fs_revert_moves`) + reescritura inversa. |
+| Capítulos (RF-71) | `chapters.rs`, `project-explorer/chapters.js` | `#include` tras el último de nivel superior, con el estilo de ruta existente. |
+| Enlaces de la vista previa (RF-72) | `engine/links.rs` (`engine_links`), `preview/linkHits.js`, `app_info::open_document_link` | `FrameItem::Link` + introspector. Prueba de puntería en JS, sin capa DOM. Esquemas `http`/`https`/`mailto` validados en Rust. |
+| Historial local (RF-73) | `history.rs`, `history/historyPanel.js` | Copia tomada en el backend dentro de cada escritura, en la carpeta de datos de la aplicación, con claves FNV-1a estables. Consolidación, retención y tope total como funciones puras. |
+
 ## 🔑 Decisiones Técnicas Clave (resumen)
 
 ### Seguridad

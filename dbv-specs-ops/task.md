@@ -472,7 +472,15 @@
   - Refrescar el árbol lo reconstruye entero y pierde las carpetas abiertas.
   - El arrastre nativo (`onDragDropEvent`) impide el drag & drop HTML5 en Windows; mover en el árbol se hará con eventos de puntero.
   - Decisiones pendientes del usuario (§6 del plan): espera de ≈ 250 ms para distinguir clic de doble clic en los enlaces; historial perdido si se mueve la carpeta del proyecto; dependencia `trash`.
-- [ ] **Fase 43: `/build` de v0.11.0** — empieza por el slice 91 (RF-68) tras la aprobación.
+- [x] **Fase 43: `/build` de v0.11.0 — cerrada el 2026-09-26, slices 91-103.** Un commit por slice, con changelog en ES y EN (los slices 94 y 95 van en un único commit). Desviaciones del plan registradas en `ADR-V0110-001`: RF-70 se calcula después de mover, y Deshacer es la operación inversa.
+  - **91-92, RF-68:** huella del contenido en `read_file`/`write_file`, `file_fingerprint` y `externalChange.js`. Se retira la ventana de gracia de 1,5 s, los avisos se aplazan durante un guardado y el diálogo de conflicto ya no se apila.
+  - **93-95, RF-69:** `fs_ops.rs` (confinamiento, nombres, papelera con el crate `trash`), un árbol con selección, filas editables, menú completo, F2/Supr y arrastre con eventos de puntero, y soltadas del sistema sobre una carpeta. El documento abierto y el principal siguen a su fichero.
+  - **96-97, RF-70:** `refs.rs` con el analizador de Typst (entrantes y salientes; test de integración que compila con el motor real tras mover), aviso con Ver cambios y Deshacer, y preferencia «Preguntar antes».
+  - **98, RF-71:** `chapters.rs` + diálogo «Nuevo capítulo…».
+  - **99-100, RF-72:** `engine/links.rs` (el hallazgo del plan queda confirmado con un compilado real), prueba de puntería sin capa DOM, espera de 250 ms frente al doble clic, y lista de esquemas en Rust.
+  - **101-102, RF-73:** `history.rs` (FNV-1a, consolidación, retención y tope total) y panel con Comparar y Restaurar. «Recargar desde disco» guarda antes lo que había en el editor.
+  - **103:** §7.18 de `ARCHITECTURE.md` y sección de ayuda «Archivos, capítulos y enlaces».
+- [ ] **Fase 44: `/test` de v0.11.0** — siguiente.
   - **Siguiente:** `/build`, empezando por el slice 81. Pendiente del usuario: decidir sobre el motor clásico tras el informe de S-4 (slice 88).
 
 - [ ] **Backlog v0.10.0 — analizar con detalle la publicación en Flathub (anotado el 2026-09-21, a petición del usuario; varios usuarios de Linux lo recomiendan).** Solo anotado: **no hay análisis ni decisión**, y va después del `/test` real de la 0.9.0. Hoy Linux se cubre con `.AppImage`/`.deb` en las Releases y con el Cask de Homebrew. Primera valoración (a confirmar en `/spec` y `/plan`), puntos a resolver:

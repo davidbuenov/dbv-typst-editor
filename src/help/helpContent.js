@@ -118,6 +118,47 @@ export const HELP_SECTIONS = [
     ],
   },
   {
+    id: 'explorador',
+    title: { es: 'Archivos, capítulos y enlaces', en: 'Files, chapters and links' },
+    blocks: [
+      {
+        es: 'El panel Archivos es un explorador completo: todo lo que antes obligaba a salir al explorador del sistema se hace desde aquí.',
+        en: 'The Files panel is a full file explorer: everything that used to require the system file manager can be done from here.',
+      },
+      {
+        list: {
+          es: [
+            'Crear: al pasar el ratón por el panel aparecen «Nuevo fichero», «Nueva carpeta» y «Refrescar»; actúan en la carpeta seleccionada. El botón derecho sobre una carpeta ofrece lo mismo dentro de ella.',
+            'Mover: arrastra uno o varios elementos sobre otra carpeta. También puedes soltar ficheros desde el explorador del sistema sobre una carpeta del árbol para copiarlos allí.',
+            'Referencias: al mover o renombrar, las rutas de #include, #import, image(), bibliography() y demás se actualizan solas en todo el proyecto. Un aviso permite ver los cambios o deshacerlo todo. Las rutas construidas o guardadas en variables no se pueden seguir: si alguna queda rota, el compilador la marca.',
+            'Nuevo capítulo… (menú Archivo o botón derecho sobre una carpeta): crea el fichero con su encabezado y añade su #include al documento principal.',
+            'Eliminar envía a la papelera del sistema, después de confirmar.',
+            'Enlaces de la vista previa: un clic en un enlace externo lo abre en el navegador; en uno interno (índice, @referencia, cita, nota) lleva a su destino. El doble clic sigue llevando al código.',
+            'Historial local…: botón derecho sobre un fichero o en el editor. Cada guardado deja una copia fuera del proyecto; se puede comparar con la actual y restaurar.',
+          ],
+          en: [
+            'Create: hovering over the panel reveals "New file", "New folder" and "Refresh"; they act on the selected folder. Right-clicking a folder offers the same inside it.',
+            'Move: drag one or more items onto another folder. You can also drop files from the system file manager onto a folder in the tree to copy them there.',
+            'References: when moving or renaming, the paths in #include, #import, image(), bibliography() and the rest are updated across the whole project. A notice lets you view the changes or undo everything. Paths that are built or stored in variables cannot be followed: if one breaks, the compiler flags it.',
+            'New chapter… (File menu or right-click on a folder): creates the file with its heading and adds its #include to the main document.',
+            'Delete moves items to the system trash, after confirming.',
+            'Preview links: clicking an external link opens it in the browser; an internal one (outline, @reference, citation, footnote) takes you to its target. Double-click still jumps to the source.',
+            'Local history…: right-click a file or inside the editor. Every save leaves a copy outside the project; you can compare it with the current one and restore it.',
+          ],
+        },
+      },
+      {
+        shortcuts: [
+          ['F2', { es: 'Renombrar el elemento del árbol', en: 'Rename the tree item' }],
+          ['Supr', { es: 'Eliminar la selección del árbol', en: 'Delete the tree selection' }],
+          ['Ctrl/Cmd + clic', { es: 'Añadir o quitar de la selección', en: 'Add to or remove from the selection' }],
+          ['Mayús + clic', { es: 'Seleccionar un rango', en: 'Select a range' }],
+          ['Esc', { es: 'Cancelar el arrastre o la edición del nombre', en: 'Cancel the drag or the name editing' }],
+        ],
+      },
+    ],
+  },
+  {
     id: 'asistentes',
     title: { es: 'Asistentes de inserción', en: 'Insertion assistants' },
     blocks: [

@@ -465,7 +465,14 @@
   - **RF-72:** enlaces funcionales en la vista previa con una capa sobre el SVG; los externos se abren con clic directo.
   - **RF-73:** historial local de versiones.
   - Todo en v0.11.0 por decisión del usuario, sin parche v0.10.1.
-- [ ] **Fase 42: `/plan` de v0.11.0** — siguiente. Empezar por el spike de enlaces (RF-72) y resolver las preguntas abiertas del final de §5k. Orden sugerido para `/build`: RF-68 primero (corrección de algo ya publicado y base de RF-69).
+- [x] **Fase 42: `/plan` de v0.11.0 — escrito el 2026-09-26, APROBADO el mismo día con las recomendaciones de la §6; `/build`, `/test` y `/code-simplify` delegados sin preguntas** (`implementation_plan.md`, slices 91-103). Hallazgos:
+  - Los enlaces externos ya llevan `href` en el SVG; lo que los bloquea es la captura de clic de `preview.js`. RF-72.1 corregido en el spec.
+  - El spike de enlaces queda resuelto leyendo los fuentes de Typst 0.15.1: `FrameItem::Link` + `introspector().position()`.
+  - `path("…")` añadido a RF-70.
+  - Refrescar el árbol lo reconstruye entero y pierde las carpetas abiertas.
+  - El arrastre nativo (`onDragDropEvent`) impide el drag & drop HTML5 en Windows; mover en el árbol se hará con eventos de puntero.
+  - Decisiones pendientes del usuario (§6 del plan): espera de ≈ 250 ms para distinguir clic de doble clic en los enlaces; historial perdido si se mueve la carpeta del proyecto; dependencia `trash`.
+- [ ] **Fase 43: `/build` de v0.11.0** — empieza por el slice 91 (RF-68) tras la aprobación.
   - **Siguiente:** `/build`, empezando por el slice 81. Pendiente del usuario: decidir sobre el motor clásico tras el informe de S-4 (slice 88).
 
 - [ ] **Backlog v0.10.0 — analizar con detalle la publicación en Flathub (anotado el 2026-09-21, a petición del usuario; varios usuarios de Linux lo recomiendan).** Solo anotado: **no hay análisis ni decisión**, y va después del `/test` real de la 0.9.0. Hoy Linux se cubre con `.AppImage`/`.deb` en las Releases y con el Cask de Homebrew. Primera valoración (a confirmar en `/spec` y `/plan`), puntos a resolver:

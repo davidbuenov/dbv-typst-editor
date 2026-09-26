@@ -107,6 +107,13 @@ export const fsCopyInto = (root, sources, destDir) => call('fs_copy_into', { roo
 /** Error `trashUnavailable` si la papelera no está disponible para esas rutas. */
 export const fsTrash = (root, paths) => call('fs_trash', { root, paths });
 export const fsDeletePermanently = (root, paths) => call('fs_delete_permanently', { root, paths });
+/** Deshace movimientos (`to → from`, en orden inverso); todo o nada. */
+export const fsRevertMoves = (root, moved) => call('fs_revert_moves', { root, moved });
+
+// Referencias a lo movido (RF-70). `openDocument` es `{ path, content }` del
+// documento abierto: se edita en memoria y sus ediciones vuelven en UTF-16.
+export const refsPlan = (root, moved, openDocument) => call('refs_plan', { root, moved, openDocument });
+export const refsApply = (root, moved, openDocument) => call('refs_apply', { root, moved, openDocument });
 export const listDirectory = (path) => call('list_directory', { path });
 export const revealInFileManager = (path) => call('reveal_in_file_manager', { path });
 

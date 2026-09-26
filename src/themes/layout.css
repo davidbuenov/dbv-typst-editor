@@ -1665,6 +1665,29 @@ button.document__lsp-badge {
   z-index: 20;
 }
 
+/* RF-70.7: botones de un aviso («Ver cambios», «Deshacer»). */
+.toast__actions {
+  display: inline-flex;
+  gap: 6px;
+  margin-left: 12px;
+}
+
+.toast__action {
+  padding: 2px 8px;
+  font: inherit;
+  font-weight: 600;
+  color: var(--accent);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.toast__action:hover,
+.toast__action:focus-visible {
+  background: var(--accent-subtle);
+}
+
 .toast.is-error {
   border-color: var(--code-tag);
   color: var(--code-tag);

@@ -1236,6 +1236,26 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     handleDeletedPaths,
     /** Ruta del documento abierto, o `null`. */
     getDocumentPath: () => state.document?.path ?? null,
+    /**
+     * Documento abierto con su contenido ACTUAL (cambios sin guardar
+     * incluidos), para que RF-70 lo edite en memoria y nunca en disco.
+     * @returns {{path: string, content: string} | null}
+     */
+    getOpenDocumentSnapshot() {
+      if (!state.document || !isTypstPath(state.document.path)) return null;
+      return { path: state.document.path, content: editor.getContent() };
+    },
+    /**
+     * Aplica ediciones (posiciones UTF-16 del contenido de la instantánea) al
+     * editor en UNA transacción: el documento queda modificado y Ctrl+Z las
+     * deshace de una vez (RF-70.5).
+     * @param {Array<{from: number, to: number, insert: string}>} edits
+     */
+    applyBufferEdits(edits) {
+      const view = editor.getView();
+      if (!view || edits.length === 0) return;
+      view.dispatch({ changes: edits.map(({ from, to, insert }) => ({ from, to, insert })) });
+    },
     /** True si el documento abierto tiene cambios sin guardar. */
     isDirty: () => state.dirty,
     /** @param {{modifiedMs: number, contentHash: string}} receipt */

@@ -25,6 +25,7 @@ const CHANGE_EVENT = 'dbv-prefs-changed';
  * @property {boolean} showLineNumbers RF-63.2 — números de línea del editor.
  * @property {boolean} autoSave RF-64.1 — guardado automático.
  * @property {boolean} showFullPath RF-65.2 — ruta completa en vez de solo el nombre.
+ * @property {boolean} askBeforeUpdatingRefs RF-70.9 — revisar antes de reescribir referencias.
  */
 
 /** @type {Prefs} */
@@ -33,6 +34,7 @@ const DEFAULTS = Object.freeze({
   showLineNumbers: true,
   autoSave: false,
   showFullPath: false,
+  askBeforeUpdatingRefs: false,
 });
 
 function readStored() {

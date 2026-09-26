@@ -39,6 +39,7 @@ import { createLspClient } from './editor/lspClient.js';
 import { createProjectTree } from './project-explorer/projectTree.js';
 import { createFileOperations } from './project-explorer/fileOperations.js';
 import { dropTargetDir } from './project-explorer/treeDrag.js';
+import { createReferenceUpdater } from './project-explorer/referenceUpdates.js';
 import { createWizard } from './project-wizard/wizard.js';
 import {
   copyAssetIntoProject,
@@ -633,7 +634,14 @@ async function bootstrap() {
   });
   const getAssetExtensions = () => assetExtensions;
 
-  fileOps = createFileOperations({ tree, workspace, dialog, notify: toast.show });
+  const referenceUpdater = createReferenceUpdater({ tree, workspace, dialog, notify: toast.show });
+  fileOps = createFileOperations({
+    tree,
+    workspace,
+    dialog,
+    notify: toast.show,
+    afterMove: (moved) => referenceUpdater.afterMove(moved),
+  });
 
   // Punto de una soltada nativa (píxeles físicos) → ¿cae sobre el árbol?
   const treeDropPoint = (position) => {
@@ -1092,6 +1100,7 @@ async function bootstrap() {
     showLineNumbers: el('pref-line-numbers'),
     autoSave: el('pref-auto-save'),
     showFullPath: el('pref-full-path'),
+    askBeforeUpdatingRefs: el('pref-ask-refs'),
   };
   const renderPrefCheckbox = (key) => {
     prefCheckboxes[key]?.setAttribute('aria-checked', String(getPref(key)));

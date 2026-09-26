@@ -23,6 +23,7 @@ describe('prefs', () => {
       showLineNumbers: true,
       autoSave: false,
       showFullPath: false,
+      askBeforeUpdatingRefs: false,
     });
   });
 
@@ -58,6 +59,7 @@ describe('prefs', () => {
       showLineNumbers: false,
       autoSave: false,
       showFullPath: false,
+      askBeforeUpdatingRefs: false,
     });
   });
 

@@ -215,6 +215,13 @@ impl InProcEngine {
         Ok(latest.map().locate(page, x, y))
     }
 
+    /// Enlaces de la página `page` (1-indexada) de la vista previa `generation`
+    /// (RF-72). Se calculan al pedirlos: recorrer una página es barato.
+    pub fn links(&self, generation: u64, page: usize) -> Result<Vec<super::links::Link>, TypstError> {
+        let latest = self.latest_for(generation).ok_or_else(|| expired(generation))?;
+        Ok(super::links::page_links(&latest.document, page.saturating_sub(1)))
+    }
+
     /// Dónde se dibuja lo escrito entre `from` y `to` (UTF-16) de `file`.
     pub fn reveal(&self, generation: u64, file: &str, from: usize, to: usize) -> Result<Vec<Rect>, TypstError> {
         let latest = self.latest_for(generation).ok_or_else(|| expired(generation))?;

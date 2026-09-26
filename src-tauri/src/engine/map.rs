@@ -292,7 +292,7 @@ impl<'a> Builder<'a> {
 /// Caja envolvente, en la página, de un rectángulo (`dx`, `dy`, `w`, `h`) situado
 /// en `pos` dentro de un marco con la transformación acumulada `ts`. Con grupos
 /// girados o escalados la caja es la envolvente de las cuatro esquinas.
-fn bounding_box(ts: Transform, pos: Point, dx: Abs, dy: Abs, w: Abs, h: Abs) -> [f32; 4] {
+pub(crate) fn bounding_box(ts: Transform, pos: Point, dx: Abs, dy: Abs, w: Abs, h: Abs) -> [f32; 4] {
     let corners = [
         Point::new(pos.x + dx, pos.y + dy),
         Point::new(pos.x + dx + w, pos.y + dy),

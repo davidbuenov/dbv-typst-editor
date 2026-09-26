@@ -19,6 +19,7 @@
 
 pub mod commands;
 pub mod diagnostics;
+pub mod links;
 pub mod map;
 pub mod pages;
 pub mod session;

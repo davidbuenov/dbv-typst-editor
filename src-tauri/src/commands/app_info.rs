@@ -87,6 +87,15 @@ fn is_allowed_doc_url(url: &str) -> bool {
     url.starts_with("https://")
 }
 
+/// Esquemas que un enlace DEL DOCUMENTO puede abrir desde la vista previa
+/// (RF-72, R-L3). Es una lista aparte de la de la ayuda (`is_allowed_doc_url`,
+/// solo `https`): un documento ajeno puede enlazar a `http` o a un correo,
+/// pero nunca debe poder lanzar `file:`, `javascript:` o una ruta UNC.
+pub fn is_allowed_document_url(url: &str) -> bool {
+    let lower = url.trim_start().to_ascii_lowercase();
+    lower.starts_with("https://") || lower.starts_with("http://") || lower.starts_with("mailto:")
+}
+
 // `Shell::open` está marcado deprecado en favor de `tauri-plugin-opener`,
 // mismo motivo que en `universe.rs` para no arrastrar una dependencia nueva.
 #[allow(deprecated)]
@@ -100,6 +109,20 @@ pub fn open_external_url(app: AppHandle, url: String) -> Result<(), AppError> {
         .map_err(|error| AppError::Io(error.to_string()))
 }
 
+/// Abre en el navegador (o el cliente de correo) un enlace pulsado en la
+/// vista previa (RF-72). El frontend no decide qué se puede abrir: lo decide
+/// `is_allowed_document_url` aquí.
+#[allow(deprecated)]
+#[tauri::command]
+pub fn open_document_link(app: AppHandle, url: String) -> Result<(), AppError> {
+    if !is_allowed_document_url(&url) {
+        return Err(AppError::Denied(format!("La vista previa no abre enlaces de este tipo: {url}")));
+    }
+    app.shell()
+        .open(url.trim().to_string(), None)
+        .map_err(|error| AppError::Io(error.to_string()))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -110,6 +133,16 @@ mod tests {
     // es la parte que de verdad importa testear (evita `javascript:`/
     // `file:`/`http://` sin cifrar si algún día una URL dejara de estar
     // escrita a mano en `helpContent.js`).
+    #[test]
+    fn los_enlaces_del_documento_solo_abren_web_y_correo() {
+        for url in ["https://typst.app", "http://example.org/a", "mailto:alguien@example.org", "  HTTPS://X.ORG"] {
+            assert!(is_allowed_document_url(url), "{url}");
+        }
+        for url in ["javascript:alert(1)", "file:///C:/Windows/system32/calc.exe", "\\\\servidor\\recurso", "ftp://x", "vbscript:x", ""] {
+            assert!(!is_allowed_document_url(url), "{url}");
+        }
+    }
+
     #[test]
     fn is_allowed_doc_url_exige_https() {
         assert!(is_allowed_doc_url("https://graphviz.org/documentation/"));

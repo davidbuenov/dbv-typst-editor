@@ -35,6 +35,16 @@ pub fn engine_locate(
     engine.locate(generation, page, x_pt, y_pt)
 }
 
+/// Enlaces de una página de la vista previa (RF-72): rectángulo y destino.
+#[tauri::command]
+pub fn engine_links(
+    engine: State<'_, InProcEngine>,
+    generation: u64,
+    page: usize,
+) -> Result<Vec<super::links::Link>, TypstError> {
+    engine.links(generation, page)
+}
+
 /// Dónde se dibuja lo escrito entre `from` y `to` (UTF-16 desde el inicio del
 /// fichero). Con `from == to` se toma la palabra bajo el cursor.
 #[tauri::command]

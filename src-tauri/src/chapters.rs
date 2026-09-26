@@ -109,7 +109,7 @@ pub struct ChapterLink {
 pub fn chapter_folder(root: String, main_path: String, main_content: String) -> Result<String, AppError> {
     let root = dunce::canonicalize(&root).map_err(|e| AppError::Io(e.to_string()))?;
     let main = ensure_inside(&root, Path::new(&main_path))?;
-    let main_rel = relative_to(&root, &main).ok_or_else(|| AppError::InvalidPath(main_path))?;
+    let main_rel = relative_to(&root, &main).ok_or(AppError::InvalidPath(main_path))?;
     Ok(chapter_folder_hint(&main_rel, &main_content))
 }
 

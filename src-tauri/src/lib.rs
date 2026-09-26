@@ -118,6 +118,8 @@ pub fn run() {
             chapters::chapter_folder,
             chapters::chapter_create,
             chapters::chapter_link,
+            engine::commands::engine_links,
+            commands::app_info::open_document_link,
             commands::file_io::list_directory,
             commands::file_io::open_file_dialog,
             commands::file_io::open_folder_dialog,

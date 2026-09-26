@@ -384,6 +384,18 @@ export function createEditor(
       applyLanguage(currentPath);
       loading = false;
     },
+    /**
+     * Cambia la ruta del documento abierto SIN tocar su contenido ni su
+     * historial de deshacer (RF-69.10): renombrar o mover el fichero desde el
+     * árbol no es abrir otro documento. El lenguaje se recalcula (la
+     * extensión pudo cambiar) y Tinymist recibe el documento con su URI nueva.
+     */
+    setPath(path) {
+      if (path === currentPath) return;
+      currentPath = path ?? null;
+      if (isTypstPath(currentPath)) lspClient?.openDocument(currentPath, view.state.doc.toString());
+      applyLanguage(currentPath);
+    },
     formatDocument: () => lspClient?.formatDocument(view, currentPath),
     setDiagnostics(diagnostics) {
       view.dispatch(setDiagnostics(view.state, diagnostics));

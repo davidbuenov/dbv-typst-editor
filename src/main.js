@@ -37,6 +37,8 @@ import { createConflictResolver } from './app/conflictResolver.js';
 import { hasConflictMarkers } from './app/conflictParser.js';
 import { createLspClient } from './editor/lspClient.js';
 import { createProjectTree } from './project-explorer/projectTree.js';
+import { createFileOperations } from './project-explorer/fileOperations.js';
+import { dropTargetDir } from './project-explorer/treeDrag.js';
 import { createWizard } from './project-wizard/wizard.js';
 import {
   copyAssetIntoProject,
@@ -47,7 +49,6 @@ import {
   gitClone,
   getAppInfo,
   savePastedImage,
-  listDirectory,
   readFile,
   writeFile,
   isPackagedApp,
@@ -209,7 +210,7 @@ function wireSidebarTabs(workspaceEl) {
  * el cursor. Antes, soltarla sobre el explorador de proyecto no hacía nada y no
  * lo decía, que es el peor modo de fallo posible.
  */
-function wireImageDrop(workspace, editorHostEl, notify, getExtensions) {
+function wireImageDrop(workspace, editorHostEl, notify, getExtensions, isOverTree) {
   async function handleDrop(imagePath, insert) {
     try {
       const result = await copyAssetIntoProject(workspace.state.project.root, imagePath);
@@ -237,6 +238,8 @@ function wireImageDrop(workspace, editorHostEl, notify, getExtensions) {
     if (event.payload.type !== 'drop') return;
 
     const { position, paths } = event.payload;
+    // RF-69.6: sobre el árbol, la soltada es para copiar a esa carpeta.
+    if (isOverTree(position)) return;
     const [imagePath] = pathsWithExtension(paths, getExtensions().images);
     if (!imagePath) return;
 
@@ -316,7 +319,7 @@ function wireImagePaste(workspace, editorHostEl, notify) {
  * `set text(font: "...")` en cualquier parte del proyecto, así que no importa
  * dónde de la ventana caiga ni cuántos ficheros vengan en el mismo soltado.
  */
-function wireFontDrop(workspace, notify, getExtensions) {
+function wireFontDrop(workspace, notify, getExtensions, isOverTree) {
   async function handleDrop(fontPaths) {
     const added = [];
     for (const fontPath of fontPaths) {
@@ -334,6 +337,7 @@ function wireFontDrop(workspace, notify, getExtensions) {
   getCurrentWebview().onDragDropEvent((event) => {
     if (event.payload.type !== 'drop') return;
 
+    if (isOverTree(event.payload.position)) return;
     const fontPaths = pathsWithExtension(event.payload.paths, getExtensions().fonts);
     if (fontPaths.length === 0) return;
 
@@ -468,65 +472,23 @@ async function bootstrap() {
     onStatusChange: updateLspStatus,
   });
 
+  // El árbol y sus operaciones se necesitan mutuamente: los callbacks se
+  // enlazan tarde, cuando `fileOps` ya existe (se crea tras el workspace).
+  let fileOps = null;
   const tree = createProjectTree(el('project-tree'), {
     onOpenFile: (path) => workspace.openDocument(path),
     onSetEntrypoint: (path) => applyEntrypoint(path),
+    onCommitName: (request) => fileOps.commitName(request),
+    onAction: (action, context) => fileOps.handleAction(action, context),
+    onMove: (paths, destDir) => fileOps.move(paths, destDir),
   });
 
-  // Nuevo fichero .typ en la raíz del proyecto: el hueco real que destapó
-  // RF-33 (clonar un repositorio VACÍO deja un proyecto abierto sin ningún
-  // fichero, y hasta ahora no había ninguna vía para crear el primero — los
-  // asistentes de plantilla siempre crean una carpeta nueva, nunca añaden a
-  // una ya abierta). Fila de creación inline en vez de `window.prompt`
-  // (`verify:frontend` lo prohíbe): Intro crea, Escape cancela.
-  const newFileRow = el('tree-new-file-row');
-  const newFileInput = el('tree-new-file-input');
-  const openNewFileRow = () => {
-    newFileRow.classList.remove('hidden');
-    newFileInput.value = '';
-    newFileInput.focus();
-  };
-  const closeNewFileRow = () => {
-    newFileRow.classList.add('hidden');
-    newFileInput.value = '';
-  };
-  el('tree-new-file').addEventListener('click', () => {
-    if (newFileRow.classList.contains('hidden')) openNewFileRow();
-    else closeNewFileRow();
-  });
-  newFileInput.addEventListener('keydown', async (event) => {
-    if (event.key === 'Escape') {
-      closeNewFileRow();
-      return;
-    }
-    if (event.key !== 'Enter') return;
-
-    const root = tree.getRoot();
-    const name = newFileInput.value.trim();
-    if (!root) return;
-    if (!name || !name.toLowerCase().endsWith('.typ') || name.includes('/') || name.includes('\\')) {
-      toast.show(t('tree.newFileInvalid'), 'error');
-      return;
-    }
-
-    const listing = await listDirectory(root);
-    const exists = listing.ok && listing.value.some((entry) => entry.name === name);
-    if (exists) {
-      toast.show(t('tree.newFileExists'), 'error');
-      return;
-    }
-
-    const target = joinPath(root, name);
-    const created = await writeFile(target, '');
-    if (!created.ok) {
-      toast.show(`${t('tree.newFileError')} — ${created.error.message}`, 'error');
-      return;
-    }
-
-    closeNewFileRow();
-    await tree.refresh();
-    await workspace.openDocument(target);
-  });
+  // Cabecera del panel Archivos (RF-69.1): nuevo fichero, nueva carpeta y
+  // refrescar, en la carpeta de la selección. Sustituye al "+" de RF-33, que
+  // solo creaba `.typ` en la raíz.
+  el('tree-new-file').addEventListener('click', () => tree.startCreate('file'));
+  el('tree-new-folder').addEventListener('click', () => tree.startCreate('dir'));
+  el('tree-refresh').addEventListener('click', () => tree.refresh());
 
   const workspace = createWorkspace({
     tree,
@@ -671,9 +633,30 @@ async function bootstrap() {
   });
   const getAssetExtensions = () => assetExtensions;
 
-  wireImageDrop(workspace, el('editor-host'), toast.show, getAssetExtensions);
+  fileOps = createFileOperations({ tree, workspace, dialog, notify: toast.show });
+
+  // Punto de una soltada nativa (píxeles físicos) → ¿cae sobre el árbol?
+  const treeDropPoint = (position) => {
+    const ratio = window.devicePixelRatio || 1;
+    return { x: position.x / ratio, y: position.y / ratio };
+  };
+  const isOverTree = (position) => {
+    if (!position || !workspace.state.project) return false;
+    const { x, y } = treeDropPoint(position);
+    return tree.containsPoint(x, y);
+  };
+  // RF-69.6: ficheros del sistema soltados sobre una carpeta del árbol se
+  // copian allí (cualquier tipo, sin sobrescribir).
+  getCurrentWebview().onDragDropEvent((event) => {
+    if (event.payload.type !== 'drop' || !isOverTree(event.payload.position)) return;
+    const { x, y } = treeDropPoint(event.payload.position);
+    const destDir = dropTargetDir(tree.entryAtPoint(x, y), tree.getRoot());
+    fileOps.copyFromSystem(event.payload.paths, destDir);
+  });
+
+  wireImageDrop(workspace, el('editor-host'), toast.show, getAssetExtensions, isOverTree);
   wireImagePaste(workspace, el('editor-host'), toast.show);
-  wireFontDrop(workspace, toast.show, getAssetExtensions);
+  wireFontDrop(workspace, toast.show, getAssetExtensions, isOverTree);
 
   const staleEl = el('preview-stale');
   // Problemas de la compilación (RF-59): subrayado en el editor, chip con el

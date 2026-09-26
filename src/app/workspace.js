@@ -36,7 +36,7 @@ import { revealAndFlash, revealRangeAndFlash } from '../editor/syncFlash.js';
 import { t } from '../i18n/i18n.js';
 import { getTheme } from '../themes/theme.js';
 import { readStoredEntrypoint, resolveEntrypoint, storeEntrypoint } from './entrypoint.js';
-import { isTypstPath, joinPath, relativeToRoot } from './paths.js';
+import { baseName, isTypstPath, joinPath, relativeToRoot, remapMovedPath } from './paths.js';
 import { buildCompileTarget, hasRootDocument } from './compileTarget.js';
 import {
   decideAutoSaveAttempt,
@@ -830,6 +830,98 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
 
   const isOwnOperation = (path) => isWithinAny(path, ownOperationPaths);
 
+  /**
+   * Plazo durante el que las rutas de una operación propia siguen marcadas
+   * DESPUÉS de terminarla: los avisos del observador llegan con retraso. Solo
+   * afecta a esas rutas; además, una vez actualizado el estado, la huella
+   * (RF-68) ya reconoce el contenido y los avisos se ignoran de todos modos.
+   */
+  const OWN_OPERATION_SETTLE_MS = 1500;
+
+  /**
+   * Ejecuta `operation` marcando `paths` como operación propia (RF-69.11):
+   * mover o borrar el documento abierto no debe verse como "otro programa lo
+   * ha cambiado" ni como "el fichero ya no existe".
+   * @template T
+   * @param {string[]} paths
+   * @param {() => Promise<T>} operation
+   * @returns {Promise<T>}
+   */
+  async function runOwnOperation(paths, operation) {
+    const marked = paths.filter((path) => !ownOperationPaths.has(path));
+    for (const path of marked) ownOperationPaths.add(path);
+    try {
+      return await operation();
+    } finally {
+      setTimeout(() => {
+        for (const path of marked) ownOperationPaths.delete(path);
+      }, OWN_OPERATION_SETTLE_MS);
+    }
+  }
+
+  /**
+   * Tras mover o renombrar desde el árbol (RF-69.10, R-F4): el documento
+   * abierto, el que compila la vista previa y el documento principal siguen a
+   * su fichero. El editor conserva el contenido y el historial de deshacer.
+   * @param {Array<{from: string, to: string}>} moved
+   */
+  async function applyPathMoves(moved) {
+    if (!moved.length) return;
+    if (state.previewDocument) state.previewDocument = remapMovedPath(state.previewDocument, moved);
+
+    if (state.project?.entrypoint && !state.project.isSingleFile) {
+      const before = joinPath(state.project.root, state.project.entrypoint);
+      const after = remapMovedPath(before, moved);
+      const relative = after !== before ? relativeToRoot(state.project.root, after) : null;
+      if (relative) {
+        state.project = { ...state.project, entrypoint: relative };
+        storeEntrypoint(state.project.root, relative);
+        tree.setEntrypointPath(after);
+      }
+    }
+
+    if (state.document) {
+      const after = remapMovedPath(state.document.path, moved);
+      if (after !== state.document.path) {
+        state.document = { ...state.document, path: after, fileName: baseName(after) };
+        editor.setPath(after);
+        tree.setActivePath(after);
+        renderDocumentBar();
+        if (state.project) await watchProject(state.project.root, after);
+      }
+    }
+    listeners.pathsMoved?.(moved);
+  }
+
+  /**
+   * Tras eliminar desde el árbol (RF-69.10): si el documento abierto estaba
+   * entre lo eliminado (o dentro de una carpeta eliminada), se cierra; si era
+   * el principal, pierde la marca. Quien llama ya ha confirmado con el
+   * usuario, también los cambios sin guardar.
+   * @param {string[]} paths
+   */
+  async function handleDeletedPaths(paths) {
+    if (state.project?.entrypoint && !state.project.isSingleFile) {
+      const entry = joinPath(state.project.root, state.project.entrypoint);
+      if (isWithinAny(entry, paths)) {
+        state.project = { ...state.project, entrypoint: null };
+        storeEntrypoint(state.project.root, '');
+        tree.setEntrypointPath(null);
+      }
+    }
+    if (state.document && isWithinAny(state.document.path, paths)) {
+      cancelScheduledAutoSave();
+      state.document = null;
+      state.dirty = false;
+      editor.setDocument('', null);
+      tree.setActivePath(null);
+      renderDocumentBar();
+      listeners.documentDetached?.();
+      if (state.project) await watchProject(state.project.root, null);
+    }
+    if (state.previewDocument && isWithinAny(state.previewDocument, paths)) state.previewDocument = null;
+  }
+
   // Un cambio en disco refresca el árbol (ficheros nuevos de un `git pull`, por
   // ejemplo) y se reenvía a la vista previa para que recompile.
   on(PROJECT_CHANGE_EVENT, (change) => {
@@ -1139,6 +1231,13 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     setTheme(theme) {
       editor.setTheme(theme);
     },
+    runOwnOperation,
+    applyPathMoves,
+    handleDeletedPaths,
+    /** Ruta del documento abierto, o `null`. */
+    getDocumentPath: () => state.document?.path ?? null,
+    /** True si el documento abierto tiene cambios sin guardar. */
+    isDirty: () => state.dirty,
     /** @param {{modifiedMs: number, contentHash: string}} receipt */
     markSaved(receipt) {
       if (!state.document) return;

@@ -76,3 +76,28 @@ export function truncateParentPath(path, segments = 2) {
   const prefix = truncated ? `…${separator}` : isAbsoluteUnix ? separator : '';
   return prefix + shown.join(separator);
 }
+
+/**
+ * Dónde ha quedado `path` tras los movimientos o renombrados `moved` (RF-69,
+ * RF-70): si era uno de ellos o colgaba de una carpeta movida, su ruta nueva;
+ * si no, la misma. Sin distinguir mayúsculas ni separador, como el sistema de
+ * ficheros en Windows y macOS; el resultado usa el separador de la ruta nueva.
+ * @param {string} path
+ * @param {Array<{from: string, to: string}>} moved
+ * @returns {string}
+ */
+export function remapMovedPath(path, moved) {
+  if (!path) return path;
+  const target = normalize(path);
+  const key = target.toLowerCase();
+  for (const { from, to } of moved) {
+    const source = normalize(from).toLowerCase();
+    if (key === source) return to;
+    if (key.startsWith(`${source}/`)) {
+      const rest = target.slice(source.length + 1);
+      const separator = to.includes('\\') && !to.includes('/') ? '\\' : '/';
+      return `${to.replace(/[\\/]+$/, '')}${separator}${rest.split('/').join(separator)}`;
+    }
+  }
+  return path;
+}

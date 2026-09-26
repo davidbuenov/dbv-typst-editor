@@ -889,8 +889,23 @@
   margin: 0;
 }
 
-.sidebar__new-file-row .sidebar__filter {
-  margin: 0 10px 8px;
+/* RF-69.1: acciones de la cabecera del panel Archivos. Discretas hasta que
+   el ratón entra en el panel o el foco está dentro (accesibles con teclado). */
+.tree-actions {
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+
+#files-panel:hover .tree-actions,
+#files-panel:focus-within .tree-actions {
+  opacity: 1;
+}
+
+.tree-actions .button__icon {
+  width: 14px;
+  height: 14px;
 }
 
 /* ─── Árbol de proyecto ───────────────────────────────────────────────────── */
@@ -930,6 +945,67 @@
 .tree-row.is-active {
   background: var(--quote-bg);
   color: var(--accent);
+}
+
+.tree-row.is-selected {
+  background: var(--bg-tertiary);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.tree-row.is-selected.is-active {
+  background: var(--quote-bg);
+}
+
+/* RF-69.2: fila editable para crear o renombrar. */
+.tree-row--editing {
+  cursor: default;
+}
+
+.tree-edit__input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 1px 4px;
+  font: inherit;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+  outline: none;
+}
+
+.tree-edit__error {
+  margin: 2px 10px 4px 22px;
+  padding: 4px 6px;
+  font-size: 11px;
+  color: var(--status-error);
+  background: var(--status-error-bg);
+  border: 1px solid var(--status-error-border);
+  border-radius: 3px;
+  white-space: normal;
+}
+
+/* RF-69.5: destino de una soltada mientras se arrastra en el árbol. */
+.tree-row.is-drop-target {
+  background: var(--accent-subtle);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.tree.is-drop-root {
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.tree-drag-ghost {
+  position: fixed;
+  z-index: 70;
+  padding: 2px 8px;
+  font-size: 12px;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 12px var(--shadow);
+  pointer-events: none;
+  white-space: nowrap;
 }
 
 .tree-row.is-dimmed {

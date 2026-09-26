@@ -335,14 +335,21 @@
                 type="search"
                 data-i18n-placeholder="tree.filter"
               />
-              <button id="tree-new-file" class="icon-button icon-button--small" type="button" data-i18n-title="tree.newFile">+</button>
-            </div>
-            <!-- RF-33: al clonar un repositorio vacío no había NINGUNA forma de
-                 crear el primer fichero dentro de un proyecto ya abierto — los
-                 asistentes de plantilla siempre crean una carpeta NUEVA. Fila
-                 de creación inline, oculta hasta que se pulsa "+". -->
-            <div class="sidebar__new-file-row hidden" id="tree-new-file-row">
-              <input id="tree-new-file-input" class="sidebar__filter" type="text" autocomplete="off" spellcheck="false" data-i18n-placeholder="tree.newFilePlaceholder" />
+              <!-- RF-69.1: acciones de la cabecera, como en el explorador de VS
+                   Code. Aparecen al pasar el ratón por el panel (o con el foco
+                   dentro) y actúan sobre la carpeta de la selección. Sustituyen
+                   al "+" de RF-33, que solo creaba `.typ` en la raíz. -->
+              <div class="tree-actions">
+                <button id="tree-new-file" class="icon-button icon-button--small" type="button" data-i18n-title="tree.newFile">
+                  <svg class="button__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5.5 2.5h5l3.5 3.5v4"/><path d="M10.5 2.5V6H14"/><path d="M5.5 2.5a1 1 0 0 0-1 1V16a1 1 0 0 0 1 1h4.5"/><path d="M14.5 12.5v5M12 15h5"/></svg>
+                </button>
+                <button id="tree-new-folder" class="icon-button icon-button--small" type="button" data-i18n-title="tree.newFolder">
+                  <svg class="button__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M10 16H3.5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h4l1.5 2h7.5a1 1 0 0 1 1 1v3"/><path d="M14.5 12.5v5M12 15h5"/></svg>
+                </button>
+                <button id="tree-refresh" class="icon-button icon-button--small" type="button" data-i18n-title="tree.refresh">
+                  <svg class="button__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M16 10a6 6 0 1 1-1.8-4.3"/><path d="M16 3.5v3.2h-3.2"/></svg>
+                </button>
+              </div>
             </div>
             <div class="tree" id="project-tree"></div>
           </div>

@@ -6,7 +6,7 @@
 // =============================================================================
 
 import { describe, expect, it } from 'vitest';
-import { truncateParentPath } from './paths.js';
+import { remapMovedPath, truncateParentPath } from './paths.js';
 
 describe('truncateParentPath', () => {
   it('devuelve los dos últimos tramos de la carpeta padre, con marca de recorte', () => {
@@ -30,5 +30,30 @@ describe('truncateParentPath', () => {
 
   it('una ruta de un solo tramo no tiene padre que mostrar', () => {
     expect(truncateParentPath('proyecto')).toBe('');
+  });
+});
+
+describe('remapMovedPath (RF-69/RF-70)', () => {
+  const moved = [{ from: 'D:\\libro\\cap1.typ', to: 'D:\\libro\\capitulos\\cap1.typ' }];
+
+  it('sigue a un fichero movido o renombrado', () => {
+    expect(remapMovedPath('D:\\libro\\cap1.typ', moved)).toBe('D:\\libro\\capitulos\\cap1.typ');
+    expect(remapMovedPath('d:/libro/CAP1.typ', moved)).toBe('D:\\libro\\capitulos\\cap1.typ');
+  });
+
+  it('sigue a lo que cuelga de una carpeta movida, con el separador de la ruta nueva', () => {
+    const folder = [{ from: 'D:\\libro\\partes', to: 'D:\\libro\\anexos\\partes' }];
+    expect(remapMovedPath('D:\\libro\\partes\\uno\\a.typ', folder)).toBe('D:\\libro\\anexos\\partes\\uno\\a.typ');
+    expect(remapMovedPath('/home/u/libro/partes/a.typ', [{ from: '/home/u/libro/partes', to: '/home/u/libro/x' }])).toBe(
+      '/home/u/libro/x/a.typ',
+    );
+  });
+
+  it('deja igual lo que no se ha movido, sin confundir un prefijo con una carpeta', () => {
+    expect(remapMovedPath('D:\\libro\\cap10.typ', moved)).toBe('D:\\libro\\cap10.typ');
+    expect(remapMovedPath('D:\\libro\\partes-viejas\\a.typ', [{ from: 'D:\\libro\\partes', to: 'D:\\x' }])).toBe(
+      'D:\\libro\\partes-viejas\\a.typ',
+    );
+    expect(remapMovedPath(null, moved)).toBe(null);
   });
 });

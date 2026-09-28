@@ -421,8 +421,20 @@ function writeDisabledPreference(disabled) {
 export function createLspClient({ onDiagnostics: initialOnDiagnostics, notify, onStatusChange } = {}) {
   let active = false;
   let isStarting = false;
-  let currentDoc = null; 
-  let pendingDoc = null; 
+  /**
+   * Documento activo: el que recibe `didChange` al escribir y sobre el que se
+   * piden completados, hover y formato.
+   * @type {null | {path: string, uri: string, version: number, text: string}}
+   */
+  let currentDoc = null;
+  let pendingDoc = null;
+  /**
+   * Documentos que Tinymist tiene abiertos (RF-79, R-L5), por `uriKey`: uno por
+   * pestaña Typst. `text` es lo último que se le mandó, para no reenviar un
+   * documento que no ha cambiado al volver a su pestaña.
+   * @type {Map<string, {path: string, uri: string, version: number, text: string}>}
+   */
+  const openDocs = new Map();
   let unlistenNotif = null;
   let onDiagnostics = initialOnDiagnostics;
   /**
@@ -505,6 +517,7 @@ export function createLspClient({ onDiagnostics: initialOnDiagnostics, notify, o
     isStarting = false;
     currentDoc = null;
     pendingDoc = null;
+    openDocs.clear();
     diagnosticsByUri.clear();
     setStatus(status);
     if (unlistenNotif) {
@@ -544,8 +557,26 @@ export function createLspClient({ onDiagnostics: initialOnDiagnostics, notify, o
     return start(projectRoot);
   }
 
+  /** Envía el texto completo de un documento ya abierto en Tinymist. */
+  async function sendFullText(doc, text) {
+    doc.version++;
+    doc.text = text;
+    try {
+      await tinymistSendNotification('textDocument/didChange', {
+        textDocument: { uri: doc.uri, version: doc.version },
+        contentChanges: [{ text }],
+      });
+    } catch {}
+  }
+
+  /**
+   * Hace activo un documento (abrir un fichero o volver a su pestaña). Si
+   * Tinymist ya lo tiene abierto solo le reenvía el texto si cambió; si no,
+   * `didOpen`. Varios documentos pueden estar abiertos a la vez (RF-79).
+   */
   async function openDocument(path, text) {
     const uri = pathToUri(path);
+    const key = uriKey(uri);
     const big = text.length > LSP_AUTOSTART_MAX_CHARS;
 
     // Con el LSP ya en marcha, pasar a un documento enorme lo detiene: cada
@@ -554,7 +585,8 @@ export function createLspClient({ onDiagnostics: initialOnDiagnostics, notify, o
       await stop({ status: 'idle' });
     }
 
-    currentDoc = { path, uri, version: 1 };
+    const known = openDocs.get(key);
+    currentDoc = known ?? { path, uri, version: 1, text };
     if (!active) {
       pendingDoc = { path, uri, text };
       // Arranque perezoso: un documento pequeño lo arranca; uno grande espera.
@@ -565,21 +597,57 @@ export function createLspClient({ onDiagnostics: initialOnDiagnostics, notify, o
     }
     pendingDoc = null;
 
+    if (known) {
+      if (known.text !== text) await sendFullText(known, text);
+      return;
+    }
+    openDocs.set(key, currentDoc);
     try {
       await tinymistSendNotification('textDocument/didOpen', {
         textDocument: {
           uri,
           languageId: 'typst',
-          version: 1,
+          version: currentDoc.version,
           text,
         },
       });
     } catch {}
   }
 
+  /**
+   * Actualiza en Tinymist un documento abierto que no es el activo (una
+   * pestaña de fondo editada por RF-70 o por un reemplazo en el proyecto), para
+   * que un renombrado posterior no calcule posiciones sobre texto viejo.
+   */
+  async function updateDocument(path, text) {
+    const doc = openDocs.get(uriKey(pathToUri(path)));
+    if (active && doc && doc.text !== text) await sendFullText(doc, text);
+  }
+
+  /** La pestaña se cerró: Tinymist vuelve a leer ese fichero del disco. */
+  async function closeDocument(path) {
+    const key = uriKey(pathToUri(path));
+    const doc = openDocs.get(key);
+    openDocs.delete(key);
+    if (currentDoc && uriKey(currentDoc.uri) === key) currentDoc = null;
+    if (pendingDoc && uriKey(pendingDoc.uri) === key) pendingDoc = null;
+    if (active && doc) {
+      try {
+        await tinymistSendNotification('textDocument/didClose', { textDocument: { uri: doc.uri } });
+      } catch {}
+    }
+  }
+
+  /** El fichero se renombró o movió (RF-69.10): se cierra la URI vieja y se abre la nueva. */
+  async function renameDocument(oldPath, newPath, text) {
+    await closeDocument(oldPath);
+    await openDocument(newPath, text);
+  }
+
   async function changeDocument(text) {
     if (!active || !currentDoc) return;
     currentDoc.version++;
+    currentDoc.text = text;
 
     try {
       await tinymistSendNotification('textDocument/didChange', {
@@ -750,6 +818,9 @@ export function createLspClient({ onDiagnostics: initialOnDiagnostics, notify, o
     start,
     stop,
     openDocument,
+    updateDocument,
+    closeDocument,
+    renameDocument,
     changeDocument,
     getCompletions,
     getSignatureHelp,

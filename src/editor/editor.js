@@ -290,10 +290,9 @@ export function createEditor(
 
   const themeCompartment = new Compartment();
   const readOnlyCompartment = new Compartment();
-  // El historial vive en su propio compartimento por un motivo concreto: al
-  // abrir otro documento hay que VACIARLO. Si no, un Ctrl+Z justo después de
-  // cambiar de fichero deshace hasta el texto del documento anterior y lo
-  // escribe encima del nuevo — una forma silenciosa de destruir trabajo.
+  // Historial de deshacer. Cada documento tiene el suyo porque vive en su
+  // `EditorState` (RF-79): abrir otro fichero crea un estado nuevo, así que
+  // un Ctrl+Z no puede llegar al documento anterior y escribirlo encima.
   const historyCompartment = new Compartment();
   // Lenguaje del fichero abierto (RF-60): Typst, un paquete de código o nada.
   const languageCompartment = new Compartment();
@@ -301,6 +300,10 @@ export function createEditor(
   const lineNumbersCompartment = new Compartment();
 
   let currentPath = null;
+  // Valores vigentes de lo que es de la ventana y no del fichero (R-T2): al
+  // volver a una pestaña, su `EditorState` guardado trae la configuración de
+  // cuando se guardó, y hay que reponer la actual.
+  let currentTheme = theme;
   // Cada apertura invalida la carga de lenguaje anterior: si el usuario cambia de
   // fichero antes de que llegue el paquete, el resaltado tardío no debe pisar al nuevo.
   let languageToken = 0;
@@ -324,35 +327,32 @@ export function createEditor(
     },
   ]);
 
-  const view = new EditorView({
-    parent: hostEl,
-    state: EditorState.create({
-      doc: '',
-      extensions: buildExtensions({
-        themeCompartment,
-        readOnlyCompartment,
-        historyCompartment,
-        languageCompartment,
-        lineNumbersCompartment,
-        saveKeymap,
-        isDark: theme === 'dark',
-        showLineNumbers: getPref('showLineNumbers'),
-        lspClient: typstOnlyLsp,
-        getCurrentPath: () => currentPath,
-        onBlur,
-        updateListener: EditorView.updateListener.of((update) => {
-          if (loading) return;
-          if (update.docChanged) {
-            const text = update.state.doc.toString();
-            if (isTypstPath(currentPath)) lspClient?.changeDocument(text);
-            onChanges?.(update.changes);
-            onChange?.(text);
-          }
-          if (update.docChanged || update.selectionSet) onSelectionChange?.(update.view);
-        }),
-      }),
+  // Las mismas extensiones para todos los documentos: cada pestaña (RF-79)
+  // tiene su propio `EditorState`, creado con ellas.
+  const extensions = buildExtensions({
+    themeCompartment,
+    readOnlyCompartment,
+    historyCompartment,
+    languageCompartment,
+    lineNumbersCompartment,
+    saveKeymap,
+    isDark: theme === 'dark',
+    showLineNumbers: getPref('showLineNumbers'),
+    lspClient: typstOnlyLsp,
+    getCurrentPath: () => currentPath,
+    onBlur,
+    updateListener: EditorView.updateListener.of((update) => {
+      if (loading) return;
+      if (update.docChanged) {
+        const text = update.state.doc.toString();
+        if (isTypstPath(currentPath)) lspClient?.changeDocument(text);
+        onChanges?.(update.changes);
+        onChange?.(text);
+      }
+      if (update.docChanged || update.selectionSet) onSelectionChange?.(update.view);
     }),
   });
+  const view = new EditorView({ parent: hostEl, state: EditorState.create({ doc: '', extensions }) });
 
   // Reacciona en caliente al menú Preferencias (RF-63.2): reconfigurar el
   // compartimento no pierde ni el cursor ni el historial de deshacer.
@@ -378,23 +378,40 @@ export function createEditor(
     });
   }
 
+  /**
+   * Vuelve a una pestaña con el estado que guardó `snapshot()`. Su historial
+   * y su lenguaje son del fichero y se conservan; el tema y los números de
+   * línea son de la ventana y se reponen con el valor actual (R-T2). La solo
+   * lectura es de la pestaña (un paquete abierto desde «Ir a la definición»).
+   * @param {string | null} path
+   * @param {{state: EditorState, scroll?: import('@codemirror/state').StateEffect<unknown>}} saved
+   * @param {{readOnly?: boolean}} [options]
+   */
+  function activate(path, saved, { readOnly = false } = {}) {
+    loading = true;
+    view.setState(saved.state);
+    const effects = [
+      themeCompartment.reconfigure(buildTheme(currentTheme === 'dark')),
+      lineNumbersCompartment.reconfigure(getPref('showLineNumbers') ? lineNumbers() : []),
+      readOnlyCompartment.reconfigure(EditorState.readOnly.of(readOnly)),
+    ];
+    if (saved.scroll) effects.push(saved.scroll);
+    view.dispatch({ effects });
+    currentPath = path ?? null;
+    if (isTypstPath(currentPath)) lspClient?.openDocument(currentPath, view.state.doc.toString());
+    applyLanguage(currentPath);
+    loading = false;
+  }
+
   return {
-    /** Carga un documento sin disparar `onChange` ni conservar el historial. */
+    /**
+     * Carga un documento sin disparar `onChange`, en un `EditorState` NUEVO:
+     * historial vacío (deshacer no puede llegar al documento anterior) y sin
+     * pliegues ni diagnósticos del fichero anterior. Si el anterior era una
+     * pestaña, se guardó antes con `snapshot()`.
+     */
     setDocument(content, path) {
-      loading = true;
-      view.dispatch({
-        changes: { from: 0, to: view.state.doc.length, insert: content },
-        selection: { anchor: 0 },
-      });
-      // Reconfigurar el compartimento descarta el historial acumulado y vuelve
-      // a instalarlo vacío: deshacer en el documento recién abierto ya no puede
-      // llegar al contenido del anterior.
-      view.dispatch({ effects: historyCompartment.reconfigure([]) });
-      view.dispatch({ effects: historyCompartment.reconfigure(history()) });
-      currentPath = path ?? null;
-      if (isTypstPath(currentPath)) lspClient?.openDocument(currentPath, content);
-      applyLanguage(currentPath);
-      loading = false;
+      activate(path, { state: EditorState.create({ doc: content, extensions }) });
     },
     /**
      * Cambia la ruta del documento abierto SIN tocar su contenido ni su
@@ -404,9 +421,27 @@ export function createEditor(
      */
     setPath(path) {
       if (path === currentPath) return;
+      const previous = currentPath;
       currentPath = path ?? null;
-      if (isTypstPath(currentPath)) lspClient?.openDocument(currentPath, view.state.doc.toString());
+      const text = view.state.doc.toString();
+      if (isTypstPath(previous) && isTypstPath(currentPath)) lspClient?.renameDocument(previous, currentPath, text);
+      else if (isTypstPath(previous)) lspClient?.closeDocument(previous);
+      else if (isTypstPath(currentPath)) lspClient?.openDocument(currentPath, text);
       applyLanguage(currentPath);
+    },
+    /**
+     * Estado completo del documento que se está editando (texto, cursor,
+     * selección, historial de deshacer, pliegues, diagnósticos) y su scroll,
+     * para guardarlo al cambiar de pestaña (RF-79). `EditorState` es inmutable:
+     * lo que se devuelve no cambia aunque se siga editando otra cosa.
+     */
+    snapshot() {
+      return { state: view.state, scroll: view.scrollSnapshot() };
+    },
+    activate,
+    /** La pestaña de `path` se cerró: Tinymist deja de tenerlo abierto. */
+    closeDocument(path) {
+      if (isTypstPath(path)) lspClient?.closeDocument(path);
     },
     formatDocument: () => lspClient?.formatDocument(view, currentPath),
     setDiagnostics(diagnostics) {
@@ -423,6 +458,7 @@ export function createEditor(
     },
     /** @param {'dark'|'light'|'sepia'} nextTheme */
     setTheme(nextTheme) {
+      currentTheme = nextTheme;
       view.dispatch({
         effects: themeCompartment.reconfigure(buildTheme(nextTheme === 'dark')),
       });

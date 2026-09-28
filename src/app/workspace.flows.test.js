@@ -105,6 +105,8 @@ const backend = {
   pickSaveTarget: vi.fn(),
   readFile: vi.fn(),
   revealInFileManager: vi.fn(),
+  setProjectEntrypoint: vi.fn(async () => ({ ok: true, value: {} })),
+  clearProjectEntrypoint: vi.fn(async () => ({ ok: true, value: null })),
   unwatchProject: vi.fn(async () => ({ ok: true })),
   watchProject: vi.fn(async () => ({ ok: true })),
   writeFile: vi.fn(),
@@ -373,5 +375,79 @@ describe('diagnósticos de Tinymist en su fichero (RF-85)', () => {
     });
     await workspace.openDocument(CAP);
     expect(counts.at(-1)).toBe(1);
+  });
+});
+
+describe('documento principal en el manifiesto (RF-83)', () => {
+  const LIBRO = `${ROOT}/libro.typ`;
+
+  /** Abre el proyecto con el principal y su origen que devolvería el backend. */
+  async function openWith(entrypoint, entrypointSource) {
+    const mounted = mount();
+    backend.openProject.mockResolvedValue({
+      ok: true,
+      value: { root: ROOT, name: 'libro', entrypoint, entrypointSource, isSingleFile: false, hasManifest: entrypointSource === 'manifest' },
+    });
+    backend.readFile.mockImplementation(async (path) => ({
+      ok: true,
+      value: { path, fileName: path.split('/').pop(), content: '= x', modifiedMs: 1, contentHash: 'h1' },
+    }));
+    await mounted.workspace.openProjectAt(ROOT);
+    return mounted;
+  }
+
+  it('al abrir, el principal del manifiesto manda sobre la elección guardada en este equipo', async () => {
+    localStorage.setItem(`dbv-typst-entrypoint:${ROOT}`, 'otro.typ');
+    const { workspace } = await openWith('libro.typ', 'manifest');
+    expect(workspace.getEntrypoint()).toBe('libro.typ');
+    expect(workspace.getDocumentPath()).toBe(LIBRO);
+  });
+
+  it('sin principal en el manifiesto, la elección guardada en este equipo manda sobre la heurística', async () => {
+    localStorage.setItem(`dbv-typst-entrypoint:${ROOT}`, 'libro.typ');
+    const { workspace } = await openWith('main.typ', 'heuristic');
+    expect(workspace.getEntrypoint()).toBe('libro.typ');
+  });
+
+  it('marcar el principal lo escribe en el manifiesto y en este equipo', async () => {
+    const { workspace, notify } = await openWith('main.typ', 'heuristic');
+    expect(workspace.setEntrypoint(LIBRO)).toBe('libro.typ');
+    await workspace.whenEntrypointSaved();
+    expect(backend.setProjectEntrypoint).toHaveBeenCalledWith(ROOT, 'libro.typ');
+    expect(localStorage.getItem(`dbv-typst-entrypoint:${ROOT}`)).toBe('libro.typ');
+    expect(notify.mock.calls.filter(([, tone]) => tone === 'error')).toHaveLength(0);
+  });
+
+  it('si el manifiesto no se puede escribir, avisa una sola vez y queda recordado en este equipo', async () => {
+    const { workspace, notify } = await openWith('main.typ', 'heuristic');
+    backend.setProjectEntrypoint.mockResolvedValue({ ok: false, error: { kind: 'denied', message: 'settings' } });
+    workspace.setEntrypoint(LIBRO);
+    await workspace.whenEntrypointSaved();
+    workspace.setEntrypoint(MAIN);
+    await workspace.whenEntrypointSaved();
+    expect(notify.mock.calls.filter(([, tone]) => tone === 'error')).toHaveLength(1);
+    expect(workspace.getEntrypoint()).toBe('main.typ');
+    expect(localStorage.getItem(`dbv-typst-entrypoint:${ROOT}`)).toBe('main.typ');
+    backend.setProjectEntrypoint.mockResolvedValue({ ok: true, value: {} });
+  });
+
+  it('renombrar el principal declarado en el manifiesto lo actualiza allí', async () => {
+    const { workspace } = await openWith('libro.typ', 'manifest');
+    await workspace.applyPathMoves([{ from: LIBRO, to: `${ROOT}/tomo.typ` }]);
+    expect(backend.setProjectEntrypoint).toHaveBeenCalledWith(ROOT, 'tomo.typ');
+  });
+
+  it('renombrar un principal que solo era heurístico no crea manifiesto', async () => {
+    const { workspace } = await openWith('main.typ', 'heuristic');
+    await workspace.applyPathMoves([{ from: MAIN, to: LIBRO }]);
+    expect(workspace.getEntrypoint()).toBe('libro.typ');
+    expect(backend.setProjectEntrypoint).not.toHaveBeenCalled();
+  });
+
+  it('eliminar el principal declarado en el manifiesto lo quita de allí', async () => {
+    const { workspace } = await openWith('libro.typ', 'manifest');
+    await workspace.handleDeletedPaths([LIBRO]);
+    expect(backend.clearProjectEntrypoint).toHaveBeenCalledWith(ROOT);
+    expect(workspace.getEntrypoint()).toBe(null);
   });
 });

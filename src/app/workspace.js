@@ -50,6 +50,7 @@ import { getPref, onPrefsChanged } from './prefs.js';
 import {
   PROJECT_CHANGE_EVENT,
   addRecentProject,
+  clearProjectEntrypoint,
   copyAssetIntoProject,
   exportPdf,
   exportPng as backendExportPng,
@@ -64,6 +65,7 @@ import {
   pickSaveTarget,
   readFile,
   revealInFileManager,
+  setProjectEntrypoint,
   unwatchProject,
   watchProject,
   writeFile,
@@ -574,10 +576,14 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     }
 
     state.project = result.value;
+    entrypointWarned = false;
     configureHistory();
-    // El documento principal elegido a mano manda sobre la heurística, si el
-    // fichero sigue existiendo (se comprueba: pudo borrarse o renombrarse).
-    const storedEntrypoint = state.project.isSingleFile ? null : readStoredEntrypoint(state.project.root);
+    // RF-83.3: manda el principal del manifiesto (el backend ya comprobó que
+    // existe). Si no declara ninguno, la elección guardada en este equipo
+    // (proyectos marcados antes de la 0.12.0) manda sobre la heurística, si el
+    // fichero sigue existiendo (pudo borrarse o renombrarse).
+    const fromManifest = state.project.entrypointSource === 'manifest';
+    const storedEntrypoint = state.project.isSingleFile || fromManifest ? null : readStoredEntrypoint(state.project.root);
     if (storedEntrypoint && (await fileModifiedMs(joinPath(state.project.root, storedEntrypoint))).ok) {
       state.project = { ...state.project, entrypoint: storedEntrypoint };
     }
@@ -868,6 +874,34 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     }
   }
 
+  /** True si ya se avisó de que el manifiesto no se pudo escribir (RF-83.4: una vez por proyecto). */
+  let entrypointWarned = false;
+  /** @type {Promise<void>} */
+  let pendingEntrypointWrite = Promise.resolve();
+
+  /**
+   * Guarda el documento principal (`''` = ninguno) en este equipo y, si
+   * `inManifest`, también en `settings/dbv-project.toml` (RF-83). La copia
+   * local es el respaldo: si el manifiesto no se puede escribir, se avisa una
+   * vez y el principal queda recordado solo aquí, como en la 0.11.0.
+   * @param {string} relative
+   * @param {boolean} inManifest
+   */
+  async function persistEntrypoint(relative, inManifest) {
+    const project = state.project;
+    if (!project) return;
+    storeEntrypoint(project.root, relative);
+    if (!inManifest) return;
+    const result = relative ? await setProjectEntrypoint(project.root, relative) : await clearProjectEntrypoint(project.root);
+    if (result.ok && relative && state.project?.root === project.root) {
+      state.project = { ...state.project, entrypointSource: 'manifest', hasManifest: true };
+    }
+    if (!result.ok && !entrypointWarned) {
+      entrypointWarned = true;
+      notify(t('project.entrypointLocalOnly'), 'error');
+    }
+  }
+
   /**
    * Tras mover o renombrar desde el árbol (RF-69.10, R-F4): el documento
    * abierto, el que compila la vista previa y el documento principal siguen a
@@ -884,8 +918,10 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
       const relative = after !== before ? relativeToRoot(state.project.root, after) : null;
       if (relative) {
         state.project = { ...state.project, entrypoint: relative };
-        storeEntrypoint(state.project.root, relative);
         tree.setEntrypointPath(after);
+        // RF-83.5: el manifiesto se actualiza solo si ya declaraba el principal
+        // (renombrar `main.typ` en un proyecto ajeno no debe crear uno).
+        await persistEntrypoint(relative, state.project.entrypointSource === 'manifest');
       }
     }
 
@@ -913,9 +949,10 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     if (state.project?.entrypoint && !state.project.isSingleFile) {
       const entry = joinPath(state.project.root, state.project.entrypoint);
       if (isWithinAny(entry, paths)) {
-        state.project = { ...state.project, entrypoint: null };
-        storeEntrypoint(state.project.root, '');
+        const inManifest = state.project.entrypointSource === 'manifest';
+        state.project = { ...state.project, entrypoint: null, entrypointSource: 'heuristic' };
         tree.setEntrypointPath(null);
+        await persistEntrypoint('', inManifest);
       }
     }
     if (state.document && isWithinAny(state.document.path, paths)) {
@@ -1239,6 +1276,8 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
      * Marca un `.typ` (por defecto el abierto) como documento principal del
      * proyecto. Devuelve su ruta relativa, o `null` si no se puede (sin
      * proyecto, un `.typ` suelto, o no es un `.typ` de dentro del proyecto).
+     * Se guarda en el manifiesto en segundo plano (RF-83): el resultado no
+     * cambia lo que se devuelve, solo si se avisa de que quedó en este equipo.
      */
     setEntrypoint(targetPath) {
       const project = state.project;
@@ -1248,7 +1287,7 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
       // Al fijar el principal, el alcance vuelve a "documento": es lo que se
       // pretende al elegirlo.
       state.previewScope = 'document';
-      storeEntrypoint(project.root, relative);
+      pendingEntrypointWrite = persistEntrypoint(relative, true);
       try {
         localStorage.setItem(scopeKey(project.root), 'document');
       } catch {
@@ -1259,6 +1298,8 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     },
     /** Documento principal vigente del proyecto (ruta relativa), o `null`. */
     getEntrypoint: () => state.project?.entrypoint ?? null,
+    /** Promesa de la última escritura del principal en el manifiesto (para los tests). */
+    whenEntrypointSaved: () => pendingEntrypointWrite,
     /** True si el proyecto tiene un documento raíz distinto del fichero abierto. */
     hasRootDocument: () => hasRootDocument(state.project),
     suggestedPngName(page) {

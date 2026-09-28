@@ -144,6 +144,10 @@ export const pickArchiveFile = () => call('pick_archive_dialog');
 
 export const openProject = (path) => call('open_project', { path });
 export const readProjectManifest = (root) => call('read_project_manifest', { root });
+/** RF-83: escribe el documento principal en `settings/dbv-project.toml` (lo crea si falta). */
+export const setProjectEntrypoint = (root, entrypoint) => call('set_project_entrypoint', { root, entrypoint });
+/** RF-83.5: quita el principal del manifiesto (sin manifiesto no hace nada). */
+export const clearProjectEntrypoint = (root) => call('clear_project_entrypoint', { root });
 
 // ─── Project Archive .dbvt (RF-11, v0.2) ─────────────────────────────────────
 

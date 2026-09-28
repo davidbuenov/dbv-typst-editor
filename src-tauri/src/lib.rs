@@ -165,6 +165,8 @@ pub fn run() {
             universe::preview_universe_template,
             universe::open_universe_package_page,
             project::read_project_manifest,
+            project::set_project_entrypoint,
+            project::clear_project_entrypoint,
             typst_engine::compile::typst_cancel_preview,
             typst_engine::compile::typst_compile_preview,
             typst_engine::compile::typst_export_pdf,

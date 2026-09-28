@@ -39,6 +39,22 @@ export function pathToUri(path) {
 }
 
 /**
+ * Inversa de `pathToUri`: `file:///C:/a%20b/x.typ` → `C:/a b/x.typ` y
+ * `file:///tmp/x.typ` → `/tmp/x.typ`. Tinymist devuelve las URIs codificadas.
+ * @param {string} uri
+ * @returns {string}
+ */
+export function uriToPath(uri) {
+  let path = String(uri ?? '').replace(/^file:\/\//, '');
+  try {
+    path = decodeURIComponent(path);
+  } catch {
+    // Un `%` suelto no es una secuencia válida: se deja tal cual.
+  }
+  return /^\/[A-Za-z]:/.test(path) ? path.slice(1) : path;
+}
+
+/**
  * Clave para comparar URIs `file://` venidas de sitios distintos (RF-85).
  *
  * Tinymist devuelve las rutas codificadas (`proj%205` para «proj 5») aunque se

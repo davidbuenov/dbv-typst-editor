@@ -1,0 +1,564 @@
+{
+  "files": {
+    "main.typ": "#let saluda(nombre) = [Hola #nombre]\n#include \"cap/uno.typ\"\nVer @fig-gato y #saluda(\"Ana\").\n#box(width: 1cm)[x]\n= Final\n",
+    "cap/uno.typ": "= Uno\n#figure(rect(), caption: [Gato]) <fig-gato>\nOtra vez @fig-gato.\n"
+  },
+  "definitionLabel": {
+    "method": "textDocument/definition",
+    "params": {
+      "textDocument": {
+        "uri": "file:///ROOT/main.typ"
+      },
+      "position": {
+        "line": 2,
+        "character": 6
+      }
+    },
+    "result": [
+      {
+        "originSelectionRange": {
+          "end": {
+            "character": 13,
+            "line": 2
+          },
+          "start": {
+            "character": 4,
+            "line": 2
+          }
+        },
+        "targetRange": {
+          "end": {
+            "character": 43,
+            "line": 1
+          },
+          "start": {
+            "character": 33,
+            "line": 1
+          }
+        },
+        "targetSelectionRange": {
+          "end": {
+            "character": 43,
+            "line": 1
+          },
+          "start": {
+            "character": 33,
+            "line": 1
+          }
+        },
+        "targetUri": "file:///ROOT/cap/uno.typ"
+      }
+    ]
+  },
+  "definitionLet": {
+    "method": "textDocument/definition",
+    "params": {
+      "textDocument": {
+        "uri": "file:///ROOT/main.typ"
+      },
+      "position": {
+        "line": 2,
+        "character": 18
+      }
+    },
+    "result": [
+      {
+        "originSelectionRange": {
+          "end": {
+            "character": 23,
+            "line": 2
+          },
+          "start": {
+            "character": 17,
+            "line": 2
+          }
+        },
+        "targetRange": {
+          "end": {
+            "character": 11,
+            "line": 0
+          },
+          "start": {
+            "character": 5,
+            "line": 0
+          }
+        },
+        "targetSelectionRange": {
+          "end": {
+            "character": 11,
+            "line": 0
+          },
+          "start": {
+            "character": 5,
+            "line": 0
+          }
+        },
+        "targetUri": "file:///ROOT/main.typ"
+      }
+    ]
+  },
+  "definitionBuiltin": {
+    "method": "textDocument/definition",
+    "params": {
+      "textDocument": {
+        "uri": "file:///ROOT/main.typ"
+      },
+      "position": {
+        "line": 3,
+        "character": 2
+      }
+    },
+    "result": null
+  },
+  "definitionInclude": {
+    "method": "textDocument/definition",
+    "params": {
+      "textDocument": {
+        "uri": "file:///ROOT/main.typ"
+      },
+      "position": {
+        "line": 1,
+        "character": 12
+      }
+    },
+    "result": [
+      {
+        "originSelectionRange": {
+          "end": {
+            "character": 22,
+            "line": 1
+          },
+          "start": {
+            "character": 9,
+            "line": 1
+          }
+        },
+        "targetRange": {
+          "end": {
+            "character": 0,
+            "line": 0
+          },
+          "start": {
+            "character": 0,
+            "line": 0
+          }
+        },
+        "targetSelectionRange": {
+          "end": {
+            "character": 0,
+            "line": 0
+          },
+          "start": {
+            "character": 0,
+            "line": 0
+          }
+        },
+        "targetUri": "file:///ROOT/cap/uno.typ"
+      }
+    ]
+  },
+  "referencesLabel": {
+    "method": "textDocument/references",
+    "params": {
+      "textDocument": {
+        "uri": "file:///ROOT/main.typ"
+      },
+      "position": {
+        "line": 2,
+        "character": 6
+      },
+      "context": {
+        "includeDeclaration": true
+      }
+    },
+    "result": [
+      {
+        "range": {
+          "end": {
+            "character": 42,
+            "line": 1
+          },
+          "start": {
+            "character": 34,
+            "line": 1
+          }
+        },
+        "uri": "file:///ROOT/cap/uno.typ"
+      },
+      {
+        "range": {
+          "end": {
+            "character": 18,
+            "line": 2
+          },
+          "start": {
+            "character": 10,
+            "line": 2
+          }
+        },
+        "uri": "file:///ROOT/cap/uno.typ"
+      },
+      {
+        "range": {
+          "end": {
+            "character": 13,
+            "line": 2
+          },
+          "start": {
+            "character": 5,
+            "line": 2
+          }
+        },
+        "uri": "file:///ROOT/main.typ"
+      }
+    ]
+  },
+  "referencesLet": {
+    "method": "textDocument/references",
+    "params": {
+      "textDocument": {
+        "uri": "file:///ROOT/main.typ"
+      },
+      "position": {
+        "line": 2,
+        "character": 18
+      },
+      "context": {
+        "includeDeclaration": true
+      }
+    },
+    "result": [
+      {
+        "range": {
+          "end": {
+            "character": 23,
+            "line": 2
+          },
+          "start": {
+            "character": 17,
+            "line": 2
+          }
+        },
+        "uri": "file:///ROOT/main.typ"
+      },
+      {
+        "range": {
+          "end": {
+            "character": 11,
+            "line": 0
+          },
+          "start": {
+            "character": 5,
+            "line": 0
+          }
+        },
+        "uri": "file:///ROOT/main.typ"
+      }
+    ]
+  },
+  "prepareRenameLet": {
+    "method": "textDocument/prepareRename",
+    "params": {
+      "textDocument": {
+        "uri": "file:///ROOT/main.typ"
+      },
+      "position": {
+        "line": 2,
+        "character": 18
+      }
+    },
+    "result": {
+      "placeholder": "saluda",
+      "range": {
+        "end": {
+          "character": 23,
+          "line": 2
+        },
+        "start": {
+          "character": 17,
+          "line": 2
+        }
+      }
+    }
+  },
+  "renameLet": {
+    "method": "textDocument/rename",
+    "params": {
+      "textDocument": {
+        "uri": "file:///ROOT/main.typ"
+      },
+      "position": {
+        "line": 2,
+        "character": 18
+      },
+      "newName": "saludo"
+    },
+    "result": {
+      "changes": {
+        "file:///ROOT/main.typ": [
+          {
+            "newText": "saludo",
+            "range": {
+              "end": {
+                "character": 23,
+                "line": 2
+              },
+              "start": {
+                "character": 17,
+                "line": 2
+              }
+            }
+          },
+          {
+            "newText": "saludo",
+            "range": {
+              "end": {
+                "character": 11,
+                "line": 0
+              },
+              "start": {
+                "character": 5,
+                "line": 0
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "prepareRenameLabel": {
+    "method": "textDocument/prepareRename",
+    "params": {
+      "textDocument": {
+        "uri": "file:///ROOT/main.typ"
+      },
+      "position": {
+        "line": 2,
+        "character": 6
+      }
+    },
+    "result": {
+      "placeholder": "fig-gato",
+      "range": {
+        "end": {
+          "character": 13,
+          "line": 2
+        },
+        "start": {
+          "character": 5,
+          "line": 2
+        }
+      }
+    }
+  },
+  "renameLabel": {
+    "method": "textDocument/rename",
+    "params": {
+      "textDocument": {
+        "uri": "file:///ROOT/main.typ"
+      },
+      "position": {
+        "line": 2,
+        "character": 6
+      },
+      "newName": "fig-felino"
+    },
+    "result": {
+      "changeAnnotations": {
+        "Typst Rename Labels": {
+          "description": "The language server fuzzy searched the labels",
+          "label": "Typst Rename Labels",
+          "needsConfirmation": true
+        }
+      },
+      "documentChanges": [
+        {
+          "edits": [
+            {
+              "annotationId": "Typst Rename Labels",
+              "newText": "fig-felino",
+              "range": {
+                "end": {
+                  "character": 42,
+                  "line": 1
+                },
+                "start": {
+                  "character": 34,
+                  "line": 1
+                }
+              }
+            },
+            {
+              "annotationId": "Typst Rename Labels",
+              "newText": "fig-felino",
+              "range": {
+                "end": {
+                  "character": 18,
+                  "line": 2
+                },
+                "start": {
+                  "character": 10,
+                  "line": 2
+                }
+              }
+            }
+          ],
+          "textDocument": {
+            "uri": "file:///ROOT/cap/uno.typ",
+            "version": null
+          }
+        },
+        {
+          "edits": [
+            {
+              "annotationId": "Typst Rename Labels",
+              "newText": "fig-felino",
+              "range": {
+                "end": {
+                  "character": 13,
+                  "line": 2
+                },
+                "start": {
+                  "character": 5,
+                  "line": 2
+                }
+              }
+            }
+          ],
+          "textDocument": {
+            "uri": "file:///ROOT/main.typ",
+            "version": null
+          }
+        }
+      ]
+    }
+  },
+  "prepareRenameBuiltin": {
+    "method": "textDocument/prepareRename",
+    "params": {
+      "textDocument": {
+        "uri": "file:///ROOT/main.typ"
+      },
+      "position": {
+        "line": 3,
+        "character": 2
+      }
+    },
+    "result": null
+  },
+  "prepareRenameInclude": {
+    "method": "textDocument/prepareRename",
+    "params": {
+      "textDocument": {
+        "uri": "file:///ROOT/main.typ"
+      },
+      "position": {
+        "line": 1,
+        "character": 12
+      }
+    },
+    "result": {
+      "placeholder": "cap/uno.typ",
+      "range": {
+        "end": {
+          "character": 22,
+          "line": 1
+        },
+        "start": {
+          "character": 9,
+          "line": 1
+        }
+      }
+    }
+  },
+  "renameInclude": {
+    "method": "textDocument/rename",
+    "params": {
+      "textDocument": {
+        "uri": "file:///ROOT/main.typ"
+      },
+      "position": {
+        "line": 1,
+        "character": 12
+      },
+      "newName": "cap/primero.typ"
+    },
+    "result": {
+      "documentChanges": [
+        {
+          "edits": [
+            {
+              "newText": "\"cap/primero.typ\"",
+              "range": {
+                "end": {
+                  "character": 22,
+                  "line": 1
+                },
+                "start": {
+                  "character": 9,
+                  "line": 1
+                }
+              }
+            }
+          ],
+          "textDocument": {
+            "uri": "file:///ROOT/main.typ",
+            "version": null
+          }
+        },
+        {
+          "kind": "rename",
+          "newUri": "file:///ROOT/cap/primero.typ",
+          "oldUri": "file:///ROOT/cap/uno.typ"
+        }
+      ]
+    }
+  },
+  "codeActionHeading": {
+    "method": "textDocument/codeAction",
+    "params": {
+      "textDocument": {
+        "uri": "file:///ROOT/main.typ"
+      },
+      "range": {
+        "start": {
+          "line": 4,
+          "character": 0
+        },
+        "end": {
+          "line": 4,
+          "character": 0
+        }
+      },
+      "context": {
+        "diagnostics": []
+      }
+    },
+    "result": [
+      {
+        "edit": {
+          "changes": {
+            "file:///ROOT/main.typ": [
+              {
+                "insertTextFormat": 1,
+                "newText": "==",
+                "range": {
+                  "end": {
+                    "character": 1,
+                    "line": 4
+                  },
+                  "start": {
+                    "character": 0,
+                    "line": 4
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "kind": "refactor.rewrite",
+        "title": "Increase depth of heading"
+      }
+    ]
+  }
+}

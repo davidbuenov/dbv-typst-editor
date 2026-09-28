@@ -1672,6 +1672,20 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     getTabs: listTabs,
     moveTab,
     hasUnsavedChanges,
+    /**
+     * Contenido actual de una pestaña cargada (con sus cambios sin guardar),
+     * o `null` si el fichero no está abierto (o aún no se ha cargado): la
+     * edición en varios ficheros (RF-77, RF-78) usa entonces el del disco.
+     * @param {string} path
+     * @returns {string | null}
+     */
+    getTabContent(path) {
+      if (isActivePath(path)) return editor.getContent();
+      const entry = background.get(pathKey(path));
+      return entry?.saved ? entry.saved.state.doc.toString() : null;
+    },
+    /** Raíz del proyecto abierto, o `null`. */
+    getRoot: () => state.project?.root ?? null,
     /** ¿Tiene cambios sin guardar alguna pestaña de `paths` o de dentro de esas carpetas? */
     hasUnsavedChangesIn(paths) {
       return dirtyTabs().some((tab) => isWithinAny(tab.path, paths));

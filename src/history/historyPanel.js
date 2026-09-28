@@ -18,6 +18,8 @@ const REASON_KEYS = {
   auto: 'history.reasonAuto',
   reload: 'history.reasonReload',
   refs: 'history.reasonRefs',
+  rename: 'history.reasonRename',
+  replace: 'history.reasonReplace',
 };
 
 /**

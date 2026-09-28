@@ -39,6 +39,27 @@ export function pathToUri(path) {
 }
 
 /**
+ * Clave para comparar URIs `file://` venidas de sitios distintos (RF-85).
+ *
+ * Tinymist devuelve las rutas codificadas (`proj%205` para «proj 5») aunque se
+ * le abriera el documento con la URI sin codificar de `pathToUri`, y en
+ * Windows la letra de unidad puede llegar en mayúscula o minúscula. Dos URIs
+ * del mismo fichero dan la misma clave.
+ * @param {string | null | undefined} uri
+ * @returns {string}
+ */
+export function uriKey(uri) {
+  let key = uri ?? '';
+  try {
+    key = decodeURIComponent(key);
+  } catch {
+    // Un `%` suelto no es una secuencia válida: se compara tal cual.
+  }
+  key = key.replace(/\\/g, '/').replace(/^file:\/\/\/([A-Za-z]):/, (_, drive) => `file:///${drive.toLowerCase()}:`);
+  return key;
+}
+
+/**
  * Convierte un tipo LSP CompletionItemKind a un tipo comprensible por CodeMirror.
  * @param {number} [kind]
  * @returns {string}
@@ -393,7 +414,7 @@ function writeDisabledPreference(disabled) {
 /**
  * Crea la instancia de cliente LSP para comunicarse con Tinymist.
  * @param {object} [deps]
- * @param {(diagnostics: any[]) => void} [deps.onDiagnostics]
+ * @param {(update: {uri: string, diagnostics: any[]}) => void} [deps.onDiagnostics]
  * @param {(msg: string, tone?: 'info'|'error') => void} [deps.notify]
  * @param {(status: 'offline'|'idle'|'starting'|'ready'|'error') => void} [deps.onStatusChange]
  */
@@ -404,6 +425,13 @@ export function createLspClient({ onDiagnostics: initialOnDiagnostics, notify, o
   let pendingDoc = null; 
   let unlistenNotif = null;
   let onDiagnostics = initialOnDiagnostics;
+  /**
+   * Últimos diagnósticos publicados por fichero (RF-85). Tinymist los publica
+   * de TODOS los ficheros del proyecto, no solo del abierto, y solo cuando
+   * cambian: hay que guardarlos para pintarlos al abrir ese fichero después.
+   * @type {Map<string, any[]>}
+   */
+  const diagnosticsByUri = new Map();
   /** Raíz del proyecto abierto: el LSP se arranca contra ella, cuando toque. */
   let projectRoot = null;
   /** True si el usuario lo activó a mano: entonces el umbral de tamaño no aplica. */
@@ -437,7 +465,11 @@ export function createLspClient({ onDiagnostics: initialOnDiagnostics, notify, o
           try {
             unlistenNotif = await on('tinymist:notification', (msg) => {
               if (msg.method === 'textDocument/publishDiagnostics') {
-                onDiagnostics?.(msg.params?.diagnostics ?? []);
+                const uri = msg.params?.uri ?? '';
+                const diagnostics = msg.params?.diagnostics ?? [];
+                if (diagnostics.length > 0) diagnosticsByUri.set(uriKey(uri), diagnostics);
+                else diagnosticsByUri.delete(uriKey(uri));
+                onDiagnostics?.({ uri, diagnostics });
               }
             });
           } catch {
@@ -473,6 +505,7 @@ export function createLspClient({ onDiagnostics: initialOnDiagnostics, notify, o
     isStarting = false;
     currentDoc = null;
     pendingDoc = null;
+    diagnosticsByUri.clear();
     setStatus(status);
     if (unlistenNotif) {
       try {
@@ -724,6 +757,14 @@ export function createLspClient({ onDiagnostics: initialOnDiagnostics, notify, o
     formatDocument,
     setDiagnosticsHandler(handler) {
       onDiagnostics = handler;
+    },
+    /**
+     * Diagnósticos de Tinymist de un fichero concreto (RF-85), en formato LSP.
+     * @param {string | null | undefined} path
+     * @returns {any[]}
+     */
+    getDiagnostics(path) {
+      return path ? (diagnosticsByUri.get(uriKey(pathToUri(path))) ?? []) : [];
     },
     setProjectRoot,
     enable,

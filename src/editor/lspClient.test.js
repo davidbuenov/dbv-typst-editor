@@ -20,6 +20,7 @@ import {
   pathToUri,
   posFromLsp,
   shouldRequestCompletion,
+  uriKey,
 } from './lspClient.js';
 import * as backend from '../services/backend.js';
 
@@ -661,5 +662,52 @@ describe('autocompletado completo de Tinymist (parámetros, snippets y firma)', 
       expect(lsp.getCompletions).not.toHaveBeenCalled();
       view.destroy();
     });
+  });
+});
+
+describe('diagnósticos por fichero (RF-85)', () => {
+  // Notificación capturada de Tinymist 0.15.8 (sonda 5, repetida en /build):
+  // el proyecto está en «proj 5», con espacio, y Tinymist lo codifica.
+  const notification = {
+    method: 'textDocument/publishDiagnostics',
+    params: {
+      uri: 'file:///C:/tmp/proj%205/cap/uno.typ',
+      diagnostics: [
+        {
+          message: 'unexpected argument: widht',
+          range: { start: { character: 5, line: 2 }, end: { character: 15, line: 2 } },
+          severity: 1,
+          source: 'typst',
+        },
+      ],
+    },
+  };
+
+  it('uriKey iguala la URI codificada de Tinymist y la sin codificar de pathToUri', () => {
+    expect(uriKey(notification.params.uri)).toBe(uriKey(pathToUri(String.raw`c:\tmp\proj 5\cap\uno.typ`)));
+    expect(uriKey('file:///C:/a/b.typ')).not.toBe(uriKey('file:///C:/a/c.typ'));
+    expect(uriKey('file:///tmp/100%')).toBe('file:///tmp/100%');
+  });
+
+  it('guarda los diagnósticos de cada fichero y entrega la URI', async () => {
+    let listener;
+    vi.spyOn(backend, 'on').mockImplementation(async (_event, handler) => {
+      listener = handler;
+      return () => {};
+    });
+    vi.spyOn(backend, 'tinymistStart').mockResolvedValue({ ok: true, value: null });
+    const updates = [];
+    const client = createLspClient({ onDiagnostics: (update) => updates.push(update) });
+    await client.start('C:/tmp/proj 5');
+
+    listener(notification);
+
+    expect(updates).toEqual([{ uri: notification.params.uri, diagnostics: notification.params.diagnostics }]);
+    expect(client.getDiagnostics('C:/tmp/proj 5/main.typ')).toEqual([]);
+    expect(client.getDiagnostics('C:/tmp/proj 5/cap/uno.typ')).toHaveLength(1);
+
+    // Una publicación vacía limpia ese fichero.
+    listener({ method: notification.method, params: { uri: notification.params.uri, diagnostics: [] } });
+    expect(client.getDiagnostics('C:/tmp/proj 5/cap/uno.typ')).toEqual([]);
   });
 });

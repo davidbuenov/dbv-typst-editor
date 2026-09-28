@@ -175,23 +175,18 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
   // Diagnósticos (RF-59): los de Tinymist y los del motor en proceso se
   // guardan por separado y se combinan al pintar, sin duplicar. Así el subrayado
   // sigue funcionando con Tinymist apagado.
-  let tinymistDiagnostics = [];
+  //
+  // RF-85: Tinymist publica diagnósticos de TODOS los ficheros del proyecto (un
+  // error en `cap/uno.typ` llega con `main.typ` abierto). El cliente los guarda
+  // por fichero y aquí solo se pintan los del documento abierto; al abrir otro,
+  // se pintan los suyos.
   let engineDiagnostics = [];
 
-  function applyDiagnostics() {
-    const view = editor.getView();
-    if (!view) return;
-    const file = state.project && state.document ? relativeToRoot(state.project.root, state.document.path) : null;
-    const own = toEditorDiagnostics(engineDiagnostics, file, view.state.doc);
-    editor.setDiagnostics(mergeDiagnostics(own, tinymistDiagnostics));
-  }
-
-  lspClient?.setDiagnosticsHandler?.((diagnostics) => {
-    const view = editor.getView();
-    if (!view) return;
-    const cmDiagnostics = diagnostics.map((d) => {
-      const from = posFromLsp(view.state.doc, d.range.start);
-      const to = posFromLsp(view.state.doc, d.range.end);
+  function tinymistDiagnosticsFor(doc) {
+    const raw = lspClient?.getDiagnostics?.(state.document?.path) ?? [];
+    return raw.map((d) => {
+      const from = posFromLsp(doc, d.range.start);
+      const to = posFromLsp(doc, d.range.end);
       const severity = d.severity === 1 ? 'error' : d.severity === 2 ? 'warning' : 'info';
       return {
         from,
@@ -201,10 +196,20 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
         source: d.source || 'Tinymist',
       };
     });
-    tinymistDiagnostics = cmDiagnostics;
-    applyDiagnostics();
-    listeners.diagnosticsUpdated?.(cmDiagnostics);
-  });
+  }
+
+  function applyDiagnostics() {
+    const view = editor.getView();
+    if (!view) return;
+    const file = state.project && state.document ? relativeToRoot(state.project.root, state.document.path) : null;
+    const own = toEditorDiagnostics(engineDiagnostics, file, view.state.doc);
+    const tinymist = tinymistDiagnosticsFor(view.state.doc);
+    editor.setDiagnostics(mergeDiagnostics(own, tinymist));
+    // La insignia cuenta los problemas del documento abierto, no del proyecto.
+    listeners.diagnosticsUpdated?.(tinymist);
+  }
+
+  lspClient?.setDiagnosticsHandler?.(() => applyDiagnostics());
   // RF-13: la barra de herramientas de inserción vive junto al editor que
   // controla, igual que en DBV Markdown Reader (ARCHITECTURE.md §3 fila 19).
   toolbar = createToolbar({

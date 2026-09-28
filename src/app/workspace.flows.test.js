@@ -119,7 +119,7 @@ const MAIN = `${ROOT}/main.typ`;
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 const onDisk = (contentHash) => ({ ok: true, value: { missing: false, modifiedMs: 5, contentHash } });
 
-function mount() {
+function mount({ lspClient } = {}) {
   const elements = new Proxy(
     { projectMenuItems: [] },
     {
@@ -133,13 +133,13 @@ function mount() {
   tree.getKnownFiles = () => [];
   const dialog = { ask: vi.fn(async () => 'keep') };
   const notify = vi.fn();
-  const workspace = createWorkspace({ tree, elements, notify, dialog });
+  const workspace = createWorkspace({ tree, elements, notify, dialog, lspClient });
   return { workspace, tree, dialog, notify };
 }
 
 /** Workspace con `main.typ` abierto, cuya huella en disco es `h1`. */
-async function openedWorkspace() {
-  const mounted = mount();
+async function openedWorkspace(options) {
+  const mounted = mount(options);
   backend.openProject.mockResolvedValue({
     ok: true,
     value: { root: ROOT, name: 'libro', entrypoint: 'main.typ', isSingleFile: false, hasManifest: false },
@@ -335,5 +335,43 @@ describe('historial local (RF-73)', () => {
     expect(fake.content).toBe('= Versión antigua');
     expect(workspace.isDirty()).toBe(true);
     expect(backend.writeFile).not.toHaveBeenCalled();
+  });
+});
+
+describe('diagnósticos de Tinymist en su fichero (RF-85)', () => {
+  // Respuesta capturada de Tinymist 0.15.8 (sonda 5): con solo `main.typ`
+  // abierto, publica el error de `cap/uno.typ`.
+  const CAP = `${ROOT}/cap/uno.typ`;
+  const capDiagnostic = { message: 'unexpected argument: widht', range: { start: { line: 2, character: 5 }, end: { line: 2, character: 15 } }, severity: 1, source: 'typst' };
+
+  function fakeLsp() {
+    const byPath = new Map();
+    const lsp = stub();
+    lsp.setProjectRoot = vi.fn(async () => {});
+    lsp.getDiagnostics = (path) => byPath.get(path) ?? [];
+    lsp.setDiagnosticsHandler = (handler) => {
+      lsp.publish = (path, diagnostics) => {
+        byPath.set(path, diagnostics);
+        handler();
+      };
+    };
+    return lsp;
+  }
+
+  it('un error de otro fichero no se pinta ni se cuenta en el documento abierto', async () => {
+    const lspClient = fakeLsp();
+    const { workspace } = await openedWorkspace({ lspClient });
+    const counts = [];
+    workspace.setListener('diagnosticsUpdated', (list) => counts.push(list.length));
+
+    lspClient.publish(CAP, [capDiagnostic]);
+    expect(counts.at(-1)).toBe(0);
+
+    backend.readFile.mockResolvedValueOnce({
+      ok: true,
+      value: { path: CAP, fileName: 'uno.typ', content: '= Uno\nTexto.\n#box(widht: 1cm)[x]\n', modifiedMs: 1, contentHash: 'c1' },
+    });
+    await workspace.openDocument(CAP);
+    expect(counts.at(-1)).toBe(1);
   });
 });

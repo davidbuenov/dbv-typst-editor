@@ -527,7 +527,7 @@
     - [x] 104 RF-85 · diagnósticos de Tinymist por fichero
     - [x] 105 RF-83 · manifiesto: backend (`toml_edit`, confinamiento, origen del principal)
     - [x] 106 RF-83 · manifiesto: frontend (prioridad, respaldo, mover/borrar)
-    - [ ] 107 RF-84 · `.zsync` en `release-linux.yml` + publicar tras reempaquetar
+    - [x] 107 RF-84 · `.zsync` en `release-linux.yml` + publicar tras reempaquetar
     - [ ] 108 RF-80 · registro único de atajos, ayuda generada, ampliar selección, Cmd+W en macOS
     - [ ] 109 RF-79 · modelo de pestañas (puro) y persistencia
     - [ ] 110 RF-79 · editor y LSP con varios documentos

@@ -25,7 +25,10 @@ name: Release Linux
 # e `includeUpdaterJson: false` evita publicar un manifiesto a medias.
 #
 # Deuda técnica consciente y registrada: Linux y macOS se instalan y actualizan
-# a mano hasta que se resuelva la firma cross-máquina.
+# a mano hasta que se resuelva la firma cross-máquina. El AppImage SÍ lleva
+# información de actualización incremental (RF-84): AppImageUpdate y las
+# herramientas compatibles descargan solo lo que cambia gracias al `.zsync` que
+# se publica junto a él. No choca con el actualizador propio (desactivado aquí).
 
 on:
   push:
@@ -53,6 +56,9 @@ jobs:
     # accessible by integration". Se concede solo a este workflow.
     permissions:
       contents: write
+      # Para relanzar update-homebrew-tap.yml tras sustituir el AppImage de una
+      # Release ya publicada (ver el último paso).
+      actions: write
     steps:
       - uses: actions/checkout@v5
 
@@ -72,7 +78,9 @@ jobs:
       - name: Instalar dependencias del sistema (WebKitGTK)
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf xdg-utils
+          # `zsync` aporta `zsyncmake`: sin él, appimagetool se salta el .zsync
+          # SIN FALLAR (comprobado en su código fuente). Ver el paso del AppImage.
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf xdg-utils zsync
 
       - name: Instalar Rust
         uses: dtolnay/rust-toolchain@stable
@@ -127,9 +135,17 @@ jobs:
       # quien lo ejecuta como "otros" (el test con firejail del catálogo de
       # AppImageHub, PR AppImage/appimage.github.io#5808) recibe "Permission
       # denied" y la app no arranca. Se extrae, se normalizan los permisos, se
-      # reempaqueta con el mismo nombre y se sustituye el asset que tauri-action
-      # ya había subido. El .deb no se toca.
-      - name: Normalizar permisos del AppImage y resubirlo
+      # reempaqueta y se sustituye el asset que tauri-action ya había subido.
+      # El .deb no se toca.
+      #
+      # Al reempaquetar se incrusta la información de actualización (RF-84) y
+      # appimagetool genera el `.zsync`, que se sube junto al AppImage. Dos
+      # trampas, comprobadas en el código de appimagetool: (1) si falta
+      # `zsyncmake` se salta el `.zsync` sin fallar; (2) escribe como URL del
+      # `.zsync` el NOMBRE del fichero de salida, así que se escribe ya con el
+      # nombre que tendrá en GitHub (puntos en vez de espacios). Por eso el paso
+      # comprueba las tres piezas y falla si falta cualquiera.
+      - name: Normalizar permisos del AppImage, añadir el .zsync y resubirlo
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           APPIMAGE_EXTRACT_AND_RUN: "1"
@@ -146,11 +162,41 @@ jobs:
           wget -q -O "$work/appimagetool" \
             https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
           chmod +x "$work/appimagetool"
-          "$work/appimagetool" -n "$work/squashfs-root" "$appimage"
 
-          # Verificación sobre el AppImage ya reempaquetado, no sobre el directorio.
+          # GitHub cambia los espacios del nombre por puntos al subir el asset
+          # ("DBV.Typst.Editor_…"): se reempaqueta YA con ese nombre, para que
+          # --clobber lo sustituya y la URL del .zsync apunte a un asset real.
+          asset=$(basename "$appimage" | tr ' ' '.')
+          update_info="gh-releases-zsync|davidbuenov|dbv-typst-editor|latest|DBV.Typst.Editor_*_amd64.AppImage.zsync"
+          out="$work/out"
+          mkdir -p "$out"
+          (cd "$out" && "$work/appimagetool" -n -u "$update_info" "$work/squashfs-root" "$asset")
+
+          # Información de actualización: el .zsync existe, su URL es el nombre
+          # del asset y el AppImage lleva incrustada la cadena.
+          if [ ! -f "$out/$asset.zsync" ]; then
+            echo "::error::appimagetool no generó $asset.zsync (¿falta zsyncmake?)"
+            exit 1
+          fi
+          url=$(grep -a -m1 '^URL: ' "$out/$asset.zsync" | cut -d' ' -f2-)
+          if [ "$url" != "$asset" ]; then
+            echo "::error::La URL del .zsync es '$url' y el asset se llama '$asset'"
+            exit 1
+          fi
+          # Se lee la sección `.upd_info` del ELF en vez de `--appimage-updateinformation`:
+          # con APPIMAGE_EXTRACT_AND_RUN=1 el runtime no atiende esa opción y
+          # arranca la aplicación entera, que se queda esperando (comprobado en WSL).
+          objcopy -O binary --only-section=.upd_info "$out/$asset" "$work/upd_info"
+          embedded=$(tr -d '\000' < "$work/upd_info")
+          if [ "$embedded" != "$update_info" ]; then
+            echo "::error::Información de actualización incrustada inesperada: '$embedded'"
+            exit 1
+          fi
+
+          # Permisos: verificación sobre el AppImage ya reempaquetado, no sobre
+          # el directorio.
           check=$(mktemp -d)
-          (cd "$check" && "$OLDPWD/$appimage" --appimage-extract >/dev/null)
+          (cd "$check" && "$out/$asset" --appimage-extract >/dev/null)
           ls -l "$check/squashfs-root/AppRun" "$check/squashfs-root/AppRun.wrapped" "$check/squashfs-root/usr/bin/"
           bad=$(find "$check/squashfs-root" -type f \( ! -perm -o+r -o -perm -o+w \))
           if [ -n "$bad" ] || [ ! -x "$check/squashfs-root/AppRun.wrapped" ] \
@@ -160,9 +206,16 @@ jobs:
             exit 1
           fi
 
-          # GitHub cambia los espacios del nombre por puntos al subir el asset
-          # ("DBV.Typst.Editor_…"); --clobber solo reemplaza si el nombre local
-          # ya coincide con ese.
-          upload="$work/$(basename "$appimage" | tr ' ' '.')"
-          cp "$appimage" "$upload"
-          gh release upload "${{ steps.version.outputs.tag }}" "$upload" --clobber
+          gh release upload "${{ steps.version.outputs.tag }}" "$out/$asset" "$out/$asset.zsync" --clobber
+
+      # R-Z2: update-homebrew-tap.yml calcula el SHA del AppImage al PUBLICARSE
+      # la Release. Si ya estaba publicada (workflow_dispatch con draft=false),
+      # ese cálculo se hizo sobre el AppImage que el paso anterior acaba de
+      # sustituir y el Cask quedaría apuntando a un SHA que ya no existe (pasó
+      # en la Fase 48 y se corrigió a mano). Se relanza para esta versión. En
+      # un borrador no hace falta: el tap se actualizará al publicarlo.
+      - name: Recalcular el Cask de Homebrew si la Release ya estaba publicada
+        if: steps.draft.outputs.value == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run update-homebrew-tap.yml --ref "${{ github.ref_name }}" -f tag="${{ steps.version.outputs.tag }}"

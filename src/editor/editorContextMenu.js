@@ -30,7 +30,12 @@ export function isGoToPreviewShortcut(event) {
 export function buildMenuItems({ hasSelection, canGoToPreview, readOnly = false, canShowHistory = false, canNavigate }) {
   const items = [];
   if (canNavigate !== undefined) {
-    items.push({ id: 'goToDefinition', enabled: canNavigate }, { id: 'findReferences', enabled: canNavigate, separatorAfter: true });
+    items.push(
+      { id: 'goToDefinition', enabled: canNavigate },
+      { id: 'findReferences', enabled: canNavigate },
+      { id: 'renameSymbol', enabled: canNavigate && !readOnly },
+      { id: 'codeActions', enabled: canNavigate && !readOnly, separatorAfter: true },
+    );
   }
   items.push(
     { id: 'goToPreview', enabled: canGoToPreview, separatorAfter: true },
@@ -54,7 +59,7 @@ export function buildMenuItems({ hasSelection, canGoToPreview, readOnly = false,
  * @param {(key: string) => string} deps.t
  * @param {() => boolean} [deps.canShowHistory]
  * @param {() => void} [deps.onShowHistory]
- * @param {{canNavigate: () => boolean, goToDefinition: (view: any) => void, findReferences: (view: any) => void}} [deps.navigation]
+ * @param {{canNavigate: () => boolean, goToDefinition: (view: any) => void, findReferences: (view: any) => void, renameSymbol: (view: any) => void, codeActions: (view: any) => void}} [deps.navigation]
  */
 export function createEditorContextMenu({ hostEl, getView, canGoToPreview, onGoToPreview, notify, t, canShowHistory, onShowHistory, navigation }) {
   let menuEl = null;
@@ -72,6 +77,12 @@ export function createEditorContextMenu({ hostEl, getView, canGoToPreview, onGoT
         return;
       } else if (id === 'findReferences') {
         await navigation?.findReferences(view);
+        return;
+      } else if (id === 'renameSymbol') {
+        await navigation?.renameSymbol(view);
+        return;
+      } else if (id === 'codeActions') {
+        await navigation?.codeActions(view);
         return;
       } else if (id === 'goToPreview') {
         await onGoToPreview();

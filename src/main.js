@@ -49,6 +49,7 @@ import {
   copyFontIntoProject,
   engineDiagnostics,
   engineSetMode,
+  fileFingerprint,
   gitAdd,
   gitClone,
   getAppInfo,
@@ -74,6 +75,8 @@ import { createChoiceDialog } from './ui/choiceDialog.js';
 import { countProblems, toProblemList } from './editor/diagnosticsModel.js';
 import { createEditorContextMenu } from './editor/editorContextMenu.js';
 import { createNavigation } from './editor/navigation.js';
+import { createRefactor } from './editor/refactor.js';
+import { createMultiFileEdit } from './app/multiFileEdit.js';
 import { createResultsView } from './search/resultsView.js';
 import { createPreviewContextMenu } from './preview/previewContextMenu.js';
 import { rangeForEditor, rangeForRender } from './preview/syncRange.js';
@@ -1519,11 +1522,31 @@ async function bootstrap() {
   workspace.setListener('goToDefinition', (view) => navigation.goToDefinition(view));
   workspace.setListener('findReferences', (view) => navigation.findReferences(view));
 
+  // RF-77.4-5 y RF-78.4: edición en varios ficheros con vista previa y Deshacer.
+  const multiFileEdit = createMultiFileEdit({ workspace, backend: { readFile, writeFile, fileFingerprint }, dialog, notify: toast.show });
+  const refactor = createRefactor({
+    lspClient,
+    workspace,
+    multiFileEdit,
+    navigation,
+    // R-L4: la ruta de un `#include` se renombra en el árbol (RF-69/RF-70).
+    renameFile: async (path) => {
+      await tree.revealPath(path);
+      tree.startRename(path);
+    },
+    notify: toast.show,
+    t,
+  });
+  workspace.setListener('renameSymbol', (view) => refactor.renameSymbol(view));
+  workspace.setListener('codeActions', (view) => refactor.codeActions(view));
+
   createEditorContextMenu({
     navigation: {
       canNavigate: () => navigation.unavailableReason() === null,
       goToDefinition: navigation.goToDefinition,
       findReferences: navigation.findReferences,
+      renameSymbol: refactor.renameSymbol,
+      codeActions: refactor.codeActions,
     },
     hostEl: el('editor-host'),
     getView: () => workspace.getEditorView(),

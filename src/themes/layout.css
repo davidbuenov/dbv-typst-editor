@@ -1245,6 +1245,21 @@
   box-shadow: 0 8px 24px var(--shadow);
 }
 
+/* Campo en línea de «Renombrar símbolo» (F2, RF-77.4), junto al cursor. */
+.inline-rename {
+  position: fixed;
+  z-index: 60;
+  min-width: 180px;
+  padding: 3px 6px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px var(--shadow);
+}
+
 .menu-separator {
   height: 1px;
   margin: 4px 6px;

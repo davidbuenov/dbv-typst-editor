@@ -96,6 +96,8 @@ export const APP_SHORTCUTS = [
     label: { es: 'Ir a la definición de lo que hay bajo el puntero', en: 'Go to the definition of what is under the pointer' },
   },
   { id: 'findReferences', scope: 'editor', key: 'Shift-F12', label: { es: 'Buscar las referencias (con Tinymist)', en: 'Find references (with Tinymist)' } },
+  { id: 'renameSymbol', scope: 'editor', key: 'F2', label: { es: 'Renombrar el símbolo en todo el proyecto (con Tinymist)', en: 'Rename the symbol across the project (with Tinymist)' } },
+  { id: 'codeActions', scope: 'editor', key: 'Mod-.', label: { es: 'Acciones de código de este punto (con Tinymist)', en: 'Code actions at this point (with Tinymist)' } },
   {
     id: 'addCursorClick',
     scope: 'editor',

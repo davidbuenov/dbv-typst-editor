@@ -166,6 +166,8 @@ function buildTheme(isDark) {
  * @param {() => void} [deps.onBlur] El editor pierde el foco (RF-64.1).
  * @param {(view: EditorView) => void} [deps.onGoToDefinition] F12 / Ctrl+clic (RF-77.1).
  * @param {(view: EditorView) => void} [deps.onFindReferences] Mayús+F12 (RF-77.3).
+ * @param {(view: EditorView) => void} [deps.onRenameSymbol] F2 (RF-77.4).
+ * @param {(view: EditorView) => void} [deps.onCodeActions] Ctrl+. (RF-77.5).
  */
 export function buildExtensions({
   themeCompartment,
@@ -182,6 +184,8 @@ export function buildExtensions({
   onBlur,
   onGoToDefinition,
   onFindReferences,
+  onRenameSymbol,
+  onCodeActions,
 }) {
   const toolbarKeymap = buildToolbarKeymap();
   // `syncFlashField`: marca del bloque al que salta la sincronización (RF-16).
@@ -253,7 +257,7 @@ export function buildExtensions({
     // RF-80.3: «ampliar selección» (`selectParentSyntax`), que CodeMirror trae
     // en Mod-i y la cursiva tapa, recuperado en una combinación libre.
     keymap.of([{ ...shortcutKey('expandSelection'), preventDefault: true, run: selectParentSyntax }]),
-    ...navigationExtensions({ onGoToDefinition, onFindReferences }),
+    ...navigationExtensions({ onGoToDefinition, onFindReferences, onRenameSymbol, onCodeActions }),
     ...extraExtensions,
     keymap.of([
       ...closeBracketsKeymap,
@@ -274,9 +278,10 @@ export function buildExtensions({
  * Navegación con Tinymist (RF-77): F12 y Mayús+F12, y Ctrl+clic (Cmd+clic en
  * macOS) para ir a la definición. Añadir un cursor pasa a Alt+clic (RF-77.2),
  * como en VS Code; la selección rectangular sigue con Alt+arrastrar.
- * @param {{onGoToDefinition?: (view: EditorView) => void, onFindReferences?: (view: EditorView) => void}} handlers
+ * F2 renombra el símbolo y Ctrl+. pide las acciones de código (RF-77.4-5).
+ * @param {{onGoToDefinition?: (view: EditorView) => void, onFindReferences?: (view: EditorView) => void, onRenameSymbol?: (view: EditorView) => void, onCodeActions?: (view: EditorView) => void}} handlers
  */
-function navigationExtensions({ onGoToDefinition, onFindReferences }) {
+function navigationExtensions({ onGoToDefinition, onFindReferences, onRenameSymbol, onCodeActions }) {
   const isMac = detectMac();
   const run = (handler) => (view) => {
     handler?.(view);
@@ -286,6 +291,8 @@ function navigationExtensions({ onGoToDefinition, onFindReferences }) {
     keymap.of([
       { ...shortcutKey('goToDefinition'), preventDefault: true, run: run(onGoToDefinition) },
       { ...shortcutKey('findReferences'), preventDefault: true, run: run(onFindReferences) },
+      { ...shortcutKey('renameSymbol'), preventDefault: true, run: run(onRenameSymbol) },
+      { ...shortcutKey('codeActions'), preventDefault: true, run: run(onCodeActions) },
     ]),
     EditorView.clickAddsSelectionRange.of((event) => event.altKey),
     EditorView.domEventHandlers({
@@ -319,10 +326,24 @@ function navigationExtensions({ onGoToDefinition, onFindReferences }) {
  * @param {ReturnType<import('./lspClient.js').createLspClient>} [options.lspClient]
  * @param {(view: EditorView) => void} [options.onGoToDefinition]
  * @param {(view: EditorView) => void} [options.onFindReferences]
+ * @param {(view: EditorView) => void} [options.onRenameSymbol]
+ * @param {(view: EditorView) => void} [options.onCodeActions]
  */
 export function createEditor(
   hostEl,
-  { onChange, onChanges, onSave, onSelectionChange, onBlur, theme = 'dark', lspClient, onGoToDefinition, onFindReferences } = {}
+  {
+    onChange,
+    onChanges,
+    onSave,
+    onSelectionChange,
+    onBlur,
+    theme = 'dark',
+    lspClient,
+    onGoToDefinition,
+    onFindReferences,
+    onRenameSymbol,
+    onCodeActions,
+  } = {}
 ) {
   if (!(hostEl instanceof HTMLElement)) {
     throw new TypeError('createEditor: hostEl debe ser un HTMLElement');
@@ -383,6 +404,8 @@ export function createEditor(
     onBlur,
     onGoToDefinition,
     onFindReferences,
+    onRenameSymbol,
+    onCodeActions,
     updateListener: EditorView.updateListener.of((update) => {
       if (loading) return;
       if (update.docChanged) {

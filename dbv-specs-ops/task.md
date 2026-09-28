@@ -536,7 +536,7 @@
     - [x] 113 RF-79 · barra de pestañas (`verify:layout` en CI)
     - [x] 114 RF-77/78 · edición multi-fichero con vista previa y Deshacer
     - [x] 115 RF-77 · ir a la definición y buscar referencias
-    - [ ] 116 RF-77 · renombrar símbolo y acciones de código
+    - [x] 116 RF-77 · renombrar símbolo y acciones de código
     - [ ] 117 RF-78 · backend de búsqueda (`regex`, `walkdir`, cancelación)
     - [ ] 118 RF-78 · panel «Buscar» y reemplazar
     - [ ] 119 RF-81 · snippets: modelo y autocompletado (también sin Tinymist)

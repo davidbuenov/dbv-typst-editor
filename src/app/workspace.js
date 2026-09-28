@@ -192,6 +192,8 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     onBlur: flushAutoSaveOnBlur,
     onGoToDefinition: (view) => listeners.goToDefinition?.(view),
     onFindReferences: (view) => listeners.findReferences?.(view),
+    onRenameSymbol: (view) => listeners.renameSymbol?.(view),
+    onCodeActions: (view) => listeners.codeActions?.(view),
   });
 
   // Diagnósticos (RF-59): los de Tinymist y los del motor en proceso se
@@ -434,6 +436,11 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     goToDefinition: null,
     /** @type {null | ((view: import('@codemirror/view').EditorView) => void)} */
     findReferences: null,
+    /** F2 y Ctrl+. en el editor (RF-77.4-5). */
+    /** @type {null | ((view: import('@codemirror/view').EditorView) => void)} */
+    renameSymbol: null,
+    /** @type {null | ((view: import('@codemirror/view').EditorView) => void)} */
+    codeActions: null,
   };
 
   /**

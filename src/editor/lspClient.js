@@ -783,6 +783,21 @@ export function createLspClient({ onDiagnostics: initialOnDiagnostics, notify, o
     return normalizeLocations(await requestAt('textDocument/definition', lineNum, charPos));
   }
 
+  /** Acciones de código de un rango del documento activo (RF-77.5). */
+  async function getCodeActions(range) {
+    if (!active || !currentDoc) return null;
+    try {
+      const res = await tinymistSendRequest('textDocument/codeAction', {
+        textDocument: { uri: currentDoc.uri },
+        range,
+        context: { diagnostics: [] },
+      });
+      return res.ok && Array.isArray(res.value) ? res.value : null;
+    } catch {
+      return null;
+    }
+  }
+
   /** Buscar referencias (RF-77.3), incluida la declaración. */
   async function getReferences(lineNum, charPos) {
     return normalizeLocations(
@@ -891,6 +906,7 @@ export function createLspClient({ onDiagnostics: initialOnDiagnostics, notify, o
     getHover,
     getDefinition,
     getReferences,
+    getCodeActions,
     requestAt,
     formatDocument,
     setDiagnosticsHandler(handler) {

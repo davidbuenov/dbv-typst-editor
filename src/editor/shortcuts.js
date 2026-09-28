@@ -135,6 +135,14 @@ export const APP_SHORTCUTS = [
     display: { es: 'Doble clic', en: 'Double click' },
     label: { es: 'Ir al código de ese punto', en: 'Jump to the source of that spot' },
   },
+  { id: 'previewFind', scope: 'preview', key: 'Mod-f', label: { es: 'Buscar en el documento renderizado (con el foco en la vista previa)', en: 'Find in the rendered document (with focus in the preview)' } },
+  {
+    id: 'previewSelect',
+    scope: 'preview',
+    display: { es: 'Arrastrar sobre el texto', en: 'Drag over the text' },
+    label: { es: 'Seleccionar texto (motor rápido)', en: 'Select text (fast engine)' },
+  },
+  { id: 'previewCopy', scope: 'preview', key: 'Mod-c', label: { es: 'Copiar el texto seleccionado', en: 'Copy the selected text' } },
   {
     id: 'previewZoom',
     scope: 'preview',

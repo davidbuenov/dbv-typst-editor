@@ -27,6 +27,8 @@ import {
   cancelPreview,
   compilePreview,
   engineLinks,
+  enginePageText,
+  engineSearch,
   engineLocate,
   engineReveal,
   getSyncAnchors,
@@ -34,6 +36,7 @@ import {
 } from '../services/backend.js';
 import { anchorAtPoint, anchorForLine, anchorSpan } from './syncAnchors.js';
 import { createLinkClickGate, linkAt, linkTitle } from './linkHits.js';
+import { createPreviewText } from './previewText.js';
 
 /** Pausa de escritura tras la que se recompila, en modo automático. */
 const DEBOUNCE_MS = 350;
@@ -194,6 +197,8 @@ export function createPreview({
   onRendered,
   onCompiled,
   onOpenLink,
+  hostEl = pagesEl.parentElement,
+  findElements = null,
 }) {
   let debounceTimer = null;
   /**
@@ -249,9 +254,33 @@ export function createPreview({
   // de captura, antes de que el clic llegue a ese código: estos `<a>` no son
   // navegables en la vista previa (solo importan al exportar), así que
   // ignorarlos por completo es lo correcto, no un parche.
+  // RF-82: buscar (Ctrl/Cmd+F con el foco aquí) y seleccionar para copiar.
+  // Se crea antes que el resto de oyentes de clic: el clic que sigue a un
+  // arrastre de selección no debe seguir un enlace.
+  pagesEl.tabIndex = 0;
+  const previewText = createPreviewText({
+    pagesEl,
+    hostEl,
+    elements: findElements,
+    getGeneration: () => renderedGeneration,
+    isInproc: () => renderedEngine === 'inproc',
+    getPageHeightPt: (index) => pageHeightsPt[index] || 0,
+    scrollToPage: (page, yPt) => scrollToPage(page, yPt),
+    pointAt: (clientX, clientY) => documentPointAt(clientX, clientY),
+    // Diferidas: solo se leen al usarlas (el motor clásico nunca las llama).
+    engineSearch: (...args) => engineSearch(...args),
+    enginePageText: (...args) => enginePageText(...args),
+    t,
+  });
+
   pagesEl.addEventListener(
     'click',
     (event) => {
+      if (previewText.consumeClick()) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        return;
+      }
       if (event.target.closest('a')) {
         event.preventDefault();
         event.stopImmediatePropagation();
@@ -424,6 +453,8 @@ export function createPreview({
     pagesEl.style.setProperty('--preview-zoom', String(effectiveZoom));
     restoreReadingAnchor(anchor);
     zoomLabelEl.textContent = `${Math.round(effectiveZoom * 100)}%`;
+    // Los resaltados de la búsqueda y la selección siguen al zoom (RF-82.3).
+    previewText?.relayout();
     try {
       localStorage.setItem(ZOOM_STORAGE_KEY, String(zoom));
       localStorage.setItem(FIT_WIDTH_STORAGE_KEY, fitWidth ? '1' : '0');
@@ -611,6 +642,7 @@ export function createPreview({
     applyZoom();
     // Recompilar no debe mover al lector de donde estaba leyendo.
     pagesEl.scrollTop = scrollTop;
+    previewText.onNewGeneration();
 
     if (outcome.warnings.trim()) showBand(outcome.warnings.trim());
     else hideBand();
@@ -890,6 +922,10 @@ export function createPreview({
     },
     /** Navegación del outline (Beta, §7.8) y del sync (RF-16). */
     scrollToPage,
+    /** RF-82: barra de búsqueda y copia de la selección. */
+    openFind: () => previewText.openFind(),
+    copySelection: () => previewText.copySelection(),
+    getSelectedText: () => previewText.selectedText(),
     zoomIn: () => setZoomIndex(1),
     zoomOut: () => setZoomIndex(-1),
     zoomReset: () => {

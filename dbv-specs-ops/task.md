@@ -542,7 +542,7 @@
     - [x] 119 RF-81 · snippets: modelo y autocompletado (también sin Tinymist)
     - [x] 120 RF-81 · snippets: ficheros, menús y «Guardar selección»
     - [x] 121 RF-82 · capa de texto del motor (verificación primero)
-    - [ ] 122 RF-82 · buscar y copiar en la vista previa
+    - [x] 122 RF-82 · buscar y copiar en la vista previa
     - [ ] 123 cierre · `ARCHITECTURE.md`, ayuda, textos, lección del `.zsync` al framework
   - **Gates de `/test` en el `.exe` de release:** F12, Mayús+F12, Ctrl+W, Ctrl+Tab y Ctrl+Mayús+F llegan a la app; `/test` con `z6-IPbook` de RF-77.8, RF-78.7 y RF-82.5.
 

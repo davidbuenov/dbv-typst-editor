@@ -1638,12 +1638,75 @@ button.document__lsp-badge {
 
 /* ─── Vista previa ────────────────────────────────────────────────────────── */
 .preview {
+  /* `relative`: la barra de búsqueda (RF-82) flota sobre las páginas sin
+     ocupar una fila de la rejilla. */
+  position: relative;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto auto;
   min-width: 0;
   min-height: 0;
   background: var(--bg-secondary);
   border-left: 1px solid var(--border);
+}
+
+/* ─── Buscar y copiar en la vista previa (RF-82) ───────────────────────────── */
+.preview-find {
+  position: absolute;
+  top: 44px;
+  right: 18px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: min(360px, calc(100% - 36px));
+  padding: 5px 6px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px var(--shadow);
+}
+
+.preview-find__count {
+  flex: none;
+  min-width: 4.5em;
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.preview__pages:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.preview__pages.is-selecting {
+  cursor: text;
+  user-select: none;
+}
+
+/* Resaltados y selección: rectángulos NO interactivos (R-P2), para que el
+   clic en un enlace, el doble clic y el menú contextual sigan igual. */
+.preview-find-hit,
+.preview-selection {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+  border-radius: 2px;
+}
+
+.preview-find-hit {
+  background: var(--status-warn-bg);
+  outline: 1px solid var(--status-warn);
+}
+
+.preview-find-hit.is-current {
+  background: var(--status-warn);
+  opacity: 0.55;
+}
+
+.preview-selection {
+  background: var(--accent-subtle);
+  mix-blend-mode: multiply;
 }
 
 /* Separador de la consola de errores (Beta): fila `auto`, no una altura fija —

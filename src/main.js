@@ -804,6 +804,15 @@ async function bootstrap() {
     projectSearch?.refreshSoon();
   });
   const preview = createPreview({
+    findElements: {
+      bar: el('preview-find'),
+      input: el('preview-find-input'),
+      count: el('preview-find-count'),
+      caseToggle: el('preview-find-case'),
+      prev: el('preview-find-prev'),
+      next: el('preview-find-next'),
+      close: el('preview-find-close'),
+    },
     pagesEl: el('preview-pages'),
     bandEl: el('preview-band'),
     bandSplitterEl: el('splitter-band'),
@@ -1571,6 +1580,8 @@ async function bootstrap() {
     onGoToSource: goToSourceAt,
     t,
     getLinkAt: (clientX, clientY) => preview.linkAt(clientX, clientY),
+    getSelectedText: () => preview.getSelectedText(),
+    onCopy: () => preview.copySelection(),
   });
 
   /** Rango del texto actual del editor que corresponde al de lo compilado. */

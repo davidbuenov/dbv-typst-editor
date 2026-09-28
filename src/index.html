@@ -447,6 +447,15 @@
               <button id="btn-zoom-in" class="icon-button icon-button--small" type="button" data-i18n-title="preview.zoomIn">+</button>
             </div>
           </div>
+          <!-- RF-82: buscar en la vista previa (Ctrl/Cmd+F con el foco en ella). -->
+          <div class="preview-find hidden" id="preview-find" role="search">
+            <input id="preview-find-input" class="search-form__input" type="search" spellcheck="false" data-i18n-placeholder="previewFind.placeholder" />
+            <span id="preview-find-count" class="preview-find__count" aria-live="polite"></span>
+            <button id="preview-find-case" class="search-toggle" type="button" data-i18n-title="search.caseSensitive">Aa</button>
+            <button id="preview-find-prev" class="icon-button icon-button--small" type="button" data-i18n-title="previewFind.prev">↑</button>
+            <button id="preview-find-next" class="icon-button icon-button--small" type="button" data-i18n-title="previewFind.next">↓</button>
+            <button id="preview-find-close" class="icon-button icon-button--small" type="button" data-i18n-title="action.close">✕</button>
+          </div>
           <div class="preview__pages" id="preview-pages"></div>
           <div class="splitter splitter--row hidden" id="splitter-band" role="separator" aria-orientation="horizontal"></div>
           <pre class="preview__band hidden" id="preview-band"></pre>

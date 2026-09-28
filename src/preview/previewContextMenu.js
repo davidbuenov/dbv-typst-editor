@@ -17,8 +17,11 @@
  * @param {(key: string) => string} deps.t
  * @param {(clientX: number, clientY: number) => Promise<{url?: string | null} | null>} [deps.getLinkAt]
  *   Enlace bajo el punto (RF-72): si es externo, se ofrece copiar su dirección.
+ * @param {() => string} [deps.getSelectedText] Texto seleccionado (RF-82.2): si
+ *   lo hay, se ofrece *Copiar*.
+ * @param {() => void} [deps.onCopy]
  */
-export function createPreviewContextMenu({ hostEl, onGoToSource, t, getLinkAt }) {
+export function createPreviewContextMenu({ hostEl, onGoToSource, t, getLinkAt, getSelectedText, onCopy }) {
   let menuEl = null;
 
   function close() {
@@ -52,6 +55,20 @@ export function createPreviewContextMenu({ hostEl, onGoToSource, t, getLinkAt })
       onGoToSource(clientX, clientY);
     });
     menu.append(item);
+
+    if (getSelectedText?.()) {
+      const copyText = document.createElement('button');
+      copyText.type = 'button';
+      copyText.className = 'menu-item';
+      copyText.setAttribute('role', 'menuitem');
+      copyText.dataset.action = 'copy';
+      copyText.textContent = t('previewMenu.copy');
+      copyText.addEventListener('click', () => {
+        close();
+        onCopy?.();
+      });
+      menu.append(copyText);
+    }
 
     if (link?.url) {
       const copy = document.createElement('button');

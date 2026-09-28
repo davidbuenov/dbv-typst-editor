@@ -69,6 +69,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - **"Find references" seemed to do nothing in a large book (found in `/test`).** On `z6-IPbook` (224 pages), the first references request to Tinymist takes about 18 s, and Shift+F12 showed nothing in the meantime. It now shows "Finding references…" straight away. Test extended.
 
+- **[Critical, `/code-simplify`] Multi-file editing could write outside the project.** `multiFileEdit` wrote to any path arriving in a Tinymist `WorkspaceEdit`: renaming a symbol that also appeared in a cached package would have modified it, and a path with `..` passed the prefix filter. Now, if any file in the change falls outside the project (checked with `isSafeRelativePath` on the relative path), nothing is applied and the file is named. New test with a package and with a `..` path.
+
+- **[Critical, `/code-simplify`] A restored tab whose file could no longer be read left the editor without a document.** When activating it, the read failed and the editor kept showing the previous tab with no document behind it: anything typed there could not be saved and was lost on switching tabs. Now the tab is removed and the remaining one is shown (or the editor is emptied). New test with the real workspace.
+
+- **[Important, `/code-simplify`] A `.typ` outside the project became what the preview compiles.** Opening a package from "Go to definition" made it the preview document, which in "File" scope tried to compile it with the project root. Now a file outside the project does not change what the preview compiles. New test.
+
+- **[Important, `/code-simplify`] Returning to a tab did not refresh the toolbar** (inside or outside an equation) until the cursor moved: `setState` does not go through the change listener. It now refreshes on activation.
+
 ## [0.11.0] - 2026-09-26
 
 A full file explorer, automatic reference updates, "New chapter…", working links in the preview and a local version history. Fixes the external-change dialog that made 0.10.0's auto-save unusable. Born from heavy use of 0.10.0 with a real multi-chapter book.

@@ -22,6 +22,7 @@
 
 import { t } from '../i18n/i18n.js';
 import { uriToPath } from '../editor/lspClient.js';
+import { isSafeRelativePath } from './entrypoint.js';
 import { pathKey, relativeToRoot } from './paths.js';
 
 /** Cuántas líneas de cambios se enseñan antes de resumir. */
@@ -163,6 +164,14 @@ export function createMultiFileEdit({ workspace, backend, dialog, notify }) {
    * (y se avisa) si algún fichero no se puede leer o las ediciones no encajan.
    */
   async function prepare(files) {
+    // Solo dentro del proyecto (hallazgo Crítico de /code-simplify): un
+    // `WorkspaceEdit` de Tinymist puede nombrar ficheros de la caché de
+    // paquetes, y una ruta con `..` pasaría un simple filtro por prefijo.
+    const outside = files.find((file) => !isSafeRelativePath(relativeToRoot(workspace.getRoot(), file.path)));
+    if (outside) {
+      notify(t('edit.outsideProject').replace('{file}', outside.path), 'error');
+      return null;
+    }
     const prepared = [];
     for (const file of files) {
       const tabContent = workspace.getTabContent(file.path);

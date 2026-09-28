@@ -471,6 +471,9 @@ export function createEditor(
     if (isTypstPath(currentPath)) lspClient?.openDocument(currentPath, view.state.doc.toString());
     applyLanguage(currentPath);
     loading = false;
+    // `setState` no pasa por el oyente de cambios: la barra de herramientas
+    // (dentro o fuera de una ecuación) se refresca a mano.
+    onSelectionChange?.(view);
   }
 
   return {

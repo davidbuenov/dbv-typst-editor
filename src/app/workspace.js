@@ -622,6 +622,15 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     });
   }
 
+  /** Todas las pestañas cargadas con su contenido del editor (las restauradas sin cargar, no). */
+  function openTexts() {
+    const list = state.document ? [{ path: state.document.path, content: editor.getContent() }] : [];
+    for (const entry of background.values()) {
+      if (entry.saved) list.push({ path: entry.document.path, content: entry.saved.state.doc.toString() });
+    }
+    return list;
+  }
+
   /** Reordenar arrastrando (RF-79.3). */
   function moveTab(path, toIndex) {
     tabs = moveTabModel(tabs, path, toIndex);
@@ -658,7 +667,10 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     // vista previa: se sigue viendo el documento, que es lo que el usuario está
     // escribiendo. Solo se le avisa de que el editor ya no está encima de él,
     // para que deje de usar el contenido en vivo y compile lo que hay en disco.
-    if (isTypstPath(path)) {
+    // Un `.typ` de fuera del proyecto (un paquete abierto desde «Ir a la
+    // definición») tampoco: no es algo que se pueda compilar con esta raíz.
+    const insideProject = Boolean(state.project) && relativeToRoot(state.project.root, path) !== null;
+    if (isTypstPath(path) && insideProject) {
       state.previewDocument = path;
       listeners.documentOpened?.();
     } else {
@@ -682,7 +694,19 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
       background.delete(key);
       state.document = null;
       state.dirty = false;
-      return openDocument(entry.document.path, { force: true });
+      const opened = await openDocument(entry.document.path, { force: true });
+      // Hallazgo Crítico de /code-simplify: si el fichero ya no se puede leer,
+      // la pestaña se quita y se vuelve a la que quede (o el editor se vacía).
+      // Sin esto, el editor seguía enseñando la pestaña anterior sin documento
+      // asociado, y lo que se escribiera ahí no se podía guardar.
+      if (!opened) {
+        tabs = closeTabModel(tabs, entry.document.path);
+        editor.closeDocument(entry.document.path);
+        if (tabs.active && background.has(pathKey(tabs.active))) return showBackground(pathKey(tabs.active));
+        await detachDocument();
+        persistTabs();
+      }
+      return opened;
     }
     background.delete(key);
     editor.activate(entry.document.path, entry.saved, { readOnly: entry.readOnly });
@@ -1706,13 +1730,7 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
      * cambios sin guardar, y no en el disco.
      * @returns {Array<{path: string, content: string}>}
      */
-    getOpenTexts() {
-      const list = state.document ? [{ path: state.document.path, content: editor.getContent() }] : [];
-      for (const entry of background.values()) {
-        if (entry.saved) list.push({ path: entry.document.path, content: entry.saved.state.doc.toString() });
-      }
-      return list;
-    },
+    getOpenTexts: () => openTexts(),
     /** ¿La última compilación del motor tuvo errores? (R-L2: las etiquetas no se resuelven). */
     hasEngineErrors: () => engineDiagnostics.some((diagnostic) => diagnostic.level === 'error'),
     /** ¿Tiene cambios sin guardar alguna pestaña de `paths` o de dentro de esas carpetas? */
@@ -1816,14 +1834,7 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
      * @returns {Array<{path: string, content: string}>}
      */
     getOpenDocumentsSnapshot() {
-      const list = [];
-      if (state.document && isTypstPath(state.document.path)) list.push({ path: state.document.path, content: editor.getContent() });
-      for (const entry of background.values()) {
-        if (entry.saved && isTypstPath(entry.document.path)) {
-          list.push({ path: entry.document.path, content: entry.saved.state.doc.toString() });
-        }
-      }
-      return list;
+      return openTexts().filter((doc) => isTypstPath(doc.path));
     },
     /**
      * Aplica ediciones (posiciones UTF-16 del contenido de la instantánea) a

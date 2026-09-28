@@ -69,6 +69,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - **«Buscar referencias» parecía no hacer nada en un libro grande (encontrado en `/test`).** Sobre `z6-IPbook` (224 páginas), la primera petición de referencias a Tinymist tarda unos 18 s, y Mayús+F12 no enseñaba nada mientras tanto. Ahora avisa al momento con «Buscando referencias…». Test ampliado.
 
+- **[Crítico, `/code-simplify`] La edición en varios ficheros podía escribir fuera del proyecto.** `multiFileEdit` escribía en cualquier ruta que llegara en un `WorkspaceEdit` de Tinymist: renombrar un símbolo que también apareciera en un paquete de la caché lo habría modificado, y una ruta con `..` pasaba el filtro por prefijo. Ahora, si algún fichero del cambio queda fuera del proyecto (comprobado con `isSafeRelativePath` sobre la ruta relativa), no se aplica nada y se dice cuál. Test nuevo con un paquete y con una ruta con `..`.
+
+- **[Crítico, `/code-simplify`] Una pestaña restaurada cuyo fichero ya no se podía leer dejaba el editor sin documento.** Al activarla, la lectura fallaba y el editor seguía enseñando la pestaña anterior sin documento asociado: lo que se escribiera ahí no se podía guardar y se perdía al cambiar de pestaña. Ahora la pestaña se quita y se vuelve a la que quede (o el editor se vacía). Test nuevo con el workspace real.
+
+- **[Importante, `/code-simplify`] Un `.typ` de fuera del proyecto pasaba a ser lo que compila la vista previa.** Abrir un paquete desde «Ir a la definición» lo convertía en el documento de la vista previa, que con el alcance «Fichero» intentaba compilarlo con la raíz del proyecto. Ahora un fichero de fuera del proyecto no cambia lo que compila la vista previa. Test nuevo.
+
+- **[Importante, `/code-simplify`] Al volver a una pestaña, la barra de herramientas no se refrescaba** (dentro o fuera de una ecuación) hasta mover el cursor: `setState` no pasa por el oyente de cambios. Ahora se refresca al activar.
+
 ## [0.11.0] - 2026-09-26
 
 Explorador de archivos completo, actualización automática de referencias, «Nuevo capítulo…», enlaces funcionales en la vista previa e historial local de versiones. Corrige el diálogo de cambio externo que hacía inutilizable el guardado automático de la 0.10.0. Nacida del uso intensivo de la 0.10.0 con un libro real de varios capítulos.

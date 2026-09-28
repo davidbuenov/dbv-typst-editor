@@ -715,3 +715,34 @@ describe('barra de pestañas en el workspace (RF-79, RF-65)', () => {
     expect(JSON.parse(localStorage.getItem(`dbv-typst-tabs:${ROOT}`)).tabs).toEqual(['cap.typ', 'main.typ']);
   });
 });
+
+describe('hallazgos de /code-simplify (v0.12.0)', () => {
+  it('una pestaña restaurada cuyo fichero ya no se puede leer se quita y se vuelve a la anterior', async () => {
+    const CAP = `${ROOT}/cap.typ`;
+    const first = await openedWorkspace();
+    backend.readFile.mockImplementation(async (path) => ({
+      ok: true,
+      value: { path, fileName: path.split('/').pop(), content: path === MAIN ? '= Libro' : '= Cap', modifiedMs: 1, contentHash: 'h1' },
+    }));
+    await first.workspace.openDocument(CAP);
+    await first.workspace.activateTab(MAIN);
+
+    const second = mount();
+    await second.workspace.openProjectAt(ROOT);
+    backend.readFile.mockResolvedValue({ ok: false, error: { message: 'no existe' } });
+    expect(await second.workspace.activateTab(CAP)).toBe(true);
+
+    expect(second.workspace.getDocumentPath()).toBe(MAIN);
+    expect(fake.content).toBe('= Libro');
+    expect(second.workspace.getTabs().map((tab) => tab.path)).toEqual([MAIN]);
+  });
+
+  it('un .typ de fuera del proyecto (un paquete) no pasa a ser lo que compila la vista previa', async () => {
+    const { workspace } = await openedWorkspace();
+    const pkg = 'C:/Users/x/AppData/typst/packages/cetz/canvas.typ';
+    backend.readFile.mockResolvedValue({ ok: true, value: { path: pkg, fileName: 'canvas.typ', content: '#let x = 1', modifiedMs: 1, contentHash: 'p' } });
+    await workspace.openDocument(pkg, { readOnly: true });
+    expect(workspace.state.previewDocument).toBe(MAIN);
+    expect(workspace.getTabs().find((tab) => tab.path === pkg).readOnly).toBe(true);
+  });
+});

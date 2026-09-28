@@ -170,6 +170,17 @@ describe('aplicar y deshacer (R-E1)', () => {
     expect(disk[UNO]).toContain('<fig-felino>');
   });
 
+  it('un cambio que toca un fichero de fuera del proyecto (o con ..) no aplica nada', async () => {
+    tabs[MAIN] = fixtures.files['main.typ'];
+    const edit = { range: { start: { line: 0, character: 0 }, end: { line: 0, character: 1 } }, newText: 'x' };
+    for (const path of ['C:/Users/x/AppData/typst/packages/cetz/canvas.typ', `${ROOT}/../fuera.typ`]) {
+      expect(await editor.apply([{ path: MAIN, edits: [edit] }, { path, edits: [edit] }], { reason: 'rename' })).toBe(null);
+    }
+    expect(backend.writeFile).not.toHaveBeenCalled();
+    expect(workspace.applyBufferEdits).not.toHaveBeenCalled();
+    expect(notify).toHaveBeenCalledWith(expect.stringContaining('canvas.typ'), 'error');
+  });
+
   it('describeChanges da una línea por línea tocada: fichero, número, antes y después', () => {
     const text = describeChanges([
       { relative: 'main.typ', before: 'a\nVer @x y @x.\nz', edits: [{ from: 7, to: 8, insert: 'y' }, { from: 12, to: 13, insert: 'y' }] },

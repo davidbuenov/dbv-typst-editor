@@ -40,7 +40,9 @@ const MAX_HIGHLIGHTS = 2000;
  * @param {(key: string) => string} deps.t
  */
 export function createPreviewText({ pagesEl, hostEl, elements, getGeneration, isInproc, getPageHeightPt, scrollToPage, pointAt, engineSearch, enginePageText, t }) {
-  let cursor = createMatchCursor([]);
+  /** Coincidencias de la búsqueda vigente y el cursor «n de m» sobre ellas. */
+  let matches = [];
+  let cursor = createMatchCursor(matches);
   let timer = null;
   let searchToken = 0;
   /** Texto de cada página de la generación vigente (promesas). */
@@ -84,10 +86,10 @@ export function createPreviewText({ pagesEl, hostEl, elements, getGeneration, is
   function paintMatches() {
     const rects = [];
     let currentRect = -1;
-    for (let i = 0; i < cursor.count(); i += 1) {
+    matches.forEach((match, i) => {
       if (i === cursor.index()) currentRect = rects.length;
-      rects.push(...cursorMatch(i).rects);
-    }
+      rects.push(...match.rects);
+    });
     paint('preview-find-hit', rects, currentRect);
     if (elements) {
       const count = cursor.count();
@@ -98,9 +100,6 @@ export function createPreviewText({ pagesEl, hostEl, elements, getGeneration, is
           : t('previewFind.count').replace('{n}', String(cursor.index() + 1)).replace('{m}', String(count));
     }
   }
-
-  let matches = [];
-  const cursorMatch = (i) => matches[i];
 
   function reveal() {
     const match = cursor.current();

@@ -783,6 +783,31 @@ Cuando el usuario pide "algo más limpio" tras un primer arreglo que solo atajó
   5. **Otra causa posible de diálogos repetidos (RF-68)**: mientras el diálogo de conflicto estaba abierto, cada aviso nuevo del observador abría otro encima. Se añadió una guarda.
 - **Disparador de reevaluación:** si el spike de enlaces de `/plan` muestra que `typst` 0.15.1 no da los rectángulos y destinos de los enlaces de forma utilizable, este es el sitio para registrar la alternativa. *(Resuelto en el slice 99: sí los da; test `saca_enlaces_externos_referencias_notas_citas_e_indice`.)* Si RF-68 no elimina los diálogos en el `.exe` real, la causa no era la que se diagnosticó leyendo el código, y hay que volver a analizarla antes de seguir.
 
+### ADR-V0120-001 — `/spec` de v0.12.0: editor para proyectos grandes, y el motor clásico se queda
+
+*Registrada el 2026-09-28, al congelar `/spec` de v0.12.0 (`SPECIFICATIONS.md` §5l, v1.15).*
+
+- **Contexto.** Tras publicar la 0.11.0 se arreglaron fuera de ciclo el autocompletado de Tinymist, el zoom de la vista previa y el acceso a «Proyecto en blanco» (RF-74 a RF-76, commits `e0e6872` y `b895419`). El usuario señaló que «estábamos parcheando sin seguir la metodología», y todo lo demás que surgió se llevó a este `/spec` en vez de construirlo directamente. Decidió que **todo** entra en la 0.12.0. Los tres arreglos se documentan como requisitos ya construidos, no se reconstruyen.
+- **Decisión 1 — motor clásico: opción (c), se deja como está (cierra RF-67).** La Spike S-4 (`ADR-V0100-002`) mostró que retirarlo ahorra unas 1.700 líneas, no reduce el binario de forma perceptible y exige separar exportación y vista previa dentro de `compile.rs`. Se prefiere conservar el respaldo. Consecuencia aceptada: las funciones nuevas que dependen del motor en proceso (RF-72, RF-82) no existen en el clásico y degradan sin errores.
+- **Decisión 2 — el documento principal se escribe en el manifiesto también en proyectos ajenos (RF-83, modifica RF-53.4).** Argumento del usuario: otras aplicaciones ignoran `settings/dbv-project.toml` y DBV lo aprovecha al reabrir. **R-MVP-3 no cambia**: marcar el principal es una acción explícita, y abrir un proyecto sigue sin escribir nada. Riesgos aceptados: el fichero aparece en `git status` de repositorios compartidos, y puede convivir con una carpeta `settings/` propia del proyecto (solo se añade un fichero). Si no se puede escribir, se usa como respaldo la preferencia local, como en la 0.11.0.
+- **Decisión 3 — snippets del proyecto en `.vscode/*.code-snippets` (RF-81).** Elegido frente a `settings/dbv-snippets.json` para compartirlos con quien use VS Code con Tinymist. El editor visual de snippets se difiere: el JSON estándar permite reutilizar snippets existentes, y un editor visual futuro escribiría en el mismo fichero sin rehacer nada.
+- **Decisión 4 — búsqueda global con reemplazo (RF-78) y pestañas simples y recordadas (RF-79).** Descartada la pestaña «provisional» de VS Code por complejidad. El reemplazo, el renombrado de símbolos (RF-77) y la actualización de referencias (RF-70) comparten la misma maquinaria: edición en el editor si hay cambios sin guardar, escritura atómica, historial local y Deshacer de todo o nada.
+- **Decisión 5 — Ctrl+clic pasa a «Ir a la definición» y el multicursor a Alt+clic (RF-77.2).** CodeMirror usa hoy Ctrl+clic para añadir cursores; se adopta la convención de VS Code.
+- **`.zsync` del AppImage (RF-84) sin conflicto con RF-37:** en Linux el auto-actualizador no está activo (`release-linux.yml` no genera artefactos), así que es la única vía de actualización del AppImage.
+- **Fuera de alcance:** Flathub (versión propia) y el editor visual de snippets.
+- **Disparador de reevaluación:** si el spike de la capa de texto (RF-82) muestra que `typst` 0.15.1 no da los fragmentos con posición de forma utilizable, se registra aquí la alternativa. Si Tinymist no maneja bien varios documentos abiertos a la vez (RF-79 con RF-77), se revisa el alcance de la navegación antes de construirla.
+- **Correcciones de `/plan` (2026-09-28), comprobadas contra los binarios reales** (sondas de Tinymist 0.15.8, keymaps de CodeMirror, fuente de appimagetool). La especificación v1.15 se precisa, con las marcas «Corregido/Añadido en `/plan`»:
+  1. **RF-85, fallo publicado:** Tinymist publica diagnósticos de todos los ficheros y el cliente los pintaba en el documento abierto. Entra en la 0.12.0 (slice 104).
+  2. **RF-77:** las funciones internas de Typst no tienen definición; Tinymist no ofrece arreglos de diagnósticos, sino refactorizaciones; las etiquetas se renombran de forma aproximada (`needsConfirmation`), así que se previsualizan; renombrar la ruta de un `#include` se desvía a RF-69/RF-70.
+  3. **RF-79:** RF-70 y el observador pasan a conocer todas las pestañas. En macOS, Cmd+W era «Cerrar proyecto».
+  4. **RF-84:** `appimagetool` omite el `.zsync` si falta `zsyncmake`, y usa el nombre del fichero de salida como URL. Además, fallo latente en la CI: el Cask de Homebrew puede calcular el SHA antes del reempaquetado.
+- **Riesgos aceptados conscientemente en el Adversarial Review:**
+  1. **Etiquetas con el documento en error:** Tinymist solo resuelve etiquetas desde el último documento que compiló bien. Se avisa, no se puede arreglar desde la aplicación (RF-77.9).
+  2. **Orden de lectura de la capa de texto (RF-82):** es el orden de los elementos del marco, el mismo que usan los extractores de PDF. En columnas, flotantes o notas al pie puede no coincidir con el de lectura.
+  3. **F12 en `tauri dev`:** puede abrir las herramientas de desarrollo. En producción no se compila `devtools`; se comprueba en `/test` con el `.exe` de release.
+  4. **Comentarios en los `.code-snippets`:** el resaltado de JSON no los distingue, aunque se leen bien.
+  5. **Expresiones regulares de la búsqueda:** siguen la sintaxis del crate `regex` de Rust (sin lookaround ni retroreferencias). Un solo motor valida, busca y reemplaza, y la ayuda lo dice.
+
 ## 🗺️ Mapa del Producto (Áreas de Foco)
 
 - **Producto:** "El entorno de escritorio más accesible para el ecosistema Typst" (posicionamiento oficial) — no editor de código con soporte Typst. Herramienta orientada a documento/proyecto ("Obsidian for Typst"): lanzador por tareas, asistente de creación de proyecto, plantillas como funcionalidad de primer nivel.

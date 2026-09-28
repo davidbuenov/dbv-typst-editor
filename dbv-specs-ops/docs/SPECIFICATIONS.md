@@ -1,7 +1,8 @@
 # 📋 Especificaciones: DBV Typst Editor
 
-> **Fase:** `/spec` (Especificación) → **v0.11.0 especificada**
-> **Estado:** 🔒 **CONGELADO v1.14 — 2026-09-26.** v1.14 abre v0.11.0 (§5k: **RF-68 a RF-73**): conflicto externo decidido por contenido (arregla el guardado automático), operaciones de ficheros en el panel Archivos, actualización automática de referencias al mover o renombrar, acción «Nuevo capítulo…», enlaces funcionales en la vista previa e historial local de versiones. Decisiones en `ADR-V0110-001` (`memory.md`).
+> **Fase:** `/spec` (Especificación) → **v0.12.0 especificada**
+> **Estado:** 🔒 **CONGELADO v1.15 — 2026-09-28.** *(Precisado en `/plan` el mismo día con lo comprobado contra los binarios reales: RF-77.1, .4, .5 y .9, RF-79.6, RF-81.4 y RF-84.3, y **RF-85** nuevo, la corrección de un fallo publicado. Ver `ADR-V0120-001`.)* v1.15 abre v0.12.0 (§5l: **RF-74 a RF-84**): autocompletado completo y ayuda de firma, zoom que conserva la página y «Proyecto en blanco» más a mano (RF-74 a RF-76, ya construidos fuera de ciclo); navegar y refactorizar con Tinymist; buscar y reemplazar en el proyecto; pestañas; atajos documentados; snippets de usuario; buscar y copiar en la vista previa; el documento principal en el manifiesto (modifica RF-53.4); y actualizaciones incrementales del AppImage. Cierra RF-67: el motor clásico se queda como está. Decisiones en `ADR-V0120-001` (`memory.md`).
+> **v1.14 (2026-09-26):** v1.14 abre v0.11.0 (§5k: **RF-68 a RF-73**): conflicto externo decidido por contenido (arregla el guardado automático), operaciones de ficheros en el panel Archivos, actualización automática de referencias al mover o renombrar, acción «Nuevo capítulo…», enlaces funcionales en la vista previa e historial local de versiones. Decisiones en `ADR-V0110-001` (`memory.md`).
 > **v1.13 (2026-09-21):** v1.13 abre v0.10.0 (§5j: **RF-61 a RF-67**): arreglo de Formatear, resaltado de BibTeX, pulido (ocultos, números de línea, refresco), guardado automático opcional con indicador de modificado, ruta corta, no compilar los no principales y análisis previo sobre retirar el motor clásico. **Anterior — v1.12 (2026-09-20).** v1.12 abre v0.9.0 (§5i: **RNF-MOTOR, RF-56 a RF-60**): motor de vista previa **en proceso** (Typst como librería) con sincronización exacta por palabra y frase en los dos sentidos, velocidad tras cada edición, menú contextual del editor, diagnósticos en línea y edición de ficheros de texto/código con resaltado. Decisión de arquitectura en `ADR-MOTOR-001` (`memory.md`); **RF-16 queda sustituido por RF-57 en el motor en proceso** y se conserva en el motor clásico de respaldo.
 > **v1.11 (2026-09-19):** v1.11 añade §5h (**RNF-PERF, RF-53, RF-54, RF-55**), registrada **a posteriori** en `/ship` de v0.8.0 (ver `ADR-V080-001` en `memory.md`).
 > **v1.10 (2026-09-15):** v1.10 añade **RF-52** (botón "?" de ayuda contextual en cada asistente de diagramación) tras probar el usuario en vivo el asistente de DOT/Graphviz recién construido: sin ninguna ayuda visual de sintaxis (a diferencia de los otros cinco asistentes, que sí construyen el código por ti), quien no conoce el lenguaje DOT se queda sin saber qué escribir. Ver criterios de aceptación al final de §5g.
@@ -11,7 +12,7 @@
 > **v1.5:** v1.4 consolidó el lanzador (§5d, RF-25 a RF-27, con la precisión de RF-26 criterio 10 añadida el mismo día). **v1.5 añade §5e** —RF-28 (chincheta de ventana encima, portada de DBV Markdown Reader) y RF-29 (ver la previsualización de plantilla a tamaño grande)— tras probar el usuario la aplicación construida, más **§5e.1, que documenta el alcance real de la integración con Git** y por qué NO es integración con GitHub. Ver `ADR-VENTANA-001` en `memory.md`. (baseline de especificación v0.5.0, ampliada). v1.3 especificó el salto a productividad profesional y robustez (v0.5.0): Integración con Git y resolución visual de conflictos (RF-19), Galería visual de plantillas con previsualización (RF-20), Inteligencia de código con Tinymist LSP vendorizado (RF-21), Figuras y datos dinámicos con Python (RF-22), Asistente visual de diagramas CeTZ (RF-23), y Robustez de entorno y guardado atómico (RF-24). **v1.4 reabre ese `/spec`, a decisión del usuario y antes de entregar la versión, para consolidar el lanzador** (§5d): Lanzador de una sola vía (RF-25), Galería unificada de creación de documentos (RF-26) y Tokens semánticos de estado (RF-27). El motivo es que `/build` de v0.5.0 dejó **tres** superficies distintas para elegir plantilla; ver `ADR-LANZADOR-001` en `memory.md`.
 > **Regla de congelación:** a partir de aquí, cualquier cambio de alcance o de requisito exige (1) registrarlo como ADR en `memory.md`, (2) actualizar este documento con nueva versión, y (3) revisar el impacto en `implementation_plan.md`. No se modifican requisitos "al vuelo" durante `/build`.
 > **Documento de diseño:** el sistema visual que rige §5d está en [`DESIGN.md`](./DESIGN.md), escrito el 2026-09-09 (deuda documental abierta desde el `/spec` original, saldada al abordar este rediseño).
-> **Última Revisión:** 2026-09-14
+> **Última Revisión:** 2026-09-28
 
 ---
 
@@ -754,7 +755,7 @@ un olvido, es una decisión de alcance tomada en esta misma sesión de `/spec`, 
 1. Un proyecto sin `main.typ` deja de depender de la heurística alfabética del backend: el usuario marca cuál es el documento principal.
 2. El árbol de ficheros muestra una etiqueta **principal** en ese fichero. El botón derecho sobre un `.typ` ofrece "Establecer como documento principal" (no en carpetas, en ficheros que no sean `.typ` ni en el que ya lo es) y "Mostrar en el explorador"; el menú Archivo ofrece lo mismo para el fichero abierto.
 3. Marcar otro fichero **anula el anterior**, devuelve el alcance de la vista previa a "Documento" y recompila.
-4. La elección se guarda **por proyecto en la aplicación** y no escribe nada en la carpeta del usuario; el valor guardado se trata como dato no fiable (rutas absolutas y `..` se rechazan) y se aplica al reabrir solo si el fichero sigue existiendo.
+4. La elección se guarda **por proyecto en la aplicación** y no escribe nada en la carpeta del usuario; el valor guardado se trata como dato no fiable (rutas absolutas y `..` se rechazan) y se aplica al reabrir solo si el fichero sigue existiendo. ***Modificado en v0.12.0 por RF-83 (§5l):** la elección se escribe además en el manifiesto del proyecto, y la de la aplicación queda como respaldo.*
 
 ### RF-54 — Tinymist bajo demanda y desactivable
 1. Tinymist ya **no arranca al abrir un proyecto**: arranca solo cuando el documento abierto tiene menos de 100.000 caracteres; con uno mayor espera a que el usuario pulse la insignia "Activar Tinymist". Pasar a un documento grande lo detiene.
@@ -902,6 +903,7 @@ un olvido, es una decisión de alcance tomada en esta misma sesión de `/spec`, 
 4. **Cambiar el motor predeterminado es una decisión aparte del usuario**, tomada tras ver esos datos; este requisito **no la adelanta**. Si el resultado es retirar, se especifica como requisito propio con su plan de retirada.
 5. **Informe entregado (2026-09-22):** `spikes/engine-review/README.md` (Spike S-4). Inventario real de código (solo ≈1.715 de las 3.187 líneas de `typst_engine/` son retirables — `compile.rs` mezcla exportación, que se queda, con vista previa clásica), tamaño del binario combinado actual (60,6 MiB) y por qué es improbable que retirar el motor clásico lo reduzca de forma perceptible (el peso está en las dependencias del motor nuevo, no en esta lógica propia), la cita de la memoria ya medida en `/plan` de 0.9.0, y lo que **no** se pudo medir esta sesión (frecuencia real del respaldo — sin telemetría, por diseño offline-first — y tamaño/CI sin el motor clásico, que exigiría separar antes exportación y vista previa clásica dentro de `compile.rs`). **Recomendación del informe: (c), dejarlo como está.** Pendiente de que el usuario decida.
 6. **Criterios de aceptación:** existe un informe con las cifras anteriores medidas (no estimadas), un resumen de casos en que el respaldo se activó y una **recomendación razonada**, y el usuario elige entre (a)–(c) tras leerlo.
+7. **Decisión del usuario (2026-09-28, `/spec` de la 0.12.0): opción (c), dejarlo como está.** El motor en proceso sigue siendo el predeterminado y el clásico se mantiene como respaldo automático. Las funciones que solo existen en el motor en proceso (enlaces de RF-72, búsqueda y copia de RF-82) degradan en el clásico sin errores. **RF-67 queda cerrado.** Si se quiere reabrir, se especifica un requisito nuevo de retirada con su propio plan. Ver `ADR-V0120-001`.
 
 ### Preguntas abiertas para `/plan` (no se resuelven aquí a propósito)
 - Valor de la pausa del guardado automático y su interacción con el observador de ficheros y con Git (RF-64.6).
@@ -1021,6 +1023,155 @@ un olvido, es una decisión de alcance tomada en esta misma sesión de `/spec`, 
 - **RF-70:** si el analizador sintáctico se usa desde el crate que ya enlaza el motor en proceso, y el rendimiento con proyectos grandes (orientativo: menos de 1 s con 200 `.typ`). Confirmar contra el binario real las reglas de resolución de rutas de la 0.15.1.
 - **RF-73:** valores definitivos de consolidación y retención, formato de almacenamiento y cómo se identifica un proyecto si se mueve de carpeta.
 - Qué secciones de `ARCHITECTURE.md` hay que ampliar (operaciones de ficheros en el backend, reescritura de referencias, capa de enlaces, historial).
+
+---
+
+## ✨ 5l. Funcionalidades — v0.12.0 (Editor para proyectos grandes: navegación, búsqueda, pestañas y snippets)
+
+> **Origen (2026-09-28):** tras publicar la 0.11.0, una sesión de uso destapó que el autocompletado de Tinymist se quedaba a medias dentro de las llamadas a funciones y otros detalles, arreglados fuera de ciclo (RF-74 a RF-76, **ya construidos**). Al hablar de ellos surgió el resto: aprovechar lo que Tinymist ya ofrece y no usamos, búsqueda global y pestañas (las dos quedaron fuera de la 0.11.0 porque la pregunta se quedó sin respuesta, no por descarte), atajos documentados, snippets de usuario, buscar y copiar en la vista previa, y tres puntos del backlog de `task.md`. El usuario decidió que **todo** entra en la 0.12.0. Decisiones en `ADR-V0120-001` (`memory.md`).
+>
+> **Decisión sobre el motor clásico (RF-67, 2026-09-28): opción (c), se deja como está.** Motor en proceso predeterminado y clásico como respaldo automático mantenido. Ver RF-67.7.
+>
+> **Fuera de alcance:** publicación en Flathub (versión propia; análisis en el backlog de `task.md`); editor visual de snippets (RF-81 hace el primer paso con el fichero JSON); pestaña «provisional» al estilo de VS Code (RF-79 usa pestañas simples, decisión del usuario).
+>
+> **Contraste con el código, hecho en `/spec`:** Tinymist (el binario del sidecar) anuncia `definitionProvider`, `referencesProvider`, `renameProvider` con `prepareProvider`, `codeActionProvider`, `documentSymbolProvider` y `documentHighlightProvider`. `codemirror-lang-typst` declara `commentTokens` (`//`, `/* */`). En CodeMirror, **Ctrl+clic (Cmd en macOS) añade hoy un cursor** (`clickAddsSelectionRange` por defecto), y la cursiva de la barra (RF-13) ocupa **Ctrl+I**, que en el `defaultKeymap` es `selectParentSyntax`. En Linux el auto-actualizador (RF-37) **no está activo**: `release-linux.yml` no genera artefactos de actualización.
+
+### RF-74 — Autocompletado completo de Tinymist y ayuda de firma *(ya construido, commit `e0e6872`)*
+1. **Causa:** la fuente de autocompletado solo preguntaba a Tinymist tras `#`, `@`, `.`, `:`, `<` o una palabra a medias. Tras `(` y `,`, que Tinymist anuncia como disparadores, no preguntaba, así que `#box(` no ofrecía los parámetros.
+2. Se pregunta tras todos los disparadores de Tinymist (`# ( < , . : / " @`). Se respetan su orden (`sortText`) y el tramo que reemplaza cada sugerencia (`textEdit.range`). La lista se reabre tras aceptar una función (`box(|)`) o un parámetro (`fill: |`). Los snippets LSP se traducen a la sintaxis de CodeMirror (`lspSnippetToCodeMirror`), y el detalle muestra el tipo en vez de la firma entera.
+3. **Tab** acepta la sugerencia abierta; sin lista abierta sigue indentando o saltando de campo.
+4. **Ayuda de firma:** al escribir `(` o `,` aparece encima del cursor la firma con el parámetro actual resaltado y su documentación breve. Se actualiza al moverse entre argumentos y se cierra con Escape o al salir de la llamada.
+5. **Criterios de aceptación (cumplidos):** 22 tests, varios con un `EditorView` real y respuestas capturadas del binario de Tinymist. Pendiente solo la prueba en ventana real.
+
+### RF-75 — La vista previa conserva el punto de lectura al cambiar el zoom *(ya construido, commit `e0e6872`)*
+1. **Causa:** el zoom cambia el alto de todas las páginas y `scrollTop` se quedaba en los mismos píxeles. «Ajustar al ancho» en la página 12 llevaba a otra página.
+2. `applyZoom` guarda la página que asoma arriba y la fracción ya recorrida, y la restaura tras el cambio. Vale para «Ajustar al ancho», +/−, 100 % y el reajuste al redimensionar.
+3. **Criterios de aceptación (cumplidos):** 3 tests que simulan el layout y fallan sin el arreglo.
+
+### RF-76 — «Proyecto en blanco» más a mano *(ya construido, commits `e0e6872` y `b895419`)*
+1. En la galería de «Nuevo documento», «Proyecto en blanco» aparece **el primero**; el resto sigue en orden alfabético.
+2. **Archivo › Nuevo proyecto en blanco**, primera opción del menú Archivo: abre el asistente con esa plantilla, igual que «Usar plantilla» en la galería. Carga el catálogo si la aplicación arrancó directamente con un documento.
+3. **Criterios de aceptación (cumplidos):** test del orden del catálogo empaquetado; tests de la búsqueda de la plantilla, de su carga sin pasar por el lanzador y del cableado del menú.
+
+### RF-77 — Navegar y refactorizar con Tinymist
+1. **Ir a la definición:** **F12** y **Ctrl+clic** (Cmd+clic en macOS) sobre una función, variable, etiqueta (`@fig-x`, `<fig-x>`) o `#import`. Si el destino está en otro fichero del proyecto, lo abre (en su pestaña, RF-79) en esa posición. Si está fuera del proyecto (paquetes de `@preview`, en la caché de paquetes), lo abre **en modo solo lectura** y lo indica. *(Corregido en `/plan`, comprobado con el binario: las **funciones internas de Typst** (`box`, `text`…) no tienen código fuente y Tinymist no devuelve destino. Se avisa «Función interna de Typst: sin código fuente»; su documentación sigue en el hover.)*
+2. **Multicursor:** como Ctrl+clic pasa a ser «Ir a la definición», **añadir un cursor pasa a Alt+clic**, como en VS Code. La selección rectangular sigue con Alt+arrastrar.
+3. **Buscar referencias:** **Mayús+F12** lista todos los usos del símbolo en el proyecto, agrupados por fichero con la línea de contexto. Un clic lleva a cada uno.
+4. **Renombrar símbolo:** **F2 con el foco en el editor** (en el árbol, F2 sigue renombrando el fichero, RF-69). Primero se consulta `prepareRename`: si el símbolo no se puede renombrar, se dice por qué. Si se puede, un campo en línea pide el nombre nuevo y se aplica el cambio en todos los ficheros, incluidos los cerrados. Se usa **la misma maquinaria que RF-70**: los documentos abiertos con cambios sin guardar se editan en el editor, no en disco; cada fichero se escribe de forma atómica; se deja copia en el historial local (RF-73); y un aviso «N cambios en M ficheros» ofrece **Ver cambios** y **Deshacer** (todo o nada). *(Añadido en `/plan`, comprobado con el binario: renombrar una **etiqueta** devuelve cambios marcados como «búsqueda aproximada» (`needsConfirmation`), así que la lista de cambios se **muestra antes de aplicar**, con *Aplicar* y *Cancelar*. Renombrar la **ruta** de un `#include` renombra el fichero pero solo actualiza esa referencia: se desvía al renombrado del árbol (RF-69) con la actualización de todas las referencias (RF-70).)*
+5. **Acciones de código:** **Ctrl+.** y *Acciones de código…* en el menú contextual piden a Tinymist las acciones de la posición o la selección actual y las listan; si no hay ninguna, se dice. Aplicar una acción es una edición normal, que se deshace con Ctrl+Z. *(Corregido en `/plan`, comprobado con el binario: Tinymist no ofrece arreglos para los diagnósticos, sino **refactorizaciones** según el sitio: «Envolver en bloque de contenido», «Aumentar nivel del encabezado»… Por eso no hay indicador junto a los diagnósticos.)*
+6. El **menú contextual del editor** (RF-58) añade *Ir a la definición*, *Buscar referencias* y *Renombrar símbolo…*.
+7. **Con Tinymist apagado o arrancando (RF-54):** las acciones aparecen deshabilitadas con el motivo, igual que Formatear (RF-61). Nunca fallan en silencio.
+8. **Criterios de aceptación:**
+   - Tests de la aplicación de un `WorkspaceEdit` de varios ficheros: con un fichero cerrado, uno abierto sin cambios y uno abierto con cambios sin guardar. Test de Deshacer.
+   - En `z6-IPbook`: F12 sobre un `@etiqueta` de un capítulo lleva a la figura de otro capítulo; renombrar una etiqueta la cambia en todos los capítulos y el libro sigue compilando sin errores nuevos.
+   - Alt+clic añade un cursor.
+9. **Límite declarado** *(añadido en `/plan`, comprobado con el binario)*: Tinymist resuelve las **etiquetas** a partir del último documento que **compiló sin errores**. Con el documento en error, ir a la definición, buscar referencias y renombrar una etiqueta no dan resultado: se avisa de ello, en vez de fallar en silencio. Las variables y funciones funcionan igual.
+
+### RF-78 — Buscar y reemplazar en todo el proyecto
+1. **Ctrl+Mayús+F** (Cmd+Mayús+F) abre un panel de búsqueda global. Opciones: distinguir mayúsculas, palabra completa y expresión regular. Filtro opcional de ficheros a incluir o excluir (p. ej. `*.typ`).
+2. **Dónde busca:** en los ficheros de texto editables del proyecto (mismo criterio y límite de tamaño que RF-60). Se excluyen las carpetas que empiezan por punto (`.git`, `.vscode`…) salvo con «Mostrar ficheros ocultos» (RF-63.1). Los documentos abiertos se buscan **en su contenido del editor**, con los cambios sin guardar.
+3. **Resultados** agrupados por fichero, con el número de coincidencias y la línea de contexto resaltada. Un clic abre el fichero en esa línea (en su pestaña, RF-79). Los resultados se actualizan si se edita un fichero.
+4. **Reemplazar:** campo de reemplazo (con grupos `$1` si hay expresión regular) y **vista previa** del cambio en cada coincidencia. Se puede reemplazar una, todas las de un fichero o todas. Igual que en RF-70 y RF-77.4: los documentos abiertos con cambios se editan en el editor, la escritura es atómica, se deja copia en el historial local (RF-73) y hay un aviso con **Deshacer** (todo o nada).
+5. **Rendimiento:** en `z6-IPbook` la búsqueda responde en **menos de 1 s** (orientativo) y no bloquea la interfaz; una búsqueda nueva cancela la anterior.
+6. Una expresión regular no válida se avisa en el propio campo, sin buscar.
+7. **Criterios de aceptación:**
+   - Tests de la función de búsqueda: mayúsculas, palabra completa, expresión regular con grupos, exclusión de ocultos y de binarios, límite de tamaño.
+   - Test de reemplazo con un documento abierto con cambios sin guardar (no toca el disco) y test de Deshacer.
+   - Buscar en `z6-IPbook` una palabra de varios capítulos los lista todos; reemplazarla y deshacer deja el libro como estaba.
+
+### RF-79 — Pestañas de documentos abiertos
+1. Cada fichero abierto es una **pestaña** sobre el editor. Abrir un fichero ya abierto activa su pestaña. Sustituye a la barra del documento de un solo fichero y conserva su información: nombre corto y desambiguado (RF-65), punto de modificado (RF-64.3) e insignia de lenguaje.
+2. **Cerrar:** botón de la pestaña, **Ctrl+W** o clic central. Cerrar una pestaña con cambios sin guardar pregunta, salvo con el guardado automático encendido, que guarda antes (RF-64.5).
+3. **Moverse:** **Ctrl+Tab** y **Ctrl+Mayús+Tab**, o clic. Las pestañas se reordenan arrastrando. Si no caben, la barra se desplaza y la pestaña activa siempre queda visible.
+4. **Cada pestaña conserva su estado:** cursor, selección, scroll, plegados e historial de deshacer.
+5. **Se recuerdan por proyecto:** al reabrirlo vuelven las mismas pestañas, en el mismo orden y con la misma activa. Si algún fichero ya no existe, se omite sin error. *(Decisión del usuario, 2026-09-28: pestañas simples y recordadas.)*
+6. **Coherencia con el resto:**
+   - Renombrar o mover desde el árbol (RF-69, RF-70) actualiza las pestañas afectadas; eliminar un fichero cierra su pestaña, preguntando si tiene cambios.
+   - El guardado automático (RF-64) también guarda las pestañas de fondo con cambios.
+   - El conflicto externo (RF-68) vigila **todas** las pestañas, no solo la activa.
+   - La vista previa en alcance «Fichero» (RF-14) sigue a la pestaña activa; en «Documento» no cambia.
+   - Tinymist (RF-21) recibe el contenido actual de las pestañas abiertas, para que la navegación y el renombrado de RF-77 vean los cambios sin guardar.
+   - Cerrar la ventana (RF-64.6) cubre las pestañas de fondo con cambios.
+   - *(Añadido en `/plan`)* La actualización de referencias de RF-70 recibe **todas** las pestañas abiertas: si una pestaña de fondo con cambios sin guardar referencia un fichero que se mueve, se edita su contenido en el editor, nunca su disco. Hoy RF-70 solo conoce un documento abierto.
+   - *(Añadido en `/plan`)* **macOS:** Cmd+W cierra la pestaña y «Cerrar proyecto» pasa a Cmd+Mayús+W. Hoy el menú nativo asigna Cmd+W a «Cerrar proyecto» y gana al editor: sin este cambio, cerrar una pestaña cerraría el proyecto.
+7. **Criterios de aceptación:**
+   - Tests puros del modelo de pestañas: abrir, activar, cerrar, reordenar, renombrado desde el árbol, eliminación y restauración con un fichero que falta.
+   - Con tres capítulos abiertos, editar uno, cambiar a otro y volver conserva el cursor y el deshacer.
+   - Reabrir el proyecto recupera las pestañas.
+   - Cerrar la ventana con una pestaña de fondo modificada y el guardado automático apagado pregunta.
+
+### RF-80 — Atajos de teclado completos y documentados
+1. La Ayuda gana una sección **«Atajos de teclado»** con **todos** los atajos del editor. Incluye los que ya trae CodeMirror y hoy nadie descubre: mover líneas (Alt+↑/↓), duplicarlas (Mayús+Alt+↑/↓), borrar línea (Ctrl+Mayús+K), comentar (Ctrl+/), plegar, ir a línea y multicursor. Incluye también los nuevos de esta versión (F12, Mayús+F12, F2, Ctrl+., Ctrl+Mayús+F, Ctrl+Tab, Ctrl+W). Se abre también desde el menú de ayuda.
+2. **Una sola fuente:** la tabla de la ayuda se genera desde la misma definición que registra los atajos, para que no se desfasen. Un test comprueba que todo atajo registrado por la aplicación aparece en la ayuda en los dos idiomas.
+3. **Ampliar selección:** `selectParentSyntax` (hoy tapado por Ctrl+I, la cursiva) se recupera en una combinación libre, comprobada contra todo el keymap. Se propone Mayús+Alt+→, como en VS Code, a confirmar en `/plan` porque CodeMirror la usa para `selectSyntaxRight`.
+4. **Comentar en Typst:** Ctrl+/ comenta y descomenta con `//`, y Mayús+Alt+A con `/* */`. Hay que comprobarlo en ventana real: `codemirror-lang-typst` declara la sintaxis, pero nunca se ha probado en la aplicación.
+5. **Criterios de aceptación:** el test del punto 2; ningún atajo duplicado entre los keymaps de la aplicación (test); Ctrl+/ comenta una línea de un `.typ`; Ctrl+I sigue siendo cursiva.
+
+### RF-81 — Snippets de usuario *(primer paso: fichero JSON)*
+1. **Formato de VS Code:** cada snippet tiene `prefix` (texto o lista), `body` (texto o lista de líneas), `description` y, opcionalmente, `scope`. Se admiten comentarios y comas finales (JSONC, como en VS Code). Así sirven snippets copiados de VS Code o de internet.
+2. **Dos niveles:**
+   - **Globales:** un fichero en la configuración de la aplicación (`snippets/typst.json`).
+   - **Del proyecto:** los ficheros **`.vscode/*.code-snippets`** del proyecto, el mismo sitio y formato que usa VS Code, para compartirlos con coautores que usen VS Code con Tinymist *(decisión del usuario, 2026-09-28)*. Se usan los snippets sin `scope` o cuyo `scope` incluya `typst`.
+   - Si un prefijo existe en los dos, se ofrecen ambos, primero el del proyecto.
+3. **En el autocompletado:** los snippets aparecen en la lista con su tipo, su descripción y el cuerpo como vista previa, junto a las sugerencias de Tinymist. **También funcionan con Tinymist apagado.** El cuerpo se traduce con `lspSnippetToCodeMirror` (RF-74). Variables admitidas: `TM_SELECTED_TEXT`, `TM_FILENAME`, `TM_FILENAME_BASE`, `CURRENT_YEAR`, `CURRENT_MONTH`, `CURRENT_DATE`; las demás se sustituyen por su valor por defecto o por texto vacío.
+4. **Editar:** *Editar snippets globales* y *Editar snippets del proyecto* abren el fichero **en el propio editor**, con resaltado de JSON (`.code-snippets` se reconoce como JSON). Si no existe, se crea con dos ejemplos comentados que sirven de plantilla. Crear el fichero del proyecto es una acción explícita del usuario. *(Precisado en `/plan`: hoy `.code-snippets` no se reconoce como JSON ni es editable en el árbol, y hay que añadirlo. El resaltado de JSON no distingue los comentarios, aunque se leen bien.)*
+5. **Recarga:** al guardar el fichero, los snippets se recargan sin reiniciar. También si lo cambia otro programa.
+6. **Errores:** un JSON no válido se avisa con el fichero y la línea, y se **siguen usando los snippets válidos anteriores**; el autocompletado nunca se rompe. Una entrada sin `prefix` o sin `body` se ignora con aviso.
+7. **Guardar selección como snippet…** (menú contextual del editor): con texto seleccionado, pide nombre, prefijo, descripción y destino (global o proyecto). Escapa `$` y `}` del texto y añade la entrada al fichero **sin tocar el resto de su contenido**, comentarios incluidos.
+8. **Criterios de aceptación:**
+   - Tests puros: lectura de JSONC; `body` como texto y como lista; `scope`; variables; prioridad proyecto/global; escape al guardar una selección con `$` y llaves; un JSON roto conserva el conjunto anterior.
+   - Un snippet copiado tal cual de VS Code se inserta con sus campos y Tab salta entre ellos.
+   - Guardar una selección y escribir su prefijo la inserta.
+
+### RF-82 — Buscar y copiar texto en la vista previa *(diferido desde la 0.9.0)*
+1. **Buscar:** con el foco en la vista previa, **Ctrl+F** abre una barra de búsqueda sobre el documento renderizado. Busca en **todas** las páginas, aunque no estén cargadas (paginación perezosa, RNF-PERF), resalta las coincidencias, indica «n de m» y navega con Intro y Mayús+Intro, llevando la vista a cada una.
+2. **Copiar:** arrastrar sobre la vista previa selecciona texto y **Ctrl+C** lo copia como texto plano, en orden de lectura. El menú contextual de la vista previa añade *Copiar*.
+3. **Sin romper lo que hay:** el doble clic sigue sincronizando con el editor (RF-57), un clic en un enlace sigue funcionando (RF-72) y los resaltados se alinean con el zoom y «Ajustar al ancho» (RF-75).
+4. **Cómo:** con una **capa de texto** que saca el motor en proceso de cada página maquetada (posición de cada fragmento de texto), igual que la capa de enlaces de RF-72. El SVG no lleva texto seleccionable. **Motor clásico de respaldo:** sin búsqueda ni copia (degradación documentada, sin errores), coherente con RF-67.7.
+5. **Criterios de aceptación:** tests de la búsqueda sobre la capa de texto (varias páginas, coincidencia partida entre dos líneas, mayúsculas) y de la conversión a coordenadas de pantalla con varios zooms. En `z6-IPbook`, buscar una palabra de la página 150 con solo las primeras páginas cargadas la encuentra y lleva a ella; copiar un párrafo pega su texto.
+
+### RF-83 — El documento principal viaja con el proyecto *(modifica RF-53.4)*
+1. **Cambio sobre RF-53.4:** marcar el documento principal **escribe también** `entrypoint` en el manifiesto `settings/dbv-project.toml`. Si no existe, se crea, incluso en proyectos que no creó DBV. *(Decisión del usuario, 2026-09-28: el resto de aplicaciones lo ignoran y DBV lo aprovecha al reabrir; el principal viaja con git, con el `.dbvt` y a otro ordenador.)* Es una acción explícita del usuario, así que cumple R-MVP-3 («ninguna operación debe escribir el manifiesto sin acción explícita del usuario»): la regla no cambia. **Abrir un proyecto sigue sin escribir nada.**
+2. **Se conserva el resto del manifiesto** (plantilla, campos del asistente) y, en lo posible, su formato y sus comentarios.
+3. **Al abrir, manda el manifiesto:** si declara un principal que existe, se usa. Si no declara ninguno, se usa la elección guardada en la aplicación (proyectos marcados antes de la 0.12.0). Si tampoco hay, se usa la heurística de siempre.
+4. **Respaldo:** la elección se sigue guardando también en la aplicación. Si no se puede escribir el manifiesto (carpeta de solo lectura, o `settings` es un fichero y no una carpeta), se avisa una vez y el principal queda recordado **solo en este equipo**, como en la 0.11.0.
+5. **Coherencia con el árbol (RF-69.10):** renombrar o mover el principal actualiza también el manifiesto; eliminarlo quita `entrypoint`.
+6. **Confinamiento:** el backend solo acepta una ruta relativa dentro del proyecto, sin `..` ni ruta absoluta, que sea un `.typ` existente. Mismo criterio que `isSafeRelativePath` en el frontend.
+7. **Límite declarado:** en un repositorio compartido, el manifiesto aparece como fichero nuevo en `git status`. Está pensado para subirse; la ayuda lo explica.
+8. **Punto de partida:** el borrador `set_project_entrypoint` apartado en `git stash` («RF-53 borrador…»). Crea el manifiesto y conserva el resto, pero **no confina la ruta** ni está conectado.
+9. **Criterios de aceptación:**
+   - Tests en Rust: escritura con y sin manifiesto previo; conserva los demás campos; rechaza `..`, rutas absolutas, ficheros que no son `.typ` y ficheros que no existen; `settings` como fichero cae al respaldo.
+   - Test de la prioridad al abrir (manifiesto sobre preferencia local).
+   - Renombrar el principal desde el árbol actualiza el manifiesto.
+   - Marcar el principal en un equipo y abrir el proyecto sincronizado en otro lo respeta.
+
+### RF-84 — Actualizaciones incrementales del AppImage
+1. **Contexto:** el test de AppImageHub avisa (sin bloquear) de que el AppImage no lleva información de actualización. En Linux el auto-actualizador de la aplicación (RF-37) no está activo, así que hoy quien usa el AppImage solo puede actualizar descargándolo de nuevo o con Homebrew (RF-55). Esto **no choca** con RF-37: es la única vía de actualización para el AppImage.
+2. `release-linux.yml`, en el paso que reempaqueta el AppImage (añadido en la Fase 48 para normalizar permisos), **incrusta la información de actualización** con `appimagetool -u "gh-releases-zsync|davidbuenov|dbv-typst-editor|latest|<patrón del nombre>.zsync"` y **publica el `.zsync`** junto al AppImage en la Release.
+3. El `.zsync` se genera sobre el AppImage **definitivo**, después de normalizar permisos. El Cask de Homebrew (RF-55) debe calcular su SHA sobre ese mismo fichero. *(Precisado en `/plan`, leyendo el fuente de appimagetool: el `.zsync` lo genera `zsyncmake`, y si no está instalado **se omite sin error**. Además usa como URL el nombre del fichero de salida, así que hay que reempaquetar ya con el nombre que tendrá en GitHub, con puntos. La CI debe fallar si falta cualquiera de las dos cosas. Y la Release se crea siempre como borrador y se publica al final: si se publica antes de reempaquetar, `update-homebrew-tap.yml` calcula el SHA del fichero viejo, como pasó en la Fase 48.)*
+4. **Criterios de aceptación:**
+   - `appimageupdatetool` sobre el AppImage de la versión anterior a la 0.12.0 no puede actualizar (no lleva la información). Sobre el de la 0.12.0, al publicarse una versión siguiente, descarga solo lo que cambia. Esta segunda comprobación queda para la 0.12.1 o la 0.13.0.
+   - El test de AppImageHub deja de mostrar el aviso.
+   - El Cask sigue verificando su SHA en la CI del tap.
+5. Si sale bien, la lección se lleva a dbv-md-reader, al framework (`NATIVE_APPS_RELEASE_CI.md`) y a `dbv-tauri-starter`, como la de los permisos.
+
+### RF-85 — Los diagnósticos de Tinymist se pintan en su fichero *(corrección de un fallo publicado, añadida en `/plan`)*
+1. **Causa (comprobada con el binario de Tinymist 0.15.8):** Tinymist publica los diagnósticos de **todos** los ficheros del proyecto, no solo del abierto. Con `main.typ` abierto, un error de `cap/uno.typ` llega como diagnóstico de `cap/uno.typ`. `lspClient.js` los entrega sin su fichero, y el editor los subraya en el documento abierto, en líneas que no tienen nada que ver; también cuentan en la insignia de Tinymist. El panel de Problemas no se ve afectado, porque sale del motor en proceso y sí lleva el fichero.
+2. Los diagnósticos de Tinymist se guardan **por fichero**. El editor muestra solo los del documento activo, y al cambiar de documento (o de pestaña, RF-79) muestra los suyos.
+3. **Criterios de aceptación:** test con la notificación capturada del binario. Con `main.typ` abierto y un error en `cap/uno.typ`, en `main.typ` no se subraya nada; al abrir `cap/uno.typ`, el error aparece en su línea.
+
+### Preguntas abiertas para `/plan` *(resueltas en `implementation_plan.md` §5, 2026-09-28)*
+- **Tinymist con varias pestañas (RF-77, RF-79):** hoy `lspClient.js` solo abre un documento. Cómo se abren y sincronizan todas las pestañas (`didOpen`/`didChange`/`didClose`) y qué coste tiene con capítulos grandes (umbral de RF-54). Qué pasa si Tinymist devuelve un `WorkspaceEdit` que crea o renombra ficheros.
+- **F12 en el WebView:** si la tecla llega a la aplicación o la captura el WebView para las herramientas de desarrollo, en `dev` y en producción.
+- **Destinos fuera del proyecto (RF-77.1):** cómo se abren los ficheros de la caché de paquetes en solo lectura y cómo se distinguen en la interfaz.
+- **Búsqueda (RF-78):** si va en Rust (crates `regex`/`ignore`) o en el frontend; streaming de resultados y cancelación; sintaxis de expresión regular común a buscar y reemplazar.
+- **Pestañas (RF-79):** memoria con muchas pestañas grandes (un `EditorState` por pestaña), dónde se guarda el estado por proyecto, y cómo encaja con `workspace.js`, que hoy asume un solo documento.
+- **Combinación de «Ampliar selección» (RF-80.3)** y mecanismo para que la ayuda se genere desde los keymaps.
+- **Snippets (RF-81):** crate o función para JSONC en el frontend; cómo añadir una entrada sin perder comentarios; carpeta exacta de configuración por plataforma; observador para la recarga.
+- **Capa de texto (RF-82):** spike sobre `typst` 0.15.1, igual que el de enlaces de RF-72: cómo sacar los fragmentos de texto con posición de cada página maquetada, orden de lectura, ligaduras y texto matemático; tamaño de esa capa en un libro de 220 páginas.
+- **Manifiesto (RF-83):** conservar formato y comentarios al reescribir el TOML (`toml_edit` frente a la serialización actual).
+- **AppImage (RF-84):** patrón exacto del nombre del asset (GitHub cambia espacios por puntos, `scripts/github-asset-name.mjs`) y orden de los pasos frente a la actualización del Cask.
+- Qué secciones de `ARCHITECTURE.md` hay que ampliar (cliente LSP con varios documentos, pestañas, búsqueda, snippets, capa de texto).
 
 ---
 

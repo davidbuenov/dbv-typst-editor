@@ -6,13 +6,20 @@
 // =============================================================================
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { CompletionContext, autocompletion, snippet } from '@codemirror/autocomplete';
+import { EditorState } from '@codemirror/state';
+import { EditorView } from '@codemirror/view';
 import {
   createLspClient,
+  createLspCompletionSource,
+  formatSignature,
   LSP_AUTOSTART_MAX_CHARS,
   getCompletionWordRange,
+  lspSnippetToCodeMirror,
   mapLspKind,
   pathToUri,
   posFromLsp,
+  shouldRequestCompletion,
 } from './lspClient.js';
 import * as backend from '../services/backend.js';
 
@@ -437,6 +444,222 @@ describe('lspClient', () => {
 
         expect(client.isActive()).toBe(false);
       });
+    });
+  });
+});
+
+// Respuestas reales de Tinymist (capturadas con el binario del sidecar) para
+// `#box(`: son las que VS Code usa para ofrecer los parámetros de la función.
+const edit = (newText, line, start, end = start) => ({
+  newText,
+  range: { start: { line, character: start }, end: { line, character: end } },
+});
+
+describe('autocompletado completo de Tinymist (parámetros, snippets y firma)', () => {
+  describe('lspSnippetToCodeMirror', () => {
+    it('conserva los campos numerados que ya entiende CodeMirror', () => {
+      expect(lspSnippetToCodeMirror('box(${1:})')).toBe('box(${1:})');
+      expect(lspSnippetToCodeMirror('rgb(${1:r}, ${2:g})')).toBe('rgb(${1:r}, ${2:g})');
+    });
+
+    it('convierte los tabstops sin llaves ($1, $0)', () => {
+      expect(lspSnippetToCodeMirror('image($1)$0')).toBe('image(${1})${0}');
+    });
+
+    it('escapa las llaves literales de Typst para que CodeMirror no las tome por campos', () => {
+      expect(lspSnippetToCodeMirror('#{ $0 }')).toBe('#\\{ ${0} \\}');
+      expect(lspSnippetToCodeMirror('for (${1:key}, ${2:value}) in ${3:(a: 1)} {\n\t${4:}\n}')).toBe(
+        'for (${1:key}, ${2:value}) in ${3:(a: 1)} \\{\n\t${4:}\n\\}'
+      );
+    });
+
+    it('el resultado inserta las llaves tal cual en el documento', () => {
+      const view = new EditorView({ state: EditorState.create({ doc: '' }), parent: document.body });
+      snippet(lspSnippetToCodeMirror('#{ $0 }'))(view, null, 0, 0);
+      expect(view.state.doc.toString()).toBe('#{  }');
+      expect(view.state.selection.main.head).toBe(3);
+      view.destroy();
+    });
+
+    it('resuelve escapes, elecciones, variables y placeholders anidados', () => {
+      expect(lspSnippetToCodeMirror('\\$x \\}')).toBe('$x \\}');
+      expect(lspSnippetToCodeMirror('${1|left,right|}')).toBe('${1:left}');
+      expect(lspSnippetToCodeMirror('$TM_SELECTED_TEXT${1}')).toBe('${1:}');
+      expect(lspSnippetToCodeMirror('${1:a ${2:b}}')).toBe('${1:a b}');
+    });
+  });
+
+  describe('shouldRequestCompletion', () => {
+    const ctx = (doc, explicit = false) =>
+      new CompletionContext(EditorState.create({ doc }), doc.length, explicit);
+
+    it('pregunta tras "(" , "," y ":" aunque no haya palabra escrita', () => {
+      expect(shouldRequestCompletion(ctx('#box('))).toBe(true);
+      expect(shouldRequestCompletion(ctx('#box(width: 1cm,'))).toBe(true);
+      expect(shouldRequestCompletion(ctx('#box(fill:'))).toBe(true);
+    });
+
+    it('pregunta con una palabra a medias o con Ctrl+Espacio', () => {
+      expect(shouldRequestCompletion(ctx('#box(w'))).toBe(true);
+      expect(shouldRequestCompletion(ctx('hola ', true))).toBe(true);
+    });
+
+    it('no pregunta tras un espacio en texto normal', () => {
+      expect(shouldRequestCompletion(ctx('hola '))).toBe(false);
+    });
+  });
+
+  describe('formatSignature', () => {
+    const help = {
+      activeSignature: 0,
+      signatures: [
+        {
+          label: 'box(body: content | none, fill: color, width: auto | relative) -> box',
+          activeParameter: 1,
+          parameters: [
+            { label: 'body:', documentation: { kind: 'markdown', value: 'The contents.' } },
+            { label: 'fill:', documentation: { kind: 'markdown', value: 'The fill.\n\nMore details.' } },
+            { label: 'width:' },
+          ],
+        },
+      ],
+    };
+
+    it('resalta el parámetro activo entero (nombre y tipo) y da su documentación breve', () => {
+      const sig = formatSignature(help);
+      expect(sig.label.slice(sig.activeStart, sig.activeEnd)).toBe('fill: color');
+      expect(sig.doc).toBe('The fill.');
+    });
+
+    it('el último parámetro llega hasta el paréntesis de cierre', () => {
+      const sig = formatSignature({ ...help, signatures: [{ ...help.signatures[0], activeParameter: 2 }] });
+      expect(sig.label.slice(sig.activeStart, sig.activeEnd)).toBe('width: auto | relative');
+    });
+
+    it('no confunde el nombre de la función con un parámetro homónimo (text(text: …))', () => {
+      const sig = formatSignature({
+        signatures: [
+          { label: 'text(text: str, fill: color) -> text', activeParameter: 0, parameters: [{ label: 'text:' }] },
+        ],
+      });
+      expect(sig.activeStart).toBe(5);
+    });
+
+    it('sin firmas devuelve null', () => {
+      expect(formatSignature(null)).toBeNull();
+      expect(formatSignature({ signatures: [] })).toBeNull();
+    });
+  });
+
+  describe('getCompletions', () => {
+    it('conserva orden (sortText), rango y un detalle corto; filtra "a4" sin comillas', async () => {
+      vi.spyOn(backend, 'on').mockResolvedValue(() => {});
+      vi.spyOn(backend, 'tinymistStart').mockResolvedValue({ ok: true, value: null });
+      vi.spyOn(backend, 'tinymistSendNotification').mockResolvedValue({ ok: true, value: null });
+      vi.spyOn(backend, 'tinymistSendRequest').mockResolvedValue({
+        ok: true,
+        value: [
+          {
+            label: 'fill',
+            kind: 5,
+            sortText: '002',
+            insertTextFormat: 2,
+            detail: 'The box background color. '.repeat(10),
+            labelDetails: { description: 'color' },
+            textEdit: edit('fill: ${1:}', 0, 5),
+          },
+          { label: '"a4"', kind: 6, sortText: '004', textEdit: edit('a4', 0, 18) },
+        ],
+      });
+      const client = createLspClient();
+      await client.start('/p');
+      await client.openDocument('/p/main.typ', '#box()');
+
+      const [fill, a4] = await client.getCompletions(5, 0, 5);
+      expect(fill.sortText).toBe('002');
+      expect(fill.shortDetail).toBe('color');
+      expect(fill.info).toContain('background color');
+      expect(fill.range.start.character).toBe(5);
+      expect(a4.filterLabel).toBe('a4');
+    });
+  });
+
+  describe('createLspCompletionSource (con un editor real)', () => {
+    function setup(doc, pos, items) {
+      const lsp = {
+        isActive: () => true,
+        getCurrentUri: () => 'file:///p/main.typ',
+        getCompletions: vi.fn().mockResolvedValue(items),
+      };
+      const view = new EditorView({
+        state: EditorState.create({ doc, selection: { anchor: pos }, extensions: [autocompletion()] }),
+        parent: document.body,
+      });
+      return { view, lsp, source: createLspCompletionSource(lsp) };
+    }
+
+    const item = (label, newText, textEdit, extra = {}) => ({
+      label,
+      filterLabel: label,
+      type: 'property',
+      rawApply: newText,
+      isSnippet: true,
+      range: textEdit.range,
+      ...extra,
+    });
+
+    it('dentro de #box() pide sugerencias y al aceptar "fill" deja "fill: " con el cursor listo', async () => {
+      const { view, lsp, source } = setup('#box()', 5, [item('fill', 'fill: ${1:}', edit('', 0, 5))]);
+      const result = await source(new CompletionContext(view.state, 5, false));
+      expect(lsp.getCompletions).toHaveBeenCalled();
+      expect(result.from).toBe(5);
+
+      result.options[0].apply(view, result.options[0], result.from, 5);
+      expect(view.state.doc.toString()).toBe('#box(fill: )');
+      expect(view.state.selection.main.head).toBe(11);
+      view.destroy();
+    });
+
+    it('respeta el rango de Tinymist: en #box(w) reemplaza solo la "w"', async () => {
+      const { view, source } = setup('#box(w)', 6, [item('width', 'width: ${1:}', edit('', 0, 5, 6))]);
+      const result = await source(new CompletionContext(view.state, 6, false));
+      expect(result.from).toBe(5);
+
+      result.options[0].apply(view, result.options[0], result.from, 6);
+      expect(view.state.doc.toString()).toBe('#box(width: )');
+      view.destroy();
+    });
+
+    it('tras una coma inserta el parámetro con el espacio que manda Tinymist', async () => {
+      const { view, source } = setup('#box(width: 1cm,)', 16, [item('fill', ' fill: ${1:}', edit('', 0, 16))]);
+      const result = await source(new CompletionContext(view.state, 16, false));
+      result.options[0].apply(view, result.options[0], result.from, 16);
+      expect(view.state.doc.toString()).toBe('#box(width: 1cm, fill: )');
+      view.destroy();
+    });
+
+    it('aceptar una función deja el cursor entre paréntesis (box(|))', async () => {
+      const { view, source } = setup('#bo', 3, [item('box', 'box(${1:})', edit('', 0, 1, 3), { type: 'function' })]);
+      const result = await source(new CompletionContext(view.state, 3, false));
+      expect(result.from).toBe(1);
+      result.options[0].apply(view, result.options[0], result.from, 3);
+      expect(view.state.doc.toString()).toBe('#box()');
+      expect(view.state.selection.main.head).toBe(5);
+      view.destroy();
+    });
+
+    it('pasa sortText para que CodeMirror respete el orden de Tinymist', async () => {
+      const { view, source } = setup('#box()', 5, [item('fill', 'fill: ${1:}', edit('', 0, 5), { sortText: '002' })]);
+      const result = await source(new CompletionContext(view.state, 5, false));
+      expect(result.options[0].sortText).toBe('002');
+      view.destroy();
+    });
+
+    it('no pregunta a Tinymist tras un espacio en texto normal', async () => {
+      const { view, lsp, source } = setup('Hola ', 5, []);
+      expect(await source(new CompletionContext(view.state, 5, false))).toBeNull();
+      expect(lsp.getCompletions).not.toHaveBeenCalled();
+      view.destroy();
     });
   });
 });

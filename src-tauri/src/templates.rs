@@ -222,9 +222,15 @@ pub fn scan_catalog(root: &Path) -> Vec<TemplateInfo> {
         .filter_map(|version_dir| read_template(&version_dir))
         .collect();
 
-    catalog.sort_by_key(|template| template.name.to_lowercase());
+    // El proyecto en blanco va siempre el primero (petición del usuario): es
+    // el punto de partida más habitual y no debe depender de que su nombre
+    // quede delante por orden alfabético. El resto, alfabético.
+    catalog.sort_by_key(|template| (template.name != BLANK_TEMPLATE_NAME, template.name.to_lowercase()));
     catalog
 }
+
+/// Plantilla del proyecto en blanco, que encabeza el catálogo.
+const BLANK_TEMPLATE_NAME: &str = "dbv-blank";
 
 /// Carpeta de la versión más alta de una plantilla.
 fn latest_version_dir(template_dir: &Path) -> Option<PathBuf> {
@@ -425,7 +431,7 @@ mod tests {
 
         let catalog = scan_catalog(root.path());
         assert_eq!(catalog.len(), 2);
-        // Orden alfabético por nombre.
+        // El proyecto en blanco va el primero.
         assert_eq!(catalog[0].name, "dbv-blank");
         assert_eq!(catalog[0].id, "@local/dbv-blank");
         // Sin sidecar la plantilla sigue estando: solo se queda sin formulario.
@@ -474,8 +480,8 @@ mod tests {
         assert_eq!(
             nombres,
             vec![
-                "dbv-articulo",
                 "dbv-blank",
+                "dbv-articulo",
                 "dbv-cv",
                 "dbv-informe-tecnico",
                 "dbv-presentacion",

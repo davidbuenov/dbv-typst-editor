@@ -249,8 +249,16 @@ pub async fn tinymist_start(
                     "versionSupport": true
                 },
                 "completion": {
+                    "contextSupport": true,
                     "completionItem": {
-                        "snippetSupport": true
+                        "snippetSupport": true,
+                        "labelDetailsSupport": true
+                    }
+                },
+                "signatureHelp": {
+                    "signatureInformation": {
+                        "documentationFormat": ["markdown", "plaintext"],
+                        "activeParameterSupport": true
                     }
                 },
                 "hover": {

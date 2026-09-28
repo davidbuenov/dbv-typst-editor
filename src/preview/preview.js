@@ -393,9 +393,36 @@ export function createPreview({
     return available > 0 ? available / PAGE_REFERENCE_WIDTH_PX : 1;
   }
 
+  /**
+   * Punto de lectura actual: la página que asoma arriba y qué fracción de su
+   * alto queda ya por encima del borde superior del panel.
+   *
+   * Hace falta porque el zoom cambia el alto de TODAS las páginas y `scrollTop`
+   * se queda con los mismos píxeles: sin reanclar, al pulsar "Ajustar al ancho"
+   * (o +/−) en la página 12 se aparecía en la 5 o en la 30.
+   */
+  function readingAnchor() {
+    const top = pagesEl.scrollTop;
+    for (const pageEl of pagesEl.children) {
+      if (!pageEl.classList.contains('preview-page')) continue;
+      if (pageEl.offsetTop + pageEl.offsetHeight >= top) {
+        return { pageEl, fraction: pageEl.offsetHeight ? (top - pageEl.offsetTop) / pageEl.offsetHeight : 0 };
+      }
+    }
+    return null;
+  }
+
+  function restoreReadingAnchor(anchor) {
+    if (!anchor || !anchor.pageEl.isConnected) return;
+    // Leer `offsetTop` fuerza el layout con el zoom nuevo ya aplicado.
+    pagesEl.scrollTop = anchor.pageEl.offsetTop + anchor.fraction * anchor.pageEl.offsetHeight;
+  }
+
   function applyZoom() {
     const effectiveZoom = fitWidth ? fitZoom() : zoom;
+    const anchor = readingAnchor();
     pagesEl.style.setProperty('--preview-zoom', String(effectiveZoom));
+    restoreReadingAnchor(anchor);
     zoomLabelEl.textContent = `${Math.round(effectiveZoom * 100)}%`;
     try {
       localStorage.setItem(ZOOM_STORAGE_KEY, String(zoom));
@@ -523,12 +550,8 @@ export function createPreview({
 
   /** Índice de la primera página visible, para recompilar por donde se lee. */
   function firstVisiblePage() {
-    const top = pagesEl.scrollTop;
-    for (const pageEl of pagesEl.children) {
-      if (!pageEl.classList.contains('preview-page')) continue;
-      if (pageEl.offsetTop + pageEl.offsetHeight >= top) return Number(pageEl.dataset.index);
-    }
-    return 0;
+    const anchor = readingAnchor();
+    return anchor ? Number(anchor.pageEl.dataset.index) : 0;
   }
 
   /** Marca (o desmarca) que lo pintado ya no corresponde con lo escrito. */

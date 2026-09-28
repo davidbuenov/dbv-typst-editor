@@ -18,6 +18,7 @@
 // descartado: habría sido estrictamente peor.
 
 import {
+  acceptCompletion,
   autocompletion,
   closeBrackets,
   closeBracketsKeymap,
@@ -41,7 +42,7 @@ import {
 import { isTypstPath } from '../app/paths.js';
 import { detectLanguage, loadLanguageExtension } from './languageSupport.js';
 import { highlightSelectionMatches, search, searchKeymap } from '@codemirror/search';
-import { Compartment, EditorState } from '@codemirror/state';
+import { Compartment, EditorState, Prec } from '@codemirror/state';
 import {
   EditorView,
   drawSelection,
@@ -57,7 +58,7 @@ import {
   typst_lezer,
 } from 'codemirror-lang-typst/lezer';
 import { buildToolbarKeymap } from './toolbarActions.js';
-import { createLspCompletionSource, createLspHover } from './lspClient.js';
+import { createLspCompletionSource, createLspHover, createLspSignatureHelp } from './lspClient.js';
 import { createUniverseHover } from './universeHover.js';
 import { syncFlashField } from './syncFlash.js';
 import { getPref, onPrefsChanged } from '../app/prefs.js';
@@ -186,6 +187,7 @@ export function buildExtensions({
   if (lspClient) {
     autocompleteExt = autocompletion({ override: [createLspCompletionSource(lspClient)] });
     extraExtensions.push(createLspHover(lspClient));
+    extraExtensions.push(createLspSignatureHelp(lspClient));
     extraExtensions.push(
       keymap.of([
         {
@@ -216,6 +218,11 @@ export function buildExtensions({
     indentOnInput(),
     bracketMatching(),
     closeBrackets(),
+    // Tab acepta la sugerencia abierta, como en VS Code. `Prec.highest` para
+    // ganar al Tab de los campos de snippet (que se añaden con esa misma
+    // precedencia pero después); sin lista abierta `acceptCompletion` devuelve
+    // false y Tab sigue saltando de campo o indentando.
+    Prec.highest(keymap.of([{ key: 'Tab', run: acceptCompletion }])),
     highlightSelectionMatches(),
     search({ top: true }),
     autocompleteExt,

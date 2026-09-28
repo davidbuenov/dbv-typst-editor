@@ -13,8 +13,14 @@ import {
   tinymistStatus,
   tinymistStop,
 } from '../services/backend.js';
-import { hoverTooltip } from '@codemirror/view';
-import { snippet } from '@codemirror/autocomplete';
+import { hoverTooltip, keymap, showTooltip, ViewPlugin } from '@codemirror/view';
+import { StateEffect, StateField } from '@codemirror/state';
+import {
+  insertCompletionText,
+  pickedCompletion,
+  snippet,
+  startCompletion,
+} from '@codemirror/autocomplete';
 import { isTypstPath } from '../app/paths.js';
 import { t } from '../i18n/i18n.js';
 
@@ -158,6 +164,196 @@ export function getCompletionWordRange(context) {
   }
 
   return { from: context.pos, to: context.pos, isTrigger: false };
+}
+
+/**
+ * Caracteres tras los que se pregunta a Tinymist aunque no haya palabra
+ * escrita. Son los `triggerCharacters` que anuncia Tinymist en `initialize`:
+ * sin `(` y `,`, escribir `#box(` no ofrecía los parámetros (`width:`,
+ * `fill:`…) como sí hace VS Code.
+ */
+export const COMPLETION_TRIGGER_CHARS = '#(<,.:/"@';
+
+/** Disparadores de la ayuda de firma (`signatureHelpProvider` de Tinymist). */
+export const SIGNATURE_TRIGGER_CHARS = '(,:';
+
+/**
+ * ¿Merece la pena pedir sugerencias en esta posición?
+ * @param {import('@codemirror/autocomplete').CompletionContext} context
+ * @returns {boolean}
+ */
+export function shouldRequestCompletion(context) {
+  if (context.explicit) return true;
+  const wordRange = getCompletionWordRange(context);
+  if (wordRange.isTrigger || wordRange.from < wordRange.to) return true;
+  const before = context.state.sliceDoc(Math.max(0, context.pos - 1), context.pos);
+  return before !== '' && COMPLETION_TRIGGER_CHARS.includes(before);
+}
+
+/**
+ * Traduce un snippet LSP (sintaxis TextMate) a la de `snippet()` de CodeMirror.
+ *
+ * No son compatibles: CodeMirror no entiende `$1` sin llaves, ni `${1|a,b|}`,
+ * ni variables (`$TM_SELECTED_TEXT`), ni placeholders anidados; y trata TODA
+ * llave como posible campo (`#{…}` es un campo para CodeMirror y un bloque de
+ * código para Typst), así que las llaves literales se escapan con `\`.
+ * @param {string} src
+ * @returns {string}
+ */
+export function lspSnippetToCodeMirror(src) {
+  let i = 0;
+  const esc = (s) => s.replace(/[{}]/g, (c) => `\\${c}`);
+
+  // Devuelve el texto convertido (`cm`) y el texto plano sin campos (`plain`),
+  // que se usa como valor por defecto al aplanar placeholders anidados.
+  function parse(stopAtBrace) {
+    let cm = '';
+    let plain = '';
+    while (i < src.length) {
+      const c = src[i];
+      if (c === '\\' && i + 1 < src.length && '$}\\,|'.includes(src[i + 1])) {
+        const ch = src[i + 1];
+        i += 2;
+        cm += esc(ch);
+        plain += ch;
+        continue;
+      }
+      if (stopAtBrace && c === '}') break;
+      if (c === '$') {
+        const r = parseDollar();
+        if (r) {
+          cm += r.cm;
+          plain += r.plain;
+          continue;
+        }
+      }
+      cm += esc(c);
+      plain += c;
+      i++;
+    }
+    return { cm, plain };
+  }
+
+  function parseDollar() {
+    const start = i;
+    const rest = src.slice(i);
+    let m = /^\$(\d+)/.exec(rest);
+    if (m) {
+      i += m[0].length;
+      return { cm: `\${${m[1]}}`, plain: '' };
+    }
+    m = /^\$[A-Za-z_]\w*/.exec(rest);
+    if (m) {
+      i += m[0].length;
+      return { cm: '', plain: '' };
+    }
+    m = /^\$\{(\d+|[A-Za-z_]\w*)/.exec(rest);
+    if (!m) return null;
+    i += m[0].length;
+    const id = m[1];
+    let text = '';
+    if (src[i] === '}') {
+      i++;
+    } else if (src[i] === ':') {
+      i++;
+      text = parse(true).plain;
+      if (src[i] === '}') i++;
+    } else if (src[i] === '|') {
+      const end = src.indexOf('|}', i + 1);
+      if (end < 0) {
+        i = start;
+        return null;
+      }
+      text = src.slice(i + 1, end).split(',')[0];
+      i = end + 2;
+    } else {
+      i = start;
+      return null;
+    }
+    if (!/^\d+$/.test(id)) return { cm: esc(text), plain: text };
+    // CodeMirror no admite llaves ni saltos de línea dentro del nombre del
+    // campo: el valor queda como texto normal y el campo, vacío, delante.
+    if (/[{}\n\r]/.test(text)) return { cm: `\${${id}}${esc(text)}`, plain: text };
+    return { cm: `\${${id}:${text}}`, plain: text };
+  }
+
+  return parse(false).cm;
+}
+
+/**
+ * Texto de la documentación de un item/parámetro LSP (string o MarkupContent).
+ * @param {unknown} doc
+ * @returns {string}
+ */
+function docText(doc) {
+  if (!doc) return '';
+  if (typeof doc === 'string') return doc;
+  if (typeof doc === 'object' && typeof doc.value === 'string') return doc.value;
+  return '';
+}
+
+/**
+ * Prepara la respuesta de `textDocument/signatureHelp` para pintarla: la firma
+ * activa, el tramo del parámetro activo dentro de ella y su documentación.
+ * @param {any} help
+ * @returns {{label: string, activeStart: number, activeEnd: number, doc: string} | null}
+ */
+export function formatSignature(help) {
+  const signatures = help?.signatures;
+  if (!Array.isArray(signatures) || signatures.length === 0) return null;
+  const sig = signatures[help.activeSignature ?? 0] ?? signatures[0];
+  if (!sig?.label) return null;
+  const label = sig.label;
+  const active = sig.activeParameter ?? help.activeParameter;
+  const param = typeof active === 'number' ? sig.parameters?.[active] : null;
+
+  let activeStart = -1;
+  let activeEnd = -1;
+  if (Array.isArray(param?.label)) {
+    [activeStart, activeEnd] = param.label;
+  } else if (typeof param?.label === 'string' && param.label) {
+    // Se busca tras el `(` y en frontera de palabra: `text(text: str, …)`
+    // tiene "text" en el nombre de la función, y `fill:` no debe casar dentro
+    // de otro parámetro que lo contenga.
+    let from = label.indexOf('(') + 1;
+    while (from > 0 && from < label.length) {
+      const idx = label.indexOf(param.label, from);
+      if (idx < 0) break;
+      if (/[(\s,]/.test(label[idx - 1] ?? '(')) {
+        activeStart = idx;
+        activeEnd = idx + param.label.length;
+        // Se extiende hasta el final del parámetro (su tipo incluido).
+        const next = label.indexOf(', ', activeEnd);
+        const close = label.lastIndexOf(')');
+        activeEnd = next >= 0 && next < close ? next : close >= activeEnd ? close : activeEnd;
+        break;
+      }
+      from = idx + 1;
+    }
+  }
+
+  const doc = docText(param?.documentation).split(/\n\s*\n/)[0].trim();
+  return { label, activeStart, activeEnd, doc: doc.length > 300 ? `${doc.slice(0, 300)}…` : doc };
+}
+
+/** Recorta el `detail` que CodeMirror pinta junto a la etiqueta (las firmas son enormes). */
+function shortDetail(text, max = 60) {
+  if (!text) return undefined;
+  const oneLine = String(text).replace(/\s+/g, ' ').trim();
+  return oneLine.length > max ? `${oneLine.slice(0, max - 1)}…` : oneLine;
+}
+
+/**
+ * ¿Hay que reabrir la lista tras aceptar una sugerencia? Como hace VS Code con
+ * Tinymist: aceptar `box` deja el cursor en `box(|)` y enseguida aparecen los
+ * parámetros; aceptar `fill` deja `fill: |` y aparecen los valores.
+ * @param {import('@codemirror/state').EditorState} state
+ */
+function shouldRetrigger(state) {
+  const sel = state.selection.main;
+  if (!sel.empty) return false;
+  const before = state.sliceDoc(Math.max(0, sel.head - 2), sel.head);
+  return /[(,]$/.test(before) || /:\s?$/.test(before);
 }
 
 /**
@@ -370,6 +566,7 @@ export function createLspClient({ onDiagnostics: initialOnDiagnostics, notify, o
       const res = await tinymistSendRequest('textDocument/completion', {
         textDocument: { uri: currentDoc.uri },
         position: { line: lineNum, character: charPos },
+        context: { triggerKind: 1 },
       });
 
       if (!res.ok || !res.value) return null;
@@ -382,17 +579,47 @@ export function createLspClient({ onDiagnostics: initialOnDiagnostics, notify, o
           apply = item.textEdit.newText;
         }
         const isSnippet = item.insertTextFormat === 2;
+        // `InsertReplaceEdit` trae `insert`/`replace` en vez de `range`.
+        const range = item.textEdit?.range ?? item.textEdit?.insert ?? null;
+        // Para filtrar se usa `filterText`; si la etiqueta va entre comillas
+        // (`"a4"`) pero se inserta sin ellas (el cursor ya está dentro de la
+        // cadena), se filtra por lo que se inserta.
+        let filterLabel = item.filterText || item.label;
+        if (!item.filterText && /^".*"$/.test(item.label) && !apply.startsWith('"')) {
+          filterLabel = item.label.slice(1, -1);
+        }
+        const documentation = docText(item.documentation);
+        const typeHint = item.labelDetails?.description;
         return {
           label: item.label,
+          filterLabel,
           detail: item.detail,
-          info: item.documentation?.value || item.documentation,
+          shortDetail: shortDetail(typeHint || item.detail),
+          info: documentation || (item.detail && item.detail.length > 60 ? item.detail : undefined),
           type: mapLspKind(item.kind),
+          sortText: item.sortText,
           apply,
           rawApply: apply,
           isSnippet,
           textEdit: item.textEdit,
+          range,
         };
       });
+    } catch {
+      return null;
+    }
+  }
+
+  async function getSignatureHelp(lineNum, charPos) {
+    if (!active || !currentDoc) return null;
+
+    try {
+      const res = await tinymistSendRequest('textDocument/signatureHelp', {
+        textDocument: { uri: currentDoc.uri },
+        position: { line: lineNum, character: charPos },
+      });
+      if (!res.ok || !res.value?.signatures?.length) return null;
+      return res.value;
     } catch {
       return null;
     }
@@ -492,6 +719,7 @@ export function createLspClient({ onDiagnostics: initialOnDiagnostics, notify, o
     openDocument,
     changeDocument,
     getCompletions,
+    getSignatureHelp,
     getHover,
     formatDocument,
     setDiagnosticsHandler(handler) {
@@ -514,40 +742,182 @@ export function createLspClient({ onDiagnostics: initialOnDiagnostics, notify, o
 export function createLspCompletionSource(lspClient) {
   return async (context) => {
     if (!lspClient.isActive() || !lspClient.getCurrentUri()) return null;
+    if (!shouldRequestCompletion(context)) return null;
     const wordRange = getCompletionWordRange(context);
-    if (!context.explicit && !wordRange.isTrigger && wordRange.from === wordRange.to) return null;
 
-    const line = context.state.doc.lineAt(context.pos);
+    const { doc } = context.state;
+    const requestPos = context.pos;
+    const line = doc.lineAt(requestPos);
     const lineNumber = line.number - 1;
-    const character = context.pos - line.from;
+    const character = requestPos - line.from;
 
-    const items = await lspClient.getCompletions(context.pos, lineNumber, character);
+    const items = await lspClient.getCompletions(requestPos, lineNumber, character);
     if (!items || items.length === 0) return null;
 
+    // El tramo que Tinymist reemplaza (`textEdit.range`) manda sobre el que
+    // calculamos nosotros: tras `, ` inserta ` fill:` sin tocar nada, y en
+    // `#box(w` reemplaza solo la `w`.
+    const rangeOf = (item) => {
+      if (!item.range) return { from: wordRange.from, to: requestPos };
+      return {
+        from: Math.min(posFromLsp(doc, item.range.start), requestPos),
+        to: Math.max(posFromLsp(doc, item.range.end), requestPos),
+      };
+    };
+    const resultFrom = rangeOf(items[0]).from;
+
     const options = items.map((item) => {
-      let apply = item.rawApply;
+      const { from: itemFrom, to: itemTo } = rangeOf(item);
+      // Desplazamientos relativos: CodeMirror remapea `from`/`to` si el
+      // documento cambia antes de aceptar, y hay que aplicar lo mismo aquí.
+      const deltaFrom = itemFrom - resultFrom;
+      const extraTo = itemTo - requestPos;
+      let template = null;
       if (item.isSnippet) {
         try {
-          apply = snippet(item.rawApply);
+          template = snippet(lspSnippetToCodeMirror(item.rawApply));
         } catch {
-          apply = item.rawApply;
+          template = null;
         }
       }
+      const text = item.isSnippet ? item.rawApply.replace(/\$\{?\d+(:[^}]*)?\}?/g, (m) => m.match(/:([^}]*)/)?.[1] ?? '') : item.rawApply;
       return {
-        label: item.label,
-        detail: item.detail,
+        label: item.filterLabel ?? item.label,
+        displayLabel: item.label,
+        detail: item.shortDetail,
         info: item.info,
         type: item.type,
-        apply,
+        sortText: item.sortText,
+        apply: (view, completion, from, to) => {
+          const f = Math.max(0, from + deltaFrom);
+          const t = Math.min(view.state.doc.length, Math.max(f, to + extraTo));
+          if (template) {
+            template(view, completion, f, t);
+          } else {
+            view.dispatch({
+              ...insertCompletionText(view.state, text, f, t),
+              annotations: pickedCompletion.of(completion),
+            });
+          }
+          if (shouldRetrigger(view.state)) setTimeout(() => startCompletion(view), 0);
+        },
       };
     });
 
     return {
-      from: wordRange.from,
+      from: resultFrom,
       options,
       filter: true,
     };
   };
+}
+
+/**
+ * Ayuda de firma (Signature Help): al escribir `(` o `,` dentro de una llamada
+ * muestra la firma de la función encima del cursor con el parámetro actual
+ * resaltado, y la sigue actualizando mientras el cursor siga dentro.
+ * @param {ReturnType<typeof createLspClient>} lspClient
+ */
+export function createLspSignatureHelp(lspClient) {
+  const setSignature = StateEffect.define();
+
+  const signatureField = StateField.define({
+    create: () => null,
+    update(value, tr) {
+      for (const e of tr.effects) if (e.is(setSignature)) return e.value;
+      if (value && tr.docChanged) return { ...value, pos: tr.changes.mapPos(value.pos) };
+      return value;
+    },
+    // `create` se conserva entre actualizaciones para que CodeMirror reutilice
+    // el tooltip (solo lo recoloca) en vez de recrearlo en cada pulsación.
+    provide: (f) =>
+      showTooltip.from(f, (v) => (v ? { pos: v.pos, above: true, strictSide: true, create: v.create } : null)),
+  });
+
+  function render(sig) {
+    const dom = document.createElement('div');
+    dom.className = 'cm-lsp-signature-tooltip';
+    const code = document.createElement('div');
+    code.className = 'cm-lsp-signature-label';
+    if (sig.activeStart >= 0) {
+      const strong = document.createElement('span');
+      strong.className = 'cm-lsp-signature-active';
+      strong.textContent = sig.label.slice(sig.activeStart, sig.activeEnd);
+      code.append(sig.label.slice(0, sig.activeStart), strong, sig.label.slice(sig.activeEnd));
+    } else {
+      code.textContent = sig.label;
+    }
+    dom.append(code);
+    if (sig.doc) {
+      const doc = document.createElement('div');
+      doc.className = 'cm-lsp-signature-doc';
+      doc.textContent = sig.doc;
+      dom.append(doc);
+    }
+    return { dom };
+  }
+
+  const plugin = ViewPlugin.fromClass(
+    class {
+      constructor(view) {
+        this.view = view;
+        this.seq = 0;
+        this.timer = null;
+      }
+
+      update(u) {
+        if (!u.docChanged && !u.selectionSet) return;
+        const open = u.state.field(signatureField) != null;
+        if (!open) {
+          const sel = u.state.selection.main;
+          const before = sel.empty ? u.state.sliceDoc(Math.max(0, sel.head - 1), sel.head) : '';
+          const typed = u.transactions.some((tr) => tr.isUserEvent('input'));
+          if (!typed || !before || !SIGNATURE_TRIGGER_CHARS.includes(before)) return;
+        }
+        clearTimeout(this.timer);
+        const id = ++this.seq;
+        this.timer = setTimeout(() => this.request(id), 80);
+      }
+
+      async request(id) {
+        const { view } = this;
+        let help = null;
+        const head = view.state.selection.main.head;
+        if (lspClient.isActive() && lspClient.getCurrentUri() && view.state.selection.main.empty) {
+          const line = view.state.doc.lineAt(head);
+          help = await lspClient.getSignatureHelp(line.number - 1, head - line.from);
+        }
+        if (id !== this.seq) return;
+        const sig = formatSignature(help);
+        const current = view.state.field(signatureField);
+        if (!sig && !current) return;
+        const value = sig ? { pos: head, create: () => render(sig) } : null;
+        try {
+          view.dispatch({ effects: setSignature.of(value) });
+        } catch {
+          // La vista ya no existe (se cerró el fichero mientras llegaba la respuesta).
+        }
+      }
+
+      destroy() {
+        clearTimeout(this.timer);
+        this.seq++;
+      }
+    }
+  );
+
+  const closeKeymap = keymap.of([
+    {
+      key: 'Escape',
+      run: (view) => {
+        if (view.state.field(signatureField, false)) view.dispatch({ effects: setSignature.of(null) });
+        // `false`: Escape sigue llegando al autocompletado y a los snippets.
+        return false;
+      },
+    },
+  ]);
+
+  return [signatureField, plugin, closeKeymap];
 }
 
 /**

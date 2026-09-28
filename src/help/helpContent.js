@@ -159,6 +159,124 @@ export const HELP_SECTIONS = [
     ],
   },
   {
+    id: 'pestanas',
+    title: { es: 'Pestañas y documento principal', en: 'Tabs and main document' },
+    blocks: [
+      {
+        es: 'Cada fichero se abre en su pestaña, encima del editor. Cambiar de pestaña conserva los cambios sin guardar, el cursor, el historial de deshacer y la posición de cada fichero, así que ya no hay que guardar para mirar otro capítulo.',
+        en: 'Each file opens in its own tab, above the editor. Switching tabs keeps each file\'s unsaved changes, cursor, undo history and scroll position, so you no longer need to save to look at another chapter.',
+      },
+      {
+        list: {
+          es: [
+            'Cerrar: la cruz de la pestaña, Ctrl+W (Cmd+W en macOS) o clic con la rueda. Si tiene cambios sin guardar, se pregunta.',
+            'Recorrer: Ctrl+Tab y Ctrl+Mayús+Tab. Reordenar: arrastra una pestaña.',
+            'Un punto junto al nombre indica cambios sin guardar. Si dos ficheros se llaman igual, se añade su carpeta.',
+            'Al reabrir el proyecto vuelven las pestañas de la última vez (las de ficheros que ya no existen se omiten).',
+            'Con el guardado automático encendido se guardan todas las pestañas modificadas; cerrar la ventana o el proyecto pregunta por todas las que tengan cambios.',
+            'La vista previa del documento completo tiene en cuenta los cambios sin guardar de todas las pestañas (con el motor rápido).',
+            'Documento principal: al marcarlo se guarda también en settings/dbv-project.toml, así viaja con el proyecto (git, otro ordenador, .dbvt). Está pensado para subirse a git; otras aplicaciones lo ignoran. Si no se puede escribir, se recuerda solo en este equipo.',
+          ],
+          en: [
+            'Close: the tab\'s cross, Ctrl+W (Cmd+W on macOS) or a middle click. If it has unsaved changes, you are asked first.',
+            'Cycle: Ctrl+Tab and Ctrl+Shift+Tab. Reorder: drag a tab.',
+            'A dot next to the name marks unsaved changes. If two files share a name, their folder is added.',
+            'When you reopen the project, last time\'s tabs come back (tabs for files that no longer exist are skipped).',
+            'With auto-save on, every modified tab is saved; closing the window or the project asks about all tabs with changes.',
+            'The full-document preview takes into account the unsaved changes of every tab (with the fast engine).',
+            'Main document: marking it also saves it in settings/dbv-project.toml, so it travels with the project (git, another computer, .dbvt). It is meant to be committed to git; other applications ignore it. If it cannot be written, it is remembered on this computer only.',
+          ],
+        },
+      },
+    ],
+  },
+  {
+    id: 'navegacion',
+    title: { es: 'Navegar y refactorizar (Tinymist)', en: 'Navigate and refactor (Tinymist)' },
+    blocks: [
+      {
+        es: 'Con Tinymist encendido (su insignia en la barra del documento), el editor entiende el código Typst del proyecto entero.',
+        en: 'With Tinymist on (its badge in the document bar), the editor understands the Typst code of the whole project.',
+      },
+      {
+        list: {
+          es: [
+            'Ir a la definición: F12 o Ctrl+clic (Cmd+clic) sobre una función, variable, etiqueta (@fig-x) o la ruta de un #include. Abre el destino en su pestaña. Si está en un paquete, se abre en solo lectura. Las funciones internas de Typst (box, text…) no tienen código fuente: su documentación está al pasar el ratón.',
+            'Añadir un cursor ahora es Alt+clic (antes Ctrl+clic).',
+            'Buscar referencias: Mayús+F12 lista todos los usos en la pestaña Buscar, agrupados por fichero.',
+            'Renombrar símbolo: F2 con el foco en el editor (en el árbol, F2 renombra el fichero). Cambia el nombre en todos los ficheros, con Deshacer. Renombrar una etiqueta es aproximado: se enseña la lista antes de aplicar. Sobre la ruta de un #include, se renombra el fichero en el árbol para actualizar todas sus referencias.',
+            'Acciones de código: Ctrl+. propone refactorizaciones del sitio donde está el cursor (por ejemplo, subir el nivel de un encabezado).',
+            'Las etiquetas (@fig-x) solo se resuelven cuando el documento compila sin errores: si no funciona, corrige primero los errores.',
+          ],
+          en: [
+            'Go to definition: F12 or Ctrl+click (Cmd+click) on a function, variable, label (@fig-x) or #include path. It opens the target in its tab. If it lives in a package, it opens read-only. Typst\'s built-in functions (box, text…) have no source code: their documentation shows on hover.',
+            'Adding a cursor is now Alt+click (it used to be Ctrl+click).',
+            'Find references: Shift+F12 lists every use in the Search tab, grouped by file.',
+            'Rename symbol: F2 with focus in the editor (in the tree, F2 renames the file). It renames across all files, with Undo. Renaming a label is approximate: the list is shown before applying. On an #include path, the file is renamed in the tree so that all its references are updated.',
+            'Code actions: Ctrl+. offers refactorings for the spot where the cursor is (for instance, raising a heading level).',
+            'Labels (@fig-x) only resolve when the document compiles without errors: if it does not work, fix the errors first.',
+          ],
+        },
+      },
+    ],
+  },
+  {
+    id: 'buscar',
+    title: { es: 'Buscar y reemplazar en el proyecto', en: 'Find and replace across the project' },
+    blocks: [
+      {
+        es: 'Ctrl+Mayús+F (Cmd+Mayús+F) abre la pestaña Buscar de la barra lateral. Busca en todos los ficheros de texto del proyecto; en los que tienes abiertos, sobre lo que hay en el editor, aunque no esté guardado.',
+        en: 'Ctrl+Shift+F (Cmd+Shift+F) opens the Search tab in the sidebar. It searches every text file in the project; in the ones you have open, it uses what is in the editor, even if unsaved.',
+      },
+      {
+        list: {
+          es: [
+            'Botones: Aa distingue mayúsculas, ab busca palabras completas y .* activa las expresiones regulares.',
+            'Expresiones regulares: sintaxis del motor de Rust (regex), que no admite lookaround ni retroreferencias. En el reemplazo, $1 o ${nombre} insertan los grupos. Si la expresión no es válida, el error sale bajo el campo.',
+            'Filtros: «Ficheros a incluir» y «a excluir» admiten patrones separados por comas, como *.typ o cap/**. Las carpetas ocultas solo se buscan con «Mostrar ficheros ocultos».',
+            'Reemplazar: una coincidencia, todas las de un fichero o todas. Los ficheros abiertos se cambian en el editor; los cerrados se guardan con copia en el historial local, y el aviso final permite ver los cambios y deshacerlo todo.',
+          ],
+          en: [
+            'Buttons: Aa matches case, ab matches whole words and .* turns on regular expressions.',
+            'Regular expressions: Rust regex engine syntax, with no lookaround or backreferences. In the replacement, $1 or ${name} insert groups. If the expression is invalid, the error shows under the field.',
+            'Filters: "Files to include" and "to exclude" take comma-separated patterns such as *.typ or cap/**. Hidden folders are only searched with "Show hidden files".',
+            'Replace: one match, all matches in a file, or all of them. Open files are changed in the editor; closed ones are saved with a local history copy, and the final notice lets you view the changes and undo everything.',
+          ],
+        },
+      },
+    ],
+  },
+  {
+    id: 'snippets',
+    title: { es: 'Snippets', en: 'Snippets' },
+    blocks: [
+      {
+        es: 'Un snippet es un trozo de texto con huecos que se inserta al escribir su prefijo y elegirlo en la lista de sugerencias; Tab salta de un hueco al siguiente. Funcionan también con Tinymist apagado.',
+        en: 'A snippet is a piece of text with placeholders that is inserted by typing its prefix and choosing it from the suggestion list; Tab jumps from one placeholder to the next. They also work with Tinymist off.',
+      },
+      {
+        list: {
+          es: [
+            'Herramientas › Editar snippets globales: los tuyos, para todos los proyectos.',
+            'Herramientas › Editar snippets del proyecto: se guardan en .vscode/*.code-snippets, igual que en VS Code, para compartirlos con quien trabaje en el proyecto.',
+            'Formato de VS Code: prefix, body (texto o lista de líneas), description y, si quieres, scope. Puedes pegar snippets copiados de VS Code. Se admiten comentarios.',
+            'Variables: $TM_SELECTED_TEXT, $TM_FILENAME, $TM_FILENAME_BASE, $CURRENT_YEAR, $CURRENT_MONTH, $CURRENT_DATE.',
+            'Guardar selección como snippet… (botón derecho en el editor): crea uno a partir del texto seleccionado, sin tocar el resto del fichero.',
+            'Si el fichero tiene un error, se avisa con la línea y se siguen usando los snippets anteriores.',
+          ],
+          en: [
+            'Tools › Edit global snippets: your own, for every project.',
+            'Tools › Edit project snippets: stored in .vscode/*.code-snippets, as in VS Code, to share them with whoever works on the project.',
+            'VS Code format: prefix, body (text or list of lines), description and, optionally, scope. You can paste snippets copied from VS Code. Comments are allowed.',
+            'Variables: $TM_SELECTED_TEXT, $TM_FILENAME, $TM_FILENAME_BASE, $CURRENT_YEAR, $CURRENT_MONTH, $CURRENT_DATE.',
+            'Save selection as snippet… (right-click in the editor): creates one from the selected text, without touching the rest of the file.',
+            'If the file has an error, you are told the line and the previous snippets are still used.',
+          ],
+        },
+      },
+    ],
+  },
+  {
     id: 'asistentes',
     title: { es: 'Asistentes de inserción', en: 'Insertion assistants' },
     blocks: [
@@ -336,6 +454,8 @@ export const HELP_SECTIONS = [
             'Si el documento tiene un error de sintaxis, la vista previa NO se borra: se mantiene la última versión correcta y el problema aparece en la banda inferior.',
             'Esa banda se puede agrandar arrastrando su borde superior, para leer mensajes largos.',
             'Un clic en un encabezado del panel Esquema lleva la vista previa a esa página y posición.',
+            'Buscar en la vista previa: con el foco en ella, Ctrl+F (Cmd+F) busca en todas las páginas del documento renderizado; Intro y Mayús+Intro recorren las coincidencias.',
+            'Copiar texto: arrastra sobre una página para seleccionar y pulsa Ctrl+C (Cmd+C), o usa Copiar del botón derecho. Buscar y copiar necesitan el motor rápido.',
           ],
           en: [
             'Compilation scope (Doc / File): compiles either the root document (main.typ) or only the currently open file. Compiling the full document preserves cross-references, chapters, and bibliography context while editing modular files.',
@@ -347,6 +467,8 @@ export const HELP_SECTIONS = [
             'If the document has a syntax error the preview is NOT cleared: the last good version stays on screen and the problem is shown in the bottom band.',
             'That band can be made taller by dragging its top edge, to read long messages.',
             'Clicking a heading in the Outline panel takes the preview to that page and position.',
+            'Find in the preview: with focus on it, Ctrl+F (Cmd+F) searches every page of the rendered document; Enter and Shift+Enter move through the matches.',
+            'Copy text: drag over a page to select and press Ctrl+C (Cmd+C), or use Copy from the right-click menu. Find and copy need the fast engine.',
           ],
         },
       },

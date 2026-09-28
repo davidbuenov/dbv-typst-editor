@@ -710,6 +710,24 @@ Especificado en `SPECIFICATIONS.md` §5f (RF-31 a RF-38, congelado v1.7 el 2026-
 | Enlaces de la vista previa (RF-72) | `engine/links.rs` (`engine_links`), `preview/linkHits.js`, `app_info::open_document_link` | `FrameItem::Link` + introspector. Prueba de puntería en JS, sin capa DOM. Esquemas `http`/`https`/`mailto` validados en Rust. |
 | Historial local (RF-73) | `history.rs`, `history/historyPanel.js` | Copia tomada en el backend dentro de cada escritura, en la carpeta de datos de la aplicación, con claves FNV-1a estables. Consolidación, retención y tope total como funciones puras. |
 
+### 7.19. Arquitectura v0.12.0: editor para proyectos grandes (RF-77 a RF-85)
+
+Principio común: **una sola maquinaria de edición en varios ficheros** para renombrar símbolos (RF-77), reemplazar en el proyecto (RF-78) y actualizar referencias (RF-70): las pestañas abiertas se editan en el editor con sus cambios sin guardar, nunca en su disco; los ficheros cerrados se escriben de forma atómica con copia en el historial local; todo se valida antes de escribir y Deshacer es todo o nada.
+
+| Pieza | Dónde | Qué decide |
+| --- | --- | --- |
+| Pestañas (RF-79) | `app/tabs.js` (modelo puro y persistencia por proyecto), `app/tabBar.js` (DOM), `app/workspace.js` | `state.document`/`state.dirty` siguen siendo «la pestaña activa» (R-T1); las de fondo guardan su `EditorState` (`editor.snapshot()`/`activate()`, que repone tema y números de línea, R-T2). Las restauradas se leen al activarlas. El guardado automático y el cierre recorren todas las modificadas (R-T5). |
+| Vista previa con pestañas | `CompileTarget.otherDirty` (`typst_engine/compile.rs`), `engine/session.rs` | Las pestañas de fondo sin guardar se compilan con su contenido del editor en el motor en proceso. El motor clásico y la exportación solo sustituyen la activa (`ADR-V0120-002`). |
+| Observador y RF-70 con varias pestañas | `watcher.rs` (`open_documents`, `is_open_document`), `refs.rs` (`open_documents`, `DocumentEdits`) | Cada aviso va a su pestaña con la decisión por contenido de RF-68 (R-T4); las ediciones de RF-70 van al buffer de cada pestaña (R-T3). |
+| Cliente LSP con varios documentos | `editor/lspClient.js` | Mapa URI → versión: `didOpen` por pestaña, `didChange` solo de la activa, `didClose` al cerrar, `updateDocument` para pestañas de fondo editadas. Diagnósticos guardados por URI (`uriKey` compara URIs codificadas y sin codificar) y pintados solo en su fichero (RF-85). |
+| Navegación y refactorización (RF-77) | `editor/navigation.js`, `editor/refactor.js`, `app/multiFileEdit.js` | Destinos fuera del proyecto en solo lectura; `null` explicado (función interna, etiqueta sin compilar). `normalizeWorkspaceEdit` separa operaciones de fichero (desviadas al árbol, R-L4) y detecta `needsConfirmation` (vista previa obligatoria, R-L3). El rename se aborta si el documento cambió durante la petición (R-L5). Respuestas reales de Tinymist 0.15.8 en `editor/__fixtures__/`. |
+| Búsqueda en el proyecto (RF-78) | `search.rs` (`regex`, `walkdir`), `search/projectSearch.js`, `search/resultsView.js` | Un solo motor de expresiones regulares para validar, buscar y expandir reemplazos (R-S1); columnas UTF-16; comando en un hilo aparte con id y cancelación, tope de 10.000 (R-S2). Antes de reemplazar se vuelve a buscar con el reemplazo. |
+| Snippets (RF-81) | `snippets/model.js` (`jsonc-parser`), `snippets/completion.js`, `snippets/loader.js`, `snippets/saveSelection.js`, `snippets.rs` | Formato de VS Code en JSONC; globales en la carpeta de configuración y del proyecto en `.vscode/*.code-snippets`. Fuente de autocompletado propia que funciona sin Tinymist. Un fichero roto conserva los snippets anteriores. «Guardar selección» usa `modify` para no tocar comentarios (R-N1). |
+| Capa de texto de la vista previa (RF-82) | `engine/text_layer.rs` (`engine_search`, `engine_page_text`), `preview/textSelection.js`, `preview/previewText.js` | Texto en orden del marco con una caja por carácter, construido bajo demanda (67 ms en 360 páginas). Selección como modelo propio con rectángulos no interactivos, sin capa DOM sobre el SVG (R-P2). Solo con el motor en proceso. |
+| Documento principal en el manifiesto (RF-83) | `project.rs` (`set_project_entrypoint`, `toml_edit`) | Solo cambia `entrypoint`, conservando comentarios; ruta confinada; escritura atómica; respaldo en la preferencia local si no se puede escribir. |
+| Atajos (RF-80) | `editor/shortcuts.js` | Registro único del que salen los keymaps y la sección de la ayuda; los de CodeMirror se describen por combinación (Vite minimiza los nombres de función). |
+| `.zsync` del AppImage (RF-84) | `.github/workflows/release-linux.yml` | `appimagetool -u` con `zsyncmake`, salida con el nombre de GitHub y verificación de las tres piezas (la cadena se lee de `.upd_info` con `objcopy`). |
+
 ## 🔑 Decisiones Técnicas Clave (resumen)
 
 ### Seguridad

@@ -88,6 +88,11 @@ describe('HELP_SECTIONS', () => {
         'paquetes',
         'terminal',
         'apariencia',
+        'atajos',
+        'pestanas',
+        'navegacion',
+        'buscar',
+        'snippets',
       ])
     );
   });

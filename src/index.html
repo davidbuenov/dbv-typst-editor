@@ -346,6 +346,7 @@
           <div class="sidebar-tabs" id="sidebar-tabs" role="tablist">
             <button class="sidebar-tab" id="tab-files" type="button" role="tab" data-i18n="sidebar.tabFiles"></button>
             <button class="sidebar-tab" id="tab-outline" type="button" role="tab" data-i18n="sidebar.tabOutline"></button>
+            <button class="sidebar-tab" id="tab-search" type="button" role="tab" data-i18n="sidebar.tabSearch"></button>
           </div>
           <div class="sidebar-panel" id="files-panel">
             <div class="sidebar__filter-row">
@@ -375,6 +376,10 @@
           </div>
           <div class="sidebar-panel hidden" id="outline-panel">
             <div class="outline__list" id="outline-list"></div>
+          </div>
+          <!-- RF-78 (búsqueda en el proyecto) y RF-77.3 (referencias de un símbolo). -->
+          <div class="sidebar-panel hidden" id="search-panel">
+            <div class="search-results" id="search-results"></div>
           </div>
         </aside>
 

@@ -88,6 +88,20 @@ export const APP_SHORTCUTS = [
     label: { es: 'Aceptar la sugerencia abierta (sin lista, indenta)', en: 'Accept the open suggestion (with no list, indents)' },
     overridesBuiltin: true,
   },
+  { id: 'goToDefinition', scope: 'editor', key: 'F12', label: { es: 'Ir a la definición (con Tinymist)', en: 'Go to definition (with Tinymist)' } },
+  {
+    id: 'goToDefinitionClick',
+    scope: 'editor',
+    display: { es: 'Ctrl/Cmd + clic', en: 'Ctrl/Cmd + click' },
+    label: { es: 'Ir a la definición de lo que hay bajo el puntero', en: 'Go to the definition of what is under the pointer' },
+  },
+  { id: 'findReferences', scope: 'editor', key: 'Shift-F12', label: { es: 'Buscar las referencias (con Tinymist)', en: 'Find references (with Tinymist)' } },
+  {
+    id: 'addCursorClick',
+    scope: 'editor',
+    display: { es: 'Alt + clic', en: 'Alt + click' },
+    label: { es: 'Añadir un cursor', en: 'Add a cursor' },
+  },
   {
     id: 'editorFontSize',
     scope: 'editor',

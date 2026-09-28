@@ -59,7 +59,7 @@ import {
   typst_lezer,
 } from 'codemirror-lang-typst/lezer';
 import { buildToolbarKeymap } from './toolbarActions.js';
-import { shortcutKey } from './shortcuts.js';
+import { detectMac, shortcutKey } from './shortcuts.js';
 import { createLspCompletionSource, createLspHover, createLspSignatureHelp } from './lspClient.js';
 import { createUniverseHover } from './universeHover.js';
 import { syncFlashField } from './syncFlash.js';
@@ -164,6 +164,8 @@ function buildTheme(isDark) {
  *   con un fichero que no es Typst, sin depender de su propio `currentDoc`
  *   (que solo se actualiza para Typst, ver el comentario en `lspClient.js`).
  * @param {() => void} [deps.onBlur] El editor pierde el foco (RF-64.1).
+ * @param {(view: EditorView) => void} [deps.onGoToDefinition] F12 / Ctrl+clic (RF-77.1).
+ * @param {(view: EditorView) => void} [deps.onFindReferences] Mayús+F12 (RF-77.3).
  */
 export function buildExtensions({
   themeCompartment,
@@ -178,6 +180,8 @@ export function buildExtensions({
   lspClient,
   getCurrentPath,
   onBlur,
+  onGoToDefinition,
+  onFindReferences,
 }) {
   const toolbarKeymap = buildToolbarKeymap();
   // `syncFlashField`: marca del bloque al que salta la sincronización (RF-16).
@@ -249,6 +253,7 @@ export function buildExtensions({
     // RF-80.3: «ampliar selección» (`selectParentSyntax`), que CodeMirror trae
     // en Mod-i y la cursiva tapa, recuperado en una combinación libre.
     keymap.of([{ ...shortcutKey('expandSelection'), preventDefault: true, run: selectParentSyntax }]),
+    ...navigationExtensions({ onGoToDefinition, onFindReferences }),
     ...extraExtensions,
     keymap.of([
       ...closeBracketsKeymap,
@@ -266,6 +271,39 @@ export function buildExtensions({
 }
 
 /**
+ * Navegación con Tinymist (RF-77): F12 y Mayús+F12, y Ctrl+clic (Cmd+clic en
+ * macOS) para ir a la definición. Añadir un cursor pasa a Alt+clic (RF-77.2),
+ * como en VS Code; la selección rectangular sigue con Alt+arrastrar.
+ * @param {{onGoToDefinition?: (view: EditorView) => void, onFindReferences?: (view: EditorView) => void}} handlers
+ */
+function navigationExtensions({ onGoToDefinition, onFindReferences }) {
+  const isMac = detectMac();
+  const run = (handler) => (view) => {
+    handler?.(view);
+    return Boolean(handler);
+  };
+  return [
+    keymap.of([
+      { ...shortcutKey('goToDefinition'), preventDefault: true, run: run(onGoToDefinition) },
+      { ...shortcutKey('findReferences'), preventDefault: true, run: run(onFindReferences) },
+    ]),
+    EditorView.clickAddsSelectionRange.of((event) => event.altKey),
+    EditorView.domEventHandlers({
+      mousedown(event, view) {
+        const modifier = isMac ? event.metaKey : event.ctrlKey;
+        if (!onGoToDefinition || event.button !== 0 || !modifier || event.altKey || event.shiftKey) return false;
+        const pos = view.posAtCoords({ x: event.clientX, y: event.clientY });
+        if (pos === null) return false;
+        event.preventDefault();
+        view.dispatch({ selection: { anchor: pos } });
+        onGoToDefinition(view);
+        return true;
+      },
+    }),
+  ];
+}
+
+/**
  * @param {HTMLElement} hostEl Contenedor donde se monta el editor.
  * @param {object} [options]
  * @param {(content: string) => void} [options.onChange] Cambio hecho por el usuario.
@@ -279,10 +317,12 @@ export function buildExtensions({
  *   guardado automático también se dispara aquí, no solo tras la pausa).
  * @param {'dark'|'light'|'sepia'} [options.theme] Tema inicial.
  * @param {ReturnType<import('./lspClient.js').createLspClient>} [options.lspClient]
+ * @param {(view: EditorView) => void} [options.onGoToDefinition]
+ * @param {(view: EditorView) => void} [options.onFindReferences]
  */
 export function createEditor(
   hostEl,
-  { onChange, onChanges, onSave, onSelectionChange, onBlur, theme = 'dark', lspClient } = {}
+  { onChange, onChanges, onSave, onSelectionChange, onBlur, theme = 'dark', lspClient, onGoToDefinition, onFindReferences } = {}
 ) {
   if (!(hostEl instanceof HTMLElement)) {
     throw new TypeError('createEditor: hostEl debe ser un HTMLElement');
@@ -341,6 +381,8 @@ export function createEditor(
     lspClient: typstOnlyLsp,
     getCurrentPath: () => currentPath,
     onBlur,
+    onGoToDefinition,
+    onFindReferences,
     updateListener: EditorView.updateListener.of((update) => {
       if (loading) return;
       if (update.docChanged) {

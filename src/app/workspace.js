@@ -190,6 +190,8 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     onSave: () => listeners.saveRequested?.(),
     onSelectionChange: () => toolbar?.refresh(),
     onBlur: flushAutoSaveOnBlur,
+    onGoToDefinition: (view) => listeners.goToDefinition?.(view),
+    onFindReferences: (view) => listeners.findReferences?.(view),
   });
 
   // Diagnósticos (RF-59): los de Tinymist y los del motor en proceso se
@@ -427,6 +429,11 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     /** Cambió la lista de pestañas, la activa o el estado de alguna (RF-79). */
     /** @type {null | (() => void)} */
     tabsChanged: null,
+    /** F12 / Ctrl+clic y Mayús+F12 en el editor (RF-77). */
+    /** @type {null | ((view: import('@codemirror/view').EditorView) => void)} */
+    goToDefinition: null,
+    /** @type {null | ((view: import('@codemirror/view').EditorView) => void)} */
+    findReferences: null,
   };
 
   /**
@@ -1686,6 +1693,8 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     },
     /** Raíz del proyecto abierto, o `null`. */
     getRoot: () => state.project?.root ?? null,
+    /** ¿La última compilación del motor tuvo errores? (R-L2: las etiquetas no se resuelven). */
+    hasEngineErrors: () => engineDiagnostics.some((diagnostic) => diagnostic.level === 'error'),
     /** ¿Tiene cambios sin guardar alguna pestaña de `paths` o de dentro de esas carpetas? */
     hasUnsavedChangesIn(paths) {
       return dirtyTabs().some((tab) => isWithinAny(tab.path, paths));

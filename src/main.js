@@ -73,6 +73,8 @@ import {
 import { createChoiceDialog } from './ui/choiceDialog.js';
 import { countProblems, toProblemList } from './editor/diagnosticsModel.js';
 import { createEditorContextMenu } from './editor/editorContextMenu.js';
+import { createNavigation } from './editor/navigation.js';
+import { createResultsView } from './search/resultsView.js';
 import { createPreviewContextMenu } from './preview/previewContextMenu.js';
 import { rangeForEditor, rangeForRender } from './preview/syncRange.js';
 import { createChangeTracker } from './preview/changeTracker.js';
@@ -176,8 +178,8 @@ function wirePanelSwitcher(workspaceEl) {
  * pestañas dentro.
  */
 function wireSidebarTabs(workspaceEl) {
-  const tabs = { files: el('tab-files'), outline: el('tab-outline') };
-  const panels = { files: el('files-panel'), outline: el('outline-panel') };
+  const tabs = { files: el('tab-files'), outline: el('tab-outline'), search: el('tab-search') };
+  const panels = { files: el('files-panel'), outline: el('outline-panel'), search: el('search-panel') };
 
   function setActiveTab(name) {
     for (const key of Object.keys(tabs)) {
@@ -188,17 +190,23 @@ function wireSidebarTabs(workspaceEl) {
 
   tabs.files.addEventListener('click', () => setActiveTab('files'));
   tabs.outline.addEventListener('click', () => setActiveTab('outline'));
+  tabs.search.addEventListener('click', () => setActiveTab('search'));
   setActiveTab('files');
+
+  /** Pestaña `name` con el panel lateral visible. */
+  function show(name) {
+    if (!getPanelState().sidebar) {
+      togglePanel('sidebar', workspaceEl);
+      document.querySelector('.mode-switcher__button[data-panel="sidebar"]')?.setAttribute('aria-pressed', 'true');
+    }
+    setActiveTab(name);
+  }
 
   return {
     /** Usado por el menú nativo de macOS (`menu-outline`): pestaña + panel visible. */
-    showOutline() {
-      if (!getPanelState().sidebar) {
-        togglePanel('sidebar', workspaceEl);
-        document.querySelector('.mode-switcher__button[data-panel="sidebar"]')?.setAttribute('aria-pressed', 'true');
-      }
-      setActiveTab('outline');
-    },
+    showOutline: () => show('outline'),
+    /** Referencias (RF-77.3) y búsqueda en el proyecto (RF-78). */
+    showSearch: () => show('search'),
   };
 }
 
@@ -1497,7 +1505,26 @@ async function bootstrap() {
     }
     await syncPreviewToCursor();
   }
+  // RF-77: ir a la definición y buscar referencias con Tinymist. Las
+  // referencias se enseñan en la pestaña «Buscar» de la barra lateral.
+  const navigation = createNavigation({ lspClient, workspace, readFile, notify: toast.show, t });
+  const searchResults = createResultsView({
+    containerEl: el('search-results'),
+    onOpen: (path, item) => navigation.openAt({ path, range: item.range }),
+  });
+  navigation.setReferencesView((result) => {
+    searchResults.show(result);
+    sidebarTabs.showSearch();
+  });
+  workspace.setListener('goToDefinition', (view) => navigation.goToDefinition(view));
+  workspace.setListener('findReferences', (view) => navigation.findReferences(view));
+
   createEditorContextMenu({
+    navigation: {
+      canNavigate: () => navigation.unavailableReason() === null,
+      goToDefinition: navigation.goToDefinition,
+      findReferences: navigation.findReferences,
+    },
     hostEl: el('editor-host'),
     getView: () => workspace.getEditorView(),
     canGoToPreview: () => Boolean(workspace.getCompileTarget()),

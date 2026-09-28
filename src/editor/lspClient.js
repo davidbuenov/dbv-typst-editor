@@ -55,6 +55,24 @@ export function uriToPath(uri) {
 }
 
 /**
+ * Respuesta de `definition`/`references` → `[{path, range}]`. Tinymist devuelve
+ * `LocationLink` (con `targetUri`/`targetSelectionRange`) o `Location`
+ * (`uri`/`range`), suelto o en lista; `null` si no hay destino.
+ * @param {any} result
+ * @returns {Array<{path: string, range: {start: {line: number, character: number}, end: {line: number, character: number}}}>}
+ */
+export function normalizeLocations(result) {
+  const list = Array.isArray(result) ? result : result ? [result] : [];
+  return list
+    .map((item) => {
+      const uri = item.targetUri ?? item.uri;
+      const range = item.targetSelectionRange ?? item.targetRange ?? item.range;
+      return uri && range ? { path: uriToPath(uri), range } : null;
+    })
+    .filter(Boolean);
+}
+
+/**
  * Clave para comparar URIs `file://` venidas de sitios distintos (RF-85).
  *
  * Tinymist devuelve las rutas codificadas (`proj%205` para «proj 5») aunque se
@@ -742,6 +760,36 @@ export function createLspClient({ onDiagnostics: initialOnDiagnostics, notify, o
     }
   }
 
+  /**
+   * Pide a Tinymist algo sobre la posición del documento activo (definición,
+   * referencias, renombrar…). `null` si no está listo o no responde.
+   */
+  async function requestAt(method, lineNum, charPos, extra = {}) {
+    if (!active || !currentDoc) return null;
+    try {
+      const res = await tinymistSendRequest(method, {
+        textDocument: { uri: currentDoc.uri },
+        position: { line: lineNum, character: charPos },
+        ...extra,
+      });
+      return res.ok ? (res.value ?? null) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Ir a la definición (RF-77.1): destinos normalizados. */
+  async function getDefinition(lineNum, charPos) {
+    return normalizeLocations(await requestAt('textDocument/definition', lineNum, charPos));
+  }
+
+  /** Buscar referencias (RF-77.3), incluida la declaración. */
+  async function getReferences(lineNum, charPos) {
+    return normalizeLocations(
+      await requestAt('textDocument/references', lineNum, charPos, { context: { includeDeclaration: true } })
+    );
+  }
+
   async function getHover(lineNum, charPos) {
     if (!active || !currentDoc) return null;
 
@@ -841,6 +889,9 @@ export function createLspClient({ onDiagnostics: initialOnDiagnostics, notify, o
     getCompletions,
     getSignatureHelp,
     getHover,
+    getDefinition,
+    getReferences,
+    requestAt,
     formatDocument,
     setDiagnosticsHandler(handler) {
       onDiagnostics = handler;

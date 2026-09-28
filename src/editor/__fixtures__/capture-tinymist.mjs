@@ -1,8 +1,23 @@
-// Captura respuestas reales de Tinymist 0.15.8 para los tests de RF-77.
-import { spawn } from 'node:child_process';
-import { mkdirSync, writeFileSync, rmSync } from 'node:fs';
+// =============================================================================
+// DBV Typst Editor — Captura de respuestas reales de Tinymist (fixtures de RF-77)
+// Copyright (c) 2026 David Bueno Vallejo
+// Licensed under the MIT License. See LICENSE for details.
+// Built with dbv-specs-ops · https://github.com/davidbuenov/dbv-specs-ops
+// =============================================================================
+//
+// Genera `tinymist-0.15.8.json`, que usan los tests de la edición en varios
+// ficheros y de la navegación: un proyecto de prueba con `main.typ` y
+// `cap/uno.typ`, y las respuestas de definición, referencias, renombrar y
+// acciones de código tal cual las da el binario vendorizado. La ruta temporal
+// se sustituye por `ROOT`. Uso (tras `npm run vendor:tinymist`):
+//   node src/editor/__fixtures__/capture-tinymist.mjs <carpeta-temporal> src/editor/__fixtures__/tinymist-0.15.8.json
 
-const bin = 'D:/Programacion/github-davidbuenov/dbv-typst-editor/src-tauri/binaries/tinymist-x86_64-pc-windows-msvc.exe';
+import { spawn } from 'node:child_process';
+import { mkdirSync, readdirSync, writeFileSync, rmSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
+const binaries = fileURLToPath(new URL('../../../src-tauri/binaries/', import.meta.url));
+const bin = binaries + readdirSync(binaries).find((name) => name.startsWith('tinymist-'));
 const dir = process.argv[2].replace(/\\/g, '/');
 const out = process.argv[3];
 rmSync(dir, { recursive: true, force: true });

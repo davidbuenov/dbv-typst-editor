@@ -535,7 +535,7 @@
     - [x] 112 RF-79 · workspace: observador con varias rutas y RF-70 con varios documentos
     - [x] 113 RF-79 · barra de pestañas (`verify:layout` en CI)
     - [x] 114 RF-77/78 · edición multi-fichero con vista previa y Deshacer
-    - [ ] 115 RF-77 · ir a la definición y buscar referencias
+    - [x] 115 RF-77 · ir a la definición y buscar referencias
     - [ ] 116 RF-77 · renombrar símbolo y acciones de código
     - [ ] 117 RF-78 · backend de búsqueda (`regex`, `walkdir`, cancelación)
     - [ ] 118 RF-78 · panel «Buscar» y reemplazar

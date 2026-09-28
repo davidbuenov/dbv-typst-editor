@@ -132,6 +132,7 @@ describe('navegación (RF-77.1, RF-77.3)', () => {
     const show = vi.fn();
     navigation.setReferencesView(show);
     await navigation.findReferences(view);
+    expect(notify).toHaveBeenCalledWith('nav.searchingReferences');
     const [{ title, groups }] = show.mock.calls[0];
     expect(title).toBe('nav.referencesOf');
     expect(groups.map((group) => group.path)).toEqual([UNO, MAIN]);

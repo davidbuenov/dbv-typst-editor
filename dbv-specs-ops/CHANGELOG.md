@@ -67,6 +67,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - **Los errores de Tinymist se subrayaban en el fichero equivocado (RF-85).** Tinymist publica diagnósticos de TODOS los ficheros del proyecto, no solo del abierto: con `main.typ` en el editor llegaba el error de `cap/uno.typ`, y `lspClient.js` lo entregaba sin decir de qué fichero era, así que se subrayaba en `main.typ` en una línea que no tenía nada que ver y contaba en la insignia. El cliente guarda ahora el último conjunto de diagnósticos de cada fichero (`getDiagnostics(ruta)`) y el workspace pinta y cuenta solo los del documento abierto; al abrir otro fichero aparecen los suyos, aunque Tinymist los hubiera publicado antes. Las URIs se comparan con `uriKey`, porque Tinymist las devuelve codificadas (`proj%205`) aunque se le abriera el documento con la ruta sin codificar, y la letra de unidad puede cambiar de mayúscula a minúscula. 3 tests nuevos con la notificación capturada del binario de Tinymist 0.15.8, uno de ellos montando el workspace real.
 
+- **«Buscar referencias» parecía no hacer nada en un libro grande (encontrado en `/test`).** Sobre `z6-IPbook` (224 páginas), la primera petición de referencias a Tinymist tarda unos 18 s, y Mayús+F12 no enseñaba nada mientras tanto. Ahora avisa al momento con «Buscando referencias…». Test ampliado.
+
 ## [0.11.0] - 2026-09-26
 
 Explorador de archivos completo, actualización automática de referencias, «Nuevo capítulo…», enlaces funcionales en la vista previa e historial local de versiones. Corrige el diálogo de cambio externo que hacía inutilizable el guardado automático de la 0.10.0. Nacida del uso intensivo de la 0.10.0 con un libro real de varios capítulos.

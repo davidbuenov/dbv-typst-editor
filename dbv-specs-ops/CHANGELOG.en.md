@@ -67,6 +67,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - **Tinymist errors were underlined in the wrong file (RF-85).** Tinymist publishes diagnostics for EVERY file in the project, not just the open one: with `main.typ` in the editor, the error from `cap/uno.typ` arrived, and `lspClient.js` passed it on without saying which file it belonged to, so it was underlined in `main.typ` on an unrelated line and counted in the badge. The client now keeps the latest set of diagnostics for each file (`getDiagnostics(path)`) and the workspace paints and counts only those of the open document; opening another file shows its own, even if Tinymist had published them earlier. URIs are compared with `uriKey`, because Tinymist returns them encoded (`proj%205`) even when the document was opened with the unencoded path, and the drive letter may switch between upper and lower case. 3 new tests with the notification captured from the Tinymist 0.15.8 binary, one of them mounting the real workspace.
 
+- **"Find references" seemed to do nothing in a large book (found in `/test`).** On `z6-IPbook` (224 pages), the first references request to Tinymist takes about 18 s, and Shift+F12 showed nothing in the meantime. It now shows "Finding references…" straight away. Test extended.
+
 ## [0.11.0] - 2026-09-26
 
 A full file explorer, automatic reference updates, "New chapter…", working links in the preview and a local version history. Fixes the external-change dialog that made 0.10.0's auto-save unusable. Born from heavy use of 0.10.0 with a real multi-chapter book.

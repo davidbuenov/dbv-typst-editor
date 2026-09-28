@@ -169,6 +169,10 @@ export function createNavigation({ lspClient, workspace, readFile, notify, t }) 
     }
     const { head, line, character } = cursor(view);
     const symbol = symbolAt(view.state, head);
+    // Medido en /test sobre un libro de 224 páginas: la primera búsqueda de
+    // referencias tarda unos 18 s en Tinymist. Sin este aviso parecería que
+    // Mayús+F12 no hace nada.
+    notify(t('nav.searchingReferences'));
     const locations = await lspClient.getReferences(line, character);
     if (locations.length === 0) {
       explainEmpty(symbol);

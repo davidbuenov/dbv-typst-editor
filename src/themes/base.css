@@ -1243,6 +1243,14 @@ body {
   margin-top: 0;
 }
 
+/* Grupo de la tabla de atajos generada (RF-80): Editor, Árbol, Vista previa… */
+.help__subheading {
+  margin: 14px 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
 .help__paragraph {
   margin: 0 0 10px;
   font-size: 13px;

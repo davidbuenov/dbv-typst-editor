@@ -18,7 +18,11 @@
 // lógica de cada acción sigue viviendo en JS, una sola vez, no se duplica en
 // Rust. Localización a mano vía `sys-locale` para esos ítems propios.
 //
-// Atajos: solo los estándar universales de macOS (Cmd+N/O/S/Shift+S/W/Q/Z...)
+// Atajos: solo los estándar universales de macOS (Cmd+N/O/S/Shift+S/W/Q/Z...).
+// Desde la 0.12.0, Cmd+W cierra la pestaña (el documento abierto) y «Cerrar
+// proyecto» pasa a Cmd+Shift+W, como en las demás aplicaciones de Mac con
+// pestañas (decisión 2 del plan, R-T7): el menú gana a la página, así que con
+// Cmd+W en «Cerrar proyecto» cerrar una pestaña cerraría el proyecto entero.
 // — ninguno de ellos coincide con los atajos de la barra de inserción del
 // editor (Mod-b/i/e/k/Shift-1/2/3, RF-13), comprobado a propósito para que un
 // acelerador de menú no capture silenciosamente una combinación que el
@@ -127,10 +131,18 @@ pub fn setup<R: Runtime>(app: &App<R>) -> tauri::Result<()> {
         )
         .item(
             &MenuItemBuilder::with_id(
+                "menu-close-tab",
+                if es { "Cerrar pestaña" } else { "Close Tab" },
+            )
+            .accelerator("Cmd+W")
+            .build(app)?,
+        )
+        .item(
+            &MenuItemBuilder::with_id(
                 "menu-close-project",
                 if es { "Cerrar proyecto" } else { "Close Project" },
             )
-            .accelerator("Cmd+W")
+            .accelerator("Cmd+Shift+W")
             .build(app)?,
         )
         .build()?;
@@ -188,6 +200,7 @@ pub fn setup<R: Runtime>(app: &App<R>) -> tauri::Result<()> {
             "menu-save-as" => forward(app, "menu-save-as"),
             "menu-export-pdf" => forward(app, "menu-export-pdf"),
             "menu-reveal" => forward(app, "menu-reveal"),
+            "menu-close-tab" => forward(app, "menu-close-tab"),
             "menu-close-project" => forward(app, "menu-close-project"),
             "menu-toggle-theme" => forward(app, "menu-toggle-theme"),
             "menu-outline" => forward(app, "menu-outline"),

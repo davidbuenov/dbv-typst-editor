@@ -33,7 +33,7 @@ describe('HELP_SECTIONS', () => {
 
   it('todo bloque de texto está en los dos idiomas', () => {
     eachBlock((block, path) => {
-      if (block.list || block.shortcuts || block.docLink) return;
+      if (block.list || block.shortcuts || block.docLink || block.shortcutRegistry) return;
       expect(block.es, `${path}: párrafo sin español`).toBeTruthy();
       expect(block.en, `${path}: párrafo sin inglés`).toBeTruthy();
     });

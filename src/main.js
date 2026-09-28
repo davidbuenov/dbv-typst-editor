@@ -1706,6 +1706,7 @@ async function bootstrap() {
   // el menú.
   on('menu-new-project', closeProject);
   on('menu-close-project', closeProject);
+  on('menu-close-tab', () => workspace.closeDocument());
   on('menu-open-folder', openFolder);
   on('menu-open-file', openFile);
   on('menu-save', () => el('btn-save').click());

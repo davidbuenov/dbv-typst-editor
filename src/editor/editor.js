@@ -30,6 +30,7 @@ import {
   history,
   historyKeymap,
   indentWithTab,
+  selectParentSyntax,
 } from '@codemirror/commands';
 import {
   bracketMatching,
@@ -58,6 +59,7 @@ import {
   typst_lezer,
 } from 'codemirror-lang-typst/lezer';
 import { buildToolbarKeymap } from './toolbarActions.js';
+import { shortcutKey } from './shortcuts.js';
 import { createLspCompletionSource, createLspHover, createLspSignatureHelp } from './lspClient.js';
 import { createUniverseHover } from './universeHover.js';
 import { syncFlashField } from './syncFlash.js';
@@ -191,7 +193,7 @@ export function buildExtensions({
     extraExtensions.push(
       keymap.of([
         {
-          key: 'Shift-Alt-f',
+          ...shortcutKey('format'),
           run: (v) => {
             lspClient.formatDocument(v, getCurrentPath?.());
             return true;
@@ -222,7 +224,7 @@ export function buildExtensions({
     // ganar al Tab de los campos de snippet (que se añaden con esa misma
     // precedencia pero después); sin lista abierta `acceptCompletion` devuelve
     // false y Tab sigue saltando de campo o indentando.
-    Prec.highest(keymap.of([{ key: 'Tab', run: acceptCompletion }])),
+    Prec.highest(keymap.of([{ ...shortcutKey('acceptCompletion'), run: acceptCompletion }])),
     highlightSelectionMatches(),
     search({ top: true }),
     autocompleteExt,
@@ -244,6 +246,9 @@ export function buildExtensions({
     // binding por defecto que pudiera capturar la misma combinación.
     saveKeymap,
     toolbarKeymap,
+    // RF-80.3: «ampliar selección» (`selectParentSyntax`), que CodeMirror trae
+    // en Mod-i y la cursiva tapa, recuperado en una combinación libre.
+    keymap.of([{ ...shortcutKey('expandSelection'), preventDefault: true, run: selectParentSyntax }]),
     ...extraExtensions,
     keymap.of([
       ...closeBracketsKeymap,
@@ -310,7 +315,7 @@ export function createEditor(
 
   const saveKeymap = keymap.of([
     {
-      key: 'Mod-s',
+      ...shortcutKey('save'),
       preventDefault: true,
       run: () => {
         onSave?.();

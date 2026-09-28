@@ -15,7 +15,10 @@
 // haría ilegible para las dos cosas.
 //
 // Cada sección: `title` y `blocks`. Un bloque es un párrafo (string), una
-// lista (`{ list: [...] }`) o una tabla de atajos (`{ shortcuts: [[a, b]] }`).
+// lista (`{ list: [...] }`), una tabla de atajos (`{ shortcuts: [[a, b]] }`)
+// o la tabla completa de atajos generada desde el registro único
+// (`{ shortcutRegistry: true }`, RF-80): los atajos no se escriben a mano aquí.
+
 
 /** @typedef {{es: string, en: string}} Bilingue */
 
@@ -103,18 +106,20 @@ export const HELP_SECTIONS = [
         },
       },
       {
-        shortcuts: [
-          ['Ctrl/Cmd + B', { es: 'Negrita', en: 'Bold' }],
-          ['Ctrl/Cmd + I', { es: 'Cursiva', en: 'Italic' }],
-          ['Ctrl/Cmd + E', { es: 'Código en línea', en: 'Inline code' }],
-          ['Ctrl/Cmd + K', { es: 'Enlace', en: 'Link' }],
-          ['Ctrl/Cmd + F', { es: 'Buscar y reemplazar', en: 'Find and replace' }],
-          ['Ctrl/Cmd + Shift + 1/2/3', { es: 'Encabezado de nivel 1, 2 o 3', en: 'Heading level 1, 2 or 3' }],
-          ['Ctrl/Cmd + S', { es: 'Guardar', en: 'Save' }],
-          ['Ctrl/Cmd + +/-/0, o Ctrl + rueda', { es: 'Tamaño de fuente del editor (con el cursor dentro)', en: 'Editor font size (with the cursor inside it)' }],
-          ['Esc', { es: 'Cerrar el panel abierto', en: 'Close the open panel' }],
-        ],
+        es: 'Todos los atajos de teclado, también los que trae el editor y casi nadie descubre (mover y duplicar líneas, multicursor, plegar, ir a una línea…), están en la sección «Atajos de teclado».',
+        en: 'Every keyboard shortcut, including the ones the editor comes with and hardly anyone discovers (moving and duplicating lines, multiple cursors, folding, going to a line…), is in the "Keyboard shortcuts" section.',
       },
+    ],
+  },
+  {
+    id: 'atajos',
+    title: { es: 'Atajos de teclado', en: 'Keyboard shortcuts' },
+    blocks: [
+      {
+        es: 'Todos los atajos de la aplicación, agrupados por dónde actúan. Se muestran las combinaciones del sistema en el que estás: en macOS, con sus símbolos (⌘ Cmd, ⌥ Opción, ⇧ Mayús, ⌃ Control).',
+        en: 'Every shortcut in the app, grouped by where it acts. The combinations shown are those of the system you are on: on macOS, with its symbols (⌘ Cmd, ⌥ Option, ⇧ Shift, ⌃ Control).',
+      },
+      { shortcutRegistry: true },
     ],
   },
   {
@@ -148,13 +153,8 @@ export const HELP_SECTIONS = [
         },
       },
       {
-        shortcuts: [
-          ['F2', { es: 'Renombrar el elemento del árbol', en: 'Rename the tree item' }],
-          ['Supr', { es: 'Eliminar la selección del árbol', en: 'Delete the tree selection' }],
-          ['Ctrl/Cmd + clic', { es: 'Añadir o quitar de la selección', en: 'Add to or remove from the selection' }],
-          ['Mayús + clic', { es: 'Seleccionar un rango', en: 'Select a range' }],
-          ['Esc', { es: 'Cancelar el arrastre o la edición del nombre', en: 'Cancel the drag or the name editing' }],
-        ],
+        es: 'Los atajos del árbol (F2 para renombrar, Supr para eliminar, Ctrl/Cmd + clic y Mayús + clic para seleccionar) están en «Atajos de teclado».',
+        en: 'The tree shortcuts (F2 to rename, Delete to remove, Ctrl/Cmd + click and Shift + click to select) are in "Keyboard shortcuts".',
       },
     ],
   },

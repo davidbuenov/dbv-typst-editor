@@ -15,6 +15,7 @@
 
 import { syntaxTree } from '@codemirror/language';
 import { keymap } from '@codemirror/view';
+import { shortcutKey } from './shortcuts.js';
 
 /**
  * True si la posición del cursor cae dentro de una ecuación Typst (`$...$`).
@@ -278,14 +279,15 @@ const LIST_PREFIXES = ['- ', '+ ', '/ '];
 
 /**
  * Inventario de botones (§7.7.2). El orden de este array es el orden visual:
- * agrupado por `group`, con un divisor entre grupos (ver `toolbar.js`).
+ * agrupado por `group`, con un divisor entre grupos (ver `toolbar.js`). Las
+ * combinaciones salen del registro único de atajos (RF-80, `shortcuts.js`).
  */
 export const TOOLBAR_ACTIONS = [
   // ── Formato ──────────────────────────────────────────────────────────────
-  { id: 'bold', group: 'format', glyph: 'B', i18nKey: 'toolbar.bold', shortcut: 'Mod-b', buildTransaction: wrapToggle('*', '*') },
-  { id: 'italic', group: 'format', glyph: 'I', i18nKey: 'toolbar.italic', shortcut: 'Mod-i', buildTransaction: wrapToggle('_', '_') },
+  { id: 'bold', group: 'format', glyph: 'B', i18nKey: 'toolbar.bold', shortcut: shortcutKey('bold').key, buildTransaction: wrapToggle('*', '*') },
+  { id: 'italic', group: 'format', glyph: 'I', i18nKey: 'toolbar.italic', shortcut: shortcutKey('italic').key, buildTransaction: wrapToggle('_', '_') },
   { id: 'strike', group: 'format', glyph: 'S', i18nKey: 'toolbar.strike', buildTransaction: wrapToggle('#strike[', ']') },
-  { id: 'code', group: 'format', glyph: '</>', i18nKey: 'toolbar.code', shortcut: 'Mod-e', buildTransaction: wrapToggle('`', '`') },
+  { id: 'code', group: 'format', glyph: '</>', i18nKey: 'toolbar.code', shortcut: shortcutKey('code').key, buildTransaction: wrapToggle('`', '`') },
   { id: 'superscript', group: 'format', glyph: 'x²', i18nKey: 'toolbar.superscript', buildTransaction: wrapToggle('#super[', ']') },
   { id: 'subscript', group: 'format', glyph: 'x₂', i18nKey: 'toolbar.subscript', buildTransaction: wrapToggle('#sub[', ']') },
   // Sin buildTransaction real: abre el panel de búsqueda de CodeMirror
@@ -299,9 +301,9 @@ export const TOOLBAR_ACTIONS = [
   { id: 'search', group: 'format', glyph: '⌕', i18nKey: 'toolbar.search', buildTransaction: () => null },
 
   // ── Estructura ───────────────────────────────────────────────────────────
-  { id: 'heading1', group: 'structure', glyph: 'H1', i18nKey: 'toolbar.heading1', shortcut: 'Mod-Shift-1', buildTransaction: linePrefixToggle('= ', HEADING_PREFIXES) },
-  { id: 'heading2', group: 'structure', glyph: 'H2', i18nKey: 'toolbar.heading2', shortcut: 'Mod-Shift-2', buildTransaction: linePrefixToggle('== ', HEADING_PREFIXES) },
-  { id: 'heading3', group: 'structure', glyph: 'H3', i18nKey: 'toolbar.heading3', shortcut: 'Mod-Shift-3', buildTransaction: linePrefixToggle('=== ', HEADING_PREFIXES) },
+  { id: 'heading1', group: 'structure', glyph: 'H1', i18nKey: 'toolbar.heading1', shortcut: shortcutKey('heading1').key, buildTransaction: linePrefixToggle('= ', HEADING_PREFIXES) },
+  { id: 'heading2', group: 'structure', glyph: 'H2', i18nKey: 'toolbar.heading2', shortcut: shortcutKey('heading2').key, buildTransaction: linePrefixToggle('== ', HEADING_PREFIXES) },
+  { id: 'heading3', group: 'structure', glyph: 'H3', i18nKey: 'toolbar.heading3', shortcut: shortcutKey('heading3').key, buildTransaction: linePrefixToggle('=== ', HEADING_PREFIXES) },
   { id: 'bulletList', group: 'structure', glyph: '•', i18nKey: 'toolbar.bulletList', buildTransaction: linePrefixToggle('- ', LIST_PREFIXES) },
   { id: 'numberedList', group: 'structure', glyph: '1.', i18nKey: 'toolbar.numberedList', buildTransaction: linePrefixToggle('+ ', LIST_PREFIXES) },
   // Sustituye a la lista de tareas de DBV Markdown Reader: Typst no tiene
@@ -314,7 +316,7 @@ export const TOOLBAR_ACTIONS = [
     group: 'content',
     glyph: 'Link',
     i18nKey: 'toolbar.link',
-    shortcut: 'Mod-k',
+    shortcut: shortcutKey('link').key,
     // La URL, no el texto visible, es el hueco que casi siempre queda por
     // rellenar — por eso la selección final cae ahí y no dentro de `[...]`.
     buildTransaction: inlineTemplate((selected) => {

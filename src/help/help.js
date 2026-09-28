@@ -13,6 +13,7 @@
 import { getLanguage } from '../i18n/i18n.js';
 import { openExternalUrl } from '../services/backend.js';
 import { HELP_SECTIONS } from './helpContent.js';
+import { detectMac, shortcutHelpGroups } from '../editor/shortcuts.js';
 
 /** Devuelve la variante del idioma activo, con castellano como respaldo. */
 function pick(bilingual) {
@@ -39,7 +40,29 @@ export function createHelp({ contentEl, navEl }) {
     return table;
   }
 
+  /** RF-80: tabla completa generada desde el registro único de atajos. */
+  function renderShortcutRegistry() {
+    const fragment = document.createDocumentFragment();
+    for (const group of shortcutHelpGroups(getLanguage() === 'en' ? 'en' : 'es', detectMac())) {
+      const title = document.createElement('h4');
+      title.className = 'help__subheading';
+      title.textContent = group.title;
+      const table = document.createElement('dl');
+      table.className = 'help__shortcuts';
+      for (const [combo, description] of group.rows) {
+        const key = document.createElement('dt');
+        key.textContent = combo;
+        const value = document.createElement('dd');
+        value.textContent = description;
+        table.append(key, value);
+      }
+      fragment.append(title, table);
+    }
+    return fragment;
+  }
+
   function renderBlock(block) {
+    if (block.shortcutRegistry) return renderShortcutRegistry();
     if (block.docLink) {
       // RF-52.1: enlace a la documentación ORIGINAL del paquete/lenguaje que
       // usa cada asistente (Graphviz para DOT, el manual de CeTZ para

@@ -955,17 +955,31 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
         await persistEntrypoint('', inManifest);
       }
     }
-    if (state.document && isWithinAny(state.document.path, paths)) {
-      cancelScheduledAutoSave();
-      state.document = null;
-      state.dirty = false;
-      editor.setDocument('', null);
-      tree.setActivePath(null);
-      renderDocumentBar();
-      listeners.documentDetached?.();
-      if (state.project) await watchProject(state.project.root, null);
-    }
+    if (state.document && isWithinAny(state.document.path, paths)) await detachDocument();
     if (state.previewDocument && isWithinAny(state.previewDocument, paths)) state.previewDocument = null;
+  }
+
+  /** Deja el editor vacío, sin documento, y se lo dice al observador. */
+  async function detachDocument() {
+    cancelScheduledAutoSave();
+    state.document = null;
+    state.dirty = false;
+    editor.setDocument('', null);
+    tree.setActivePath(null);
+    renderDocumentBar();
+    listeners.documentDetached?.();
+    if (state.project) await watchProject(state.project.root, null);
+  }
+
+  /**
+   * Cierra el documento abierto (Cmd+W en macOS, R-T7), preguntando antes si
+   * tiene cambios sin guardar. Con pestañas (RF-79) pasa a cerrar la activa.
+   * @returns {Promise<boolean>} true si se cerró.
+   */
+  async function closeDocument() {
+    const closable = Boolean(state.document) && (await confirmDiscardChanges());
+    if (closable) await detachDocument();
+    return closable;
   }
 
   // Un cambio en disco refresca el árbol (ficheros nuevos de un `git pull`, por
@@ -1241,6 +1255,7 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
       };
     },
     closeProject,
+    closeDocument,
     revealProject,
     save,
     saveAs,

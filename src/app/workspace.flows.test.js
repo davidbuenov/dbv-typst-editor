@@ -451,3 +451,21 @@ describe('documento principal en el manifiesto (RF-83)', () => {
     expect(workspace.getEntrypoint()).toBe(null);
   });
 });
+
+describe('cerrar el documento (Cmd+W en macOS, R-T7)', () => {
+  it('con cambios sin guardar pregunta y, si se cancela, no cierra', async () => {
+    const { workspace, dialog } = await openedWorkspace();
+    fakeView.dispatch({ changes: { from: 0, to: 0, insert: 'x' } });
+    dialog.ask.mockResolvedValueOnce('cancel');
+    expect(await workspace.closeDocument()).toBe(false);
+    expect(workspace.getDocumentPath()).toBe(MAIN);
+  });
+
+  it('sin cambios cierra sin preguntar y deja el editor vacío', async () => {
+    const { workspace, dialog } = await openedWorkspace();
+    expect(await workspace.closeDocument()).toBe(true);
+    expect(dialog.ask).not.toHaveBeenCalled();
+    expect(workspace.getDocumentPath()).toBe(null);
+    expect(fake.content).toBe('');
+  });
+});

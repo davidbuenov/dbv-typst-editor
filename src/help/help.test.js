@@ -12,6 +12,8 @@ vi.mock('../services/backend.js', () => ({ openExternalUrl: (...args) => openExt
 
 import { createHelp } from './help.js';
 import { HELP_SECTIONS } from './helpContent.js';
+import { formatCombo, SHORTCUT_SCOPES } from '../editor/shortcuts.js';
+import { getLanguage } from '../i18n/i18n.js';
 
 describe('createHelp', () => {
   let contentEl;
@@ -39,6 +41,19 @@ describe('createHelp', () => {
     help.scrollToSection('dot');
 
     expect(heading.scrollIntoView).toHaveBeenCalled();
+  });
+
+  it('la sección «Atajos de teclado» se genera desde el registro, agrupada por ámbito (RF-80)', () => {
+    createHelp({ contentEl, navEl });
+
+    const heading = document.getElementById('help-section-atajos');
+    expect(heading).not.toBeNull();
+    const lang = getLanguage() === 'en' ? 'en' : 'es';
+    const groups = [...contentEl.querySelectorAll('.help__subheading')].map((node) => node.textContent);
+    expect(groups).toEqual(SHORTCUT_SCOPES.map((scope) => scope.title[lang]));
+    const combos = [...contentEl.querySelectorAll('.help__shortcuts dt')].map((node) => node.textContent);
+    expect(combos).toContain(formatCombo('Ctrl-Shift-ArrowUp', lang, false));
+    expect(combos).toContain('Alt + ↑');
   });
 
   it('un enlace de documentación externa abre el navegador del sistema, no el propio WebView', () => {

@@ -23,6 +23,7 @@ pub mod platform;
 pub mod project;
 pub mod refs;
 pub mod search;
+pub mod snippets;
 pub mod templates;
 pub mod typst_engine;
 pub mod universe;
@@ -123,6 +124,10 @@ pub fn run() {
             refs::refs_plan,
             refs::refs_apply,
             search::search_project_cmd,
+            snippets::snippets_global_path,
+            snippets::snippets_ensure_global,
+            snippets::snippets_project_files,
+            snippets::snippets_ensure_project,
             chapters::chapter_folder,
             chapters::chapter_create,
             chapters::chapter_link,

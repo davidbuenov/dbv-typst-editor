@@ -21,6 +21,11 @@ import { bibtexLanguageDescription } from './bibtexLanguage.js';
 /** Nombre del lenguaje que se enseña en la insignia del documento. */
 export const TYPST_LABEL = 'Typst';
 
+/** True si `path` es un fichero de snippets de VS Code (RF-81): es JSON (con comentarios). */
+function isCodeSnippetsPath(path) {
+  return /\.code-snippets$/i.test(path ?? '');
+}
+
 /** True si `path` es un fichero de bibliografía BibTeX (RF-62). */
 function isBibPath(path) {
   return /\.bib$/i.test(path ?? '');
@@ -42,7 +47,9 @@ export function detectLanguage(path) {
     return { kind: 'code', name: bibtexLanguageDescription.name, description: bibtexLanguageDescription };
   }
   const fileName = path.split(/[\\/]/).pop() ?? path;
-  const description = LanguageDescription.matchFilename(languages, fileName);
+  const description = isCodeSnippetsPath(path)
+    ? languages.find((language) => language.name === 'JSON') ?? null
+    : LanguageDescription.matchFilename(languages, fileName);
   if (description) return { kind: 'code', name: description.name, description };
   return { kind: 'text', name: 'Texto', description: null };
 }

@@ -51,6 +51,10 @@ import {
   engineSetMode,
   fileFingerprint,
   searchProject,
+  snippetsEnsureGlobal,
+  snippetsEnsureProject,
+  snippetsGlobalPath,
+  snippetsProjectFiles,
   gitAdd,
   gitClone,
   getAppInfo,
@@ -80,6 +84,8 @@ import { createRefactor } from './editor/refactor.js';
 import { createMultiFileEdit } from './app/multiFileEdit.js';
 import { createResultsView } from './search/resultsView.js';
 import { createProjectSearch, isSearchProjectShortcut } from './search/projectSearch.js';
+import { createSnippetLoader } from './snippets/loader.js';
+import { addSnippetToText, createSnippetDialog, selectionToBody } from './snippets/saveSelection.js';
 import { createPreviewContextMenu } from './preview/previewContextMenu.js';
 import { rangeForEditor, rangeForRender } from './preview/syncRange.js';
 import { createChangeTracker } from './preview/changeTracker.js';
@@ -791,6 +797,8 @@ async function bootstrap() {
   const tracker = createChangeTracker();
   // RF-78.3: los resultados de la búsqueda en el proyecto se recalculan al editar.
   let projectSearch = null;
+  /** RF-81.7: se define más abajo, junto al diálogo. */
+  let saveSelectionAsSnippet = null;
   workspace.setListener('editorChanges', (changes) => {
     tracker.record(changes);
     projectSearch?.refreshSoon();
@@ -872,9 +880,21 @@ async function bootstrap() {
   workspace.setListener('companionChanged', () => {
     if (engineMode === 'inproc') preview.onContentChanged();
   });
+  // RF-81: snippets de usuario. Se recargan al guardarlos, cuando el
+  // observador avisa de un cambio en `.vscode` y (el global) al volver el foco.
+  const snippetLoader = createSnippetLoader({
+    backend: { readFile, snippetsGlobalPath, snippetsProjectFiles },
+    notify: toast.show,
+    t,
+  });
+  snippetLoader.loadGlobal();
+  window.addEventListener('focus', () => snippetLoader.loadGlobal());
+  workspace.setListener('projectOpened', (project) => snippetLoader.loadProject(project.isSingleFile ? null : project.root));
+
   workspace.setListener('externalChange', (change) => {
     if (!change.isActiveDocument) preview.onExternalChange();
     gitManager.refresh();
+    snippetLoader.handleChanged(change.path);
   });
 
   const sidebarTabs = wireSidebarTabs(el('workspace-view'));
@@ -1252,6 +1272,82 @@ async function bootstrap() {
     workspace.openDotEditor(el('btn-tools-dot'));
   });
 
+  // RF-81.4: editar los ficheros de snippets en el propio editor.
+  async function editSnippets(ensure) {
+    const located = await ensure();
+    if (!located.ok) {
+      toast.show(`${t('snippets.openError')} — ${located.error.message}`, 'error');
+      return null;
+    }
+    await workspace.openDocument(located.value);
+    await snippetLoader.handleChanged(located.value);
+    return located.value;
+  }
+  el('btn-snippets-global').addEventListener('click', () => editSnippets(snippetsEnsureGlobal));
+  el('btn-snippets-project').addEventListener('click', async () => {
+    const project = workspace.state.project;
+    if (!project || project.isSingleFile) {
+      toast.show(t('snippets.needsProject'), 'error');
+      return;
+    }
+    const path = await editSnippets(() => snippetsEnsureProject(project.root));
+    if (path) await tree.refresh();
+  });
+
+  // RF-81.7: «Guardar selección como snippet…» (menú contextual del editor).
+  const snippetDialog = createSnippetDialog({
+    elements: {
+      dialog: el('snippet-dialog'),
+      form: el('snippet-form'),
+      name: el('snippet-name'),
+      prefix: el('snippet-prefix'),
+      description: el('snippet-description'),
+      destination: el('snippet-destination'),
+      error: el('snippet-error'),
+      cancel: el('snippet-cancel'),
+    },
+    t,
+  });
+  saveSelectionAsSnippet = async (view) => {
+    const { from, to } = view.state.selection.main;
+    if (from === to) return;
+    const selected = view.state.sliceDoc(from, to);
+    const project = workspace.state.project;
+    const hasProject = Boolean(project && !project.isSingleFile);
+    const answer = await snippetDialog.open({ hasProject });
+    if (!answer) return;
+    const located = answer.destination === 'project' && hasProject ? await snippetsEnsureProject(project.root) : await snippetsEnsureGlobal();
+    if (!located.ok) {
+      toast.show(`${t('snippets.openError')} — ${located.error.message}`, 'error');
+      return;
+    }
+    const path = located.value;
+    // Si el fichero está abierto en una pestaña, se edita allí (con sus
+    // cambios sin guardar); si no, en disco.
+    const inTab = workspace.getTabContent(path);
+    let current = inTab;
+    if (current === null) {
+      const read = await readFile(path);
+      current = read.ok ? read.value.content : '';
+    }
+    const added = addSnippetToText(current, { name: answer.name, prefix: answer.prefix, description: answer.description, body: selectionToBody(selected) });
+    if (!added.ok) {
+      toast.show(t('snippets.invalidFile'), 'error');
+      return;
+    }
+    if (inTab !== null) {
+      workspace.applyBufferEdits([{ from: 0, to: inTab.length, insert: added.text }], path);
+    } else {
+      const written = await writeFile(path, added.text, 'save');
+      if (!written.ok) {
+        toast.show(`${t('doc.saveError')} — ${written.error.message}`, 'error');
+        return;
+      }
+    }
+    await snippetLoader.handleChanged(path, added.text);
+    toast.show(t('snippets.saved').replace('{name}', added.name).replace('{prefix}', answer.prefix));
+  };
+
   el('btn-jogs-insert').addEventListener('click', () => {
     const view = workspace.editor.getView();
     if (!workspace.state.document || !view) {
@@ -1294,6 +1390,8 @@ async function bootstrap() {
   // limita a una consulta cada 5 s como mucho durante el autoguardado.
   let lastAutoSaveGitRefreshMs = 0;
   workspace.setListener('saved', (auto) => {
+    const savedPath = workspace.getDocumentPath();
+    if (savedPath) snippetLoader.handleChanged(savedPath, workspace.getContent());
     if (!auto || engineMode !== 'inproc') {
       preview.onContentChanged();
       outline.onContentChanged();
@@ -1584,6 +1682,7 @@ async function bootstrap() {
   );
 
   createEditorContextMenu({
+    onSaveSnippet: (view) => saveSelectionAsSnippet?.(view),
     navigation: {
       canNavigate: () => navigation.unavailableReason() === null,
       goToDefinition: navigation.goToDefinition,

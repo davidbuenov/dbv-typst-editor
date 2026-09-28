@@ -34,6 +34,8 @@ pub const COMPANION_EXTENSIONS: &[&str] = &[
     "c", "h", "cpp", "hpp", "cc", "cs", "java", "kt", "py", "rs", "go", "js", "ts", "tsx", "jsx",
     "rb", "php", "swift", "sh", "bash", "ps1", "sql", "lua", "r", "html", "css", "scss", "tex",
     "log", "bat", "pl",
+    // Snippets del proyecto con el formato de VS Code (RF-81): `.vscode/*.code-snippets`.
+    "code-snippets",
 ];
 
 /// Tamaño máximo de un fichero de texto que se abre en el editor. Por encima, un

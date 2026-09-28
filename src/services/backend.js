@@ -122,6 +122,12 @@ export const fsRevertMoves = (root, moved) => call('fs_revert_moves', { root, mo
 export const searchProject = (root, query, options, { replacement = null, openDocuments = [], searchId = 0 } = {}) =>
   call('search_project_cmd', { root, query, options, replacement, openDocuments, searchId });
 
+// Snippets de usuario (RF-81): el fichero global y los `.vscode/*.code-snippets`.
+export const snippetsGlobalPath = () => call('snippets_global_path');
+export const snippetsEnsureGlobal = () => call('snippets_ensure_global');
+export const snippetsProjectFiles = (root) => call('snippets_project_files', { root });
+export const snippetsEnsureProject = (root) => call('snippets_ensure_project', { root });
+
 /** RF-70 con pestañas (R-T3): `openDocuments` son TODAS las pestañas con su contenido del editor. */
 export const refsPlan = (root, moved, openDocuments) => call('refs_plan', { root, moved, openDocuments: openDocuments ?? [] });
 export const refsApply = (root, moved, openDocuments) => call('refs_apply', { root, moved, openDocuments: openDocuments ?? [] });

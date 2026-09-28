@@ -192,6 +192,14 @@
               <span class="menu-item__icon menu-item__icon--glyph" aria-hidden="true">⌥</span><span data-i18n="action.dotEditor"></span>
             </button>
             <div class="menu-separator" role="separator"></div>
+            <!-- RF-81: snippets de usuario (formato de VS Code). -->
+            <button id="btn-snippets-global" class="menu-item" type="button" role="menuitem">
+              <span class="menu-item__icon menu-item__icon--glyph" aria-hidden="true">{ }</span><span data-i18n="snippets.editGlobal"></span>
+            </button>
+            <button id="btn-snippets-project" class="menu-item" type="button" role="menuitem" data-i18n-title="snippets.editProjectHint">
+              <span class="menu-item__icon menu-item__icon--glyph" aria-hidden="true">{ }</span><span data-i18n="snippets.editProject"></span>
+            </button>
+            <div class="menu-separator" role="separator"></div>
             <button id="btn-jogs-insert" class="menu-item" type="button" role="menuitem" data-i18n-title="jogs.hint">
               <span class="menu-item__icon menu-item__icon--glyph" aria-hidden="true">JS</span><span data-i18n="action.jogsInsert"></span>
             </button>
@@ -588,6 +596,40 @@
     <!-- RF-71: «Nuevo capítulo…». El nombre de fichero se deriva del título
          mientras no se toque a mano; la carpeta propuesta es la de los
          capítulos que ya incluye el documento principal. -->
+    <!-- RF-81.7: «Guardar selección como snippet…» -->
+    <div class="modal hidden" id="snippet-dialog" role="dialog" aria-modal="true" aria-labelledby="snippet-dialog-title">
+      <form class="modal__card" id="snippet-form" novalidate>
+        <h2 class="modal__title" id="snippet-dialog-title" data-i18n="snippets.saveTitle"></h2>
+        <p class="modal__text" data-i18n="snippets.saveText"></p>
+        <div class="form">
+          <label class="form-row">
+            <span class="form-row__label" data-i18n="snippets.name"></span>
+            <input id="snippet-name" class="form-row__input" type="text" autocomplete="off" spellcheck="true" />
+          </label>
+          <label class="form-row">
+            <span class="form-row__label" data-i18n="snippets.prefix"></span>
+            <input id="snippet-prefix" class="form-row__input" type="text" autocomplete="off" spellcheck="false" />
+          </label>
+          <label class="form-row">
+            <span class="form-row__label" data-i18n="snippets.description"></span>
+            <input id="snippet-description" class="form-row__input" type="text" autocomplete="off" spellcheck="true" />
+          </label>
+          <label class="form-row">
+            <span class="form-row__label" data-i18n="snippets.destination"></span>
+            <select id="snippet-destination" class="form-row__input">
+              <option value="project" data-i18n="snippets.destinationProject"></option>
+              <option value="global" data-i18n="snippets.destinationGlobal"></option>
+            </select>
+          </label>
+        </div>
+        <p class="form__error hidden" id="snippet-error" role="alert"></p>
+        <div class="modal__actions">
+          <button id="snippet-cancel" class="button" type="button" data-i18n="action.cancel"></button>
+          <button id="snippet-save" class="button button--primary" type="submit" data-i18n="snippets.save"></button>
+        </div>
+      </form>
+    </div>
+
     <div class="modal hidden" id="chapter-dialog" role="dialog" aria-modal="true" aria-labelledby="chapter-dialog-title">
       <form class="modal__card" id="chapter-form" novalidate>
         <h2 class="modal__title" id="chapter-dialog-title" data-i18n="chapter.dialogTitle"></h2>

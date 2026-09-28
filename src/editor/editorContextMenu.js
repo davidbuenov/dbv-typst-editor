@@ -24,10 +24,12 @@ export function isGoToPreviewShortcut(event) {
  * `canNavigate` (RF-77.6): con Tinymist, *Ir a la definición* y *Buscar
  * referencias*; deshabilitadas (con su motivo al pulsar el atajo) si no está listo.
  *
- * @param {{hasSelection: boolean, canGoToPreview: boolean, readOnly?: boolean, canShowHistory?: boolean, canNavigate?: boolean}} context
+ * `canSaveSnippet` (RF-81.7): *Guardar selección como snippet…* con texto seleccionado.
+ *
+ * @param {{hasSelection: boolean, canGoToPreview: boolean, readOnly?: boolean, canShowHistory?: boolean, canNavigate?: boolean, canSaveSnippet?: boolean}} context
  * @returns {{id: string, enabled: boolean, separatorAfter?: boolean}[]}
  */
-export function buildMenuItems({ hasSelection, canGoToPreview, readOnly = false, canShowHistory = false, canNavigate }) {
+export function buildMenuItems({ hasSelection, canGoToPreview, readOnly = false, canShowHistory = false, canNavigate, canSaveSnippet }) {
   const items = [];
   if (canNavigate !== undefined) {
     items.push(
@@ -44,6 +46,10 @@ export function buildMenuItems({ hasSelection, canGoToPreview, readOnly = false,
     { id: 'paste', enabled: !readOnly },
     { id: 'selectAll', enabled: true, separatorAfter: canShowHistory },
   );
+  if (canSaveSnippet !== undefined) {
+    items.at(-1).separatorAfter = true;
+    items.push({ id: 'saveSnippet', enabled: canSaveSnippet && hasSelection });
+  }
   // RF-73: el historial local del fichero que se está editando.
   if (canShowHistory) items.push({ id: 'history', enabled: true });
   return items;
@@ -59,9 +65,10 @@ export function buildMenuItems({ hasSelection, canGoToPreview, readOnly = false,
  * @param {(key: string) => string} deps.t
  * @param {() => boolean} [deps.canShowHistory]
  * @param {() => void} [deps.onShowHistory]
+ * @param {(view: any) => void} [deps.onSaveSnippet] RF-81.7.
  * @param {{canNavigate: () => boolean, goToDefinition: (view: any) => void, findReferences: (view: any) => void, renameSymbol: (view: any) => void, codeActions: (view: any) => void}} [deps.navigation]
  */
-export function createEditorContextMenu({ hostEl, getView, canGoToPreview, onGoToPreview, notify, t, canShowHistory, onShowHistory, navigation }) {
+export function createEditorContextMenu({ hostEl, getView, canGoToPreview, onGoToPreview, notify, t, canShowHistory, onShowHistory, navigation, onSaveSnippet }) {
   let menuEl = null;
 
   function close() {
@@ -86,6 +93,9 @@ export function createEditorContextMenu({ hostEl, getView, canGoToPreview, onGoT
         return;
       } else if (id === 'goToPreview') {
         await onGoToPreview();
+      } else if (id === 'saveSnippet') {
+        await onSaveSnippet?.(view);
+        return;
       } else if (id === 'history') {
         onShowHistory?.();
         return;
@@ -117,6 +127,7 @@ export function createEditorContextMenu({ hostEl, getView, canGoToPreview, onGoT
       readOnly: view.state.readOnly,
       canShowHistory: Boolean(canShowHistory?.()),
       canNavigate: navigation ? navigation.canNavigate() : undefined,
+      canSaveSnippet: onSaveSnippet ? true : undefined,
     });
     const menu = document.createElement('div');
     menu.className = 'tree-context-menu editor-context-menu';

@@ -540,7 +540,7 @@
     - [x] 117 RF-78 · backend de búsqueda (`regex`, `walkdir`, cancelación)
     - [x] 118 RF-78 · panel «Buscar» y reemplazar
     - [x] 119 RF-81 · snippets: modelo y autocompletado (también sin Tinymist)
-    - [ ] 120 RF-81 · snippets: ficheros, menús y «Guardar selección»
+    - [x] 120 RF-81 · snippets: ficheros, menús y «Guardar selección»
     - [ ] 121 RF-82 · capa de texto del motor (verificación primero)
     - [ ] 122 RF-82 · buscar y copiar en la vista previa
     - [ ] 123 cierre · `ARCHITECTURE.md`, ayuda, textos, lección del `.zsync` al framework

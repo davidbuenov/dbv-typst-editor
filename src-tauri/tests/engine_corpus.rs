@@ -160,4 +160,12 @@ fn el_motor_aguanta_un_libro_de_mas_de_200_paginas() {
     assert!(hit.file.ends_with(".typ"), "fichero inesperado: {}", hit.file);
     let rects = engine.reveal(last_generation, &hit.file, hit.from, hit.to).unwrap();
     assert!(!rects.is_empty(), "el rango localizado debe poder volver a dibujarse");
+
+    // 5. Capa de texto (RF-82): construirla y buscar en todas las páginas.
+    let started = Instant::now();
+    let found = engine.search_text(last_generation, "Edición número", false).unwrap();
+    let layer_time = started.elapsed();
+    println!("capa de texto: {layer_time:?} (construcción + primera búsqueda) · {} coincidencias", found.len());
+    assert!(!found.is_empty(), "la edición añadida al final debe encontrarse");
+    assert!(found.iter().all(|m| !m.rects.is_empty()));
 }

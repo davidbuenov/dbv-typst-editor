@@ -29,6 +29,8 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
+
+use super::text_layer::{PageText, TextLayer, TextMatch};
 use std::time::Duration;
 
 use tokio::sync::oneshot;
@@ -113,6 +115,9 @@ pub struct Latest {
     /// El mapa se construye la primera vez que se pide (0,33 s en un libro de 224
     /// páginas): quien solo mira la vista previa no lo paga.
     map: OnceLock<SourceMap>,
+    /// Capa de texto para buscar y copiar en la vista previa (RF-82), también
+    /// bajo demanda.
+    text_layer: OnceLock<TextLayer>,
 }
 
 impl Latest {
@@ -124,6 +129,10 @@ impl Latest {
         self.map.get_or_init(|| {
             SourceMap::build(&self.document, &|id| self.source_of(id), &|id| self.world.relative_path(id))
         })
+    }
+
+    fn text_layer(&self) -> &TextLayer {
+        self.text_layer.get_or_init(|| TextLayer::build(&self.document))
     }
 
     /// SVG de la página `index` (0-indexada).
@@ -220,6 +229,20 @@ impl InProcEngine {
     pub fn links(&self, generation: u64, page: usize) -> Result<Vec<super::links::Link>, TypstError> {
         let latest = self.latest_for(generation).ok_or_else(|| expired(generation))?;
         Ok(super::links::page_links(&latest.document, page.saturating_sub(1)))
+    }
+
+    /// Buscar en el texto de TODAS las páginas de la vista previa `generation`
+    /// (RF-82.1), también las que aún no se han pintado.
+    pub fn search_text(&self, generation: u64, query: &str, case_sensitive: bool) -> Result<Vec<TextMatch>, TypstError> {
+        let latest = self.latest_for(generation).ok_or_else(|| expired(generation))?;
+        Ok(latest.text_layer().search(query, case_sensitive))
+    }
+
+    /// Texto de la página `page` (1-indexada) con la caja de cada carácter,
+    /// para seleccionar y copiar (RF-82.2).
+    pub fn page_text(&self, generation: u64, page: usize) -> Result<PageText, TypstError> {
+        let latest = self.latest_for(generation).ok_or_else(|| expired(generation))?;
+        Ok(latest.text_layer().page(page.saturating_sub(1)).cloned().unwrap_or_default())
     }
 
     /// Dónde se dibuja lo escrito entre `from` y `to` (UTF-16) de `file`.
@@ -326,7 +349,7 @@ impl InProcEngine {
                     .into_iter()
                     .map(|size| PageGeometry { width_pt: size.width_pt, height_pt: size.height_pt })
                     .collect::<Vec<_>>();
-                let latest = Arc::new(Latest { generation, document, world, sources, map: OnceLock::new() });
+                let latest = Arc::new(Latest { generation, document, world, sources, map: OnceLock::new(), text_layer: OnceLock::new() });
                 let pages = window_indices(geometry.len(), first_page, window)
                     .into_iter()
                     .filter_map(|index| latest.page_svg(index).map(|svg| PreviewPage { index, svg }))

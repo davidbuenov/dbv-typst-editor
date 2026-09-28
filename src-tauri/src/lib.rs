@@ -137,6 +137,8 @@ pub fn run() {
             history::history_read,
             history::history_clear,
             engine::commands::engine_links,
+            engine::commands::engine_search,
+            engine::commands::engine_page_text,
             commands::app_info::open_document_link,
             commands::file_io::list_directory,
             commands::file_io::open_file_dialog,

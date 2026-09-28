@@ -45,6 +45,27 @@ pub fn engine_links(
     engine.links(generation, page)
 }
 
+/// Busca `query` en el texto de todas las páginas de la vista previa (RF-82.1).
+#[tauri::command]
+pub fn engine_search(
+    engine: State<'_, InProcEngine>,
+    generation: u64,
+    query: String,
+    case_sensitive: bool,
+) -> Result<Vec<super::text_layer::TextMatch>, TypstError> {
+    engine.search_text(generation, &query, case_sensitive)
+}
+
+/// Texto de una página con la caja de cada carácter (RF-82.2).
+#[tauri::command]
+pub fn engine_page_text(
+    engine: State<'_, InProcEngine>,
+    generation: u64,
+    page: usize,
+) -> Result<super::text_layer::PageText, TypstError> {
+    engine.page_text(generation, page)
+}
+
 /// Dónde se dibuja lo escrito entre `from` y `to` (UTF-16 desde el inicio del
 /// fichero). Con `from == to` se toma la palabra bajo el cursor.
 #[tauri::command]

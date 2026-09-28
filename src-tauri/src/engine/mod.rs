@@ -23,6 +23,7 @@ pub mod links;
 pub mod map;
 pub mod pages;
 pub mod session;
+pub mod text_layer;
 pub mod worker;
 pub mod world;
 

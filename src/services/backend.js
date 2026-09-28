@@ -238,6 +238,10 @@ export const getBibliographyKeys = (root) => call('bibliography_keys', { root })
  */
 /** Enlaces de una página de la vista previa (RF-72). */
 export const engineLinks = (generation, page) => call('engine_links', { generation, page });
+/** RF-82.1: busca en el texto de TODAS las páginas de la vista previa `generation`. */
+export const engineSearch = (generation, query, caseSensitive = false) => call('engine_search', { generation, query, caseSensitive });
+/** RF-82.2: texto de una página y la caja (pt) de cada carácter, para seleccionar y copiar. */
+export const enginePageText = (generation, page) => call('engine_page_text', { generation, page });
 /** Abre un enlace del documento; el backend decide qué esquemas se permiten. */
 export const openDocumentLink = (url) => call('open_document_link', { url });
 export const engineLocate = (generation, page, xPt, yPt) =>

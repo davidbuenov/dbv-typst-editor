@@ -538,7 +538,7 @@
     - [x] 115 RF-77 · ir a la definición y buscar referencias
     - [x] 116 RF-77 · renombrar símbolo y acciones de código
     - [x] 117 RF-78 · backend de búsqueda (`regex`, `walkdir`, cancelación)
-    - [ ] 118 RF-78 · panel «Buscar» y reemplazar
+    - [x] 118 RF-78 · panel «Buscar» y reemplazar
     - [ ] 119 RF-81 · snippets: modelo y autocompletado (también sin Tinymist)
     - [ ] 120 RF-81 · snippets: ficheros, menús y «Guardar selección»
     - [ ] 121 RF-82 · capa de texto del motor (verificación primero)

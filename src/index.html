@@ -379,6 +379,22 @@
           </div>
           <!-- RF-78 (búsqueda en el proyecto) y RF-77.3 (referencias de un símbolo). -->
           <div class="sidebar-panel hidden" id="search-panel">
+            <div class="search-form">
+              <div class="search-form__row">
+                <input id="search-query" class="search-form__input" type="search" spellcheck="false" data-i18n-placeholder="search.query" />
+                <button id="search-case" class="search-toggle" type="button" data-i18n-title="search.caseSensitive">Aa</button>
+                <button id="search-word" class="search-toggle" type="button" data-i18n-title="search.wholeWord">ab</button>
+                <button id="search-regex" class="search-toggle" type="button" data-i18n-title="search.regex">.*</button>
+              </div>
+              <p class="search-form__error hidden" id="search-error" role="alert"></p>
+              <div class="search-form__row">
+                <input id="search-replace" class="search-form__input" type="text" spellcheck="false" data-i18n-placeholder="search.replace" />
+                <button id="search-replace-all" class="button button--compact" type="button" data-i18n="search.replaceAll" disabled></button>
+              </div>
+              <input id="search-include" class="search-form__input" type="text" spellcheck="false" data-i18n-placeholder="search.include" />
+              <input id="search-exclude" class="search-form__input" type="text" spellcheck="false" data-i18n-placeholder="search.exclude" />
+              <p class="search-form__status" id="search-status" aria-live="polite"></p>
+            </div>
             <div class="search-results" id="search-results"></div>
           </div>
         </aside>

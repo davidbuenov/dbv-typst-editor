@@ -1700,6 +1700,19 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     },
     /** Raíz del proyecto abierto, o `null`. */
     getRoot: () => state.project?.root ?? null,
+    /**
+     * Todas las pestañas cargadas (de cualquier tipo) con su contenido del
+     * editor: la búsqueda en el proyecto (RF-78.2) las busca ahí, con sus
+     * cambios sin guardar, y no en el disco.
+     * @returns {Array<{path: string, content: string}>}
+     */
+    getOpenTexts() {
+      const list = state.document ? [{ path: state.document.path, content: editor.getContent() }] : [];
+      for (const entry of background.values()) {
+        if (entry.saved) list.push({ path: entry.document.path, content: entry.saved.state.doc.toString() });
+      }
+      return list;
+    },
     /** ¿La última compilación del motor tuvo errores? (R-L2: las etiquetas no se resuelven). */
     hasEngineErrors: () => engineDiagnostics.some((diagnostic) => diagnostic.level === 'error'),
     /** ¿Tiene cambios sin guardar alguna pestaña de `paths` o de dentro de esas carpetas? */

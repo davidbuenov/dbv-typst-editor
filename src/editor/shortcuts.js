@@ -145,6 +145,9 @@ export const APP_SHORTCUTS = [
   // Ventana.
   { id: 'closePanel', scope: 'app', key: 'Escape', label: { es: 'Cerrar el panel abierto', en: 'Close the open panel' } },
 
+  // Buscar en el proyecto (RF-78).
+  { id: 'searchProject', scope: 'app', key: 'Mod-Shift-f', label: { es: 'Buscar y reemplazar en todo el proyecto', en: 'Find and replace across the project' } },
+
   // Pestañas (RF-79). En macOS, Cmd+W lo atiende el menú nativo («Cerrar pestaña»).
   { id: 'closeTab', scope: 'app', key: 'Mod-w', label: { es: 'Cerrar la pestaña', en: 'Close the tab' } },
   { id: 'nextTab', scope: 'app', key: 'Ctrl-Tab', label: { es: 'Pestaña siguiente', en: 'Next tab' } },

@@ -50,6 +50,7 @@ import {
   engineDiagnostics,
   engineSetMode,
   fileFingerprint,
+  searchProject,
   gitAdd,
   gitClone,
   getAppInfo,
@@ -78,6 +79,7 @@ import { createNavigation } from './editor/navigation.js';
 import { createRefactor } from './editor/refactor.js';
 import { createMultiFileEdit } from './app/multiFileEdit.js';
 import { createResultsView } from './search/resultsView.js';
+import { createProjectSearch, isSearchProjectShortcut } from './search/projectSearch.js';
 import { createPreviewContextMenu } from './preview/previewContextMenu.js';
 import { rangeForEditor, rangeForRender } from './preview/syncRange.js';
 import { createChangeTracker } from './preview/changeTracker.js';
@@ -787,7 +789,12 @@ async function bootstrap() {
   });
   // Posiciones del texto compilado ↔ texto actual del editor (RF-57.5).
   const tracker = createChangeTracker();
-  workspace.setListener('editorChanges', (changes) => tracker.record(changes));
+  // RF-78.3: los resultados de la búsqueda en el proyecto se recalculan al editar.
+  let projectSearch = null;
+  workspace.setListener('editorChanges', (changes) => {
+    tracker.record(changes);
+    projectSearch?.refreshSoon();
+  });
   const preview = createPreview({
     pagesEl: el('preview-pages'),
     bandEl: el('preview-band'),
@@ -1539,6 +1546,42 @@ async function bootstrap() {
   });
   workspace.setListener('renameSymbol', (view) => refactor.renameSymbol(view));
   workspace.setListener('codeActions', (view) => refactor.codeActions(view));
+
+  // RF-78: buscar y reemplazar en todo el proyecto, en la pestaña «Buscar».
+  projectSearch = createProjectSearch({
+    elements: {
+      query: el('search-query'),
+      replace: el('search-replace'),
+      include: el('search-include'),
+      exclude: el('search-exclude'),
+      caseSensitive: el('search-case'),
+      wholeWord: el('search-word'),
+      regex: el('search-regex'),
+      replaceAll: el('search-replace-all'),
+      error: el('search-error'),
+      status: el('search-status'),
+    },
+    workspace,
+    searchProject,
+    multiFileEdit,
+    resultsView: searchResults,
+    openAt: navigation.openAt,
+    getPref,
+    t,
+  });
+  document.addEventListener(
+    'keydown',
+    (event) => {
+      if (!isSearchProjectShortcut(event) || !workspace.state.project) return;
+      event.preventDefault();
+      event.stopPropagation();
+      sidebarTabs.showSearch();
+      const view = workspace.getEditorView();
+      const selection = view && !view.state.selection.main.empty ? view.state.sliceDoc(view.state.selection.main.from, view.state.selection.main.to) : '';
+      projectSearch.focus(selection);
+    },
+    true,
+  );
 
   createEditorContextMenu({
     navigation: {

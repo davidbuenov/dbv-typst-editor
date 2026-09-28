@@ -15,11 +15,12 @@
  * @param {(path: string, item: {line: number, range: any}) => void} deps.onOpen
  */
 export function createResultsView({ containerEl, onOpen }) {
-  /** Fila: número de línea y texto con el tramo resaltado. */
-  function renderItem(group, item) {
-    const row = document.createElement('button');
-    row.type = 'button';
+  /** Fila: número de línea, texto con el tramo resaltado y acciones opcionales. */
+  function renderItem(group, item, itemActions) {
+    const row = document.createElement('div');
     row.className = 'search-hit';
+    row.setAttribute('role', 'button');
+    row.tabIndex = 0;
     const number = document.createElement('span');
     number.className = 'search-hit__line';
     number.textContent = String(item.line);
@@ -37,16 +38,21 @@ export function createResultsView({ containerEl, onOpen }) {
       mark.after(replacement);
       mark.classList.add('search-hit__replaced');
     }
-    row.append(number, text);
+    row.append(number, text, ...(itemActions ? itemActions(group, item) : []));
     row.title = `${group.relative}:${item.line}`;
     row.addEventListener('click', () => onOpen(group.path, item));
+    row.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      onOpen(group.path, item);
+    });
     return row;
   }
 
   /**
-   * @param {{title?: string, groups: Array<{path: string, relative: string, items: any[]}>, emptyMessage?: string, actions?: (group: any) => HTMLElement[]}} result
+   * @param {{title?: string, groups: Array<{path: string, relative: string, items: any[]}>, emptyMessage?: string, actions?: (group: any) => HTMLElement[], itemActions?: (group: any, item: any) => HTMLElement[]}} result
    */
-  function show({ title, groups, emptyMessage, actions }) {
+  function show({ title, groups, emptyMessage, actions, itemActions }) {
     const nodes = [];
     if (title) {
       const heading = document.createElement('div');
@@ -73,7 +79,7 @@ export function createResultsView({ containerEl, onOpen }) {
       count.className = 'search-group__count';
       count.textContent = String(group.items.length);
       summary.append(name, count, ...(actions ? actions(group) : []));
-      details.append(summary, ...group.items.map((item) => renderItem(group, item)));
+      details.append(summary, ...group.items.map((item) => renderItem(group, item, itemActions)));
       nodes.push(details);
     }
     containerEl.replaceChildren(...nodes);

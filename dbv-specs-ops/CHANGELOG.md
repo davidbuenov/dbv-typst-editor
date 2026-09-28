@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Sin publicar] / [Unreleased]
 
+### Fixed
+
+- **El AppImage no arrancaba si lo ejecutaba otro usuario (catálogo de AppImageHub).** linuxdeploy, dentro de `tauri build`, dejaba `AppRun.wrapped` con permisos `0770` en un squashfs cuyo dueño es root. En un escritorio no se notaba porque el runtime FUSE monta los ficheros con el uid del usuario, pero el test con firejail del catálogo de AppImageHub (PR AppImage/appimage.github.io#5808) recibía `Permission denied` y la app no llegaba a abrirse. `release-linux.yml` añade un paso tras el build que extrae el AppImage, normaliza los permisos (`u+rwX,go+rX,go-w`: `AppRun.wrapped` pasa a `0755` y desaparecen los 53 ficheros con escritura para todos que venían de Ubuntu), lo reempaqueta con `appimagetool`, verifica sobre el AppImage ya reempaquetado que no queda ningún fichero sin lectura para otros ni con escritura para todos, y sustituye el asset de la Release con `gh release upload --clobber` (el nombre local se pasa a puntos, como lo guarda GitHub, para que `--clobber` lo encuentre). El `.deb` no se toca.
+
 ## [0.11.0] - 2026-09-26
 
 Explorador de archivos completo, actualización automática de referencias, «Nuevo capítulo…», enlaces funcionales en la vista previa e historial local de versiones. Corrige el diálogo de cambio externo que hacía inutilizable el guardado automático de la 0.10.0. Nacida del uso intensivo de la 0.10.0 con un libro real de varios capítulos.

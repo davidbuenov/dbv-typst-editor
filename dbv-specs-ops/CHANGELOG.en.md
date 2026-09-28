@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **The AppImage did not start when run by another user (AppImageHub catalog).** linuxdeploy, inside `tauri build`, left `AppRun.wrapped` with `0770` permissions in a squashfs owned by root. On a desktop this went unnoticed because the FUSE runtime mounts files with the user's uid, but the firejail test of the AppImageHub catalog (PR AppImage/appimage.github.io#5808) got `Permission denied` and the app never opened. `release-linux.yml` adds a post-build step that extracts the AppImage, normalises permissions (`u+rwX,go+rX,go-w`: `AppRun.wrapped` becomes `0755` and the 53 world-writable files that came from Ubuntu are gone), repacks it with `appimagetool`, checks on the repacked AppImage that no file is left without read access for others or with world write access, and replaces the Release asset with `gh release upload --clobber` (the local name is converted to dots, as GitHub stores it, so that `--clobber` finds it). The `.deb` is left untouched.
+
 ## [0.11.0] - 2026-09-26
 
 A full file explorer, automatic reference updates, "New chapter…", working links in the preview and a local version history. Fixes the external-change dialog that made 0.10.0's auto-save unusable. Born from heavy use of 0.10.0 with a real multi-chapter book.

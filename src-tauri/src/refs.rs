@@ -376,7 +376,6 @@ fn plan_project(root: &str, moved: &[Moved], open: &[OpenDocument], write: bool)
             .iter()
             .find(|(open, _)| same(open, &relative, CASE_INSENSITIVE))
             .map(|(_, doc)| *doc);
-        let is_open = open_doc.is_some();
         let text = if let Some(doc) = open_doc {
             doc.content.clone()
         } else {

@@ -1035,6 +1035,7 @@ dependencies = [
  "dunce",
  "hayagriva",
  "notify",
+ "regex",
  "serde",
  "serde_json",
  "sys-locale",
@@ -1056,6 +1057,7 @@ dependencies = [
  "typst-layout",
  "typst-svg",
  "ureq",
+ "walkdir",
  "zip 2.4.2",
 ]
 

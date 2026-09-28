@@ -113,6 +113,15 @@ export const fsRevertMoves = (root, moved) => call('fs_revert_moves', { root, mo
 
 // Referencias a lo movido (RF-70). `openDocument` es `{ path, content }` del
 // documento abierto: se edita en memoria y sus ediciones vuelven en UTF-16.
+/**
+ * Busca en todo el proyecto (RF-78). `openDocuments` son las pestañas con su
+ * contenido del editor; con `replacement`, cada coincidencia trae su texto de
+ * reemplazo expandido (`$1`). Una búsqueda con `searchId` mayor cancela esta.
+ * @returns {Promise<Result<{files: Array<{path: string, relative: string, matches: any[]}>, total: number, truncated: boolean, cancelled: boolean}>>}
+ */
+export const searchProject = (root, query, options, { replacement = null, openDocuments = [], searchId = 0 } = {}) =>
+  call('search_project_cmd', { root, query, options, replacement, openDocuments, searchId });
+
 /** RF-70 con pestañas (R-T3): `openDocuments` son TODAS las pestañas con su contenido del editor. */
 export const refsPlan = (root, moved, openDocuments) => call('refs_plan', { root, moved, openDocuments: openDocuments ?? [] });
 export const refsApply = (root, moved, openDocuments) => call('refs_apply', { root, moved, openDocuments: openDocuments ?? [] });

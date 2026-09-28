@@ -22,6 +22,7 @@ pub mod macos_menu;
 pub mod platform;
 pub mod project;
 pub mod refs;
+pub mod search;
 pub mod templates;
 pub mod typst_engine;
 pub mod universe;
@@ -121,6 +122,7 @@ pub fn run() {
             commands::fs_ops::fs_revert_moves,
             refs::refs_plan,
             refs::refs_apply,
+            search::search_project_cmd,
             chapters::chapter_folder,
             chapters::chapter_create,
             chapters::chapter_link,

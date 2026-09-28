@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **"File › New blank project", first item in the File menu.** It opens the creation wizard straight away with the "Blank project" template, just like "Use template" on it in the "New document" gallery, without going through the gallery: for people used to starting from the File menu. Since the project is opened the same way as "Open folder", unsaved changes in the open document are still protected. The launcher exposes `getBlankTemplate()`, which loads the catalog if needed (the app may have started directly with a document, without ever showing the launcher). 3 new tests: finding the template, loading it without going through the launcher, and the button being the first menu item and wired up.
+
 ### Fixed
 
 - **"Blank project" now comes first in the "New document" gallery.** The template catalog was sorted alphabetically by name, so `dbv-blank` came after `dbv-articulo`. `scan_catalog` (`templates.rs`) now always puts the blank project first and keeps the rest in alphabetical order. The packaged-catalog test pins the new order.

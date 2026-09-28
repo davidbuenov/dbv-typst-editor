@@ -12,7 +12,10 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const CATALOGO_FALSO = [{ id: '@local/dbv-tfg', name: 'dbv-tfg', version: '1.0.0' }];
+const CATALOGO_FALSO = [
+  { id: '@local/dbv-blank', name: 'dbv-blank', version: '0.1.0' },
+  { id: '@local/dbv-tfg', name: 'dbv-tfg', version: '1.0.0' },
+];
 
 /** Fabrica una entrada de "recientes" con la forma real que devuelve el backend (RF-02c). */
 function recentProject(overrides = {}) {
@@ -36,7 +39,13 @@ vi.mock('../services/backend.js', () => ({
   removeRecentProject: () => Promise.resolve({ ok: true }),
 }));
 
-import { createLauncher, formatRelativeTime, localizeTemplate, RECENT_DISPLAY_LIMIT } from './launcher.js';
+import {
+  createLauncher,
+  findBlankTemplate,
+  formatRelativeTime,
+  localizeTemplate,
+  RECENT_DISPLAY_LIMIT,
+} from './launcher.js';
 
 const CON_LOCALIZACION = {
   name: 'dbv-tfg',
@@ -102,6 +111,24 @@ describe('el catálogo sobrevive a la poda de la rejilla (R-26)', () => {
 
     const launcher = createLauncher({ recentEl, onOpenRecent: () => {} });
     await expect(launcher.load()).resolves.not.toThrow();
+  });
+});
+
+// Archivo › Nuevo proyecto en blanco abre el asistente con esta plantilla.
+describe('plantilla «Proyecto en blanco»', () => {
+  it('findBlankTemplate la encuentra por su nombre y devuelve null si no está', () => {
+    expect(findBlankTemplate(CATALOGO_FALSO)?.id).toBe('@local/dbv-blank');
+    expect(findBlankTemplate([{ name: 'dbv-tfg' }])).toBeNull();
+    expect(findBlankTemplate(undefined)).toBeNull();
+  });
+
+  it('getBlankTemplate carga el catálogo aunque el lanzador no se haya mostrado nunca', async () => {
+    const recentEl = document.createElement('div');
+    const launcher = createLauncher({ recentEl, onOpenRecent: () => {} });
+
+    // Sin `load()`: la app pudo arrancar directamente con un documento.
+    expect(launcher.getCatalog()).toEqual([]);
+    expect((await launcher.getBlankTemplate())?.name).toBe('dbv-blank');
   });
 });
 

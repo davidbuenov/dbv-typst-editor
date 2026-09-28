@@ -28,6 +28,17 @@ import { truncateParentPath } from '../app/paths.js';
  */
 export const RECENT_DISPLAY_LIMIT = 5;
 
+/** Nombre de la plantilla «Proyecto en blanco» en el catálogo de fábrica. */
+export const BLANK_TEMPLATE_NAME = 'dbv-blank';
+
+/**
+ * La plantilla «Proyecto en blanco» del catálogo, o `null` si no está.
+ * @param {Array<{name?: string}>} catalog
+ */
+export function findBlankTemplate(catalog) {
+  return catalog?.find((template) => template.name === BLANK_TEMPLATE_NAME) ?? null;
+}
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
@@ -199,16 +210,28 @@ export function createLauncher({ recentEl, recentToggleEl, onOpenRecent }) {
     renderRecent();
   });
 
+  /** Carga el catálogo si aún no se ha cargado (una sola vez) y lo devuelve. */
+  async function ensureCatalog() {
+    if (catalog.length === 0) {
+      const result = await listTemplates();
+      catalog = result.ok ? result.value : [];
+    }
+    return catalog.slice();
+  }
+
   return {
     /** Carga el catálogo (una sola vez) y pinta los proyectos recientes. */
     async load() {
       expanded = false;
-      if (catalog.length === 0) {
-        const result = await listTemplates();
-        catalog = result.ok ? result.value : [];
-      }
+      await ensureCatalog();
       await renderRecent();
     },
+    /**
+     * Plantilla «Proyecto en blanco» para «Archivo › Nuevo proyecto en blanco»,
+     * o `null` si no está. Carga el catálogo si hace falta: la app puede haber
+     * arrancado directamente con un documento, sin pasar por el lanzador.
+     */
+    getBlankTemplate: async () => findBlankTemplate(await ensureCatalog()),
     refreshRecent: renderRecent,
     /** Repinta al cambiar de idioma: los recientes llevan textos traducidos. */
     refreshLanguage: renderRecent,

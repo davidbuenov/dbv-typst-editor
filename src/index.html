@@ -96,6 +96,13 @@
                  `el('btn-save').click()` no cambian) y las etiquetas COMPLETAS ya
                  existentes en `i18n.js` (`action.save`/`action.saveAs`/...), no las
                  abreviadas que solo tenían sentido en la barra compacta. -->
+            <!-- Atajo al asistente con la plantilla «Proyecto en blanco»: es el
+                 mismo camino que «Usar plantilla» en la galería, para quien está
+                 acostumbrado a empezar por el menú Archivo. -->
+            <button id="btn-new-blank-project" class="menu-item" type="button" role="menuitem">
+              <svg class="menu-item__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6.3 2.5h5l3.4 3.4V16a1 1 0 0 1-1 1H6.3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1Z"/><path d="M11.3 2.5V6h3.4"/><path d="M10 9.2v5M7.5 11.7h5"/></svg><span data-i18n="action.newBlankProject"></span>
+            </button>
+            <div class="menu-separator" role="separator"></div>
             <button id="btn-save" class="menu-item" type="button" role="menuitem">
               <svg class="menu-item__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 3h9l3.5 3.5V16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M6.3 3v4h6.4V3"/><path d="M6 12h8v4.7H6z"/></svg><span data-i18n="action.save"></span>
             </button>

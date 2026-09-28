@@ -980,6 +980,16 @@ async function bootstrap() {
   });
 
   el('template-gallery-close-x')?.addEventListener('click', () => templateGallery.close());
+  // Archivo › Nuevo proyecto en blanco: lo mismo que «Usar plantilla» sobre
+  // «Proyecto en blanco» en la galería, sin pasar por ella.
+  el('btn-new-blank-project').addEventListener('click', async () => {
+    const blank = await launcher.getBlankTemplate();
+    if (!blank) {
+      toast.show(t('action.newBlankProjectUnavailable'), 'error');
+      return;
+    }
+    wizard.open(blank);
+  });
   // Única vía de creación desde plantilla del lanzador (RF-25).
   el('btn-launcher-new')?.addEventListener('click', () => {
     templateGallery.open(null, getFullGalleryCatalog());

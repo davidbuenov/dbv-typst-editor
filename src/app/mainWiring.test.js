@@ -37,6 +37,14 @@ describe('main.js ↔ index.html', () => {
     expect(main).toContain("el('btn-set-entrypoint').addEventListener");
   });
 
+  it('«Nuevo proyecto en blanco» es la primera opción del menú Archivo y está cableada', () => {
+    const fileMenu = html.slice(html.indexOf('id="file-menu"'));
+    const firstItem = fileMenu.match(/<button id="([^"]+)" class="menu-item"/)[1];
+
+    expect(firstItem).toBe('btn-new-blank-project');
+    expect(main).toContain("el('btn-new-blank-project').addEventListener");
+  });
+
   it('no hay ids duplicados en index.html', () => {
     const all = [...html.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1]);
     const duplicated = all.filter((id, index) => all.indexOf(id) !== index);

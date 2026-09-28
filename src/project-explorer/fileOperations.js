@@ -120,9 +120,8 @@ export function createFileOperations({ tree, workspace, dialog, notify, afterMov
    */
   async function remove(entries) {
     const paths = entries.map((entry) => entry.path);
-    const openPath = workspace.getDocumentPath();
-    const touchesDirtyDocument =
-      openPath && workspace.isDirty() && paths.some((path) => path === openPath || openPath.startsWith(`${path}/`) || openPath.startsWith(`${path}\\`));
+    // RF-79: cualquier pestaña con cambios sin guardar, no solo la activa.
+    const touchesDirtyDocument = workspace.hasUnsavedChangesIn(paths);
 
     const choice = await dialog.ask({
       titleKey: 'tree.deleteTitle',

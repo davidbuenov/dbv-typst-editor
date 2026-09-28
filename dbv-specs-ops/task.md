@@ -531,7 +531,7 @@
     - [x] 108 RF-80 · registro único de atajos, ayuda generada, ampliar selección, Cmd+W en macOS
     - [x] 109 RF-79 · modelo de pestañas (puro) y persistencia
     - [x] 110 RF-79 · editor y LSP con varios documentos
-    - [ ] 111 RF-79 · workspace: núcleo (guardar, autoguardado, cerrar, restaurar)
+    - [x] 111 RF-79 · workspace: núcleo (guardar, autoguardado, cerrar, restaurar)
     - [ ] 112 RF-79 · workspace: observador con varias rutas y RF-70 con varios documentos
     - [ ] 113 RF-79 · barra de pestañas (`verify:layout` en CI)
     - [ ] 114 RF-77/78 · edición multi-fichero con vista previa y Deshacer

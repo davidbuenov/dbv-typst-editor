@@ -1301,7 +1301,7 @@ async function bootstrap() {
   // del sistema — todos piden el cierre por esta misma vía en Tauri.
   const appWindow = getCurrentWindow();
   await appWindow.onCloseRequested(async (event) => {
-    if (!workspace.state.dirty) return; // se deja cerrar tal cual.
+    if (!workspace.hasUnsavedChanges()) return; // se deja cerrar tal cual (RF-79: ninguna pestaña con cambios).
     event.preventDefault();
     if (await workspace.confirmDiscardChanges()) await appWindow.destroy();
   });

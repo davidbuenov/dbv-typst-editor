@@ -194,6 +194,8 @@ export const removeRecentProject = (path) => call('remove_recent_project', { pat
  * @property {boolean} singleFile El proyecto es un `.typ` suelto (RF-02b).
  * @property {string|null} dirtyPath Fichero con cambios sin guardar, si lo hay.
  * @property {string|null} dirtyContent Su contenido en el editor.
+ * @property {Array<{path: string, content: string}>} [otherDirty] Pestañas de
+ *   fondo con cambios sin guardar (RF-79); solo las usa el motor en proceso.
  */
 
 export const compilePreview = ({ target, firstPage, windowSize }) =>

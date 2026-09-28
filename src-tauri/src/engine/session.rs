@@ -285,10 +285,11 @@ impl InProcEngine {
 
         let (sender, receiver) = oneshot::channel();
         lock(&active.waiters).insert(generation, sender);
-        let overrides = match (&target.dirty_path, &target.dirty_content) {
+        let mut overrides = match (&target.dirty_path, &target.dirty_content) {
             (Some(path), Some(content)) => vec![(PathBuf::from(path), content.clone())],
             _ => Vec::new(),
         };
+        overrides.extend(target.other_dirty.iter().map(|file| (PathBuf::from(&file.path), file.content.clone())));
         if let Some(superseded) = active.worker.submit(Request { generation, overrides }) {
             // Esa petición no se va a compilar: soltar su remitente resuelve la
             // llamada que la esperaba como "superada".
@@ -413,6 +414,7 @@ mod tests {
             single_file: false,
             dirty_path: None,
             dirty_content: None,
+            other_dirty: Vec::new(),
         };
         (dir, target)
     }
@@ -481,6 +483,26 @@ mod tests {
 
         assert_eq!(done.geometry.len(), 2);
         assert_eq!(fs::read_to_string(dir.path().join("main.typ")).unwrap(), "Una.");
+    }
+
+    #[test]
+    fn las_pestanas_de_fondo_sin_guardar_tambien_se_compilan_rf79() {
+        // `main.typ` incluye dos capítulos; el activo y uno de fondo tienen
+        // cambios sin guardar. Los dos deben llegar a la vista previa.
+        let main = "#include \"uno.typ\"\n#include \"dos.typ\"";
+        let (dir, mut target) = project(&[("main.typ", main), ("uno.typ", "Uno."), ("dos.typ", "Dos.")]);
+        target.dirty_path = Some(dir.path().join("uno.typ").to_string_lossy().to_string());
+        target.dirty_content = Some("Uno.\n#pagebreak()".into());
+        target.other_dirty = vec![crate::typst_engine::compile::DirtyFile {
+            path: dir.path().join("dos.typ").to_string_lossy().to_string(),
+            content: "#pagebreak()\nDos.".into(),
+        }];
+        let engine = enabled();
+
+        let Attempt::Done(done) = run(&engine, &target, 1) else { panic!("debía compilar") };
+
+        assert_eq!(done.geometry.len(), 3, "los dos saltos de página sin guardar cuentan");
+        assert_eq!(fs::read_to_string(dir.path().join("dos.typ")).unwrap(), "Dos.", "el disco no se toca");
     }
 
     #[test]

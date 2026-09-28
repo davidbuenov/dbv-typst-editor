@@ -78,6 +78,15 @@ vi.mock('../editor/editor.js', () => ({
     });
     editor.getContent = () => fake.content;
     editor.getPath = () => fake.path;
+    // Pestañas (RF-79): el estado guardado es el texto de ese momento.
+    editor.snapshot = () => {
+      const content = fake.content;
+      return { state: { doc: { toString: () => content } } };
+    };
+    editor.activate = (path, saved) => {
+      fake.content = saved.state.doc.toString();
+      fake.path = path;
+    };
     editor.getView = () => fakeView;
     return editor;
   },
@@ -467,5 +476,135 @@ describe('cerrar el documento (Cmd+W en macOS, R-T7)', () => {
     expect(dialog.ask).not.toHaveBeenCalled();
     expect(workspace.getDocumentPath()).toBe(null);
     expect(fake.content).toBe('');
+  });
+});
+
+describe('pestañas: núcleo del workspace (RF-79)', () => {
+  const CAP = `${ROOT}/cap/uno.typ`;
+  const DOS = `${ROOT}/cap/dos.typ`;
+  const files = { [MAIN]: '= Libro', [CAP]: '= Uno', [DOS]: '= Dos' };
+
+  async function withThreeFiles() {
+    const mounted = await openedWorkspace();
+    backend.readFile.mockImplementation(async (path) => ({
+      ok: true,
+      value: { path, fileName: path.split('/').pop(), content: files[path], modifiedMs: 1, contentHash: 'h1' },
+    }));
+    backend.fileFingerprint.mockResolvedValue(onDisk('h1'));
+    backend.writeFile.mockResolvedValue({ ok: true, value: { modifiedMs: 2, contentHash: 'h2' } });
+    return mounted;
+  }
+
+  it('abrir otro fichero lo abre en otra pestaña sin preguntar y conserva los cambios de la anterior', async () => {
+    const { workspace, dialog } = await withThreeFiles();
+    fakeView.dispatch({ changes: { from: 7, to: 7, insert: ' sin guardar' } });
+
+    await workspace.openDocument(CAP);
+    expect(dialog.ask).not.toHaveBeenCalled();
+    expect(workspace.getTabs().map((tab) => [tab.fileName, tab.active, tab.dirty])).toEqual([
+      ['main.typ', false, true],
+      ['uno.typ', true, false],
+    ]);
+
+    await workspace.activateTab(MAIN);
+    expect(fake.content).toBe('= Libro sin guardar');
+    expect(workspace.isDirty()).toBe(true);
+  });
+
+  it('abrir un fichero ya abierto solo activa su pestaña, sin volver a leerlo', async () => {
+    const { workspace } = await withThreeFiles();
+    await workspace.openDocument(CAP);
+    backend.readFile.mockClear();
+    await workspace.openDocument(MAIN);
+    expect(backend.readFile).not.toHaveBeenCalled();
+    expect(workspace.getDocumentPath()).toBe(MAIN);
+  });
+
+  it('la vista previa compila también los cambios sin guardar de las pestañas de fondo', async () => {
+    const { workspace } = await withThreeFiles();
+    await workspace.openDocument(CAP);
+    fakeView.dispatch({ changes: { from: 5, to: 5, insert: ' editado' } });
+    await workspace.openDocument(DOS);
+    expect(workspace.getCompileTarget().otherDirty).toEqual([{ path: CAP, content: '= Uno editado' }]);
+  });
+
+  it('el guardado automático guarda también la pestaña de fondo modificada (R-T5)', async () => {
+    setPref('autoSave', true);
+    const { workspace } = await withThreeFiles();
+    await workspace.openDocument(CAP);
+    fakeView.dispatch({ changes: { from: 5, to: 5, insert: ' editado' } });
+    await workspace.openDocument(DOS);
+    await settle();
+    await settle();
+    expect(backend.writeFile).toHaveBeenCalledWith(CAP, '= Uno editado', 'auto');
+    expect(workspace.hasUnsavedChanges()).toBe(false);
+  });
+
+  it('cerrar la ventana o el proyecto con una pestaña de fondo modificada pregunta, nombrándola (R-T5)', async () => {
+    const { workspace, dialog } = await withThreeFiles();
+    await workspace.openDocument(CAP);
+    fakeView.dispatch({ changes: { from: 5, to: 5, insert: ' editado' } });
+    await workspace.openDocument(DOS);
+    expect(workspace.isDirty()).toBe(false);
+    expect(workspace.hasUnsavedChanges()).toBe(true);
+
+    dialog.ask.mockResolvedValueOnce('cancel');
+    expect(await workspace.closeProject()).toBe(false);
+    expect(dialog.ask).toHaveBeenCalledWith(expect.objectContaining({ text: 'uno.typ' }));
+  });
+
+  it('cerrar una pestaña de fondo con cambios pregunta; la activa no cambia', async () => {
+    const { workspace, dialog } = await withThreeFiles();
+    await workspace.openDocument(CAP);
+    fakeView.dispatch({ changes: { from: 5, to: 5, insert: ' editado' } });
+    await workspace.openDocument(DOS);
+
+    dialog.ask.mockResolvedValueOnce('cancel');
+    expect(await workspace.closeTab(CAP)).toBe(false);
+    dialog.ask.mockResolvedValueOnce('discard');
+    expect(await workspace.closeTab(CAP)).toBe(true);
+    expect(workspace.getTabs().map((tab) => tab.fileName)).toEqual(['main.typ', 'dos.typ']);
+    expect(workspace.getDocumentPath()).toBe(DOS);
+  });
+
+  it('cerrar la pestaña activa activa su vecina de la derecha, o la de la izquierda', async () => {
+    const { workspace } = await withThreeFiles();
+    await workspace.openDocument(CAP);
+    await workspace.openDocument(DOS);
+    await workspace.activateTab(CAP);
+    await workspace.closeTab(CAP);
+    expect(workspace.getDocumentPath()).toBe(DOS);
+    await workspace.closeTab(DOS);
+    expect(workspace.getDocumentPath()).toBe(MAIN);
+    expect(fake.content).toBe('= Libro');
+  });
+
+  it('Ctrl+Tab recorre las pestañas en círculo', async () => {
+    const { workspace } = await withThreeFiles();
+    await workspace.openDocument(CAP);
+    await workspace.cycleTab(1);
+    expect(workspace.getDocumentPath()).toBe(MAIN);
+    await workspace.cycleTab(-1);
+    expect(workspace.getDocumentPath()).toBe(CAP);
+  });
+
+  it('al reabrir el proyecto se restauran las pestañas; solo se lee la activa', async () => {
+    const first = await withThreeFiles();
+    await first.workspace.openDocument(CAP);
+    await first.workspace.openDocument(DOS);
+    await first.workspace.activateTab(CAP);
+
+    const second = mount();
+    backend.readFile.mockClear();
+    await second.workspace.openProjectAt(ROOT);
+    expect(second.workspace.getTabs().map((tab) => [tab.fileName, tab.active])).toEqual([
+      ['main.typ', false],
+      ['uno.typ', true],
+      ['dos.typ', false],
+    ]);
+    expect(backend.readFile.mock.calls.map(([path]) => path)).toEqual([CAP]);
+
+    await second.workspace.activateTab(DOS);
+    expect(fake.content).toBe('= Dos');
   });
 });

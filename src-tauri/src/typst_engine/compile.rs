@@ -77,10 +77,24 @@ pub struct CompileTarget {
     /// contiene, que puede ser cualquier cosa, así que la réplica no desciende.
     #[serde(default)]
     pub single_file: bool,
-    /// Fichero con cambios sin guardar, si lo hay, y su contenido en el editor.
-    /// La aplicación garantiza que a lo sumo hay uno.
+    /// Fichero ACTIVO con cambios sin guardar, si lo hay, y su contenido en el
+    /// editor.
     pub dirty_path: Option<String>,
     pub dirty_content: Option<String>,
+    /// Pestañas de fondo con cambios sin guardar (RF-79): el motor en proceso
+    /// las compila con su contenido del editor, igual que la activa. El motor
+    /// clásico (CLI con réplica) solo sustituye la activa: límite aceptado en
+    /// `ADR-V0120-002`.
+    #[serde(default)]
+    pub other_dirty: Vec<DirtyFile>,
+}
+
+/// Un fichero con cambios sin guardar y su contenido en el editor.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DirtyFile {
+    pub path: String,
+    pub content: String,
 }
 
 /// Entrada de compilación ya resuelta sobre la raíz sombra.
@@ -959,6 +973,7 @@ warning: unknown font family: flux\n\
             single_file: false,
             dirty_path: None,
             dirty_content: None,
+            other_dirty: Vec::new(),
         }
     }
 

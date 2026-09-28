@@ -9,6 +9,11 @@
 // está editando. Es el único módulo que conoce ambas cosas a la vez; el árbol,
 // el editor y (desde el Slice 5) la vista previa son piezas que él coordina.
 //
+// Pestañas (RF-79, R-T1): `state.document`/`state.dirty` siguen significando
+// «el documento activo», así que el código de un solo documento no cambia de
+// sentido. Las pestañas de fondo viven en `background` con su `EditorState`
+// guardado, y su orden en `tabs` (modelo puro de `tabs.js`).
+//
 // Regla de RF-02b / R-MVP-3 que se hace visible aquí: abrir un proyecto NUNCA
 // escribe nada en su carpeta. `openProjectAt` solo lee.
 
@@ -36,7 +41,18 @@ import { revealAndFlash, revealRangeAndFlash } from '../editor/syncFlash.js';
 import { t } from '../i18n/i18n.js';
 import { getTheme } from '../themes/theme.js';
 import { readStoredEntrypoint, resolveEntrypoint, storeEntrypoint } from './entrypoint.js';
-import { baseName, isTypstPath, joinPath, relativeToRoot, remapMovedPath } from './paths.js';
+import { baseName, isTypstPath, joinPath, pathKey, relativeToRoot, remapMovedPath } from './paths.js';
+import {
+  activateTab as activateTabModel,
+  closeTab as closeTabModel,
+  emptyTabs,
+  neighbourTab,
+  openTab as openTabModel,
+  readStoredTabs,
+  remapTabPaths,
+  restoreTabs,
+  storeTabs,
+} from './tabs.js';
 import { buildCompileTarget, hasRootDocument } from './compileTarget.js';
 import {
   decideAutoSaveAttempt,
@@ -129,7 +145,7 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     if (autoSaveTimer) clearTimeout(autoSaveTimer);
     autoSaveTimer = setTimeout(() => {
       autoSaveTimer = null;
-      save({ auto: true });
+      autoSaveAll();
     }, AUTO_SAVE_DEBOUNCE_MS);
   }
 
@@ -145,9 +161,9 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
    * como uno de la ventana entera (este último, desde `main.js`).
    */
   function flushAutoSaveOnBlur() {
-    if (!getPref('autoSave') || !state.dirty) return;
+    if (!getPref('autoSave') || !hasUnsavedChanges()) return;
     cancelScheduledAutoSave();
-    save({ auto: true });
+    autoSaveAll();
   }
 
   const editor = createEditor(elements.editorHost, {
@@ -284,11 +300,18 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
    */
   function getCompileTarget() {
     const dirtyPath = state.dirty && state.document ? state.document.path : null;
+    // RF-79: las pestañas de fondo sin guardar también cuentan (un capítulo
+    // editado y dejado atrás sigue viéndose en el documento completo).
+    const otherDirty = [];
+    for (const entry of background.values()) {
+      if (entry.dirty && entry.saved) otherDirty.push({ path: entry.document.path, content: entry.saved.state.doc.toString() });
+    }
     return buildCompileTarget({
       project: state.project,
       previewDocument: state.previewDocument,
       dirtyPath,
       dirtyContent: dirtyPath ? editor.getContent() : null,
+      otherDirty,
       scope: state.previewScope,
     });
   }
@@ -399,6 +422,9 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     diagnosticsUpdated: null,
     /** @type {null | (() => void)} */
     companionChanged: null,
+    /** Cambió la lista de pestañas, la activa o el estado de alguna (RF-79). */
+    /** @type {null | (() => void)} */
+    tabsChanged: null,
   };
 
   function renderDocumentBar() {
@@ -495,18 +521,24 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
    * cerrar la VENTANA (main.js, `onCloseRequested`) reutiliza esta misma
    * función en vez de duplicar la regla.
    */
-  async function confirmDiscardChanges() {
-    if (!state.dirty) return true;
-    const decision = decideUnsavedChangesAction({ dirty: state.dirty, autoSave: getPref('autoSave') });
+  async function confirmDiscardChanges(onlyPaths = null) {
+    // RF-79, R-T5: TODAS las pestañas modificadas, no solo la activa (una de
+    // fondo sin guardar se perdería al cerrar la ventana). Con `onlyPaths`,
+    // solo esas (cerrar una pestaña).
+    const wanted = (tab) => !onlyPaths || onlyPaths.some((path) => pathKey(path) === pathKey(tab.path));
+    let pending = dirtyTabs().filter(wanted);
+    if (pending.length === 0) return true;
+    const decision = decideUnsavedChangesAction({ dirty: true, autoSave: getPref('autoSave') });
     if (decision === 'save-then-continue') {
       cancelScheduledAutoSave();
-      await save({ auto: true });
-      if (!state.dirty) return true;
+      for (const tab of pending) await saveTab(tab.path, { auto: true });
+      pending = dirtyTabs().filter(wanted);
+      if (pending.length === 0) return true;
     }
     const choice = await dialog.ask({
       titleKey: 'doc.discardTitle',
       textKey: 'doc.discardConfirm',
-      text: state.document?.fileName ?? '',
+      text: pending.map((tab) => tab.fileName).join(', '),
       choices: [
         { key: 'cancel', labelKey: 'action.cancel', tone: 'primary' },
         { key: 'discard', labelKey: 'doc.discardAction', tone: 'danger' },
@@ -515,9 +547,227 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     return choice === 'discard';
   }
 
-  /** Abre un documento del proyecto en el editor. */
-  async function openDocument(path, { force = false } = {}) {
-    if (!force && path !== state.document?.path && !(await confirmDiscardChanges())) return false;
+  // ── Pestañas (RF-79) ─────────────────────────────────────────────────────
+  /** Orden de las pestañas y cuál está activa (`tabs.js`). */
+  let tabs = emptyTabs();
+  /**
+   * Pestañas de fondo, por `pathKey`. `saved` es el `snapshot()` del editor, o
+   * `null` si la pestaña se restauró al abrir el proyecto y aún no se ha
+   * cargado (se lee del disco al activarla).
+   * @type {Map<string, {document: {path: string, fileName: string, modifiedMs?: number, contentHash?: string}, dirty: boolean, saved: null | {state: import('@codemirror/state').EditorState, scroll?: unknown}, readOnly: boolean, conflictNotified: boolean, missingNotified: boolean}>}
+   */
+  const background = new Map();
+  /** Solo lectura de la pestaña activa (paquetes fuera del proyecto, RF-77). */
+  let activeReadOnly = false;
+
+  const isActivePath = (path) => Boolean(state.document) && pathKey(state.document.path) === pathKey(path);
+
+  /** Pestañas con cambios sin guardar, la activa incluida. */
+  function dirtyTabs() {
+    const list = [];
+    if (state.document && state.dirty) list.push({ path: state.document.path, fileName: state.document.fileName });
+    for (const entry of background.values()) {
+      if (entry.dirty) list.push({ path: entry.document.path, fileName: entry.document.fileName });
+    }
+    return list;
+  }
+
+  /** ¿Hay cambios sin guardar en alguna pestaña? (cerrar la ventana, RF-64.6). */
+  function hasUnsavedChanges() {
+    return dirtyTabs().length > 0;
+  }
+
+  function persistTabs() {
+    if (state.project) storeTabs(state.project.root, tabs);
+    listeners.tabsChanged?.();
+  }
+
+  /** Guarda la pestaña activa como pestaña de fondo, con su estado del editor. */
+  function stashActive() {
+    if (!state.document) return;
+    background.set(pathKey(state.document.path), {
+      document: state.document,
+      dirty: state.dirty,
+      saved: editor.snapshot(),
+      readOnly: activeReadOnly,
+      conflictNotified: autoSaveConflictNotified,
+      missingNotified,
+    });
+  }
+
+  /** Tras cambiar de pestaña: árbol, barra, diagnósticos, vista previa y observador. */
+  async function presentActive() {
+    const path = state.document?.path ?? null;
+    tree.setActivePath(path);
+    renderDocumentBar();
+    applyDiagnostics();
+    // Abrir un fichero acompañante (`.bib`, `.toml`) NO cambia lo que compila la
+    // vista previa: se sigue viendo el documento, que es lo que el usuario está
+    // escribiendo. Solo se le avisa de que el editor ya no está encima de él,
+    // para que deje de usar el contenido en vivo y compile lo que hay en disco.
+    if (isTypstPath(path)) {
+      state.previewDocument = path;
+      listeners.documentOpened?.();
+    } else {
+      listeners.documentDetached?.();
+    }
+    // El watcher debe saber cuál es el documento activo para poder distinguir
+    // "recompila" de "aviso de conflicto" (Slice 6).
+    if (state.project) await watchProject(state.project.root, path);
+    persistTabs();
+  }
+
+  /**
+   * Pone en el editor una pestaña de fondo (la activa ya se guardó o se cerró).
+   * Una pestaña restaurada que aún no se había cargado se lee ahora del disco.
+   */
+  async function showBackground(key) {
+    const entry = background.get(key);
+    if (!entry) return false;
+    if (!entry.saved) {
+      // La activa ya se guardó o se cerró: que `openDocument` no la guarde otra vez.
+      background.delete(key);
+      state.document = null;
+      state.dirty = false;
+      return openDocument(entry.document.path, { force: true });
+    }
+    background.delete(key);
+    editor.activate(entry.document.path, entry.saved, { readOnly: entry.readOnly });
+    state.document = entry.document;
+    state.dirty = entry.dirty;
+    activeReadOnly = entry.readOnly;
+    autoSaveConflictNotified = entry.conflictNotified;
+    missingNotified = entry.missingNotified;
+    tabs = activateTabModel(tabs, entry.document.path);
+    await presentActive();
+    return true;
+  }
+
+  /** Activa una pestaña abierta (clic en la barra, Ctrl+Tab). */
+  async function activateTab(path) {
+    if (isActivePath(path)) return true;
+    const key = pathKey(path);
+    if (!background.has(key)) return false;
+    cancelScheduledAutoSave();
+    stashActive();
+    state.document = null;
+    const shown = await showBackground(key);
+    // La que se deja atrás con cambios se guarda ya si el guardado automático
+    // está encendido: su temporizador de 2 s era de la pestaña activa.
+    if (getPref('autoSave')) autoSaveAll();
+    return shown;
+  }
+
+  /** Pestaña siguiente (1) o anterior (-1) a la activa, en círculo (Ctrl+Tab). */
+  function cycleTab(step) {
+    const target = neighbourTab(tabs, step);
+    return target ? activateTab(target) : Promise.resolve(false);
+  }
+
+  /**
+   * Cierra una pestaña, preguntando antes si tiene cambios sin guardar. Si era
+   * la activa, pasa a serlo su vecina (o el editor queda vacío).
+   * @returns {Promise<boolean>} true si se cerró.
+   */
+  async function closeTab(path) {
+    const key = pathKey(path);
+    const active = isActivePath(path);
+    if (!active && !background.has(key)) return false;
+    if (!(await confirmDiscardChanges([path]))) return false;
+    tabs = closeTabModel(tabs, path);
+    editor.closeDocument(path);
+    if (!active) {
+      background.delete(key);
+      persistTabs();
+    } else if (tabs.active) {
+      cancelScheduledAutoSave();
+      state.document = null;
+      await showBackground(pathKey(tabs.active));
+    } else {
+      await detachDocument();
+    }
+    return true;
+  }
+
+  /** Cierra todas las pestañas sin preguntar (cambio o cierre de proyecto, ya confirmado). */
+  function dropAllTabs() {
+    for (const entry of background.values()) editor.closeDocument(entry.document.path);
+    if (state.document) editor.closeDocument(state.document.path);
+    background.clear();
+    tabs = emptyTabs();
+    activeReadOnly = false;
+  }
+
+  /**
+   * Guarda una pestaña de fondo (RF-64: guardado automático de todas las
+   * modificadas, y «guardar y seguir» al cerrar). Nunca abre un diálogo: si
+   * el disco cambió por fuera, avisa una vez y la deja modificada.
+   */
+  const backgroundSaving = new Set();
+  async function saveBackground(path, { auto = false } = {}) {
+    const key = pathKey(path);
+    const entry = background.get(key);
+    if (!entry?.dirty || !entry.saved || backgroundSaving.has(key)) return false;
+    backgroundSaving.add(key);
+    try {
+      const fingerprint = await fileFingerprint(entry.document.path);
+      if (fingerprint.ok && changedOnDiskBeforeSave({ knownHash: entry.document.contentHash, fingerprint: fingerprint.value })) {
+        if (!entry.conflictNotified) {
+          entry.conflictNotified = true;
+          notify(`${t('doc.autoSaveConflict')} — ${entry.document.fileName}`, 'error');
+        }
+        return false;
+      }
+      const content = entry.saved.state.doc.toString();
+      const result = await writeFile(entry.document.path, content, auto ? 'auto' : 'save');
+      if (!result.ok) {
+        notify(`${t('doc.saveError')} — ${result.error.message}`, 'error');
+        return false;
+      }
+      // Mientras se escribía, la pestaña pudo pasar a ser la activa.
+      if (isActivePath(path)) {
+        rememberWritten(result.value);
+        state.dirty = stillDirtyAfterSave({ snapshot: content, currentContent: editor.getContent() });
+        renderDocumentBar();
+      } else {
+        const current = background.get(key) ?? entry;
+        current.document.modifiedMs = result.value.modifiedMs;
+        current.document.contentHash = result.value.contentHash;
+        current.conflictNotified = false;
+        current.dirty = Boolean(current.saved) && current.saved.state.doc.toString() !== content;
+      }
+      listeners.saved?.(auto);
+      listeners.tabsChanged?.();
+      return true;
+    } finally {
+      backgroundSaving.delete(key);
+    }
+  }
+
+  /** Guarda la pestaña de `path`, sea la activa o una de fondo. */
+  function saveTab(path, options) {
+    return isActivePath(path) ? save(options) : saveBackground(path, options);
+  }
+
+  /** Guardado automático (RF-64): la activa y todas las de fondo modificadas (R-T5). */
+  async function autoSaveAll() {
+    await save({ auto: true });
+    for (const entry of [...background.values()]) {
+      if (entry.dirty) await saveBackground(entry.document.path, { auto: true });
+    }
+  }
+
+  /**
+   * Abre un documento en una pestaña (RF-79). Si ya estaba abierto, solo la
+   * activa: sus cambios sin guardar se conservan, así que ya no hay que
+   * preguntar nada al cambiar de fichero. `force` lo vuelve a leer del disco
+   * (recargar tras un cambio externo o una resolución de conflicto de git).
+   * @param {string} path
+   * @param {{force?: boolean, readOnly?: boolean}} [options]
+   */
+  async function openDocument(path, { force = false, readOnly = false } = {}) {
+    const alreadyOpen = isActivePath(path) || background.has(pathKey(path));
+    if (alreadyOpen && !force) return activateTab(path);
     cancelScheduledAutoSave();
 
     const result = await readFile(path);
@@ -527,7 +777,10 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     }
 
     const payload = result.value;
-    editor.setDocument(payload.content, payload.path);
+    const leaving = state.document && !isActivePath(payload.path) && state.dirty;
+    if (!isActivePath(path)) stashActive();
+    background.delete(pathKey(path));
+    editor.setDocument(payload.content, payload.path, { readOnly });
     state.document = {
       path: payload.path,
       fileName: payload.fileName,
@@ -535,30 +788,14 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
       contentHash: payload.contentHash,
     };
     state.dirty = false;
+    activeReadOnly = readOnly;
     // Otro documento es otro episodio: el conflicto del anterior, si lo
     // hubiera, ya no aplica.
     autoSaveConflictNotified = false;
     missingNotified = false;
-    tree.setActivePath(payload.path);
-    renderDocumentBar();
-
-    // Abrir un fichero acompañante (`.bib`, `.toml`) NO cambia lo que compila la
-    // vista previa: se sigue viendo el documento, que es lo que el usuario está
-    // escribiendo. Solo se le avisa de que el editor ya no está encima de él,
-    // para que deje de usar el contenido en vivo y compile lo que hay en disco.
-    applyDiagnostics();
-    if (isTypstPath(payload.path)) {
-      state.previewDocument = payload.path;
-      listeners.documentOpened?.();
-    } else {
-      listeners.documentDetached?.();
-    }
-
-    // El watcher debe saber cuál es el documento activo para poder distinguir
-    // "recompila" de "aviso de conflicto" (Slice 6).
-    if (state.project) {
-      await watchProject(state.project.root, payload.path);
-    }
+    tabs = openTabModel(tabs, payload.path);
+    await presentActive();
+    if (leaving && getPref('autoSave')) autoSaveAll();
     return true;
   }
 
@@ -575,6 +812,7 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
       return false;
     }
 
+    dropAllTabs();
     state.project = result.value;
     entrypointWarned = false;
     configureHistory();
@@ -614,7 +852,25 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     lspClient?.setProjectRoot(state.project.root).catch(console.error);
     listeners.projectOpened?.(state.project);
 
-    if (state.project.entrypoint) {
+    // RF-79.5: se restauran las pestañas de la última vez (las que ya no
+    // existen se omiten). Solo se lee del disco la activa; las demás, al
+    // activarlas. Sin pestañas guardadas se abre el principal, como siempre.
+    const restored = await restoreProjectTabs(state.project.root);
+    if (restored.active) {
+      tabs = restored;
+      for (const path of restored.paths) {
+        if (pathKey(path) === pathKey(restored.active)) continue;
+        background.set(pathKey(path), {
+          document: { path, fileName: baseName(path) },
+          dirty: false,
+          saved: null,
+          readOnly: false,
+          conflictNotified: false,
+          missingNotified: false,
+        });
+      }
+      await openDocument(restored.active, { force: true });
+    } else if (state.project.entrypoint) {
       await openDocument(joinPath(state.project.root, state.project.entrypoint), { force: true });
     } else {
       await watchProject(state.project.root, null);
@@ -623,9 +879,21 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     return true;
   }
 
+  /** Pestañas guardadas de `root`, solo las de ficheros que siguen existiendo. */
+  async function restoreProjectTabs(root) {
+    const raw = readStoredTabs(root);
+    const candidates = restoreTabs(raw, root, () => true);
+    const existing = new Set();
+    for (const path of candidates.paths) {
+      if ((await fileModifiedMs(path)).ok) existing.add(pathKey(path));
+    }
+    return restoreTabs(raw, root, (path) => existing.has(pathKey(path)));
+  }
+
   async function closeProject() {
     if (!(await confirmDiscardChanges())) return false;
     await unwatchProject();
+    dropAllTabs();
     lspClient?.stop();
     state.project = null;
     configureHistory();
@@ -911,6 +1179,17 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
   async function applyPathMoves(moved) {
     if (!moved.length) return;
     if (state.previewDocument) state.previewDocument = remapMovedPath(state.previewDocument, moved);
+    // Pestañas de fondo: siguen a su fichero. Tinymist deja la URI vieja; la
+    // nueva se le abre al activar la pestaña.
+    for (const [key, entry] of [...background.entries()]) {
+      const after = remapMovedPath(entry.document.path, moved);
+      if (after === entry.document.path) continue;
+      editor.closeDocument(entry.document.path);
+      background.delete(key);
+      entry.document = { ...entry.document, path: after, fileName: baseName(after) };
+      background.set(pathKey(after), entry);
+    }
+    tabs = remapTabPaths(tabs, moved);
 
     if (state.project?.entrypoint && !state.project.isSingleFile) {
       const before = joinPath(state.project.root, state.project.entrypoint);
@@ -935,6 +1214,7 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
         if (state.project) await watchProject(state.project.root, after);
       }
     }
+    persistTabs();
     listeners.pathsMoved?.(moved);
   }
 
@@ -955,8 +1235,26 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
         await persistEntrypoint('', inManifest);
       }
     }
-    if (state.document && isWithinAny(state.document.path, paths)) await detachDocument();
+    for (const [key, entry] of [...background.entries()]) {
+      if (!isWithinAny(entry.document.path, paths)) continue;
+      editor.closeDocument(entry.document.path);
+      background.delete(key);
+      tabs = closeTabModel(tabs, entry.document.path);
+    }
+    if (state.document && isWithinAny(state.document.path, paths)) {
+      const gone = state.document.path;
+      tabs = closeTabModel(tabs, gone);
+      editor.closeDocument(gone);
+      if (tabs.active) {
+        cancelScheduledAutoSave();
+        state.document = null;
+        await showBackground(pathKey(tabs.active));
+      } else {
+        await detachDocument();
+      }
+    }
     if (state.previewDocument && isWithinAny(state.previewDocument, paths)) state.previewDocument = null;
+    persistTabs();
   }
 
   /** Deja el editor vacío, sin documento, y se lo dice al observador. */
@@ -964,6 +1262,7 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     cancelScheduledAutoSave();
     state.document = null;
     state.dirty = false;
+    activeReadOnly = false;
     editor.setDocument('', null);
     tree.setActivePath(null);
     renderDocumentBar();
@@ -972,14 +1271,12 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
   }
 
   /**
-   * Cierra el documento abierto (Cmd+W en macOS, R-T7), preguntando antes si
-   * tiene cambios sin guardar. Con pestañas (RF-79) pasa a cerrar la activa.
+   * Cierra la pestaña activa (Cmd+W en macOS, R-T7), preguntando antes si
+   * tiene cambios sin guardar.
    * @returns {Promise<boolean>} true si se cerró.
    */
   async function closeDocument() {
-    const closable = Boolean(state.document) && (await confirmDiscardChanges());
-    if (closable) await detachDocument();
-    return closable;
+    return state.document ? closeTab(state.document.path) : false;
   }
 
   // Un cambio en disco refresca el árbol (ficheros nuevos de un `git pull`, por
@@ -1153,10 +1450,18 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
 
     state.dirty = false;
     // Guardar fuera del proyecto activo convierte el destino en el proyecto
-    // nuevo; dentro, basta con seguir editando el fichero recién creado.
+    // nuevo; dentro, basta con seguir editando el fichero recién creado, que
+    // sustituye a la pestaña del original (como en cualquier editor).
     const insideProject = state.project && picked.value.startsWith(state.project.root);
     if (insideProject) {
+      const original = state.document.path;
       await openDocument(picked.value, { force: true });
+      if (!isActivePath(original)) {
+        background.delete(pathKey(original));
+        editor.closeDocument(original);
+        tabs = closeTabModel(tabs, original);
+        persistTabs();
+      }
       await tree.refresh();
     } else {
       await openProjectAt(picked.value);
@@ -1256,6 +1561,28 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     },
     closeProject,
     closeDocument,
+    closeTab,
+    activateTab,
+    cycleTab,
+    /** Pestañas abiertas en orden, con su nombre y si tienen cambios (barra de pestañas). */
+    getTabs() {
+      return tabs.paths.map((path) => {
+        const active = isActivePath(path);
+        const entry = active ? null : background.get(pathKey(path));
+        return {
+          path,
+          fileName: baseName(path),
+          active,
+          dirty: active ? state.dirty : Boolean(entry?.dirty),
+          readOnly: active ? activeReadOnly : Boolean(entry?.readOnly),
+        };
+      });
+    },
+    hasUnsavedChanges,
+    /** ¿Tiene cambios sin guardar alguna pestaña de `paths` o de dentro de esas carpetas? */
+    hasUnsavedChangesIn(paths) {
+      return dirtyTabs().some((tab) => isWithinAny(tab.path, paths));
+    },
     revealProject,
     save,
     saveAs,

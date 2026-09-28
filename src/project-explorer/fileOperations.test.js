@@ -43,6 +43,7 @@ function setup() {
     runOwnOperation: vi.fn((paths, operation) => operation()),
     getDocumentPath: vi.fn(() => null),
     isDirty: vi.fn(() => false),
+    hasUnsavedChangesIn: vi.fn(() => false),
   };
   const dialog = { ask: vi.fn() };
   const notify = vi.fn();
@@ -167,10 +168,9 @@ describe('eliminar (RF-69.7)', () => {
     expect(backend.fsDeletePermanently).toHaveBeenCalledWith(ROOT, [`${ROOT}/viejo.typ`]);
   });
 
-  it('avisa de forma distinta si se elimina el documento abierto con cambios sin guardar', async () => {
+  it('avisa de forma distinta si se elimina algo con una pestaña con cambios sin guardar', async () => {
     const { ops, dialog, workspace } = setup();
-    workspace.getDocumentPath.mockReturnValue(`${ROOT}/cap/uno.typ`);
-    workspace.isDirty.mockReturnValue(true);
+    workspace.hasUnsavedChangesIn.mockImplementation((paths) => paths.includes(`${ROOT}/cap`));
     dialog.ask.mockResolvedValue('cancel');
     await ops.handleAction('delete', { entries: [{ name: 'cap', path: `${ROOT}/cap` }] });
     expect(dialog.ask).toHaveBeenCalledWith(expect.objectContaining({ textKey: 'tree.deleteTextDirty' }));

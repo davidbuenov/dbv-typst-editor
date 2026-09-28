@@ -22,10 +22,12 @@ import { joinPath } from './paths.js';
  * @param {string | null} input.previewDocument Último documento Typst abierto.
  * @param {string | null} input.dirtyPath Fichero con cambios sin guardar, si lo hay.
  * @param {string | null} input.dirtyContent Su contenido en el editor.
+ * @param {Array<{path: string, content: string}>} [input.otherDirty] Pestañas
+ *   de fondo con cambios sin guardar (RF-79).
  * @param {'document' | 'file'} input.scope
  * @returns {import('../services/backend.js').CompileTarget | null}
  */
-export function buildCompileTarget({ project, previewDocument, dirtyPath, dirtyContent, scope }) {
+export function buildCompileTarget({ project, previewDocument, dirtyPath, dirtyContent, otherDirty = [], scope }) {
   if (!project || !previewDocument) return null;
 
   // El documento raíz solo manda si existe y el proyecto es una carpeta: un
@@ -40,6 +42,7 @@ export function buildCompileTarget({ project, previewDocument, dirtyPath, dirtyC
     // mientras se previsualiza `main.typ` es justo el caso que motivó RF-14.
     dirtyPath: dirtyPath ?? null,
     dirtyContent: dirtyPath ? (dirtyContent ?? '') : null,
+    otherDirty,
   };
 }
 

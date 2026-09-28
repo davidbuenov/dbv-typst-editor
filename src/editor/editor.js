@@ -410,8 +410,8 @@ export function createEditor(
      * pliegues ni diagnósticos del fichero anterior. Si el anterior era una
      * pestaña, se guardó antes con `snapshot()`.
      */
-    setDocument(content, path) {
-      activate(path, { state: EditorState.create({ doc: content, extensions }) });
+    setDocument(content, path, { readOnly = false } = {}) {
+      activate(path, { state: EditorState.create({ doc: content, extensions }) }, { readOnly });
     },
     /**
      * Cambia la ruta del documento abierto SIN tocar su contenido ni su

@@ -92,7 +92,11 @@
       <section class="workspace hidden" id="workspace-view">
         <aside class="sidebar" id="sidebar">sidebar</aside>
         <div class="splitter" id="splitter-sidebar"></div>
-        <div class="document">documento</div>
+        <div class="document">
+          <div class="document__bar"><div class="tabs" id="probe-tabs"></div><span class="document__path">D:/ruta/muy/larga/del/proyecto/main.typ</span></div>
+          <div class="toolbar">barra</div>
+          <div class="editor">editor</div>
+        </div>
         <div class="splitter" id="splitter-preview"></div>
         <aside class="preview">
           <div class="preview__bar">barra</div>
@@ -225,6 +229,26 @@
           }
         }
       }
+
+      // 3. RF-79: con muchas pestañas la barra se desplaza por dentro; nunca
+      //    ensancha el panel del editor ni la ventana.
+      ws.dataset.panelSidebar = 'show';
+      ws.dataset.panelEditor = 'show';
+      ws.dataset.panelPreview = 'show';
+      const tabsEl = document.getElementById('probe-tabs');
+      for (let i = 0; i < 30; i += 1) {
+        const tab = document.createElement('div');
+        tab.className = 'tab' + (i === 0 ? ' tab--active' : '');
+        tab.innerHTML = `<span class="tab__name">capitulo-${i}.typ</span><span class="tab__dirty"></span><button class="tab__close">×</button>`;
+        tabsEl.append(tab);
+      }
+      const documentEl = document.querySelector('.document');
+      const tabsRect = tabsEl.getBoundingClientRect();
+      add(
+        'pestañas: 30 pestañas no ensanchan el editor, se desplazan dentro de la barra',
+        tabsRect.right <= documentEl.getBoundingClientRect().right + 1 && tabsEl.scrollWidth > tabsEl.clientWidth && ws.scrollWidth <= ws.clientWidth,
+        `barra=${Math.round(tabsRect.width)} contenido=${tabsEl.scrollWidth} editor=${w('.document')}`
+      );
 
       document.getElementById('probe').textContent = `DBV_LAYOUT_JSON${JSON.stringify(checks)}DBV_LAYOUT_END`;
     </script>

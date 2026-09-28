@@ -128,6 +128,23 @@ export const APP_SHORTCUTS = [
 
   // Ventana.
   { id: 'closePanel', scope: 'app', key: 'Escape', label: { es: 'Cerrar el panel abierto', en: 'Close the open panel' } },
+
+  // Pestañas (RF-79). En macOS, Cmd+W lo atiende el menú nativo («Cerrar pestaña»).
+  { id: 'closeTab', scope: 'app', key: 'Mod-w', label: { es: 'Cerrar la pestaña', en: 'Close the tab' } },
+  { id: 'nextTab', scope: 'app', key: 'Ctrl-Tab', label: { es: 'Pestaña siguiente', en: 'Next tab' } },
+  { id: 'prevTab', scope: 'app', key: 'Ctrl-Shift-Tab', label: { es: 'Pestaña anterior', en: 'Previous tab' } },
+  {
+    id: 'closeTabMiddle',
+    scope: 'app',
+    display: { es: 'Clic central en una pestaña', en: 'Middle click on a tab' },
+    label: { es: 'Cerrar esa pestaña', en: 'Close that tab' },
+  },
+  {
+    id: 'moveTab',
+    scope: 'app',
+    display: { es: 'Arrastrar una pestaña', en: 'Drag a tab' },
+    label: { es: 'Cambiarla de sitio', en: 'Move it' },
+  },
 ];
 
 /**

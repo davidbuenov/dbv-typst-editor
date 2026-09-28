@@ -533,7 +533,7 @@
     - [x] 110 RF-79 · editor y LSP con varios documentos
     - [x] 111 RF-79 · workspace: núcleo (guardar, autoguardado, cerrar, restaurar)
     - [x] 112 RF-79 · workspace: observador con varias rutas y RF-70 con varios documentos
-    - [ ] 113 RF-79 · barra de pestañas (`verify:layout` en CI)
+    - [x] 113 RF-79 · barra de pestañas (`verify:layout` en CI)
     - [ ] 114 RF-77/78 · edición multi-fichero con vista previa y Deshacer
     - [ ] 115 RF-77 · ir a la definición y buscar referencias
     - [ ] 116 RF-77 · renombrar símbolo y acciones de código

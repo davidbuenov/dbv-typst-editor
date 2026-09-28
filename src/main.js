@@ -12,6 +12,7 @@
 
 import { createWorkspace, joinPath } from './app/workspace.js';
 import { createUpdater } from './app/updater.js';
+import { tabShortcutAction } from './app/tabBar.js';
 import { PANELS, getPanelState, initPanels, togglePanel } from './app/workspacePanels.js';
 import { figureActionForPath, jogsAction } from './editor/toolbarActions.js';
 import { clampEditorFontSize, EDITOR_FONT_DEFAULT, stepEditorFontSize } from './editor/fontSize.js';
@@ -537,8 +538,7 @@ async function bootstrap() {
       ganttPanel: el('gantt-panel'),
       kanbanPanel: el('kanban-panel'),
       dotPanel: el('dot-panel'),
-      documentName: el('document-name'),
-      documentDirty: el('document-dirty'),
+      documentTabs: el('document-tabs'),
       documentPath: el('document-path'),
       documentLanguage: el('document-language'),
       formatButton: el('btn-format-doc'),
@@ -1552,6 +1552,22 @@ async function bootstrap() {
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') closeAllPanels();
   });
+
+  // RF-79: Ctrl+W cierra la pestaña y Ctrl+Tab / Ctrl+Mayús+Tab las recorren.
+  // En captura y con `preventDefault`, para ganar al WebView (R-T7). En macOS
+  // Cmd+W lo atiende el menú nativo («Cerrar pestaña»).
+  document.addEventListener(
+    'keydown',
+    (event) => {
+      const action = tabShortcutAction(event);
+      if (!action || !workspace.state.project) return;
+      event.preventDefault();
+      event.stopPropagation();
+      if (action === 'close') workspace.closeDocument();
+      else workspace.cycleTab(action === 'next' ? 1 : -1);
+    },
+    true,
+  );
 
   // RF-42: Ctrl++/Ctrl+-/Ctrl+0 y Ctrl+rueda ajustan el tamaño de fuente del
   // editor o el zoom de la vista previa según dónde esté el foco, en vez de

@@ -46,6 +46,7 @@ import {
   activateTab as activateTabModel,
   closeTab as closeTabModel,
   emptyTabs,
+  moveTab as moveTabModel,
   neighbourTab,
   openTab as openTabModel,
   readStoredTabs,
@@ -62,6 +63,7 @@ import {
 } from './autoSave.js';
 import { changedOnDiskBeforeSave, decideExternalChange, isWithinAny } from './externalChange.js';
 import { shortPathLabel } from './pathLabel.js';
+import { createTabBar } from './tabBar.js';
 import { getPref, onPrefsChanged } from './prefs.js';
 import {
   PROJECT_CHANGE_EVENT,
@@ -427,26 +429,27 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     tabsChanged: null,
   };
 
+  /**
+   * Barra de pestañas (RF-79). RF-65: cada pestaña lleva solo el nombre,
+   * ampliado tramo a tramo SOLO si otro fichero conocido (del árbol o de otra
+   * pestaña) comparte nombre; la ruta completa va en el tooltip. RF-64.3: el
+   * punto de modificado, con su texto para el lector de pantalla.
+   */
+  function renderTabs() {
+    const list = listTabs();
+    const known = [...tree.getKnownFiles().map((file) => file.path), ...list.map((tab) => tab.path)];
+    tabBar.render(list.map((tab) => ({ ...tab, label: shortPathLabel(tab.path, known) })));
+  }
+
+  /** Cambió la lista de pestañas o el estado de alguna. */
+  function tabsChanged() {
+    renderTabs();
+    listeners.tabsChanged?.();
+  }
+
   function renderDocumentBar() {
     const hasDocument = Boolean(state.document);
-    // RF-65: por defecto solo el nombre, ampliado tramo a tramo SOLO si otro
-    // fichero del proyecto comparte nombre (`tree.getKnownFiles()`, los ya
-    // cargados en el árbol — no hace falta una lista completa para acertar en
-    // el caso normal). La ruta completa siempre va en el tooltip, la muestre
-    // o no `.document__path` (ajuste "Mostrar ruta completa").
-    if (hasDocument) {
-      const knownPaths = tree.getKnownFiles().map((f) => f.path);
-      elements.documentName.textContent = shortPathLabel(state.document.path, knownPaths);
-      elements.documentName.title = state.document.path;
-    } else {
-      elements.documentName.textContent = '—';
-      elements.documentName.title = '';
-    }
-    // RF-64.3: punto de modificado estilo Mac, no solo color — el texto vive
-    // en `title`/`aria-label` (lector de pantalla y tooltip), no en la forma.
-    elements.documentDirty.classList.toggle('hidden', !state.dirty);
-    elements.documentDirty.title = t('doc.unsaved');
-    elements.documentDirty.setAttribute('aria-label', t('doc.unsaved'));
+    renderTabs();
     elements.documentPath.textContent = hasDocument && getPref('showFullPath') ? state.document.path : '';
 
     // Insignia del lenguaje (RF-60.5): solo para lo que no es Typst, que es
@@ -587,8 +590,36 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
 
   function persistTabs() {
     if (state.project) storeTabs(state.project.root, tabs);
-    listeners.tabsChanged?.();
+    tabsChanged();
   }
+
+  /** Pestañas abiertas en orden, con si están activas, modificadas o en solo lectura. */
+  function listTabs() {
+    return tabs.paths.map((path) => {
+      const active = isActivePath(path);
+      const entry = active ? null : background.get(pathKey(path));
+      return {
+        path,
+        fileName: baseName(path),
+        active,
+        dirty: active ? state.dirty : Boolean(entry?.dirty),
+        readOnly: active ? activeReadOnly : Boolean(entry?.readOnly),
+      };
+    });
+  }
+
+  /** Reordenar arrastrando (RF-79.3). */
+  function moveTab(path, toIndex) {
+    tabs = moveTabModel(tabs, path, toIndex);
+    persistTabs();
+  }
+
+  const tabBar = createTabBar({
+    containerEl: elements.documentTabs,
+    onActivate: (path) => activateTab(path),
+    onClose: (path) => closeTab(path),
+    onMove: moveTab,
+  });
 
   /** Guarda la pestaña activa como pestaña de fondo, con su estado del editor. */
   function stashActive() {
@@ -746,7 +777,7 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
         current.dirty = Boolean(current.saved) && current.saved.state.doc.toString() !== content;
       }
       listeners.saved?.(auto);
-      listeners.tabsChanged?.();
+      tabsChanged();
       return true;
     } finally {
       backgroundSaving.delete(key);
@@ -1315,7 +1346,7 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
         entry.missingNotified = true;
         entry.dirty = true;
         notify(`${t('doc.missingOnDisk')} — ${entry.document.fileName}`, 'error');
-        listeners.tabsChanged?.();
+        tabsChanged();
       }
       return;
     }
@@ -1347,7 +1378,7 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     // Se vuelve a leer del disco al activarla (como una pestaña restaurada).
     entry.saved = null;
     entry.dirty = false;
-    listeners.tabsChanged?.();
+    tabsChanged();
   }
 
   // Un cambio en disco refresca el árbol (ficheros nuevos de un `git pull`, por
@@ -1638,19 +1669,8 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     activateTab,
     cycleTab,
     /** Pestañas abiertas en orden, con su nombre y si tienen cambios (barra de pestañas). */
-    getTabs() {
-      return tabs.paths.map((path) => {
-        const active = isActivePath(path);
-        const entry = active ? null : background.get(pathKey(path));
-        return {
-          path,
-          fileName: baseName(path),
-          active,
-          dirty: active ? state.dirty : Boolean(entry?.dirty),
-          readOnly: active ? activeReadOnly : Boolean(entry?.readOnly),
-        };
-      });
-    },
+    getTabs: listTabs,
+    moveTab,
     hasUnsavedChanges,
     /** ¿Tiene cambios sin guardar alguna pestaña de `paths` o de dentro de esas carpetas? */
     hasUnsavedChangesIn(paths) {
@@ -1782,7 +1802,7 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
       entry.saved = { ...entry.saved, state: entry.saved.state.update({ changes }).state };
       entry.dirty = true;
       lspClient?.updateDocument?.(entry.document.path, entry.saved.state.doc.toString());
-      listeners.tabsChanged?.();
+      tabsChanged();
     },
     /** True si el documento abierto tiene cambios sin guardar. */
     isDirty: () => state.dirty,

@@ -155,7 +155,7 @@ function mount({ lspClient } = {}) {
   const dialog = { ask: vi.fn(async () => 'keep') };
   const notify = vi.fn();
   const workspace = createWorkspace({ tree, elements, notify, dialog, lspClient });
-  return { workspace, tree, dialog, notify };
+  return { workspace, tree, dialog, notify, elements };
 }
 
 /** Workspace con `main.typ` abierto, cuya huella en disco es `h1`. */
@@ -680,5 +680,38 @@ describe('pestañas de fondo: observador y referencias (RF-79, R-T3, R-T4)', () 
     expect(workspace.getTabs().find((tab) => tab.path === CAP).dirty).toBe(true);
     await workspace.activateTab(CAP);
     expect(fake.content).toBe('== Uno mío');
+  });
+});
+
+describe('barra de pestañas en el workspace (RF-79, RF-65)', () => {
+  it('pinta las pestañas y desambigua dos ficheros con el mismo nombre', async () => {
+    const mounted = await openedWorkspace();
+    const A = `${ROOT}/cap1/intro.typ`;
+    const B = `${ROOT}/cap2/intro.typ`;
+    backend.readFile.mockImplementation(async (path) => ({
+      ok: true,
+      value: { path, fileName: 'intro.typ', content: '=', modifiedMs: 1, contentHash: 'h1' },
+    }));
+    await mounted.workspace.openDocument(A);
+    await mounted.workspace.openDocument(B);
+
+    const names = [...mounted.elements.documentTabs.querySelectorAll('.tab__name')].map((node) => node.textContent);
+    expect(names[0]).toBe('main.typ');
+    expect(names[1]).not.toBe(names[2]);
+    expect(names[1]).toContain('cap1');
+    expect(mounted.elements.documentTabs.querySelector('.tab--active .tab__name').textContent).toBe(names[2]);
+  });
+
+  it('reordenar desde la barra cambia el orden y se recuerda', async () => {
+    const mounted = await openedWorkspace();
+    const CAP = `${ROOT}/cap.typ`;
+    backend.readFile.mockImplementation(async (path) => ({
+      ok: true,
+      value: { path, fileName: path.split('/').pop(), content: '=', modifiedMs: 1, contentHash: 'h1' },
+    }));
+    await mounted.workspace.openDocument(CAP);
+    mounted.workspace.moveTab(CAP, 0);
+    expect(mounted.workspace.getTabs().map((tab) => tab.path)).toEqual([CAP, MAIN]);
+    expect(JSON.parse(localStorage.getItem(`dbv-typst-tabs:${ROOT}`)).tabs).toEqual(['cap.typ', 'main.typ']);
   });
 });

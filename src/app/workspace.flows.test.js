@@ -49,6 +49,19 @@ vi.mock('../editor/diagnosticsModel.js', () => ({ mergeDiagnostics: () => [], to
 vi.mock('../editor/syncFlash.js', () => ({ revealAndFlash: vi.fn(), revealRangeAndFlash: vi.fn() }));
 
 // ── Editor simulado: un texto, una ruta y un `view.dispatch` que aplica cambios ──
+/** `EditorState` mínimo de una pestaña de fondo: su texto y `update({changes})`. */
+function fakeState(content) {
+  return {
+    doc: { toString: () => content },
+    update({ changes }) {
+      let next = content;
+      for (const change of [...changes].sort((a, b) => b.from - a.from)) {
+        next = next.slice(0, change.from) + change.insert + next.slice(change.to ?? change.from);
+      }
+      return { state: fakeState(next) };
+    },
+  };
+}
 const fake = { content: '', path: null, options: null };
 const fakeView = {
   get state() {
@@ -79,10 +92,7 @@ vi.mock('../editor/editor.js', () => ({
     editor.getContent = () => fake.content;
     editor.getPath = () => fake.path;
     // Pestañas (RF-79): el estado guardado es el texto de ese momento.
-    editor.snapshot = () => {
-      const content = fake.content;
-      return { state: { doc: { toString: () => content } } };
-    };
+    editor.snapshot = () => ({ state: fakeState(fake.content) });
     editor.activate = (path, saved) => {
       fake.content = saved.state.doc.toString();
       fake.path = path;
@@ -165,7 +175,7 @@ async function openedWorkspace(options) {
 
 /** Simula un aviso del observador sobre el documento abierto. */
 async function watcherEvent() {
-  handlers['project-file-changed']({ path: MAIN, isActiveDocument: true });
+  handlers['project-file-changed']({ path: MAIN, isOpenDocument: true });
   await settle();
 }
 
@@ -278,7 +288,7 @@ describe('coherencia tras mover o borrar (RF-69)', () => {
     expect(fake.content).toBe('sin guardar = Libro');
     expect(workspace.isDirty()).toBe(true);
     expect(backend.readFile).not.toHaveBeenCalled();
-    expect(backend.watchProject).toHaveBeenLastCalledWith(ROOT, `${ROOT}/libro.typ`);
+    expect(backend.watchProject).toHaveBeenLastCalledWith(ROOT, [`${ROOT}/libro.typ`]);
     expect(workspace.getEntrypoint()).toBe('libro.typ');
     expect(tree.setEntrypointPath).toHaveBeenLastCalledWith(`${ROOT}/libro.typ`);
   });
@@ -606,5 +616,69 @@ describe('pestañas: núcleo del workspace (RF-79)', () => {
 
     await second.workspace.activateTab(DOS);
     expect(fake.content).toBe('= Dos');
+  });
+});
+
+describe('pestañas de fondo: observador y referencias (RF-79, R-T3, R-T4)', () => {
+  const CAP = `${ROOT}/cap/uno.typ`;
+  const disk = { [MAIN]: '= Libro', [CAP]: '= Uno' };
+
+  async function withBackgroundCap({ edited = false } = {}) {
+    const mounted = await openedWorkspace();
+    backend.readFile.mockImplementation(async (path) => ({
+      ok: true,
+      value: { path, fileName: path.split('/').pop(), content: disk[path], modifiedMs: 1, contentHash: 'h1' },
+    }));
+    await mounted.workspace.openDocument(CAP);
+    if (edited) fakeView.dispatch({ changes: { from: 5, to: 5, insert: ' mío' } });
+    await mounted.workspace.activateTab(MAIN);
+    return mounted;
+  }
+
+  it('el observador vigila todas las pestañas abiertas', async () => {
+    await withBackgroundCap();
+    expect(backend.watchProject).toHaveBeenLastCalledWith(ROOT, [MAIN, CAP]);
+  });
+
+  it('un cambio externo en una pestaña de fondo sin cambios la recarga en silencio', async () => {
+    const { workspace, dialog } = await withBackgroundCap();
+    backend.fileFingerprint.mockResolvedValue(onDisk('h2'));
+    disk[CAP] = '= Uno (git pull)';
+    handlers['project-file-changed']({ path: CAP, isOpenDocument: true });
+    await settle();
+    expect(dialog.ask).not.toHaveBeenCalled();
+
+    await workspace.activateTab(CAP);
+    expect(fake.content).toBe('= Uno (git pull)');
+    disk[CAP] = '= Uno';
+  });
+
+  it('un cambio externo en una pestaña de fondo con cambios pregunta, nombrándola', async () => {
+    const { workspace, dialog } = await withBackgroundCap({ edited: true });
+    backend.fileFingerprint.mockResolvedValue(onDisk('h2'));
+    dialog.ask.mockResolvedValueOnce('keep');
+    handlers['project-file-changed']({ path: CAP, isOpenDocument: true });
+    await settle();
+    expect(dialog.ask).toHaveBeenCalledWith(expect.objectContaining({ titleKey: 'conflict.title', text: CAP }));
+
+    await workspace.activateTab(CAP);
+    expect(fake.content).toBe('= Uno mío');
+  });
+
+  it('las ediciones de referencias a una pestaña de fondo cambian su texto, no su disco (R-T3)', async () => {
+    const { workspace } = await withBackgroundCap({ edited: true });
+    const snapshot = workspace.getOpenDocumentsSnapshot();
+    expect(snapshot).toEqual([
+      { path: MAIN, content: '= Libro' },
+      { path: CAP, content: '= Uno mío' },
+    ]);
+    backend.writeFile.mockClear();
+
+    workspace.applyBufferEdits([{ from: 0, to: 1, insert: '==' }], CAP);
+
+    expect(backend.writeFile).not.toHaveBeenCalled();
+    expect(workspace.getTabs().find((tab) => tab.path === CAP).dirty).toBe(true);
+    await workspace.activateTab(CAP);
+    expect(fake.content).toBe('== Uno mío');
   });
 });

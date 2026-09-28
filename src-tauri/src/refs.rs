@@ -261,8 +261,9 @@ fn utf16_offset(text: &str, byte: usize) -> usize {
 
 const CASE_INSENSITIVE: bool = cfg!(any(windows, target_os = "macos"));
 
-/// Documento abierto en el editor: se edita su contenido en memoria (con los
-/// cambios sin guardar), nunca el disco (RF-70.5).
+/// Documento abierto en una pestaña: se edita su contenido en memoria (con
+/// los cambios sin guardar), nunca el disco (RF-70.5). Con pestañas (RF-79,
+/// R-T3) pueden ser varios.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct OpenDocument {
@@ -295,13 +296,22 @@ pub struct BufferEdit {
     pub insert: String,
 }
 
+/// Ediciones de UN documento abierto.
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct DocumentEdits {
+    pub path: String,
+    pub edits: Vec<BufferEdit>,
+}
+
 #[derive(Debug, Clone, Serialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct RefsReport {
-    /// Ficheros con cambios (incluido el abierto, si los tiene).
+    /// Ficheros con cambios (incluidos los abiertos, si los tienen).
     pub files: Vec<FileReport>,
-    /// Ediciones del documento abierto; el frontend las aplica al editor.
-    pub open_document_edits: Vec<BufferEdit>,
+    /// Ediciones de cada documento abierto; el frontend las aplica a su
+    /// pestaña (activa o de fondo), nunca al disco.
+    pub open_document_edits: Vec<DocumentEdits>,
     pub total: usize,
     /// Ficheros que no se pudieron escribir (se informa, no se aborta).
     pub failed: Vec<String>,
@@ -342,7 +352,7 @@ fn typst_files(dir: &Path, out: &mut Vec<PathBuf>) {
     }
 }
 
-fn plan_project(root: &str, moved: &[Moved], open: Option<&OpenDocument>, write: bool) -> Result<RefsReport, AppError> {
+fn plan_project(root: &str, moved: &[Moved], open: &[OpenDocument], write: bool) -> Result<RefsReport, AppError> {
     let root_path = dunce::canonicalize(root).map_err(|e| AppError::Io(e.to_string()))?;
     let root_text = path_to_string(&root_path);
     let moves: Vec<(String, String)> = moved
@@ -353,7 +363,8 @@ fn plan_project(root: &str, moved: &[Moved], open: Option<&OpenDocument>, write:
     if moves.is_empty() {
         return Ok(report);
     }
-    let open_relative = open.and_then(|doc| to_relative(&root_text, &doc.path));
+    let open_relative: Vec<(String, &OpenDocument)> =
+        open.iter().filter_map(|doc| Some((to_relative(&root_text, &doc.path)?, doc))).collect();
 
     let mut files = Vec::new();
     typst_files(&root_path, &mut files);
@@ -361,9 +372,13 @@ fn plan_project(root: &str, moved: &[Moved], open: Option<&OpenDocument>, write:
     for path in files {
         let absolute = path_to_string(&path);
         let Some(relative) = to_relative(&root_text, &absolute) else { continue };
-        let is_open = open_relative.as_deref().is_some_and(|open| same(open, &relative, CASE_INSENSITIVE));
-        let text = if is_open {
-            open.map(|doc| doc.content.clone()).unwrap_or_default()
+        let open_doc = open_relative
+            .iter()
+            .find(|(open, _)| same(open, &relative, CASE_INSENSITIVE))
+            .map(|(_, doc)| *doc);
+        let is_open = open_doc.is_some();
+        let text = if let Some(doc) = open_doc {
+            doc.content.clone()
         } else {
             let too_big = fs::metadata(&path).map(|meta| meta.len() > MAX_TEXT_BYTES).unwrap_or(true);
             match (too_big, fs::read_to_string(&path)) {
@@ -375,15 +390,18 @@ fn plan_project(root: &str, moved: &[Moved], open: Option<&OpenDocument>, write:
         if changes.is_empty() {
             continue;
         }
-        if is_open {
-            report.open_document_edits = changes
-                .iter()
-                .map(|change| BufferEdit {
-                    from: utf16_offset(&text, change.range.start),
-                    to: utf16_offset(&text, change.range.end),
-                    insert: change.replacement.clone(),
-                })
-                .collect();
+        if let Some(doc) = open_doc {
+            report.open_document_edits.push(DocumentEdits {
+                path: doc.path.clone(),
+                edits: changes
+                    .iter()
+                    .map(|change| BufferEdit {
+                        from: utf16_offset(&text, change.range.start),
+                        to: utf16_offset(&text, change.range.end),
+                        insert: change.replacement.clone(),
+                    })
+                    .collect(),
+            });
         } else if write && {
             crate::history::capture_before_write(&path, "refs");
             write_atomic(&path, &apply_changes(&text, &changes)).is_err()
@@ -407,16 +425,16 @@ fn plan_project(root: &str, moved: &[Moved], open: Option<&OpenDocument>, write:
 /// Qué referencias cambiarían tras `moved`, sin escribir nada (para la
 /// preferencia «Preguntar antes de actualizar referencias», RF-70.9).
 #[tauri::command]
-pub fn refs_plan(root: String, moved: Vec<Moved>, open_document: Option<OpenDocument>) -> Result<RefsReport, AppError> {
-    plan_project(&root, &moved, open_document.as_ref(), false)
+pub fn refs_plan(root: String, moved: Vec<Moved>, open_documents: Vec<OpenDocument>) -> Result<RefsReport, AppError> {
+    plan_project(&root, &moved, &open_documents, false)
 }
 
 /// Reescribe las referencias afectadas por `moved` en disco (de forma atómica,
-/// fichero a fichero) y devuelve las ediciones del documento abierto para que
-/// el frontend las aplique a su contenido sin guardar.
+/// fichero a fichero) y devuelve las ediciones de los documentos abiertos para
+/// que el frontend las aplique a su contenido sin guardar.
 #[tauri::command]
-pub fn refs_apply(root: String, moved: Vec<Moved>, open_document: Option<OpenDocument>) -> Result<RefsReport, AppError> {
-    plan_project(&root, &moved, open_document.as_ref(), true)
+pub fn refs_apply(root: String, moved: Vec<Moved>, open_documents: Vec<OpenDocument>) -> Result<RefsReport, AppError> {
+    plan_project(&root, &moved, &open_documents, true)
 }
 
 #[cfg(test)]
@@ -566,15 +584,50 @@ Esto "capitulos/cap1.typ" es texto, no una ruta.
         }];
         let open = OpenDocument { path: path_to_string(&main), content: "= Sin guardar\n#include \"cap1.typ\"".into() };
 
-        let report = refs_apply(path_to_string(&root), moved, Some(open)).unwrap();
+        let report = refs_apply(path_to_string(&root), moved, vec![open]).unwrap();
 
         assert_eq!(fs::read_to_string(root.join("otro.typ")).unwrap(), "#include \"capitulos/cap1.typ\"");
         assert_eq!(fs::read_to_string(root.join("capitulos").join("cap1.typ")).unwrap(), "#image(\"../img/a.png\")");
         // El abierto NO se escribe: se devuelve la edición sobre su contenido.
         assert_eq!(fs::read_to_string(&main).unwrap(), "#include \"cap1.typ\"");
-        assert_eq!(report.open_document_edits, vec![BufferEdit { from: 23, to: 33, insert: "\"capitulos/cap1.typ\"".into() }]);
+        assert_eq!(
+            report.open_document_edits,
+            vec![DocumentEdits {
+                path: path_to_string(&main),
+                edits: vec![BufferEdit { from: 23, to: 33, insert: "\"capitulos/cap1.typ\"".into() }],
+            }]
+        );
         assert_eq!(report.total, 3);
         assert_eq!(report.files.len(), 3);
+    }
+
+    #[test]
+    fn con_dos_documentos_abiertos_edita_los_dos_en_memoria_y_ninguno_en_disco_r_t3() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dunce::canonicalize(dir.path()).unwrap();
+        fs::create_dir(root.join("capitulos")).unwrap();
+        fs::write(root.join("cap1.typ"), "= Uno").unwrap();
+        let main = root.join("main.typ");
+        let apendice = root.join("apendice.typ");
+        fs::write(&main, "#include \"cap1.typ\"").unwrap();
+        fs::write(&apendice, "#include \"cap1.typ\"").unwrap();
+        let moved = vec![Moved {
+            from: path_to_string(&root.join("cap1.typ")),
+            to: path_to_string(&root.join("capitulos").join("cap1.typ")),
+        }];
+        let open = vec![
+            OpenDocument { path: path_to_string(&main), content: "#include \"cap1.typ\"".into() },
+            OpenDocument { path: path_to_string(&apendice), content: "Sin guardar: #include \"cap1.typ\"".into() },
+        ];
+
+        let report = refs_apply(path_to_string(&root), moved, open).unwrap();
+
+        let edited: Vec<&str> = report.open_document_edits.iter().map(|doc| doc.path.as_str()).collect();
+        assert_eq!(edited.len(), 2);
+        assert!(edited.contains(&path_to_string(&main).as_str()));
+        assert!(edited.contains(&path_to_string(&apendice).as_str()));
+        assert_eq!(fs::read_to_string(&main).unwrap(), "#include \"cap1.typ\"", "el abierto no se escribe");
+        assert_eq!(fs::read_to_string(&apendice).unwrap(), "#include \"cap1.typ\"", "la pestaña de fondo tampoco");
     }
 
     /// Hallazgo Crítico de `/code-simplify`: un enlace simbólico a un
@@ -589,7 +642,7 @@ Esto "capitulos/cap1.typ" es texto, no una ruta.
         std::os::unix::fs::symlink(&root, root.join("partes").join("raiz")).unwrap();
         let moved = vec![Moved { from: path_to_string(&root.join("cap1.typ")), to: path_to_string(&root.join("c").join("cap1.typ")) }];
 
-        let report = refs_plan(path_to_string(&root), moved, None).unwrap();
+        let report = refs_plan(path_to_string(&root), moved, Vec::new()).unwrap();
 
         assert_eq!(report.total, 1);
     }
@@ -600,7 +653,7 @@ Esto "capitulos/cap1.typ" es texto, no una ruta.
         let root = dunce::canonicalize(dir.path()).unwrap();
         fs::write(root.join("main.typ"), "#include \"cap1.typ\"").unwrap();
         let moved = vec![Moved { from: path_to_string(&root.join("cap1.typ")), to: path_to_string(&root.join("c").join("cap1.typ")) }];
-        let report = refs_plan(path_to_string(&root), moved, None).unwrap();
+        let report = refs_plan(path_to_string(&root), moved, Vec::new()).unwrap();
         assert_eq!(report.total, 1);
         assert_eq!(fs::read_to_string(root.join("main.typ")).unwrap(), "#include \"cap1.typ\"");
     }
@@ -635,7 +688,7 @@ Esto "capitulos/cap1.typ" es texto, no una ruta.
         let moved = fs_move(root_text.clone(), vec![path_to_string(&root.join("cap1.typ"))], path_to_string(&root.join("capitulos"))).unwrap();
         assert!(compile().is_err(), "sin actualizar referencias el proyecto debe romperse");
 
-        refs_apply(root_text, moved, None).unwrap();
+        refs_apply(root_text, moved, Vec::new()).unwrap();
         compile().expect("tras actualizar las referencias debe compilar");
     }
 
@@ -649,7 +702,7 @@ Esto "capitulos/cap1.typ" es texto, no una ruta.
         }
         let moved = vec![Moved { from: path_to_string(&root.join("cap.typ")), to: path_to_string(&root.join("x").join("cap.typ")) }];
         let started = std::time::Instant::now();
-        let report = refs_plan(path_to_string(&root), moved, None).unwrap();
+        let report = refs_plan(path_to_string(&root), moved, Vec::new()).unwrap();
         assert_eq!(report.total, 200);
         assert!(started.elapsed().as_millis() < 1000, "{:?}", started.elapsed());
     }

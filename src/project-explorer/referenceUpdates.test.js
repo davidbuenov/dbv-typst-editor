@@ -23,7 +23,10 @@ const report = {
     { path: `${ROOT}/main.typ`, relative: 'main.typ', changes: [{ line: 3, oldValue: 'cap1.typ', newValue: 'capitulos/cap1.typ' }] },
     { path: `${ROOT}/capitulos/cap1.typ`, relative: 'capitulos/cap1.typ', changes: [{ line: 1, oldValue: 'img/a.png', newValue: '../img/a.png' }] },
   ],
-  openDocumentEdits: [{ from: 10, to: 20, insert: '"capitulos/cap1.typ"' }],
+  openDocumentEdits: [
+    { path: `${ROOT}/main.typ`, edits: [{ from: 10, to: 20, insert: '"capitulos/cap1.typ"' }] },
+    { path: `${ROOT}/apendice.typ`, edits: [{ from: 0, to: 5, insert: '"x"' }] },
+  ],
   total: 2,
   failed: [],
 };
@@ -31,7 +34,7 @@ const report = {
 function setup() {
   const tree = { getRoot: () => ROOT, refresh: vi.fn(async () => true) };
   const workspace = {
-    getOpenDocumentSnapshot: vi.fn(() => ({ path: `${ROOT}/main.typ`, content: 'sin guardar' })),
+    getOpenDocumentsSnapshot: vi.fn(() => [{ path: `${ROOT}/main.typ`, content: 'sin guardar' }]),
     applyBufferEdits: vi.fn(),
     applyPathMoves: vi.fn(async () => {}),
     runOwnOperation: vi.fn((paths, operation) => operation()),
@@ -59,8 +62,10 @@ describe('afterMove (RF-70)', () => {
 
     await updater.afterMove(moved);
 
-    expect(backend.refsApply).toHaveBeenCalledWith(ROOT, moved, { path: `${ROOT}/main.typ`, content: 'sin guardar' });
-    expect(workspace.applyBufferEdits).toHaveBeenCalledWith(report.openDocumentEdits);
+    expect(backend.refsApply).toHaveBeenCalledWith(ROOT, moved, [{ path: `${ROOT}/main.typ`, content: 'sin guardar' }]);
+    // R-T3: cada pestaña abierta recibe sus ediciones, también la de fondo.
+    expect(workspace.applyBufferEdits).toHaveBeenCalledWith(report.openDocumentEdits[0].edits, `${ROOT}/main.typ`);
+    expect(workspace.applyBufferEdits).toHaveBeenCalledWith(report.openDocumentEdits[1].edits, `${ROOT}/apendice.typ`);
     expect(dialog.ask).not.toHaveBeenCalled();
     const [, , , actions] = notify.mock.calls[0];
     expect(actions.map((action) => action.label)).toHaveLength(2);

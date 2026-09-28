@@ -406,7 +406,7 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
   const listeners = {
     /** @type {null | ((content: string) => void)} */
     documentChanged: null,
-    /** @type {null | ((change: {path: string, isActiveDocument: boolean}) => void)} */
+    /** @type {null | ((change: {path: string, isOpenDocument: boolean, isActiveDocument: boolean}) => void)} */
     externalChange: null,
     /** @type {null | ((project: object) => void)} */
     projectOpened: null,
@@ -577,6 +577,14 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     return dirtyTabs().length > 0;
   }
 
+  /**
+   * El observador vigila el proyecto y marca los avisos de las pestañas
+   * abiertas (R-T4): un cambio externo en una de fondo también se mira.
+   */
+  async function watchTabs() {
+    if (state.project) await watchProject(state.project.root, [...tabs.paths]);
+  }
+
   function persistTabs() {
     if (state.project) storeTabs(state.project.root, tabs);
     listeners.tabsChanged?.();
@@ -613,7 +621,7 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     }
     // El watcher debe saber cuál es el documento activo para poder distinguir
     // "recompila" de "aviso de conflicto" (Slice 6).
-    if (state.project) await watchProject(state.project.root, path);
+    if (state.project) await watchTabs();
     persistTabs();
   }
 
@@ -679,6 +687,7 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     if (!active) {
       background.delete(key);
       persistTabs();
+      await watchTabs();
     } else if (tabs.active) {
       cancelScheduledAutoSave();
       state.document = null;
@@ -873,7 +882,7 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     } else if (state.project.entrypoint) {
       await openDocument(joinPath(state.project.root, state.project.entrypoint), { force: true });
     } else {
-      await watchProject(state.project.root, null);
+      await watchTabs();
       notify(t('project.noEntrypoint'));
     }
     return true;
@@ -1211,10 +1220,11 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
         editor.setPath(after);
         tree.setActivePath(after);
         renderDocumentBar();
-        if (state.project) await watchProject(state.project.root, after);
+        if (state.project) await watchTabs();
       }
     }
     persistTabs();
+    await watchTabs();
     listeners.pathsMoved?.(moved);
   }
 
@@ -1255,6 +1265,7 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     }
     if (state.previewDocument && isWithinAny(state.previewDocument, paths)) state.previewDocument = null;
     persistTabs();
+    await watchTabs();
   }
 
   /** Deja el editor vacío, sin documento, y se lo dice al observador. */
@@ -1267,7 +1278,7 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     tree.setActivePath(null);
     renderDocumentBar();
     listeners.documentDetached?.();
-    if (state.project) await watchProject(state.project.root, null);
+    if (state.project) await watchTabs();
   }
 
   /**
@@ -1279,11 +1290,73 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     return state.document ? closeTab(state.document.path) : false;
   }
 
+  /**
+   * Un cambio externo en una pestaña de fondo (R-T4): la misma decisión por
+   * contenido que la activa (`decideExternalChange`), aplicada a ESA pestaña.
+   * Sin cambios locales se recarga en silencio (al activarla se lee del
+   * disco); con cambios, se pregunta nombrándola.
+   */
+  async function handleBackgroundChanged(path) {
+    const key = pathKey(path);
+    const entry = background.get(key);
+    if (!entry?.saved || conflictDialogOpen) return;
+    const fingerprint = await fileFingerprint(entry.document.path);
+    if (!fingerprint.ok || background.get(key) !== entry) return;
+    const action = decideExternalChange({
+      knownHash: entry.document.contentHash,
+      fingerprint: fingerprint.value,
+      dirty: entry.dirty,
+      saving: backgroundSaving.has(key),
+      ownOperation: isOwnOperation(entry.document.path),
+    });
+    if (action === 'defer' || action === 'ignore') return;
+    if (action === 'missing') {
+      if (!entry.missingNotified) {
+        entry.missingNotified = true;
+        entry.dirty = true;
+        notify(`${t('doc.missingOnDisk')} — ${entry.document.fileName}`, 'error');
+        listeners.tabsChanged?.();
+      }
+      return;
+    }
+    entry.missingNotified = false;
+    let reload = action === 'reload';
+    if (!reload) {
+      conflictDialogOpen = true;
+      try {
+        const choice = await dialog.ask({
+          titleKey: 'conflict.title',
+          textKey: 'conflict.text',
+          text: entry.document.path,
+          choices: [
+            { key: 'keep', labelKey: 'conflict.keepMine', tone: 'primary' },
+            { key: 'reload', labelKey: 'conflict.reload', tone: 'danger' },
+          ],
+        });
+        reload = choice === 'reload';
+        if (!reload && fingerprint.value.contentHash) entry.document.contentHash = fingerprint.value.contentHash;
+      } finally {
+        conflictDialogOpen = false;
+      }
+    }
+    if (!reload || background.get(key) !== entry) return;
+    // RF-73.1: lo que se descarta queda en el historial local.
+    if (entry.dirty && getPref('localHistory')) {
+      await historySnapshot(entry.document.path, entry.saved.state.doc.toString(), 'reload');
+    }
+    // Se vuelve a leer del disco al activarla (como una pestaña restaurada).
+    entry.saved = null;
+    entry.dirty = false;
+    listeners.tabsChanged?.();
+  }
+
   // Un cambio en disco refresca el árbol (ficheros nuevos de un `git pull`, por
   // ejemplo) y se reenvía a la vista previa para que recompile.
   on(PROJECT_CHANGE_EVENT, (change) => {
-    listeners.externalChange?.(change);
-    if (change.isActiveDocument) handleActiveDocumentChanged();
+    const isActiveDocument = Boolean(change.isOpenDocument) && isActivePath(change.path);
+    listeners.externalChange?.({ ...change, isActiveDocument });
+    if (isActiveDocument) handleActiveDocumentChanged();
+    else if (change.isOpenDocument) handleBackgroundChanged(change.path);
     else tree.refresh();
   });
 
@@ -1665,7 +1738,7 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     /** Ruta del documento abierto, o `null`. */
     getDocumentPath: () => state.document?.path ?? null,
     /**
-     * Documento abierto con su contenido ACTUAL (cambios sin guardar
+     * Documento activo con su contenido ACTUAL (cambios sin guardar
      * incluidos), para que RF-70 lo edite en memoria y nunca en disco.
      * @returns {{path: string, content: string} | null}
      */
@@ -1674,15 +1747,42 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
       return { path: state.document.path, content: editor.getContent() };
     },
     /**
-     * Aplica ediciones (posiciones UTF-16 del contenido de la instantánea) al
-     * editor en UNA transacción: el documento queda modificado y Ctrl+Z las
-     * deshace de una vez (RF-70.5).
-     * @param {Array<{from: number, to: number, insert: string}>} edits
+     * TODAS las pestañas Typst cargadas con su contenido actual (R-T3): RF-70
+     * edita su texto en memoria y nunca su disco. Las restauradas que aún no
+     * se han cargado no están aquí: su disco es su contenido.
+     * @returns {Array<{path: string, content: string}>}
      */
-    applyBufferEdits(edits) {
-      const view = editor.getView();
-      if (!view || edits.length === 0) return;
-      view.dispatch({ changes: edits.map(({ from, to, insert }) => ({ from, to, insert })) });
+    getOpenDocumentsSnapshot() {
+      const list = [];
+      if (state.document && isTypstPath(state.document.path)) list.push({ path: state.document.path, content: editor.getContent() });
+      for (const entry of background.values()) {
+        if (entry.saved && isTypstPath(entry.document.path)) {
+          list.push({ path: entry.document.path, content: entry.saved.state.doc.toString() });
+        }
+      }
+      return list;
+    },
+    /**
+     * Aplica ediciones (posiciones UTF-16 del contenido de la instantánea) a
+     * una pestaña en UNA transacción: queda modificada y Ctrl+Z las deshace de
+     * una vez (RF-70.5). Sin `path`, o si es la activa, al editor; si es de
+     * fondo, a su `EditorState` guardado (R-T3), y Tinymist recibe el texto.
+     * @param {Array<{from: number, to: number, insert: string}>} edits
+     * @param {string} [path]
+     */
+    applyBufferEdits(edits, path) {
+      if (edits.length === 0) return;
+      const changes = edits.map(({ from, to, insert }) => ({ from, to, insert }));
+      if (!path || isActivePath(path)) {
+        editor.getView()?.dispatch({ changes });
+        return;
+      }
+      const entry = background.get(pathKey(path));
+      if (!entry?.saved) return;
+      entry.saved = { ...entry.saved, state: entry.saved.state.update({ changes }).state };
+      entry.dirty = true;
+      lspClient?.updateDocument?.(entry.document.path, entry.saved.state.doc.toString());
+      listeners.tabsChanged?.();
     },
     /** True si el documento abierto tiene cambios sin guardar. */
     isDirty: () => state.dirty,

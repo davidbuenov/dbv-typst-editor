@@ -113,8 +113,9 @@ export const fsRevertMoves = (root, moved) => call('fs_revert_moves', { root, mo
 
 // Referencias a lo movido (RF-70). `openDocument` es `{ path, content }` del
 // documento abierto: se edita en memoria y sus ediciones vuelven en UTF-16.
-export const refsPlan = (root, moved, openDocument) => call('refs_plan', { root, moved, openDocument });
-export const refsApply = (root, moved, openDocument) => call('refs_apply', { root, moved, openDocument });
+/** RF-70 con pestañas (R-T3): `openDocuments` son TODAS las pestañas con su contenido del editor. */
+export const refsPlan = (root, moved, openDocuments) => call('refs_plan', { root, moved, openDocuments: openDocuments ?? [] });
+export const refsApply = (root, moved, openDocuments) => call('refs_apply', { root, moved, openDocuments: openDocuments ?? [] });
 
 // Historial local de versiones (RF-73).
 export const historyConfigure = (root, enabled) => call('history_configure', { root, enabled });
@@ -267,8 +268,9 @@ export const exportPng = ({ target, output, page }) =>
 /** Nombre del evento emitido por `watcher.rs` en cada cambio relevante. */
 export const PROJECT_CHANGE_EVENT = 'project-file-changed';
 
-export const watchProject = (root, activeDocument) =>
-  call('watch_project', { root, activeDocument: activeDocument ?? null });
+/** R-T4: el observador marca `isOpenDocument` en los avisos de CUALQUIER pestaña abierta. */
+export const watchProject = (root, openDocuments) =>
+  call('watch_project', { root, openDocuments: openDocuments ?? [] });
 export const unwatchProject = () => call('unwatch_project');
 
 // ─── Runner de scripts Python (RF-22) ────────────────────────────────────────

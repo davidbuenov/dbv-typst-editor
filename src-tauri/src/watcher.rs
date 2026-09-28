@@ -35,9 +35,15 @@ pub struct WatcherState(pub Mutex<Option<notify::RecommendedWatcher>>);
 #[serde(rename_all = "camelCase")]
 pub struct FileChange {
     pub path: String,
-    /// True si el fichero cambiado es el que el editor tiene abierto — el
-    /// frontend lo usa para distinguir "recompila" de "además avisa de conflicto".
-    pub is_active_document: bool,
+    /// True si el fichero cambiado está abierto en alguna pestaña (RF-79,
+    /// R-T4) — el frontend lo usa para distinguir "recompila" de "además mira
+    /// si hay un conflicto con lo que hay en esa pestaña".
+    pub is_open_document: bool,
+}
+
+/// True si `path` es alguno de los documentos abiertos en pestañas.
+pub fn is_open_document(open: &[PathBuf], path: &Path) -> bool {
+    open.iter().any(|candidate| same_file_path(candidate, path))
 }
 
 /// True si la ruta cambiada debe disparar una recompilación.
@@ -93,7 +99,7 @@ pub fn watch_project(
     app: AppHandle,
     state: tauri::State<WatcherState>,
     root: String,
-    active_document: Option<String>,
+    open_documents: Vec<String>,
 ) -> Result<(), AppError> {
     let mut guard = state
         .0
@@ -106,19 +112,16 @@ pub fn watch_project(
         return Err(AppError::InvalidPath(root));
     }
 
-    let active = active_document.map(PathBuf::from);
+    let open: Vec<PathBuf> = open_documents.into_iter().map(PathBuf::from).collect();
     let mut watcher = notify::recommended_watcher(move |event: notify::Result<notify::Event>| {
         let Ok(event) = event else { return };
         if !is_relevant_kind(&event.kind) {
             return;
         }
         for path in event.paths.iter().filter(|path| is_relevant_change(path)) {
-            let is_active_document = active
-                .as_ref()
-                .is_some_and(|open| same_file_path(open, path));
             let payload = FileChange {
                 path: path.to_string_lossy().to_string(),
-                is_active_document,
+                is_open_document: is_open_document(&open, path),
             };
             let _ = app.emit(CHANGE_EVENT, payload);
         }
@@ -245,5 +248,21 @@ mod tests {
         let indirect = dir.path().join(".").join("main.typ");
 
         assert!(same_file_path(&file, &indirect));
+    }
+    #[test]
+    fn is_open_document_reconoce_cualquier_pestana_abierta() {
+        let dir = tempfile::tempdir().unwrap();
+        let main = dir.path().join("main.typ");
+        let cap = dir.path().join("cap.typ");
+        let otro = dir.path().join("otro.typ");
+        for file in [&main, &cap, &otro] {
+            std::fs::write(file, "=").unwrap();
+        }
+        let open = vec![main.clone(), cap.clone()];
+
+        assert!(is_open_document(&open, &main));
+        assert!(is_open_document(&open, &cap));
+        assert!(!is_open_document(&open, &otro));
+        assert!(!is_open_document(&[], &main));
     }
 }

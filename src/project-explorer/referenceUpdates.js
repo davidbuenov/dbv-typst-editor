@@ -6,8 +6,8 @@
 // =============================================================================
 //
 // Se cuelga de `fileOperations.afterMove`: tras mover o renombrar, pide al
-// backend (`refs.rs`) que reescriba las rutas afectadas. El documento abierto
-// se edita en el editor, nunca en disco (sus cambios sin guardar mandan). El
+// backend (`refs.rs`) que reescriba las rutas afectadas. Las pestañas abiertas
+// se editan en memoria, nunca en disco (sus cambios sin guardar mandan). El
 // aviso final permite ver qué cambió y deshacerlo todo: deshacer es la
 // operación inversa (volver a mover y reescribir en sentido contrario), así
 // que respeta lo que se haya editado entre medias.
@@ -45,14 +45,14 @@ export function formatReport(report) {
  * @param {(message: string, tone?: string, durationMs?: number, actions?: Array) => void} deps.notify
  */
 export function createReferenceUpdater({ tree, workspace, dialog, notify }) {
-  /** Reescribe y aplica al editor lo que toque al documento abierto. */
+  /** Reescribe y aplica a cada pestaña abierta lo que le toque (R-T3). */
   async function apply(moved) {
-    const result = await refsApply(tree.getRoot(), moved, workspace.getOpenDocumentSnapshot());
+    const result = await refsApply(tree.getRoot(), moved, workspace.getOpenDocumentsSnapshot());
     if (!result.ok) {
       notify(`${t('refs.error')} — ${result.error.message}`, 'error');
       return null;
     }
-    workspace.applyBufferEdits(result.value.openDocumentEdits);
+    for (const document of result.value.openDocumentEdits) workspace.applyBufferEdits(document.edits, document.path);
     if (result.value.failed.length) {
       notify(`${t('refs.failed')} ${result.value.failed.join(', ')}`, 'error', 10000);
     }
@@ -90,7 +90,7 @@ export function createReferenceUpdater({ tree, workspace, dialog, notify }) {
   async function afterMove(moved) {
     if (!moved.length) return;
     if (getPref('askBeforeUpdatingRefs')) {
-      const plan = await refsPlan(tree.getRoot(), moved, workspace.getOpenDocumentSnapshot());
+      const plan = await refsPlan(tree.getRoot(), moved, workspace.getOpenDocumentsSnapshot());
       if (!plan.ok || plan.value.total === 0) return;
       const choice = await dialog.ask({
         titleKey: 'refs.askTitle',

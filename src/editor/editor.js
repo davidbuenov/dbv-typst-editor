@@ -60,6 +60,7 @@ import {
 } from 'codemirror-lang-typst/lezer';
 import { buildToolbarKeymap } from './toolbarActions.js';
 import { detectMac, shortcutKey } from './shortcuts.js';
+import { createSnippetCompletionSource } from '../snippets/completion.js';
 import { createLspCompletionSource, createLspHover, createLspSignatureHelp } from './lspClient.js';
 import { createUniverseHover } from './universeHover.js';
 import { syncFlashField } from './syncFlash.js';
@@ -194,8 +195,10 @@ export function buildExtensions({
   // cierre desde `createEditor`).
   const extraExtensions = [createUniverseHover(), syncFlashField, EditorView.domEventHandlers({ blur: () => onBlur?.() })];
   let autocompleteExt;
+  // RF-81: los snippets del usuario se suman a Tinymist y funcionan sin él.
+  const snippetSource = createSnippetCompletionSource(undefined, () => getCurrentPath?.() ?? null);
   if (lspClient) {
-    autocompleteExt = autocompletion({ override: [createLspCompletionSource(lspClient)] });
+    autocompleteExt = autocompletion({ override: [createLspCompletionSource(lspClient), snippetSource] });
     extraExtensions.push(createLspHover(lspClient));
     extraExtensions.push(createLspSignatureHelp(lspClient));
     extraExtensions.push(
@@ -210,7 +213,9 @@ export function buildExtensions({
       ])
     );
   } else {
-    autocompleteExt = autocompletion();
+    // Sin Tinymist no hay `override`: los completados del lenguaje Typst siguen
+    // ahí y los snippets entran como un origen más de `languageData`.
+    autocompleteExt = [autocompletion(), EditorState.languageData.of(() => [{ autocomplete: snippetSource }])];
   }
 
   return [

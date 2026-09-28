@@ -40,7 +40,8 @@
     "@tauri-apps/plugin-process": "^2.3.1",
     "@tauri-apps/plugin-updater": "^2.11.0",
     "codemirror": "^6.0.2",
-    "codemirror-lang-typst": "^0.6.0"
+    "codemirror-lang-typst": "^0.6.0",
+    "jsonc-parser": "3.3.1"
   },
   "devDependencies": {
     "@choochmeque/tauri-windows-bundle": "^0.1.29",

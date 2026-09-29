@@ -396,6 +396,21 @@ body {
   font-size: 12px;
 }
 
+/* RF-89.5: el aviso de esquema desactualizado va encima de la lista, y el
+   motivo de un fallo se distingue de «no hay encabezados». */
+.outline__empty--notice {
+  margin-bottom: 6px;
+  padding: 4px 6px;
+  border-radius: var(--radius);
+  background: var(--status-warn-bg);
+  color: var(--text-secondary);
+}
+
+.outline__empty--error {
+  color: var(--status-error);
+  overflow-wrap: anywhere;
+}
+
 /* Desplegable de citas (Beta, §7.7.4): posición dinámica, fijada en JS
    (`citationPicker.js`) justo debajo del botón "Cite" que lo abre — por eso
    aquí solo se fijan tamaño y aspecto, no `top`/`left`. */

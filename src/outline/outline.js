@@ -5,45 +5,86 @@
 // Built with dbv-specs-ops · https://github.com/davidbuenov/dbv-specs-ops
 // =============================================================================
 //
-// ARCHITECTURE.md §7.8. Mismo ciclo de vida que `preview.js` a propósito
-// (`restart`/`onContentChanged`/`clear`): desde RF-14 los dos compilan el MISMO
-// objetivo, que pide cada uno a `workspace.getCompileTarget()` en el momento de
-// usarlo. Si el outline eligiera su documento por su cuenta, el panel listaría
-// los encabezados de algo distinto de lo que se ve compilado, y la navegación
-// llevaría a páginas que no existen en la vista previa.
+// ARCHITECTURE.md §7.8. RF-89: el panel ya no compila por su cuenta. Sigue a
+// cada compilación de la vista previa (`onCompiled`): con el motor en proceso,
+// el esquema viene en el propio resultado, sacado del mismo documento que se
+// ve; con el motor clásico de respaldo se pide al CLI. Así el esquema es
+// siempre de la misma generación que las páginas, y no cuesta otra compilación.
 //
-// Clic→navegación cubre hoy solo la vista previa (página + coordenada `y`, que
-// es justo lo que expone `typst eval`). Llevar además el cursor del editor a la
-// posición del fuente es RF-16, que se apoya en anclas y llega en el Slice 30
-// (ADR-SYNC-001: no hay posición real de fuente accesible desde el sidecar).
+// Hasta la 0.12.0, cualquier fallo al pedir el esquema dejaba el panel como
+// estaba —vacío al abrir el proyecto—, y un sidecar que no arrancaba (un Mac de
+// un usuario real) se veía como «este documento no tiene encabezados». Ahora
+// cada situación tiene su estado, y ese mensaje solo sale cuando es verdad.
+//
+// Clic→navegación lleva la vista previa a la página y la coordenada `y` del
+// encabezado.
 
 import { t } from '../i18n/i18n.js';
 import { getOutline } from '../services/backend.js';
 
-const DEBOUNCE_MS = 500;
+/**
+ * @typedef {{level: number, text: string, page: number, yPt: number}} OutlineEntry
+ *
+ * @typedef {object} CompiledResult Lo que la vista previa pasa a `onCompiled`.
+ * @property {boolean} ok
+ * @property {'inproc'|'classic'} [engine]
+ * @property {OutlineEntry[] | null} [outline] Solo con el motor en proceso.
+ * @property {{kind: string, message: string}} [error] Solo si falló.
+ */
 
 /**
  * @param {object} deps
  * @param {HTMLElement} deps.listEl Contenedor donde se pintan las entradas.
  * @param {(entry: {page: number, yPt: number}) => void} deps.onNavigate
  * @param {() => (import('../services/backend.js').CompileTarget | null)} deps.getTarget
- *   El MISMO objetivo que compila la vista previa (RF-14): un outline que
- *   listara los encabezados de otro fichero no navegaría a lo que se ve.
+ *   El MISMO objetivo que compila la vista previa (RF-14): el respaldo por CLI
+ *   no debe listar los encabezados de otro fichero.
+ * @param {typeof getOutline} [deps.fetchOutline] Esquema por CLI (inyectable en tests).
  */
-export function createOutline({ listEl, onNavigate, getTarget }) {
-  let debounceTimer = null;
+export function createOutline({ listEl, onNavigate, getTarget, fetchOutline = getOutline }) {
+  /**
+   * Lo que se ve. `pending`: aún no ha compilado nada (panel vacío, sin
+   * afirmar nada del documento). `list`: los encabezados, con `stale` si el
+   * documento dejó de compilar. `noCompile`: tiene errores y no hay esquema
+   * anterior. `failed`: falló la herramienta, con su motivo.
+   * @type {{kind: 'pending'} | {kind: 'list', entries: OutlineEntry[], stale: boolean}
+   *   | {kind: 'noCompile'} | {kind: 'failed', reason: string}}
+   */
+  let state = { kind: 'pending' };
+  /** @type {OutlineEntry[] | null} Último esquema bueno, para el caso `stale`. */
+  let lastGood = null;
+  /** Descarta una respuesta del CLI que llega después de otra compilación. */
+  let token = 0;
 
-  function render(entries) {
+  function message(text, modifier) {
+    const p = document.createElement('p');
+    p.className = modifier ? `outline__empty outline__empty--${modifier}` : 'outline__empty';
+    p.textContent = text;
+    return p;
+  }
+
+  function paint() {
     listEl.replaceChildren();
-    if (entries.length === 0) {
-      const empty = document.createElement('p');
-      empty.className = 'outline__empty';
-      empty.textContent = t('outline.empty');
-      listEl.append(empty);
+    if (state.kind === 'pending') return;
+    if (state.kind === 'noCompile') {
+      listEl.append(message(t('outline.doesNotCompile')));
       return;
     }
+    if (state.kind === 'failed') {
+      listEl.append(message(t('outline.failed').replace('{reason}', state.reason), 'error'));
+      return;
+    }
+    if (state.entries.length === 0) {
+      listEl.append(message(t('outline.empty')));
+      return;
+    }
+    if (state.stale) {
+      const notice = message(t('outline.stale'), 'notice');
+      notice.setAttribute('role', 'status');
+      listEl.append(notice);
+    }
     const fragment = document.createDocumentFragment();
-    for (const entry of entries) {
+    for (const entry of state.entries) {
       const item = document.createElement('button');
       item.type = 'button';
       item.className = 'outline__item';
@@ -55,33 +96,52 @@ export function createOutline({ listEl, onNavigate, getTarget }) {
     listEl.append(fragment);
   }
 
-  async function fetchNow() {
-    const target = getTarget();
-    if (!target?.document || !target?.root) return;
-    const result = await getOutline(target);
-    // Un error de compilación no vacía el panel: se queda el último esquema
-    // bueno, igual que la vista previa mantiene su última vista buena.
-    if (result.ok) render(result.value);
+  function showEntries(entries) {
+    lastGood = entries;
+    state = { kind: 'list', entries, stale: false };
+    paint();
   }
 
-  function schedule() {
-    if (debounceTimer) clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(fetchNow, DEBOUNCE_MS);
+  /** Un error con `kind` (ver `TypstError`): del documento o de la herramienta. */
+  function showError(error) {
+    if (error?.kind === 'compilationFailed') {
+      // Se conserva el último esquema bueno, igual que la vista previa
+      // conserva su última vista buena.
+      state = lastGood ? { kind: 'list', entries: lastGood, stale: true } : { kind: 'noCompile' };
+    } else {
+      state = { kind: 'failed', reason: error?.message || error?.kind || '?' };
+    }
+    paint();
   }
 
-  render([]);
+  document.addEventListener('dbv-lang-changed', paint);
 
   return {
-    /** Empieza de cero con el objetivo vigente. */
-    restart() {
-      fetchNow();
+    /** @param {CompiledResult} result */
+    async onCompiled(result) {
+      const mine = ++token;
+      if (!result.ok) {
+        showError(result.error);
+        return;
+      }
+      if (result.engine === 'inproc' && Array.isArray(result.outline)) {
+        showEntries(result.outline);
+        return;
+      }
+      // Motor clásico de respaldo (RF-89.2): el esquema sale del CLI.
+      const target = getTarget();
+      if (!target?.document || !target?.root) return;
+      const fetched = await fetchOutline(target);
+      if (mine !== token) return;
+      if (fetched.ok) showEntries(fetched.value);
+      else showError(fetched.error);
     },
-    onContentChanged() {
-      schedule();
-    },
+    /** Otro documento u otro proyecto: nada de lo anterior vale. */
     clear() {
-      if (debounceTimer) clearTimeout(debounceTimer);
-      render([]);
+      token += 1;
+      lastGood = null;
+      state = { kind: 'pending' };
+      paint();
     },
   };
 }

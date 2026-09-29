@@ -603,7 +603,7 @@
 
 - [x] **Fase 59: `/plan` de v0.12.1 — APROBADO al lanzar `/build` (2026-09-29, `implementation_plan.md`, solo en local).** El esquema viaja en el `PreviewOutcome` de cada compilación (motor en proceso) y el CLI queda de respaldo con el clásico. Tres slices:
   - [x] **Slice 124** (9 tests Rust; edición del corpus 64 → 66 ms) — Backend: `engine/outline.rs` (encabezados del `PagedDocument`, solo `outlined`), campo `outline` en `Done`/`PreviewOutcome`, filtro `outlined` en el CLI y salida sin mensaje → `executionFailed` (R-O2).
-  - [ ] **Slice 125** — Frontend: `outline.js` sigue a `onCompiled` con estados explícitos (pendiente, lista, sin encabezados, desactualizado, fallo); `preview.js` pasa `outline` y `error`; textos ES/EN.
+  - [x] **Slice 125** (11 tests del panel; 1062 Vitest) — Frontend: `outline.js` sigue a `onCompiled` con estados explícitos (pendiente, lista, sin encabezados, desactualizado, fallo); `preview.js` pasa `outline` y `error`; textos ES/EN.
   - [ ] **Slice 126** — Paridad con el CLI en `real_book.rs`, `ARCHITECTURE.md` §7.8, ayuda y changelog.
 
 ## 🔄 Context Snapshot / Snapshot de Contexto

@@ -622,7 +622,9 @@ export function createPreview({
       }
       showBand(result.error.message || t('preview.error'));
       setStatus('preview.failed');
-      onCompiled?.({ ok: false, startId });
+      // `error` lleva su `kind`: el esquema distingue con él un documento que
+      // no compila de una herramienta que ha fallado (RF-89.5).
+      onCompiled?.({ ok: false, startId, error: result.error });
       return;
     }
 
@@ -654,6 +656,8 @@ export function createPreview({
       engine: renderedEngine,
       generation: outcome.generation,
       fallbackReason: outcome.fallbackReason ?? null,
+      // RF-89: esquema del mismo compilado (solo el motor en proceso lo trae).
+      outline: outcome.outline ?? null,
     });
   }
 

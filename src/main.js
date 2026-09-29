@@ -803,6 +803,14 @@ async function bootstrap() {
     tracker.record(changes);
     projectSearch?.refreshSoon();
   });
+  // Outline (ARCHITECTURE.md §7.8, RF-89): sigue a cada compilación de la vista
+  // previa (`onCompiled`), así que no tiene ganchos propios en el workspace. Se
+  // crea antes que la vista previa, que es quien lo alimenta.
+  const outline = createOutline({
+    listEl: el('outline-list'),
+    onNavigate: (entry) => preview.scrollToPage(entry.page, entry.yPt),
+    getTarget: () => workspace.getCompileTarget(),
+  });
   const preview = createPreview({
     findElements: {
       bar: el('preview-find'),
@@ -829,6 +837,7 @@ async function bootstrap() {
     onRendered: (id) => tracker.rendered(id),
     onCompiled: (result) => {
       refreshProblems(result);
+      outline.onCompiled(result);
       if (result.ok && result.fallbackReason) {
         toast.show(t('preview.engineFallback').replace('{reason}', result.fallbackReason), 'error');
       }
@@ -842,15 +851,6 @@ async function bootstrap() {
     measureFrom: 'end',
     min: 60,
     max: 500,
-  });
-
-  // Outline (Beta, ARCHITECTURE.md §7.8): mismo documento en vivo que la vista
-  // previa, así que comparte exactamente sus mismos ganchos del workspace —
-  // de ahí que cada `setListener` de abajo llame a los dos, no a uno solo.
-  const outline = createOutline({
-    listEl: el('outline-list'),
-    onNavigate: (entry) => preview.scrollToPage(entry.page, entry.yPt),
-    getTarget: () => workspace.getCompileTarget(),
   });
 
   let lastTargetDocument = null;
@@ -869,21 +869,15 @@ async function bootstrap() {
     const targetDoc = target?.document ?? null;
     if (targetDoc !== lastTargetDocument) {
       lastTargetDocument = targetDoc;
+      outline.clear();
       preview.restart();
-      outline.restart();
     }
   });
   // Abrir un fichero acompañante (`.bib`, `.toml`) no cambia el documento
   // objetivo, pero sí puede cambiar el render: un `.bib` editado en vivo afecta
   // a la bibliografía, así que se recompila igual que con cualquier cambio.
-  workspace.setListener('documentDetached', () => {
-    preview.onContentChanged();
-    outline.onContentChanged();
-  });
-  workspace.setListener('documentChanged', () => {
-    preview.onContentChanged();
-    outline.onContentChanged();
-  });
+  workspace.setListener('documentDetached', () => preview.onContentChanged());
+  workspace.setListener('documentChanged', () => preview.onContentChanged());
   // Fichero de código o datos sin guardar (RF-60.4): el motor en proceso lo lee
   // de memoria, así que se recompila sin esperar a guardarlo.
   workspace.setListener('companionChanged', () => preview.onContentChanged());
@@ -1399,10 +1393,7 @@ async function bootstrap() {
   workspace.setListener('saved', (auto) => {
     const savedPath = workspace.getDocumentPath();
     if (savedPath) snippetLoader.handleChanged(savedPath, workspace.getContent());
-    if (!auto) {
-      preview.onContentChanged();
-      outline.onContentChanged();
-    }
+    if (!auto) preview.onContentChanged();
     const now = Date.now();
     if (!auto || now - lastAutoSaveGitRefreshMs > 5000) {
       lastAutoSaveGitRefreshMs = now;
@@ -1502,8 +1493,8 @@ async function bootstrap() {
     workspace.setPreviewScope(workspace.getPreviewScope() === 'document' ? 'file' : 'document');
     refreshPreviewControls();
     lastTargetDocument = workspace.getCompileTarget()?.document ?? null;
+    outline.clear();
     preview.restart();
-    outline.restart();
   });
   el('btn-set-entrypoint').addEventListener('click', () => applyEntrypoint());
 
@@ -1517,8 +1508,8 @@ async function bootstrap() {
     toast.show(t('project.entrypointSet').replace('{name}', entrypoint));
     refreshPreviewControls();
     lastTargetDocument = workspace.getCompileTarget()?.document ?? null;
+    outline.clear();
     preview.restart();
-    outline.restart();
   }
   refreshModeButton.addEventListener('click', () => {
     preview.toggleRefreshMode();

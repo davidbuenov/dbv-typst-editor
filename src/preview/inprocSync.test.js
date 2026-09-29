@@ -262,6 +262,7 @@ describe('sincronización exacta con el motor en proceso', () => {
       engine: 'inproc',
       generation: 5,
       fallbackReason: 'Typst entró en pánico',
+      outline: null, // RF-89: este resultado de prueba no trae esquema
     });
     expect(preview.getRenderedStart()).toBe(11);
   });
@@ -269,7 +270,12 @@ describe('sincronización exacta con el motor en proceso', () => {
   it('una compilación con error avisa con ok:false y NO da por pintada la compilación', async () => {
     await build({ ok: false, error: { kind: 'compilationFailed', message: 'error: algo' } });
 
-    expect(hooks.onCompiled).toHaveBeenCalledWith({ ok: false, startId: 11 });
+    // RF-89.5: el error viaja con su `kind` para que el esquema lo clasifique.
+    expect(hooks.onCompiled).toHaveBeenCalledWith({
+      ok: false,
+      startId: 11,
+      error: { kind: 'compilationFailed', message: 'error: algo' },
+    });
     expect(hooks.onRendered).not.toHaveBeenCalled();
   });
 });

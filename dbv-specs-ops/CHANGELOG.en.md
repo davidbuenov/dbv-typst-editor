@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-09-29
+
+Tabs in the editor, navigation and refactoring with Tinymist (go to definition, find references, rename symbol, code actions), find and replace across the whole project, user snippets in VS Code format, find and copy text in the preview, complete and documented keyboard shortcuts, and a main document that travels with the project. Fixes Tinymist autocompletion inside function calls, errors underlined in the wrong file and the page jump when changing the zoom. Includes incremental AppImage updates (`.zsync`).
+
 ### Added
 
 - **"File › New blank project", first item in the File menu.** It opens the creation wizard straight away with the "Blank project" template, just like "Use template" on it in the "New document" gallery, without going through the gallery: for people used to starting from the File menu. Since the project is opened the same way as "Open folder", unsaved changes in the open document are still protected. The launcher exposes `getBlankTemplate()`, which loads the catalog if needed (the app may have started directly with a document, without ever showing the launcher). 3 new tests: finding the template, loading it without going through the launcher, and the button being the first menu item and wired up.

@@ -576,6 +576,13 @@
 - [x] **Fase 55: prueba manual del usuario de v0.12.0 — SUPERADA el 2026-09-29.** El usuario probó el `.exe` de release (lista de la Fase 53): «todo está perfecto». Un único arreglo durante la prueba: F12, Mayús+F12 y F2 sobre texto normal ahora explican dónde funcionan en vez de decir «función interna de Typst» (commit `d89c519`, changelog ES + EN, 2 tests; suite 1051 Vitest · 433 Rust). Falsa alarma aclarada: en el teclado español Ctrl+/ se pulsa como Ctrl+Mayús+7, y así comenta la línea (RF-80.4) sin cambios. Quedan sin probar solo los puntos que no dependen de Windows: Cmd+W / Cmd+Mayús+W en un Mac y el `.zsync` en la próxima Release de Linux.
   - **👉 SIGUIENTE: `/ship` de la 0.12.0** (bump en `package.json`, `tauri.conf.json`, `Cargo.toml` y `Cargo.lock`; sección `[0.12.0]` en los DOS changelogs; READMEs ES/EN; `.msix` con `npm run tauri:windows:build` y `notasActualizacionStore_v0.12.0.md`). Tag, push y publicar la Release solo con permiso explícito del usuario.
 
+- [x] **Fase 56: `/ship` de v0.12.0 — cerrada el 2026-09-29, versión Minor (0.11.0 → 0.12.0).** El usuario autorizó el `/ship` completo, con tag, push y Release publicada (no en borrador) con los cambios bien descritos en inglés.
+  - Bump en `package.json`/`package-lock.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml` y `Cargo.lock`. Sección `[0.12.0] - 2026-09-29` en `CHANGELOG.md` y `CHANGELOG.en.md`. READMEs ES/EN: insignias, versión actual, contador de tests (1.484 = 1051 Vitest + 433 Rust), «Funcionalidades destacadas» de la 0.12.0, nota del `.zsync` en Linux y agradecimientos (`jsonc-parser`, `toml_edit`, `regex`, `walkdir`). `walkthrough.md` reescrito (no versionado). `notasActualizacionStore_v0.12.0.md` generado (novedades ES 1.040 y EN 939 caracteres).
+  - Suite tras el bump: **1051 Vitest · 433 Rust**, en verde.
+  - **`.msix` generado y verificado (`MICROSOFT_STORE.md` §6):** `src-tauri/target/msix/dbv-typst-editor_0.12.0.0.msixbundle` (80,7 MB, como la 0.11.0); `target/appx/x64` con `typst.exe`, `tinymist.exe` y `templates\` (53 ficheros); `AppxManifest.xml` con `Version="0.12.0.0"`.
+  - Tag anotado `v0.12.0`, push de `master` y del tag; la CI de Linux y macOS genera los artefactos y la Release se publica con notas ES + EN.
+  - **Pendiente del usuario:** subir el `.msixbundle` a Partner Center con los textos de `notasActualizacionStore_v0.12.0.md`; probar Cmd+W / Cmd+Mayús+W en un Mac.
+
 - [x] **→ Especificado como RF-83 (§5l, 2026-09-28).** ~~Backlog para el `/spec` de la 0.12.0 — guardar el documento principal en el manifiesto~~ (anotado el 2026-09-28, a petición del usuario). Hoy (RF-53.4) la elección vive solo en el `localStorage` de la app y no viaja con el proyecto (otro ordenador, git, `.dbvt`). Apareció un borrador sin conectar, `set_project_entrypoint` en `project.rs` con 3 tests, que escribe `entrypoint` en `settings/dbv-project.toml` y crea el manifiesto si no existe. **Contradice RF-53.4 y R-MVP-3 tal como están redactados**, así que se apartó a `git stash` («RF-53 borrador…», recuperable con `git stash list` / `git stash pop`) para decidirlo en el `/spec` en vez de parchearlo. El usuario se inclina por escribir el manifiesto también en proyectos ajenos: otras aplicaciones lo ignoran y DBV lo aprovecha al reabrir. Puntos a resolver en el `/spec`: (1) ruido en `git status` de repositorios compartidos; (2) choque con una carpeta `settings/` propia del proyecto; (3) carpetas de solo lectura: se mantiene el `localStorage` como respaldo; (4) que renombrar, mover o borrar el principal desde el árbol actualice también el manifiesto; (5) confinar la ruta (sin `..`, sin rutas absolutas, solo `.typ`), que el borrador no hace; (6) reescribir RF-53.4 y matizar R-MVP-3.
 
 - [x] **→ Especificado como RF-84 (§5l, 2026-09-28).** ~~Backlog para el `/spec` de la 0.12.0 — información de actualización en el AppImage~~ (anotado el 2026-09-28, a petición del usuario). El test de AppImageHub avisa (sin bloquear) de que el AppImage no lleva información de actualización, así que AppImageUpdate y herramientas similares no pueden actualizarlo. Idea: en `release-linux.yml`, al reempaquetar con `appimagetool` (paso añadido en la Fase 48), pasar `-u` con la cadena `gh-releases-zsync|davidbuenov|dbv-typst-editor|latest|*x86_64.AppImage.zsync` y subir el `.zsync` junto al AppImage en la Release. Ventaja: actualizaciones incrementales para quien usa el AppImage, sin volver a descargarlo entero. Por decidir: si convive o choca con el auto-actualizador propio de la app (RF-37). Si sale bien, llevarlo también a dbv-md-reader, al framework (`NATIVE_APPS_RELEASE_CI.md`) y a `dbv-tauri-starter`, como se hizo con la lección de los permisos. Referencia: <https://docs.appimage.org/packaging-guide/optional/updates.html>
@@ -593,12 +600,13 @@
 
 ## 🔄 Context Snapshot / Snapshot de Contexto
 
-> ### 👉 RETOMAR AQUÍ (2026-09-29): `/ship` de la v0.12.0
+> ### 👉 RETOMAR AQUÍ (2026-09-29): v0.12.0 PUBLICADA
 >
-> `/build` (Fase 52, slices 104-123), `/test` (Fase 53), `/code-simplify` (Fase 54) y la prueba manual
-> del usuario en el `.exe` de release (Fase 55) están hechos: **todo OK**. Último commit `d89c519`;
-> `master` va 27 commits por delante de `origin`, sin push ni tag. Siguiente paso: `/ship` (ver la
-> Fase 55). Lo que sigue más abajo es el histórico de sesiones anteriores.
+> `/ship` de la 0.12.0 cerrado (Fase 56): tag `v0.12.0`, push y Release publicada con notas ES + EN.
+> El `.msixbundle` está en `src-tauri/target/msix/dbv-typst-editor_0.12.0.0.msixbundle` (verificado)
+> y los textos para Partner Center en `notasActualizacionStore_v0.12.0.md`. Siguiente: que el usuario
+> lo suba a la Store. Backlog: extraer las pestañas de `workspace.js`, Flathub. Lo que sigue más abajo
+> es el histórico de sesiones anteriores.
 
 > ### 👉 CÓMO RETOMAR ESTE PROYECTO (leer esto primero) — actualizado 2026-09-15, v0.7.0 LISTA PARA TAG+PUSH+INSTALADORES
 >

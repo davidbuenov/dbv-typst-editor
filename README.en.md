@@ -3,9 +3,9 @@
 **[🇪🇸 Español](./README.md) · 🇬🇧 English**
 
 [![Website](https://img.shields.io/badge/Website-davidbuenov.github.io%2Fdbv--typst--editor-2563eb?style=flat&logo=googlechrome&logoColor=white)](https://davidbuenov.github.io/dbv-typst-editor/en/)
-[![Releases](https://img.shields.io/badge/Releases-v0.11.0-brightgreen?logo=github)](https://github.com/davidbuenov/dbv-typst-editor/releases)
+[![Releases](https://img.shields.io/badge/Releases-v0.12.0-brightgreen?logo=github)](https://github.com/davidbuenov/dbv-typst-editor/releases)
 [![Microsoft Store](https://img.shields.io/badge/Microsoft%20Store-9PCPSVTNJMP0-0078D6?logo=microsoft&logoColor=white)](https://apps.microsoft.com/store/detail/9PCPSVTNJMP0?cid=DevShareMCLPCB)
-![Status](https://img.shields.io/badge/status-stable%20%7C%20v0.11.0-success)
+![Status](https://img.shields.io/badge/status-stable%20%7C%20v0.12.0-success)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
 ![Windows](https://img.shields.io/badge/Windows-10%20%2F%2011%20(Microsoft%20Store)-0078D6?logo=windows&logoColor=white)
 ![macOS](https://img.shields.io/badge/macOS-Universal%20(.dmg)-000000?logo=apple&logoColor=white)
@@ -59,7 +59,7 @@ It follows the same philosophy as its sibling project [DBV Markdown Reader](http
 
 ## 🚦 Current status
 
-**Current version:** `v0.11.0` · **Status:** 🟢 Stable and production ready
+**Current version:** `v0.12.0` · **Status:** 🟢 Stable and production ready
 
 - 🌐 **Official Website:** [https://davidbuenov.github.io/dbv-typst-editor/en/](https://davidbuenov.github.io/dbv-typst-editor/en/) (featuring full-resolution interactive screenshot gallery and bilingual ES/EN switch).
 - 📦 **Installers available on Releases:** [GitHub Releases](https://github.com/davidbuenov/dbv-typst-editor/releases):
@@ -67,8 +67,9 @@ It follows the same philosophy as its sibling project [DBV Markdown Reader](http
   - 🍎 **macOS**: Universal `.dmg` (compatible with Apple Silicon & Intel).
   - 🐧 **Linux**: `.AppImage` (portable) and `.deb` (Debian/Ubuntu/Mint) packages.
 - 🏬 **Microsoft Store:** published on the official store. [🛒 Get it from Microsoft Store (ID 9PCPSVTNJMP0)](https://apps.microsoft.com/store/detail/9PCPSVTNJMP0?cid=DevShareMCLPCB). If you installed an earlier Store package, make sure you get `v0.3.1` or later (see [`CHANGELOG.en.md`](./dbv-specs-ops/CHANGELOG.en.md)).
-- 🧪 **Quality & Stability:** 1,289 automated tests passing at 100% (887 frontend tests + 402 Rust backend tests) and layout verification in real rendering engines.
+- 🧪 **Quality & Stability:** 1,484 automated tests passing at 100% (1,051 frontend tests + 433 Rust backend tests) and layout verification in real rendering engines.
 - 🚀 **Key Highlights:**
+  - **Tabs, navigation and refactoring, project-wide search and snippets (v0.12.0):** every open file gets its own tab (Ctrl+W, Ctrl+Tab, drag to reorder) and keeps its unsaved changes, cursor and undo history; tabs are restored when the project is reopened. With Tinymist: go to definition (F12 or Ctrl+click), find references (Shift+F12), rename a symbol across all files (F2) and code actions (Ctrl+.). Find and replace across the whole project (Ctrl+Shift+F) with regular expressions and file filters, undoable in one step. User snippets in VS Code format, global or per project. Find (Ctrl+F) and copy text straight from the preview. Every shortcut is documented in Help. The main document is saved in `settings/dbv-project.toml` and travels with the project (git, `.dbvt`). Fixes Tinymist autocompletion inside function calls (now with signature help), errors underlined in the wrong file and the page jump when changing the zoom; the AppImage supports incremental updates (`.zsync`).
   - **File explorer, self-updating references, preview links and local history (v0.11.0):** the Files panel can create, rename (F2), duplicate, delete to the trash and drag files and folders; when moving or renaming, the `#include`, `image()`, `bibliography()`… of the whole project are rewritten with Typst's own parser, with "View changes" and "Undo". "New chapter…" creates the file and links it from the main document. Preview links work (web to the browser; outline, references, citations and footnotes to their target), and every save keeps a local copy you can compare and restore. It also fixes the external-change warning that kept popping up with auto-save on.
   - **Optional auto-save, a modified dot, and closing the window always protected (v0.10.0):** saves only after a typing pause or when focus is lost, never overwriting an external change; the "unsaved" text becomes a discreet dot next to the document name. Also: BibTeX syntax highlighting, hidden files out of the tree by default, optional line numbers, an always-visible refresh button, and a short, disambiguated path in the document bar — seven improvements born from a friend of the user's trying v0.9.0 and sending a list of "things to fix".
   - **Fast preview engine (v0.9.0):** Typst as a library inside the app — each edit of a 224-page book takes ≈0.5 s instead of ≈4.6 s — with exact word-by-word sync in both directions (double-click or right-click on the render; Ctrl+Alt+P from the editor), diagnostics underlined in the editor, context menus and code-file editing (`.cpp`, `.java`, `.py` and ~40 more types). The classic engine is the automatic fallback.
@@ -131,6 +132,8 @@ If the app is already running, `typs` reuses the same window. `brew uninstall --
 ### 🐧 Linux
 
 **[⬇️ Download the `.deb` or `.AppImage` from Releases](https://github.com/davidbuenov/dbv-typst-editor/releases)** — built automatically on every version via CI.
+
+> Since `v0.12.0`, the `.AppImage` carries update information: [AppImageUpdate](https://github.com/AppImageCommunity/AppImageUpdate) and compatible tools download only what changed between versions (`.zsync`).
 
 ### 🍎 macOS
 
@@ -286,7 +289,8 @@ This app wouldn't exist without a good number of open-source projects. Thanks to
 - [CodeMirror 6](https://codemirror.net) and [codemirror-lang-typst](https://github.com/kxxt/codemirror-lang-typst) — the code editor and its Typst syntax highlighting.
 - [Hayagriva](https://github.com/typst/hayagriva) — the very same BibTeX/Hayagriva bibliography engine the Typst compiler itself uses for `#bibliography()`.
 - [Vite](https://vite.dev) — frontend bundling and dev server.
-- Rust crates: [serde](https://serde.rs)/serde_json, [tokio](https://tokio.rs), [notify](https://github.com/notify-rs/notify), [toml](https://github.com/toml-rs/toml), [tempfile](https://github.com/Stebalien/tempfile), [zip](https://github.com/zip-rs/zip2), [dunce](https://gitlab.com/kornelski/dunce), [base64](https://github.com/marshallpierce/rust-base64), [ureq](https://github.com/algesten/ureq) and [sys-locale](https://github.com/1Password/sys-locale) (macOS).
+- [jsonc-parser](https://github.com/microsoft/node-jsonc-parser) — reading and editing snippet files in VS Code format while keeping their comments.
+- Rust crates: [serde](https://serde.rs)/serde_json, [tokio](https://tokio.rs), [notify](https://github.com/notify-rs/notify), [toml](https://github.com/toml-rs/toml), [tempfile](https://github.com/Stebalien/tempfile), [zip](https://github.com/zip-rs/zip2), [dunce](https://gitlab.com/kornelski/dunce), [base64](https://github.com/marshallpierce/rust-base64), [toml_edit](https://github.com/toml-rs/toml), [regex](https://github.com/rust-lang/regex), [walkdir](https://github.com/BurntSushi/walkdir), [ureq](https://github.com/algesten/ureq) and [sys-locale](https://github.com/1Password/sys-locale) (macOS).
 
 Thanks also to the maintainers of every package curated in the app's Universe Browser (see [`src/universe/curatedCatalog.js`](./src/universe/curatedCatalog.js)) — IEEE/ACM/Springer templates, `fletcher`, `touying`, `quick-maths`, `physica`, `codly`, `zebraw`, `showybox`, `tablem`, `subpar`, `lovelace`, `glossarium`, `unify`, `wordometer` and the rest — for their work, even where this list doesn't name every one individually.
 

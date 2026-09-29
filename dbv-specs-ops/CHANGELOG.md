@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Sin publicar] / [Unreleased]
 
+## [0.12.0] - 2026-09-29
+
+Pestañas en el editor, navegación y refactorización con Tinymist (ir a la definición, buscar referencias, renombrar símbolo, acciones de código), buscar y reemplazar en todo el proyecto, snippets de usuario en formato VS Code, buscar y copiar texto en la vista previa, atajos de teclado completos y documentados, y un documento principal que viaja con el proyecto. Corrige el autocompletado de Tinymist dentro de las llamadas, los errores subrayados en el fichero equivocado y el salto de página al ajustar el zoom. Incluye actualizaciones incrementales del AppImage (`.zsync`).
+
 ### Added
 
 - **«Archivo › Nuevo proyecto en blanco», primera opción del menú Archivo.** Abre directamente el asistente de creación con la plantilla «Proyecto en blanco», igual que «Usar plantilla» sobre ella en la galería de «Nuevo documento», sin pasar por la galería: para quien está acostumbrado a empezar por el menú Archivo. Como el proyecto se abre por el mismo camino que «Abrir carpeta», los cambios sin guardar del documento abierto siguen protegidos. El lanzador expone `getBlankTemplate()`, que carga el catálogo si hace falta (la app puede haber arrancado directamente con un documento, sin mostrar nunca el lanzador). 3 tests nuevos: la búsqueda de la plantilla, su carga sin haber pasado por el lanzador y que el botón sea el primero del menú y esté cableado.

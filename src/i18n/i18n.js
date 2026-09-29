@@ -202,7 +202,6 @@ const DICTIONARIES = {
     'preview.engineClassicUnknown': 'el motor rápido está desactivado',
     'outline.loading': 'Generando el esquema…',
     'preview.engineFallback': 'El motor rápido no pudo compilar y se ha usado el clásico: {reason}',
-    'preview.engineDisabled': 'El motor rápido se ha desactivado por un fallo: {reason}',
     'preview.stale': 'Desactualizada',
     // Sincronización editor ↔ vista previa (RF-16).
     'sync.toPreview': 'Llevar la vista previa a donde está el cursor',
@@ -924,7 +923,6 @@ const DICTIONARIES = {
     'preview.engineClassicUnknown': 'the fast engine is turned off',
     'outline.loading': 'Generating the outline…',
     'preview.engineFallback': 'The fast engine could not compile and the classic one was used: {reason}',
-    'preview.engineDisabled': 'The fast engine was turned off after a failure: {reason}',
     'preview.stale': 'Out of date',
     // Editor ↔ preview synchronisation (RF-16).
     'sync.toPreview': 'Take the preview to where the cursor is',

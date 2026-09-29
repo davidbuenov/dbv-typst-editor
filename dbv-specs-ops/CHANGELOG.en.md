@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- **0.12.1 `/code-simplify`:** three passes (bugs, security, compliance) with no critical or important findings; the unused translation key `preview.engineDisabled` (unused since before this version) is removed.
+
 - **0.12.1 `/test`: tests for the "classic engine" notice, the wiring and the Tinymist badge.** The RF-87.4 notice moves from `main.js` to `preview/engineNotice.js` so it can be tested: 8 tests (only visible with the classic engine, keeps the reason across later compilations, turns the fast engine back on BEFORE recompiling, hides when the fast engine is back, switches language). `mainWiring.test.js` checks that the outline and the notice follow `onCompiled`, that opening a project turns the fast engine back on and that there is no way left to pick the classic engine by hand; 2 more tests require the Tinymist badge texts never to be hard-coded in `main.js` again and to exist in both languages (issue #2). Mutation: 10 out of 10 deliberate changes to the new code are caught by some test. Also fixed an intermittent failure in `tests/real_book.rs`: the replace test rewrites the book copy and, in parallel, the outline parity test read a heading halfway through being replaced; they now run one at a time.
 
 - **`npm run dev` compiles the book in 6 s instead of 35 s.** `Cargo.toml` gains a development profile: dependencies at `opt-level = 2` and the app's own code at `opt-level = 1` (a lot of Typst code is generic and gets instantiated inside the app crate). On the real 206-page book, 35 s → 6 s (release: 5.4 s), well within the fast engine's time limit. Development only; the first build after the change takes a few extra minutes.

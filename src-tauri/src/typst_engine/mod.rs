@@ -86,12 +86,29 @@ pub async fn run(app: &AppHandle, args: &[&str]) -> Result<TypstOutput, TypstErr
     let stdout = String::from_utf8_lossy(&output.stdout).to_string();
     let stderr = String::from_utf8_lossy(&output.stderr).to_string();
 
-    let result = if output.status.success() {
+    if output.status.success() {
         Ok(TypstOutput { stdout, stderr })
     } else {
-        Err(TypstError::CompilationFailed(stderr))
+        Err(failure(output.status.code(), stderr))
+    }
+}
+
+/// Error de un sidecar que ha terminado mal.
+///
+/// Typst SIEMPRE explica en `stderr` por qué no compila un documento. Si sale
+/// con error sin decir nada, es que el proceso murió (una señal, como el SIGSEGV
+/// de los sidecars del AppImage del issue #2) o no llegó a hacer su trabajo: es
+/// un fallo de la herramienta, no del documento, y así debe llegar al frontend,
+/// que distingue los dos por `kind` (RF-89.5).
+pub(crate) fn failure(code: Option<i32>, stderr: String) -> TypstError {
+    if !stderr.trim().is_empty() {
+        return TypstError::CompilationFailed(stderr);
+    }
+    let how = match code {
+        Some(code) => format!("código {code}"),
+        None => "terminado por una señal".to_string(),
     };
-    result
+    TypstError::ExecutionFailed(format!("typst terminó sin dar ningún mensaje ({how})"))
 }
 
 /// Salida completa de un comando de terminal avanzado (Beta, §7.14).
@@ -259,6 +276,22 @@ pub async fn typst_version(app: AppHandle) -> Result<String, TypstError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn un_fallo_con_mensaje_es_del_documento() {
+        let error = failure(Some(1), "error: unexpected end of block".into());
+        assert!(matches!(error, TypstError::CompilationFailed(ref m) if m.contains("unexpected")));
+    }
+
+    #[test]
+    fn un_fallo_sin_mensaje_es_de_la_herramienta() {
+        // El SIGSEGV del issue #2: sin código de salida y sin stderr.
+        let killed = failure(None, String::new());
+        assert!(matches!(killed, TypstError::ExecutionFailed(ref m) if m.contains("señal")), "{killed:?}");
+        let silent = failure(Some(101), "  
+".into());
+        assert!(matches!(silent, TypstError::ExecutionFailed(ref m) if m.contains("101")), "{silent:?}");
+    }
 
     #[test]
     fn parse_version_extrae_el_numero_de_la_salida_real_del_cli() {

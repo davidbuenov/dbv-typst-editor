@@ -345,6 +345,9 @@ pub struct PreviewOutcome {
     /// Por qué esta compilación se sirvió con el motor clásico aunque el motor en
     /// proceso estaba activado (pánico, plazo, paquete sin descargar…).
     pub fallback_reason: Option<String>,
+    /// Esquema del documento (RF-89). Lo da el motor en proceso del mismo
+    /// compilado; con el clásico va vacío y el frontend lo pide al CLI.
+    pub outline: Option<Vec<super::outline::OutlineEntry>>,
 }
 
 impl PreviewOutcome {
@@ -360,6 +363,7 @@ impl PreviewOutcome {
             engine: "classic",
             diagnostics: Vec::new(),
             fallback_reason: None,
+            outline: None,
         }
     }
 }
@@ -596,6 +600,7 @@ pub async fn typst_compile_preview(
                     engine: "inproc",
                     diagnostics: done.diagnostics,
                     fallback_reason: None,
+                    outline: Some(done.outline),
                 });
             }
             Attempt::Failed { message } => return Err(TypstError::CompilationFailed(message)),
@@ -650,11 +655,7 @@ pub async fn typst_compile_preview(
 
     if code != Some(0) {
         // (d) El frontend conserva la última vista buena y enseña este stderr.
-        return Err(TypstError::CompilationFailed(remap_shadow_root(
-            &stderr,
-            &shadow_root,
-            &target.root,
-        )));
+        return Err(super::failure(code, remap_shadow_root(&stderr, &shadow_root, &target.root)));
     }
 
     let files = collect_page_files(workdir.path());
@@ -683,6 +684,7 @@ pub async fn typst_compile_preview(
         engine: "classic",
         diagnostics: Vec::new(),
         fallback_reason,
+        outline: None,
     })
 }
 

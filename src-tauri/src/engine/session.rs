@@ -41,10 +41,12 @@ use typst_layout::PagedDocument;
 
 use super::diagnostics::{self, Diagnostic, Level};
 use super::map::{Located, Rect, SourceMap};
+use super::outline;
 use super::pages;
 use super::worker::{CompileResult, Outcome, Request, Worker};
 use super::world::EngineWorld;
 use crate::typst_engine::compile::{window_indices, CompileTarget, PageGeometry, PreviewPage};
+use crate::typst_engine::outline::OutlineEntry;
 use crate::typst_engine::TypstError;
 
 /// Plazo de una compilación: el mismo que tiene hoy el motor clásico.
@@ -92,6 +94,9 @@ pub struct Done {
     pub pages: Vec<PreviewPage>,
     pub warnings: String,
     pub diagnostics: Vec<Diagnostic>,
+    /// Esquema del mismo documento (RF-89): viaja con la compilación, así que
+    /// siempre es de la generación que se ve.
+    pub outline: Vec<OutlineEntry>,
 }
 
 /// Cómo terminó un intento con el motor en proceso.
@@ -349,6 +354,7 @@ impl InProcEngine {
                     .into_iter()
                     .map(|size| PageGeometry { width_pt: size.width_pt, height_pt: size.height_pt })
                     .collect::<Vec<_>>();
+                let outline = outline::headings(&document);
                 let latest = Arc::new(Latest { generation, document, world, sources, map: OnceLock::new(), text_layer: OnceLock::new() });
                 let pages = window_indices(geometry.len(), first_page, window)
                     .into_iter()
@@ -356,7 +362,7 @@ impl InProcEngine {
                     .collect();
                 let warnings_text = diagnostics.iter().map(describe).collect::<Vec<_>>().join("\n");
                 *lock(&self.latest) = Some(latest);
-                Attempt::Done(Done { geometry, pages, warnings: warnings_text, diagnostics })
+                Attempt::Done(Done { geometry, pages, warnings: warnings_text, diagnostics, outline })
             }
             Outcome::Failed { errors, warnings, sources } => {
                 let Some(world) = lock(&self.active).as_ref().map(|active| active.world.clone()) else {

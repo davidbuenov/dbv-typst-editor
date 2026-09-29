@@ -16,11 +16,13 @@
 //   · `worker`   — el hilo de compilación ("gana la última").
 //   · `map`      — el mapa glifo → fuente y sus dos consultas.
 //   · `diagnostics` — errores y avisos como rangos por fichero.
+//   · `outline`  — el esquema (encabezados) del documento compuesto (RF-89).
 
 pub mod commands;
 pub mod diagnostics;
 pub mod links;
 pub mod map;
+pub mod outline;
 pub mod pages;
 pub mod session;
 pub mod text_layer;

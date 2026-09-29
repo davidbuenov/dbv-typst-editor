@@ -58,6 +58,12 @@ fn flatten_text(value: &serde_json::Value) -> String {
             if let Some(serde_json::Value::String(text)) = map.get("text") {
                 return text.clone();
             }
+            // Un espacio entre dos trozos con estilos distintos llega como su
+            // propio elemento, sin texto: sin esto, "Visible *mixto*" salía
+            // "Visiblemixto" (comprobado con el binario en `/build` de RF-89).
+            if matches!(map.get("func").and_then(|f| f.as_str()), Some("space" | "linebreak")) {
+                return " ".to_string();
+            }
             ["children", "body", "child"]
                 .iter()
                 .filter_map(|key| map.get(*key))
@@ -74,7 +80,9 @@ pub(crate) fn parse_pt(raw: &str) -> f64 {
     raw.trim_end_matches("pt").parse().unwrap_or(0.0)
 }
 
-const OUTLINE_QUERY: &str = "query(heading).map(h => (nivel: h.level, texto: h.body, \
+/// Solo los encabezados del índice (`outlined: true`), igual que el motor en
+/// proceso (`engine/outline.rs`, RF-89.3): el esquema no cambia según el motor.
+const OUTLINE_QUERY: &str = "query(heading.where(outlined: true)).map(h => (nivel: h.level, texto: h.body, \
 pagina: h.location().page(), y: h.location().position().y))";
 
 /// Extrae los encabezados del documento (Beta, §7.8), en el mismo orden que
@@ -143,6 +151,16 @@ mod tests {
         )
         .unwrap();
         assert_eq!(flatten_text(&value), "Resultados destacados");
+    }
+
+    #[test]
+    fn flatten_text_conserva_el_espacio_entre_estilos() {
+        // Salida real del binario para "= Visible *mixto*".
+        let value: serde_json::Value = serde_json::from_str(
+            r#"{"func":"sequence","children":[{"func":"text","text":"Visible"},{"func":"space"},{"func":"strong","body":{"func":"text","text":"mixto"}}]}"#,
+        )
+        .unwrap();
+        assert_eq!(flatten_text(&value), "Visible mixto");
     }
 
     #[test]

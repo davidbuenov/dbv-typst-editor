@@ -114,6 +114,10 @@ fn el_motor_aguanta_un_libro_de_mas_de_200_paginas() {
     println!("frío: {:?} · {} páginas", cold_time, cold.geometry.len());
     assert!(cold.geometry.len() >= 200, "el corpus debe pasar de 200 páginas, tiene {}", cold.geometry.len());
     assert!(cold_time < MAX_COLD, "compilación en frío demasiado lenta: {cold_time:?}");
+    // RF-89: el esquema viaja con la compilación (40 capítulos × 7 encabezados)
+    // y su coste queda dentro del tiempo de la edición que se mide abajo.
+    assert_eq!(cold.outline.len(), CHAPTERS * 7, "esquema incompleto: {} entradas", cold.outline.len());
+    assert!(cold.outline.windows(2).all(|pair| pair[0].page <= pair[1].page), "el esquema debe ir en orden de página");
 
     // 2 y 3. Cuarenta ediciones de un capítulo del final, con el texto sin guardar.
     let chapter_path = dir.path().join(format!("cap{:02}.typ", CHAPTERS - 1));

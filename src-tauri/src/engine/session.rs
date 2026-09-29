@@ -50,7 +50,15 @@ use crate::typst_engine::outline::OutlineEntry;
 use crate::typst_engine::TypstError;
 
 /// Plazo de una compilación: el mismo que tiene hoy el motor clásico.
-pub const COMPILE_TIMEOUT: Duration = Duration::from_secs(45);
+///
+/// En una compilación de depuración (`npm run dev`) Typst va sin optimizar y es
+/// unas 6 veces más lento (libro real de 206 páginas: 34 s frente a 5,4 s en
+/// release). Con 45 s, abrir el libro en desarrollo —con Tinymist compilándolo a
+/// la vez— agotaba el plazo y desactivaba el motor rápido toda la sesión, así
+/// que la sincronización volvía a ser por párrafo (hallado en la prueba de la
+/// 0.12.1). El plazo existe para cortar cuelgues, no compilaciones lentas.
+pub const COMPILE_TIMEOUT: Duration =
+    if cfg!(debug_assertions) { Duration::from_secs(300) } else { Duration::from_secs(45) };
 
 /// Qué motor sirve la vista previa.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

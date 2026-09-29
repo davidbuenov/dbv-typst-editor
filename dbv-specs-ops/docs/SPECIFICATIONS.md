@@ -1193,6 +1193,7 @@ un olvido, es una decisión de alcance tomada en esta misma sesión de `/spec`, 
 1. **Decisión del usuario:** se quita el botón «Motor: rápido / clásico». La vista previa usa siempre el motor en proceso, y el clásico queda **solo como respaldo automático**. RF-56.6 decía que el clásico se podía «forzar desde un ajuste»: ya no.
 2. La elección guardada por versiones anteriores (`dbv-typst-preview-engine`) se borra al arrancar, para que nadie se quede en el clásico sin forma de volver.
 3. El código del motor clásico no cambia (RF-67, opción c).
+4. **Camino de vuelta al motor rápido** *(añadido en la prueba de la 0.12.1, ver `ADR-V0121-001`)*: el conmutador era también la única forma de reactivar el motor rápido tras una desactivación de sesión (plazo agotado o pánico, RF-56.6). Sin él, la sincronización se quedaba por párrafo hasta reiniciar la app. Mientras lo que se ve lo compiló el respaldo, la barra de la vista previa muestra el aviso «⚠ Motor clásico» con el motivo; pulsarlo reactiva el motor rápido y recompila. Cada proyecto que se abre empieza con el motor rápido. En la compilación de depuración el plazo es de 300 s, porque ahí Typst es unas 6 veces más lento.
 
 ### RF-88 — Sidecars intactos en el AppImage e insignia de Tinymist traducida *(ya construido, commit `19e666f`; issue #2)*
 1. **Causa (reproducida en WSL con los AppImage publicados de la 0.11.0 y la 0.12.0):** linuxdeploy pasa `patchelf` por todo `usr/bin`. A `typst` y `tinymist`, binarios musl *static-pie*, les añade `RUNPATH` y un segmento `LOAD`, y mueren con SIGSEGV al arrancar. En el AppImage no funcionaban Tinymist, exportar a PDF/PNG ni el motor clásico. El `.deb` no estaba afectado.
@@ -1210,8 +1211,9 @@ un olvido, es una decisión de alcance tomada en esta misma sesión de `/spec`, 
    - **El documento compila y no tiene encabezados** (o todos son `outlined: false`): «Este documento no tiene encabezados todavía». Es el **único** caso en que sale este mensaje.
    - **El documento tiene un error de compilación:** se **conserva el último esquema bueno**, con un aviso discreto encima de que puede estar desactualizado. Si todavía no había ninguno, se dice que el documento no compila.
    - **Falla la herramienta** (el motor no responde, el sidecar no arranca, la réplica no se puede crear, la salida no se entiende): se muestra el **motivo real**, en los dos idiomas, en vez de la lista vacía.
-6. **Sin coste extra:** el esquema no puede añadir una segunda compilación. Con el motor en proceso se lee del compilado que ya existe.
-7. **Criterios de aceptación:**
+6. **Mientras se genera el primer esquema** *(petición del usuario en la prueba)*, el panel lo indica con el mismo indicador giratorio que la vista previa.
+7. **Sin coste extra:** el esquema no puede añadir una segunda compilación. Con el motor en proceso se lee del compilado que ya existe.
+8. **Criterios de aceptación:**
    - Tests en Rust sobre un documento con varios niveles, encabezados con estilos mezclados, uno `outlined: false`, varios ficheros incluidos y encabezados en páginas distintas: nivel, texto, página y posición correctos; el `outlined: false` no aparece.
    - Las páginas y posiciones coinciden con las del CLI sobre el mismo documento (prueba de paridad, como la de los crates en RF-56.1).
    - Tests del panel para los cuatro estados de RF-89.5: en particular, un fallo simulado del sidecar **no** muestra «no tiene encabezados».

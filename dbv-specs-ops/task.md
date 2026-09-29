@@ -605,6 +605,7 @@
   - [x] **Slice 124** (9 tests Rust; edición del corpus 64 → 66 ms) — Backend: `engine/outline.rs` (encabezados del `PagedDocument`, solo `outlined`), campo `outline` en `Done`/`PreviewOutcome`, filtro `outlined` en el CLI y salida sin mensaje → `executionFailed` (R-O2).
   - [x] **Slice 125** (11 tests del panel; 1062 Vitest) — Frontend: `outline.js` sigue a `onCompiled` con estados explícitos (pendiente, lista, sin encabezados, desactualizado, fallo); `preview.js` pasa `outline` y `error`; textos ES/EN.
   - [x] **`/build` de v0.12.1 COMPLETO (2026-09-29, commits `15f7bf0`, `acd42eb` y el del slice 126).** Suite: 1062 Vitest · 443 Rust · `verify:frontend` 12/12 · `verify:layout` 18/18 · `verify:engine` en verde (edición 66 ms) · `real_book` (esquema) en verde. **Siguiente: `/test`, y la prueba manual del usuario en `z6-IPbook`.**
+  - [x] **Prueba del usuario (2026-09-29), arreglos:** regresión de RF-87 (sin camino de vuelta al motor rápido tras una desactivación; aviso «⚠ Motor clásico», reactivación al abrir proyecto, plazo de 300 s en depuración) y reloj en el panel Esquema. 1064 Vitest · 443 Rust.
   - [x] **Slice 126** (paridad 192/192 con el CLI en el libro real, ≈0,2 ms) — Paridad con el CLI en `real_book.rs`, `ARCHITECTURE.md` §7.8, ayuda y changelog.
 
 ## 🔄 Context Snapshot / Snapshot de Contexto

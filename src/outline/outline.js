@@ -55,6 +55,8 @@ export function createOutline({ listEl, onNavigate, getTarget, fetchOutline = ge
   let lastGood = null;
   /** Descarta una respuesta del CLI que llega después de otra compilación. */
   let token = 0;
+  /** Hay una compilación en marcha (solo se enseña mientras no hay esquema). */
+  let compiling = false;
 
   function message(text, modifier) {
     const p = document.createElement('p');
@@ -65,7 +67,20 @@ export function createOutline({ listEl, onNavigate, getTarget, fetchOutline = ge
 
   function paint() {
     listEl.replaceChildren();
-    if (state.kind === 'pending') return;
+    if (state.kind === 'pending') {
+      // El primer esquema de un libro llega con su primera compilación, que
+      // puede tardar: se ve que se está generando, como en la vista previa.
+      if (compiling) {
+        const loading = document.createElement('p');
+        loading.className = 'outline__loading';
+        loading.setAttribute('role', 'status');
+        const spinner = document.createElement('span');
+        spinner.className = 'preview-page__spinner';
+        loading.append(spinner, t('outline.loading'));
+        listEl.append(loading);
+      }
+      return;
+    }
     if (state.kind === 'noCompile') {
       listEl.append(message(t('outline.doesNotCompile')));
       return;
@@ -97,6 +112,7 @@ export function createOutline({ listEl, onNavigate, getTarget, fetchOutline = ge
   }
 
   function showEntries(entries) {
+    compiling = false;
     lastGood = entries;
     state = { kind: 'list', entries, stale: false };
     paint();
@@ -104,6 +120,7 @@ export function createOutline({ listEl, onNavigate, getTarget, fetchOutline = ge
 
   /** Un error con `kind` (ver `TypstError`): del documento o de la herramienta. */
   function showError(error) {
+    compiling = false;
     if (error?.kind === 'compilationFailed') {
       // Se conserva el último esquema bueno, igual que la vista previa
       // conserva su última vista buena.
@@ -117,6 +134,11 @@ export function createOutline({ listEl, onNavigate, getTarget, fetchOutline = ge
   document.addEventListener('dbv-lang-changed', paint);
 
   return {
+    /** La vista previa empieza a compilar. */
+    onCompileStart() {
+      compiling = true;
+      if (state.kind === 'pending') paint();
+    },
     /** @param {CompiledResult} result */
     async onCompiled(result) {
       const mine = ++token;
@@ -130,7 +152,11 @@ export function createOutline({ listEl, onNavigate, getTarget, fetchOutline = ge
       }
       // Motor clásico de respaldo (RF-89.2): el esquema sale del CLI.
       const target = getTarget();
-      if (!target?.document || !target?.root) return;
+      if (!target?.document || !target?.root) {
+        compiling = false;
+        paint();
+        return;
+      }
       const fetched = await fetchOutline(target);
       if (mine !== token) return;
       if (fetched.ok) showEntries(fetched.value);
@@ -139,6 +165,7 @@ export function createOutline({ listEl, onNavigate, getTarget, fetchOutline = ge
     /** Otro documento u otro proyecto: nada de lo anterior vale. */
     clear() {
       token += 1;
+      compiling = false;
       lastGood = null;
       state = { kind: 'pending' };
       paint();

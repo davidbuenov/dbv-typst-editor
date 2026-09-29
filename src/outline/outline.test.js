@@ -113,6 +113,31 @@ describe('panel Esquema (RF-89.5)', () => {
     expect(messages()).toEqual([t('outline.doesNotCompile')]);
   });
 
+  it('mientras se genera el primer esquema lo dice, y el aviso se va al llegar', async () => {
+    const { outline, listEl, items } = setup();
+    outline.onCompileStart();
+    expect(listEl.querySelector('.outline__loading')?.textContent).toBe(t('outline.loading'));
+    await outline.onCompiled(inproc(ENTRIES));
+    expect(listEl.querySelector('.outline__loading')).toBeNull();
+    // Con el esquema ya puesto, recompilar al escribir no lo tapa con el reloj.
+    outline.onCompileStart();
+    expect(listEl.querySelector('.outline__loading')).toBeNull();
+    expect(items()).toEqual(['Introducción', 'Motivación']);
+  });
+
+  it('con el respaldo por CLI el reloj sigue hasta que llega su respuesta', async () => {
+    let resolveCli;
+    const fetchOutline = vi.fn().mockReturnValue(new Promise((resolve) => (resolveCli = resolve)));
+    const { outline, listEl, items } = setup({ fetchOutline });
+    outline.onCompileStart();
+    const pending = outline.onCompiled({ ok: true, engine: 'classic', outline: null });
+    expect(listEl.querySelector('.outline__loading')).not.toBeNull();
+    resolveCli({ ok: true, value: ENTRIES });
+    await pending;
+    expect(listEl.querySelector('.outline__loading')).toBeNull();
+    expect(items()).toEqual(['Introducción', 'Motivación']);
+  });
+
   it('los mensajes cambian de idioma sin recompilar', async () => {
     const { outline, messages } = setup();
     await outline.onCompiled(inproc([]));

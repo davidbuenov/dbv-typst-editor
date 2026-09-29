@@ -739,6 +739,24 @@ async function bootstrap() {
   wireFontDrop(workspace, toast.show, getAssetExtensions, isOverTree);
 
   const staleEl = el('preview-stale');
+  // Aviso «motor clásico» (RF-87): solo se ve si lo que hay en pantalla lo
+  // compiló el respaldo, y guarda el motivo del último cambio de motor.
+  const engineRetryButton = el('btn-engine-retry');
+  let classicReason = null;
+  function showEngineRetry(result) {
+    if (!result.ok) return;
+    if (result.engine === 'inproc') {
+      classicReason = null;
+      engineRetryButton.classList.add('hidden');
+      return;
+    }
+    if (result.fallbackReason) classicReason = result.fallbackReason;
+    engineRetryButton.title = t('preview.engineClassicTitle').replace(
+      '{reason}',
+      classicReason ?? t('preview.engineClassicUnknown')
+    );
+    engineRetryButton.classList.remove('hidden');
+  }
   // Problemas de la compilación (RF-59): subrayado en el editor, chip con el
   // recuento y lista que salta al sitio. Solo los da el motor en proceso.
   const problemsChip = el('problems-chip');
@@ -833,11 +851,15 @@ async function bootstrap() {
       if (!opened.ok) toast.show(`${t('preview.linkError')} — ${opened.error.message}`, 'error');
     },
     onStaleChange: (stale) => staleEl.classList.toggle('hidden', !stale),
-    onCompileStart: () => tracker.start(workspace.getCursorSource()?.docLength ?? 0),
+    onCompileStart: () => {
+      outline.onCompileStart();
+      return tracker.start(workspace.getCursorSource()?.docLength ?? 0);
+    },
     onRendered: (id) => tracker.rendered(id),
     onCompiled: (result) => {
       refreshProblems(result);
       outline.onCompiled(result);
+      showEngineRetry(result);
       if (result.ok && result.fallbackReason) {
         toast.show(t('preview.engineFallback').replace('{reason}', result.fallbackReason), 'error');
       }
@@ -890,7 +912,11 @@ async function bootstrap() {
   });
   snippetLoader.loadGlobal();
   window.addEventListener('focus', () => snippetLoader.loadGlobal());
-  workspace.setListener('projectOpened', (project) => snippetLoader.loadProject(project.isSingleFile ? null : project.root));
+  workspace.setListener('projectOpened', (project) => {
+    snippetLoader.loadProject(project.isSingleFile ? null : project.root);
+    // Cada proyecto empieza con el motor rápido, aunque el anterior lo desactivara.
+    engineSetMode('inproc');
+  });
 
   workspace.setListener('externalChange', (change) => {
     if (!change.isActiveDocument) preview.onExternalChange();
@@ -1488,6 +1514,15 @@ async function bootstrap() {
     // Sin almacenamiento no había nada guardado.
   }
   engineSetMode('inproc');
+  // Sin el conmutador, un fallo que desactiva el motor rápido (plazo agotado,
+  // pánico) no tenía vuelta atrás en toda la sesión, y la sincronización se
+  // quedaba por párrafo (hallado al probar la 0.12.1). `engine_set_mode` borra
+  // esa desactivación: se llama al pulsar el aviso y al abrir cada proyecto.
+  engineRetryButton.addEventListener('click', async () => {
+    engineRetryButton.classList.add('hidden');
+    await engineSetMode('inproc');
+    preview.restart();
+  });
 
   scopeButton.addEventListener('click', () => {
     workspace.setPreviewScope(workspace.getPreviewScope() === 'document' ? 'file' : 'document');

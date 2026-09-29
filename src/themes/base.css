@@ -406,6 +406,22 @@ body {
   color: var(--text-secondary);
 }
 
+/* Mientras se genera el primer esquema (el libro puede tardar varios segundos
+   en compilar), el panel lo dice en vez de quedarse en blanco. */
+.outline__loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.outline__loading .preview-page__spinner {
+  width: 14px;
+  height: 14px;
+  border-width: 2px;
+}
+
 .outline__empty--error {
   color: var(--status-error);
   overflow-wrap: anywhere;
@@ -1429,6 +1445,14 @@ body {
 
 .preview__chip:hover {
   border-color: var(--accent);
+  color: var(--text-primary);
+}
+
+/* Motor clásico de respaldo (RF-87): el único chip que avisa de algo, con el
+   color de aviso; pulsarlo vuelve al motor rápido. */
+.preview__chip--warn {
+  border-color: var(--status-warn);
+  background: var(--status-warn-bg);
   color: var(--text-primary);
 }
 

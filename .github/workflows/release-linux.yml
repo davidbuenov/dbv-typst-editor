@@ -159,6 +159,19 @@ jobs:
           (cd "$work" && ./original.AppImage --appimage-extract >/dev/null)
           chmod -R u+rwX,go+rX,go-w "$work/squashfs-root"
 
+          # Issue #2: linuxdeploy pasa `patchelf` por todo `usr/bin` y a los dos
+          # sidecars (binarios musl static-pie) les añade RUNPATH y un segmento
+          # LOAD nuevo. Eso los rompe: `typst --version` y `tinymist lsp` mueren
+          # con SIGSEGV nada más arrancar (reproducido en WSL con los AppImage
+          # publicados de 0.11.0 y 0.12.0), así que en el AppImage no había
+          # exportación, motor clásico ni Tinymist. El .deb no pasa por
+          # linuxdeploy y no le afecta. Se reponen los binarios vendorizados tal
+          # cual, sin tocar.
+          for sidecar in typst tinymist; do
+            install -m 0755 "src-tauri/binaries/${sidecar}-x86_64-unknown-linux-gnu" \
+              "$work/squashfs-root/usr/bin/$sidecar"
+          done
+
           wget -q -O "$work/appimagetool" \
             https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
           chmod +x "$work/appimagetool"
@@ -205,6 +218,14 @@ jobs:
             echo "$bad"
             exit 1
           fi
+
+          # Sidecars: deben ARRANCAR desde el AppImage final (ver issue #2 arriba).
+          for sidecar in typst tinymist; do
+            if ! "$check/squashfs-root/usr/bin/$sidecar" --version >/dev/null; then
+              echo "::error::El sidecar $sidecar del AppImage no arranca (¿patchelf de linuxdeploy?)"
+              exit 1
+            fi
+          done
 
           gh release upload "${{ steps.version.outputs.tag }}" "$out/$asset" "$out/$asset.zsync" --clobber
 

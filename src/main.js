@@ -455,40 +455,41 @@ async function bootstrap() {
 
   const lspStatusEl = el('lsp-status');
   let currentLspStatus = 'offline';
+  // Textos de la insignia por estado (issue #2: iban escritos en español
+  // incluso con la interfaz en inglés).
+  const LSP_BADGE = {
+    ready: ['lsp.badgeReady', 'lsp.titleReady'],
+    idle: ['lsp.badgeIdle', 'lsp.titleIdle'],
+    starting: ['lsp.badgeStarting', 'lsp.titleStarting'],
+    error: ['lsp.badgeError', 'lsp.titleError'],
+  };
   const updateLspStatus = (status) => {
     if (!lspStatusEl) return;
     currentLspStatus = status;
     if (status === 'offline') {
       lspStatusEl.classList.add('hidden');
-    } else {
-      lspStatusEl.classList.remove('hidden');
-      lspStatusEl.setAttribute('data-status', status);
-      if (status === 'ready') {
-        lspStatusEl.textContent = '● Tinymist LSP';
-        lspStatusEl.title = 'Language Server Tinymist activo. Pulsa para desactivarlo';
-      } else if (status === 'idle') {
-        lspStatusEl.textContent = '○ Activar Tinymist';
-        lspStatusEl.title = 'Tinymist está desactivado (autocompletado, hover y formateo). Pulsa para activarlo';
-      } else if (status === 'starting') {
-        lspStatusEl.textContent = '○ Conectando LSP...';
-        lspStatusEl.title = 'Iniciando Language Server Tinymist...';
-      } else if (status === 'error') {
-        lspStatusEl.textContent = '⚠ LSP error';
-        lspStatusEl.title = 'Tinymist no disponible';
-      }
+      return;
+    }
+    lspStatusEl.classList.remove('hidden');
+    lspStatusEl.setAttribute('data-status', status);
+    const keys = LSP_BADGE[status];
+    if (keys) {
+      lspStatusEl.textContent = t(keys[0]);
+      lspStatusEl.title = t(keys[1]);
     }
   };
+  document.addEventListener('dbv-lang-changed', () => updateLspStatus(currentLspStatus));
 
   lspStatusEl?.addEventListener('click', () => {
     if (currentLspStatus === 'idle') {
       lspClient.enable();
     } else if (currentLspStatus === 'ready') {
       lspClient.disable();
-      toast.show('Tinymist desactivado. Pulsa la insignia para volver a activarlo.');
+      toast.show(t('lsp.disabledToast'));
     } else if (currentLspStatus === 'starting') {
-      toast.show('Tinymist LSP está iniciando...', 'info');
+      toast.show(t('lsp.startingToast'), 'info');
     } else if (currentLspStatus === 'error') {
-      toast.show('Tinymist LSP no disponible. Revisa la consola o reinicia la app.', 'error');
+      toast.show(t('lsp.errorToast'), 'error');
     }
   });
 

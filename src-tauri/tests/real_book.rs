@@ -25,6 +25,15 @@ use dbv_typst_editor_lib::search::{search_project, SearchOptions};
 use dbv_typst_editor_lib::typst_engine::outline::{parse_cli_outline, OUTLINE_QUERY};
 use typst_layout::PagedDocument;
 
+/// Los tests comparten UNA copia del libro y uno de ellos la reescribe (y la
+/// restaura): en paralelo, la prueba de paridad del esquema leía un encabezado
+/// a medio reemplazar (visto en `/test` de la 0.12.1). Se ejecutan de uno en uno.
+static BOOK_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+fn lock_book() -> std::sync::MutexGuard<'static, ()> {
+    BOOK_LOCK.lock().unwrap_or_else(std::sync::PoisonError::into_inner)
+}
+
 fn book() -> Option<(PathBuf, PathBuf)> {
     let root = PathBuf::from(std::env::var("DBV_REAL_BOOK").ok()?);
     let main = root.join(std::env::var("DBV_REAL_BOOK_MAIN").unwrap_or_else(|_| "main.typ".into()));
@@ -68,6 +77,7 @@ fn apply(root: &Path, result: &dbv_typst_editor_lib::search::SearchResult) {
 #[test]
 #[ignore = "necesita DBV_REAL_BOOK con una copia del libro"]
 fn buscar_reemplazar_y_deshacer_en_el_libro_real() {
+    let _book = lock_book();
     let Some((root, _)) = book() else { return };
     // Una palabra que salga en varios ficheros del libro (`DBV_REAL_BOOK_WORD`).
     let word = std::env::var("DBV_REAL_BOOK_WORD").unwrap_or_else(|_| "program".into());
@@ -98,6 +108,7 @@ fn buscar_reemplazar_y_deshacer_en_el_libro_real() {
 #[test]
 #[ignore = "necesita DBV_REAL_BOOK con una copia del libro"]
 fn buscar_en_la_pagina_150_del_libro_real() {
+    let _book = lock_book();
     let Some((root, main)) = book() else { return };
     let world = EngineWorld::new(&root, &main).unwrap();
     world.begin_compile();
@@ -132,6 +143,7 @@ fn buscar_en_la_pagina_150_del_libro_real() {
 #[test]
 #[ignore = "necesita DBV_REAL_BOOK con una copia del libro"]
 fn el_esquema_en_proceso_coincide_con_el_del_cli_en_el_libro_real() {
+    let _book = lock_book();
     let Some((root, main)) = book() else { return };
     let world = EngineWorld::new(&root, &main).unwrap();
     world.begin_compile();

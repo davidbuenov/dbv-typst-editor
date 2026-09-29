@@ -608,6 +608,8 @@
   - [x] **Prueba del usuario (2026-09-29), arreglos:** regresión de RF-87 (sin camino de vuelta al motor rápido tras una desactivación; aviso «⚠ Motor clásico», reactivación al abrir proyecto, plazo de 300 s en depuración) y reloj en el panel Esquema. 1064 Vitest · 443 Rust.
   - [x] **Slice 126** (paridad 192/192 con el CLI en el libro real, ≈0,2 ms) — Paridad con el CLI en `real_book.rs`, `ARCHITECTURE.md` §7.8, ayuda y changelog.
 
+- [x] **Fase 60: `/test` de v0.12.1 — hecho el 2026-09-29.** El usuario probó la app real («ya funciona bien») y pidió seguir sin preguntar con `/test`, `/code-simplify` y `/ship` (tag, push y Release publicada). Añadido: perfil de desarrollo optimizado (`ce86247`, libro en `npm run dev` 35 s → 6 s). Tests nuevos: aviso «motor clásico» extraído a `preview/engineNotice.js` (8), cableado en `mainWiring.test.js` (3), insignia de Tinymist traducida (2). Mutación 10/10. Suite: **1077 Vitest · 443 Rust · `verify:frontend` 12/12 · `verify:layout` 18/18 · `verify:typst` 8/8 · `verify:templates` 40/40 · `verify:engine` en verde (edición 64 ms) · `real_book` 3/3** (corregida su carrera entre tests).
+
 ## 🔄 Context Snapshot / Snapshot de Contexto
 
 > ### 👉 RETOMAR AQUÍ (2026-09-29): v0.12.0 PUBLICADA

@@ -45,6 +45,26 @@ describe('main.js ↔ index.html', () => {
     expect(main).toContain("el('btn-new-blank-project').addEventListener");
   });
 
+  // v0.12.1: tres cableados que, rotos, no se ven en ningún test de módulo.
+  it('el esquema y el aviso «motor clásico» siguen a cada compilación de la vista previa', () => {
+    const onCompiled = main.slice(main.indexOf('onCompiled: (result) => {'), main.indexOf('onCompiled: (result) => {') + 300);
+    expect(onCompiled).toContain('outline.onCompiled(result)');
+    expect(onCompiled).toContain('engineNotice.onCompiled(result)');
+    expect(main).toContain('outline.onCompileStart()');
+    // El esquema ya no se recalcula por su cuenta (RF-89.1).
+    expect(main).not.toMatch(/outline\.(restart|onContentChanged)\(/);
+  });
+
+  it('cada proyecto que se abre reactiva el motor rápido (RF-87.4)', () => {
+    const opened = main.slice(main.indexOf("setListener('projectOpened'"), main.indexOf("setListener('projectOpened'") + 400);
+    expect(opened).toContain("engineSetMode('inproc')");
+  });
+
+  it('no queda ningún conmutador para elegir el motor clásico a mano (RF-87.1)', () => {
+    expect(idsInHtml.has('btn-preview-engine')).toBe(false);
+    expect(main).not.toContain("engineSetMode('classic')");
+  });
+
   it('no hay ids duplicados en index.html', () => {
     const all = [...html.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1]);
     const duplicated = all.filter((id, index) => all.indexOf(id) !== index);

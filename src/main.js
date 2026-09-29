@@ -28,6 +28,7 @@ import { createAlwaysOnTop } from './app/alwaysOnTop.js';
 import { createLauncher } from './launcher/launcher.js';
 import { createTemplateGalleryModal } from './launcher/templateGalleryModal.js';
 import { createOutline } from './outline/outline.js';
+import { createEngineNotice } from './preview/engineNotice.js';
 import { closeAllPanels, registerPanel } from './panels/registerPanel.js';
 import { createPreview } from './preview/preview.js';
 import { createTerminal } from './terminal/terminal.js';
@@ -739,24 +740,12 @@ async function bootstrap() {
   wireFontDrop(workspace, toast.show, getAssetExtensions, isOverTree);
 
   const staleEl = el('preview-stale');
-  // Aviso «motor clásico» (RF-87): solo se ve si lo que hay en pantalla lo
-  // compiló el respaldo, y guarda el motivo del último cambio de motor.
-  const engineRetryButton = el('btn-engine-retry');
-  let classicReason = null;
-  function showEngineRetry(result) {
-    if (!result.ok) return;
-    if (result.engine === 'inproc') {
-      classicReason = null;
-      engineRetryButton.classList.add('hidden');
-      return;
-    }
-    if (result.fallbackReason) classicReason = result.fallbackReason;
-    engineRetryButton.title = t('preview.engineClassicTitle').replace(
-      '{reason}',
-      classicReason ?? t('preview.engineClassicUnknown')
-    );
-    engineRetryButton.classList.remove('hidden');
-  }
+  // Aviso «motor clásico» (RF-87.4): el camino de vuelta al motor rápido.
+  const engineNotice = createEngineNotice({
+    button: el('btn-engine-retry'),
+    setMode: engineSetMode,
+    restart: () => preview.restart(),
+  });
   // Problemas de la compilación (RF-59): subrayado en el editor, chip con el
   // recuento y lista que salta al sitio. Solo los da el motor en proceso.
   const problemsChip = el('problems-chip');
@@ -859,7 +848,7 @@ async function bootstrap() {
     onCompiled: (result) => {
       refreshProblems(result);
       outline.onCompiled(result);
-      showEngineRetry(result);
+      engineNotice.onCompiled(result);
       if (result.ok && result.fallbackReason) {
         toast.show(t('preview.engineFallback').replace('{reason}', result.fallbackReason), 'error');
       }
@@ -1513,16 +1502,10 @@ async function bootstrap() {
   } catch {
     // Sin almacenamiento no había nada guardado.
   }
+  // `engine_set_mode` borra además una desactivación de sesión del motor rápido
+  // (plazo, pánico): se llama aquí, al abrir cada proyecto y desde el aviso
+  // «motor clásico» (`preview/engineNotice.js`).
   engineSetMode('inproc');
-  // Sin el conmutador, un fallo que desactiva el motor rápido (plazo agotado,
-  // pánico) no tenía vuelta atrás en toda la sesión, y la sincronización se
-  // quedaba por párrafo (hallado al probar la 0.12.1). `engine_set_mode` borra
-  // esa desactivación: se llama al pulsar el aviso y al abrir cada proyecto.
-  engineRetryButton.addEventListener('click', async () => {
-    engineRetryButton.classList.add('hidden');
-    await engineSetMode('inproc');
-    preview.restart();
-  });
 
   scopeButton.addEventListener('click', () => {
     workspace.setPreviewScope(workspace.getPreviewScope() === 'document' ? 'file' : 'document');

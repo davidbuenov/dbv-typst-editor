@@ -573,6 +573,8 @@
   - **Simplificación:** `getOpenDocumentsSnapshot` sale de `getOpenTexts` (un solo recorrido de las pestañas); el estado de la búsqueda de la vista previa se declara antes de usarse.
   - **Deuda técnica registrada:** `workspace.js` pasa de 1.321 a ≈1.800 líneas con las pestañas; conviene extraer la gestión de pestañas a su propio módulo en una versión próxima (sin cambiar comportamiento, con `workspace.flows.test.js` como red).
   - Suite al cerrar: 1049 Vitest · 433 Rust · `verify:*` en verde. `.exe` de release recompilado para la prueba manual.
+- [x] **Fase 55: prueba manual del usuario de v0.12.0 — SUPERADA el 2026-09-29.** El usuario probó el `.exe` de release (lista de la Fase 53): «todo está perfecto». Un único arreglo durante la prueba: F12, Mayús+F12 y F2 sobre texto normal ahora explican dónde funcionan en vez de decir «función interna de Typst» (commit `d89c519`, changelog ES + EN, 2 tests; suite 1051 Vitest · 433 Rust). Falsa alarma aclarada: en el teclado español Ctrl+/ se pulsa como Ctrl+Mayús+7, y así comenta la línea (RF-80.4) sin cambios. Quedan sin probar solo los puntos que no dependen de Windows: Cmd+W / Cmd+Mayús+W en un Mac y el `.zsync` en la próxima Release de Linux.
+  - **👉 SIGUIENTE: `/ship` de la 0.12.0** (bump en `package.json`, `tauri.conf.json`, `Cargo.toml` y `Cargo.lock`; sección `[0.12.0]` en los DOS changelogs; READMEs ES/EN; `.msix` con `npm run tauri:windows:build` y `notasActualizacionStore_v0.12.0.md`). Tag, push y publicar la Release solo con permiso explícito del usuario.
 
 - [x] **→ Especificado como RF-83 (§5l, 2026-09-28).** ~~Backlog para el `/spec` de la 0.12.0 — guardar el documento principal en el manifiesto~~ (anotado el 2026-09-28, a petición del usuario). Hoy (RF-53.4) la elección vive solo en el `localStorage` de la app y no viaja con el proyecto (otro ordenador, git, `.dbvt`). Apareció un borrador sin conectar, `set_project_entrypoint` en `project.rs` con 3 tests, que escribe `entrypoint` en `settings/dbv-project.toml` y crea el manifiesto si no existe. **Contradice RF-53.4 y R-MVP-3 tal como están redactados**, así que se apartó a `git stash` («RF-53 borrador…», recuperable con `git stash list` / `git stash pop`) para decidirlo en el `/spec` en vez de parchearlo. El usuario se inclina por escribir el manifiesto también en proyectos ajenos: otras aplicaciones lo ignoran y DBV lo aprovecha al reabrir. Puntos a resolver en el `/spec`: (1) ruido en `git status` de repositorios compartidos; (2) choque con una carpeta `settings/` propia del proyecto; (3) carpetas de solo lectura: se mantiene el `localStorage` como respaldo; (4) que renombrar, mover o borrar el principal desde el árbol actualice también el manifiesto; (5) confinar la ruta (sin `..`, sin rutas absolutas, solo `.typ`), que el borrador no hace; (6) reescribir RF-53.4 y matizar R-MVP-3.
 
@@ -590,6 +592,13 @@
   - **Pasos:** `/spec` (RF nuevo + decisión sobre Herramientas en sandbox) → `/plan` (manifest, metainfo, CI) → `/build` → `/test` en Linux real.
 
 ## 🔄 Context Snapshot / Snapshot de Contexto
+
+> ### 👉 RETOMAR AQUÍ (2026-09-29): `/ship` de la v0.12.0
+>
+> `/build` (Fase 52, slices 104-123), `/test` (Fase 53), `/code-simplify` (Fase 54) y la prueba manual
+> del usuario en el `.exe` de release (Fase 55) están hechos: **todo OK**. Último commit `d89c519`;
+> `master` va 27 commits por delante de `origin`, sin push ni tag. Siguiente paso: `/ship` (ver la
+> Fase 55). Lo que sigue más abajo es el histórico de sesiones anteriores.
 
 > ### 👉 CÓMO RETOMAR ESTE PROYECTO (leer esto primero) — actualizado 2026-09-15, v0.7.0 LISTA PARA TAG+PUSH+INSTALADORES
 >

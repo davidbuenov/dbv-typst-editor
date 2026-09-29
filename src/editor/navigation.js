@@ -14,6 +14,7 @@
 //   · un destino fuera del proyecto (la caché de paquetes) se abre en solo
 //     lectura.
 
+import { syntaxTree } from '@codemirror/language';
 import { posFromLsp } from './lspClient.js';
 import { revealRangeAndFlash } from './syncFlash.js';
 import { pathKey, relativeToRoot } from '../app/paths.js';
@@ -39,6 +40,22 @@ export function symbolAt(state, pos) {
     }
   }
   return found;
+}
+
+/**
+ * ¿El cursor está sobre texto normal (prosa), no sobre código? Allí no hay
+ * nada que definir, referenciar ni renombrar, y el aviso de «función interna»
+ * confundía (lo pidió el usuario al probar F12 sobre un párrafo). Se mira el
+ * nodo más interior del árbol de Typst a los dos lados del cursor: en prosa es
+ * `Text`; en código, `Ident`, `Ref`, `MathIdent`, `Str`… Sin árbol (un fichero
+ * que no es Typst, o aún sin analizar) se da por código y decide Tinymist.
+ * @param {import('@codemirror/state').EditorState} state
+ * @param {number} pos
+ */
+export function isPlainText(state, pos) {
+  const tree = syntaxTree(state);
+  const names = [-1, 1].map((side) => tree.resolveInner(pos, side).name);
+  return names.every((name) => name === 'Text' || name === 'Space');
 }
 
 /**
@@ -84,6 +101,13 @@ export function groupLocations(locations, root, contentOf) {
  */
 export function createNavigation({ lspClient, workspace, readFile, notify, t }) {
   let showReferences = () => {};
+
+  /** Aviso para texto normal: dónde sí funcionan F12, Mayús+F12 y F2. */
+  function onPlainText(view) {
+    const plain = isPlainText(view.state, view.state.selection.main.head);
+    if (plain) notify(t('nav.plainText'));
+    return plain;
+  }
 
   /** Motivo por el que no se puede navegar ahora, o `null` si se puede. */
   function unavailableReason() {
@@ -136,6 +160,7 @@ export function createNavigation({ lspClient, workspace, readFile, notify, t }) 
       notify(reason, 'error');
       return false;
     }
+    if (onPlainText(view)) return false;
     const { head, line, character } = cursor(view);
     const symbol = symbolAt(view.state, head);
     const targets = await lspClient.getDefinition(line, character);
@@ -167,6 +192,7 @@ export function createNavigation({ lspClient, workspace, readFile, notify, t }) 
       notify(reason, 'error');
       return false;
     }
+    if (onPlainText(view)) return false;
     const { head, line, character } = cursor(view);
     const symbol = symbolAt(view.state, head);
     // Medido en /test sobre un libro de 224 páginas: la primera búsqueda de
@@ -189,6 +215,7 @@ export function createNavigation({ lspClient, workspace, readFile, notify, t }) 
     findReferences,
     openAt,
     unavailableReason,
+    onPlainText,
     /** Dónde se enseñan las referencias (el panel «Buscar», RF-78). */
     setReferencesView(show) {
       showReferences = show;

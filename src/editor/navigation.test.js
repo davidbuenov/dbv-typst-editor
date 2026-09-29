@@ -10,7 +10,8 @@ import { EditorState } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 import captured from './__fixtures__/tinymist-0.15.8.json';
 import { normalizeLocations } from './lspClient.js';
-import { createNavigation, groupLocations, symbolAt } from './navigation.js';
+import { typst_lezer } from 'codemirror-lang-typst/lezer';
+import { createNavigation, groupLocations, isPlainText, symbolAt } from './navigation.js';
 import { createEditor } from './editor.js';
 import { reloadPrefsForTests } from '../app/prefs.js';
 
@@ -44,6 +45,18 @@ describe('respuestas de Tinymist normalizadas', () => {
     const state = EditorState.create({ doc: 'Ver @fig-gato y #saluda("Ana").' });
     expect(symbolAt(state, 6)).toEqual({ text: '@fig-gato', isLabel: true });
     expect(symbolAt(state, 19)).toEqual({ text: 'saluda', isLabel: false });
+  });
+});
+
+describe('texto normal frente a código', () => {
+  it('isPlainText reconoce la prosa y no el código, las etiquetas ni las matemáticas', () => {
+    const doc = 'Un párrafo normal.\n#saluda("Ana") y @fig-gato y $alpha$.';
+    const state = EditorState.create({ doc, extensions: [typst_lezer()] });
+    const at = (needle, offset = 1) => doc.indexOf(needle) + offset;
+    expect(isPlainText(state, at('párrafo'))).toBe(true);
+    expect(isPlainText(state, at('saluda'))).toBe(false);
+    expect(isPlainText(state, at('@fig'))).toBe(false);
+    expect(isPlainText(state, at('alpha'))).toBe(false);
   });
 });
 
@@ -116,6 +129,16 @@ describe('navegación (RF-77.1, RF-77.3)', () => {
     workspace.hasEngineErrors = () => true;
     await navigation.goToDefinition(view);
     expect(notify).toHaveBeenLastCalledWith('nav.labelNeedsCompile', 'error');
+  });
+
+  it('sobre texto normal explica dónde funciona F12 y no pregunta a Tinymist', async () => {
+    view.setState(EditorState.create({ doc: 'Un párrafo de prosa normal.', extensions: [typst_lezer()] }));
+    view.dispatch({ selection: { anchor: 5 } });
+    expect(await navigation.goToDefinition(view)).toBe(false);
+    expect(await navigation.findReferences(view)).toBe(false);
+    expect(notify).toHaveBeenCalledWith('nav.plainText');
+    expect(lsp.getDefinition).not.toHaveBeenCalled();
+    expect(lsp.getReferences).not.toHaveBeenCalled();
   });
 
   it('con Tinymist apagado o arrancando dice el motivo y no pregunta', async () => {

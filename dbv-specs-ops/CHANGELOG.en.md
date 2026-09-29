@@ -77,6 +77,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - **[Important, `/code-simplify`] Returning to a tab did not refresh the toolbar** (inside or outside an equation) until the cursor moved: `setState` does not go through the change listener. It now refreshes on activation.
 
+- **F12 on a paragraph said "built-in Typst function" (user test).** Pressing F12, Shift+F12 or F2 on plain text asked Tinymist and, with no target, showed a notice that did not apply. Now the Typst syntax tree under the cursor is checked (`isPlainText`: in prose the node is `Text`) and the notice explains where they do work: on a function or variable (`#name`), a label (`@label`, `<label>`) or an `#include` path; Tinymist is not asked. 2 new tests.
+
 ## [0.11.0] - 2026-09-26
 
 A full file explorer, automatic reference updates, "New chapter…", working links in the preview and a local version history. Fixes the external-change dialog that made 0.10.0's auto-save unusable. Born from heavy use of 0.10.0 with a real multi-chapter book.

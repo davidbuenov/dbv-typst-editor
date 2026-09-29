@@ -77,6 +77,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - **[Importante, `/code-simplify`] Al volver a una pestaña, la barra de herramientas no se refrescaba** (dentro o fuera de una ecuación) hasta mover el cursor: `setState` no pasa por el oyente de cambios. Ahora se refresca al activar.
 
+- **F12 sobre un párrafo decía «función interna de Typst» (prueba del usuario).** Pulsar F12, Mayús+F12 o F2 sobre texto normal preguntaba a Tinymist y, sin destino, daba un aviso que no correspondía. Ahora se mira el árbol de Typst bajo el cursor (`isPlainText`: en prosa el nodo es `Text`) y se explica dónde sí funcionan: sobre una función o variable (`#nombre`), una etiqueta (`@etiqueta`, `<etiqueta>`) o la ruta de un `#include`; y no se pregunta a Tinymist. 2 tests nuevos.
+
 ## [0.11.0] - 2026-09-26
 
 Explorador de archivos completo, actualización automática de referencias, «Nuevo capítulo…», enlaces funcionales en la vista previa e historial local de versiones. Corrige el diálogo de cambio externo que hacía inutilizable el guardado automático de la 0.10.0. Nacida del uso intensivo de la 0.10.0 con un libro real de varios capítulos.

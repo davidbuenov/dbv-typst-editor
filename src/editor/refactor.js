@@ -160,7 +160,7 @@ export function pickAction(view, actions) {
  * @param {ReturnType<import('./lspClient.js').createLspClient> | undefined} deps.lspClient
  * @param {object} deps.workspace
  * @param {ReturnType<import('../app/multiFileEdit.js').createMultiFileEdit>} deps.multiFileEdit
- * @param {{unavailableReason: () => string | null}} deps.navigation
+ * @param {{unavailableReason: () => string | null, onPlainText: (view: any) => boolean}} deps.navigation
  * @param {(path: string) => void} deps.renameFile Renombrado del árbol (RF-69).
  * @param {(message: string, tone?: string) => void} deps.notify
  * @param {(key: string) => string} deps.t
@@ -198,6 +198,7 @@ export function createRefactor({ lspClient, workspace, multiFileEdit, navigation
       notify(reason, 'error');
       return false;
     }
+    if (navigation.onPlainText?.(view)) return false;
     const head = view.state.selection.main.head;
     const { line, character } = lspPosition(view, head);
     const symbol = symbolAt(view.state, head);

@@ -88,3 +88,16 @@ sys-locale = "0.3"
 
 [dev-dependencies]
 tempfile = "3"
+
+# `npm run dev` compila en depuración, y Typst sin optimizar es unas 6 veces más
+# lento: con el libro real de 206 páginas, 35 s por compilación (5,4 s en
+# release), lo que agotaba el plazo del motor rápido. Las dependencias van
+# optimizadas y el código propio con `opt-level = 1`, porque mucho código de
+# Typst es genérico y se instancia dentro de este crate con SU nivel: solo con
+# las dependencias se quedaba en 17 s; con los dos, 6 s. Sigue siendo
+# depurable, y no afecta a lo que se publica (perfil release).
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 2

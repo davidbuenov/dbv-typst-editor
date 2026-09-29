@@ -64,6 +64,12 @@ fn flatten_text(value: &serde_json::Value) -> String {
             if matches!(map.get("func").and_then(|f| f.as_str()), Some("space" | "linebreak")) {
                 return " ".to_string();
             }
+            // Las comillas tipográficas tampoco llevan texto: «Two's Complement»
+            // salía «Twos Complement» (prueba de paridad con el libro real, RF-89.7).
+            if map.get("func").and_then(|f| f.as_str()) == Some("smartquote") {
+                let double = map.get("double").and_then(|d| d.as_bool()).unwrap_or(true);
+                return if double { "\"" } else { "'" }.to_string();
+            }
             ["children", "body", "child"]
                 .iter()
                 .filter_map(|key| map.get(*key))
@@ -82,7 +88,7 @@ pub(crate) fn parse_pt(raw: &str) -> f64 {
 
 /// Solo los encabezados del índice (`outlined: true`), igual que el motor en
 /// proceso (`engine/outline.rs`, RF-89.3): el esquema no cambia según el motor.
-const OUTLINE_QUERY: &str = "query(heading.where(outlined: true)).map(h => (nivel: h.level, texto: h.body, \
+pub const OUTLINE_QUERY: &str = "query(heading.where(outlined: true)).map(h => (nivel: h.level, texto: h.body, \
 pagina: h.location().page(), y: h.location().position().y))";
 
 /// Extrae los encabezados del documento (Beta, §7.8), en el mismo orden que
@@ -113,8 +119,14 @@ pub async fn typst_outline(
     ];
     args.extend(font_args.iter().map(String::as_str));
     let output = run(&app, &args).await?;
+    parse_cli_outline(&output.stdout)
+}
 
-    let raw: Vec<RawHeading> = serde_json::from_str(output.stdout.trim()).map_err(|error| {
+/// Convierte la salida JSON de `typst eval OUTLINE_QUERY` en entradas del
+/// esquema. Pública para la prueba de paridad con el motor en proceso
+/// (`tests/real_book.rs`, RF-89).
+pub fn parse_cli_outline(stdout: &str) -> Result<Vec<OutlineEntry>, TypstError> {
+    let raw: Vec<RawHeading> = serde_json::from_str(stdout.trim()).map_err(|error| {
         TypstError::ExecutionFailed(format!("salida de outline inesperada: {error}"))
     })?;
 
@@ -161,6 +173,15 @@ mod tests {
         )
         .unwrap();
         assert_eq!(flatten_text(&value), "Visible mixto");
+    }
+
+    #[test]
+    fn flatten_text_conserva_las_comillas_tipograficas() {
+        let value: serde_json::Value = serde_json::from_str(
+            r#"{"func":"sequence","children":[{"func":"text","text":"Two"},{"func":"smartquote","double":false},{"func":"text","text":"s"}]}"#,
+        )
+        .unwrap();
+        assert_eq!(flatten_text(&value), "Two's");
     }
 
     #[test]

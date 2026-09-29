@@ -1,5 +1,5 @@
 // =============================================================================
-// DBV Typst Editor — Aceptación sobre un libro real (RF-78.7, RF-82.5)
+// DBV Typst Editor — Aceptación sobre un libro real (RF-78.7, RF-82.5, RF-89.7)
 // Copyright (c) 2026 David Bueno Vallejo
 // Licensed under the MIT License. See LICENSE for details.
 // Built with dbv-specs-ops · https://github.com/davidbuenov/dbv-specs-ops
@@ -15,11 +15,14 @@
 
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 use std::time::Instant;
 
+use dbv_typst_editor_lib::engine::outline::headings;
 use dbv_typst_editor_lib::engine::text_layer::TextLayer;
 use dbv_typst_editor_lib::engine::world::EngineWorld;
 use dbv_typst_editor_lib::search::{search_project, SearchOptions};
+use dbv_typst_editor_lib::typst_engine::outline::{parse_cli_outline, OUTLINE_QUERY};
 use typst_layout::PagedDocument;
 
 fn book() -> Option<(PathBuf, PathBuf)> {
@@ -122,6 +125,49 @@ fn buscar_en_la_pagina_150_del_libro_real() {
 }
 
 /// Ficheros de texto del libro (para comparar antes y después).
+/// RF-89.7: el esquema del motor en proceso es el mismo que el del CLI (el
+/// respaldo) sobre el libro real: mismas entradas, nivel, página y posición
+/// exactos, y el mismo texto salvo espacios. Necesita además el sidecar
+/// vendorizado (`npm run vendor:typst`).
+#[test]
+#[ignore = "necesita DBV_REAL_BOOK con una copia del libro"]
+fn el_esquema_en_proceso_coincide_con_el_del_cli_en_el_libro_real() {
+    let Some((root, main)) = book() else { return };
+    let world = EngineWorld::new(&root, &main).unwrap();
+    world.begin_compile();
+    let document = typst::compile::<PagedDocument>(&*world).output.expect("el libro debe compilar");
+    let started = Instant::now();
+    let inproc = headings(&document);
+    println!("esquema en proceso: {} entradas en {:?}", inproc.len(), started.elapsed());
+
+    let sidecar = fs::read_dir(Path::new(env!("CARGO_MANIFEST_DIR")).join("binaries"))
+        .unwrap()
+        .flatten()
+        .map(|entry| entry.path())
+        .find(|path| path.file_name().is_some_and(|name| name.to_string_lossy().starts_with("typst-")))
+        .expect("falta el sidecar: npm run vendor:typst");
+    let output = Command::new(sidecar)
+        .args(["eval", OUTLINE_QUERY, "--root"])
+        .arg(&root)
+        .arg("--in")
+        .arg(&main)
+        .args(["--format", "json"])
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+    let cli = parse_cli_outline(&String::from_utf8_lossy(&output.stdout)).unwrap();
+    println!("esquema del CLI: {} entradas", cli.len());
+
+    let squash = |text: &str| text.split_whitespace().collect::<Vec<_>>().join(" ");
+    assert!(!inproc.is_empty(), "el libro tiene encabezados");
+    assert_eq!(inproc.len(), cli.len(), "distinto número de entradas");
+    for (a, b) in inproc.iter().zip(&cli) {
+        assert_eq!((a.level, a.page), (b.level, b.page), "{a:?} vs {b:?}");
+        assert!((a.y_pt - b.y_pt).abs() < 0.01, "posición distinta: {a:?} vs {b:?}");
+        assert_eq!(squash(&a.text), squash(&b.text), "texto distinto");
+    }
+}
+
 fn walk(root: &Path) -> Vec<PathBuf> {
     let mut out = Vec::new();
     let mut pending = vec![root.to_path_buf()];

@@ -598,6 +598,9 @@
   - **Alternativa barata mientras tanto:** los `.AppImage`/`.deb` ya publicados.
   - **Pasos:** `/spec` (RF nuevo + decisión sobre Herramientas en sandbox) → `/plan` (manifest, metainfo, CI) → `/build` → `/test` en Linux real.
 
+- [x] **Fase 57: arreglos tras publicar la 0.12.0 (2026-09-29), fuera de ciclo, en los commits `39dad88` y `19e666f`.** Vista previa estrecha que se salía del panel (RF-86), retirada del conmutador de motor tras un «Operation not permitted» en un Mac (RF-87) y sidecars rotos por linuxdeploy en el AppImage + insignia de Tinymist sin traducir (RF-88, issue #2 de GitHub). Documentados como RF-86 a RF-88 en el `/spec` de la 0.12.1.
+- [x] **Fase 58: `/spec` de v0.12.1 — cerrado el 2026-09-29 (`SPECIFICATIONS.md` v1.16, §5m, RF-86 a RF-89; `ADR-V0121-001`).** RF-89: el esquema sale del motor en proceso (con el CLI solo de respaldo), dice por qué no lo hay y lista solo los encabezados del índice. **Siguiente: `/plan` de v0.12.1.** Pendiente fuera del código: responder al issue #2 cuando salga la 0.12.1 (borrador en la conversación del 2026-09-29) y pedir al usuario de Mac que pruebe a exportar PDF y `…/Contents/MacOS/typst --version`.
+
 ## 🔄 Context Snapshot / Snapshot de Contexto
 
 > ### 👉 RETOMAR AQUÍ (2026-09-29): v0.12.0 PUBLICADA

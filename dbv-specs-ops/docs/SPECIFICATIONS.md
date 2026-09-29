@@ -1,7 +1,8 @@
 # 📋 Especificaciones: DBV Typst Editor
 
-> **Fase:** `/spec` (Especificación) → **v0.12.0 especificada**
-> **Estado:** 🔒 **CONGELADO v1.15 — 2026-09-28.** *(Precisado en `/plan` el mismo día con lo comprobado contra los binarios reales: RF-77.1, .4, .5 y .9, RF-79.6, RF-81.4 y RF-84.3, y **RF-85** nuevo, la corrección de un fallo publicado. Ver `ADR-V0120-001`.)* v1.15 abre v0.12.0 (§5l: **RF-74 a RF-84**): autocompletado completo y ayuda de firma, zoom que conserva la página y «Proyecto en blanco» más a mano (RF-74 a RF-76, ya construidos fuera de ciclo); navegar y refactorizar con Tinymist; buscar y reemplazar en el proyecto; pestañas; atajos documentados; snippets de usuario; buscar y copiar en la vista previa; el documento principal en el manifiesto (modifica RF-53.4); y actualizaciones incrementales del AppImage. Cierra RF-67: el motor clásico se queda como está. Decisiones en `ADR-V0120-001` (`memory.md`).
+> **Fase:** `/spec` (Especificación) → **v0.12.1 especificada**
+> **Estado:** 🔒 **CONGELADO v1.16 — 2026-09-29.** v1.16 abre v0.12.1 (§5m: **RF-86 a RF-89**): la vista previa estrecha no se sale del panel, se retira el conmutador de motor (modifica RF-56.6) y los sidecars van intactos en el AppImage con la insignia de Tinymist traducida (RF-86 a RF-88, ya construidos fuera de ciclo); y el esquema sale del motor en proceso y dice por qué no lo hay (RF-89, recupera RF-56.7). Decisiones en `ADR-V0121-001` (`memory.md`).
+> **v1.15 (2026-09-28):** *(Precisado en `/plan` el mismo día con lo comprobado contra los binarios reales: RF-77.1, .4, .5 y .9, RF-79.6, RF-81.4 y RF-84.3, y **RF-85** nuevo, la corrección de un fallo publicado. Ver `ADR-V0120-001`.)* v1.15 abre v0.12.0 (§5l: **RF-74 a RF-84**): autocompletado completo y ayuda de firma, zoom que conserva la página y «Proyecto en blanco» más a mano (RF-74 a RF-76, ya construidos fuera de ciclo); navegar y refactorizar con Tinymist; buscar y reemplazar en el proyecto; pestañas; atajos documentados; snippets de usuario; buscar y copiar en la vista previa; el documento principal en el manifiesto (modifica RF-53.4); y actualizaciones incrementales del AppImage. Cierra RF-67: el motor clásico se queda como está. Decisiones en `ADR-V0120-001` (`memory.md`).
 > **v1.14 (2026-09-26):** v1.14 abre v0.11.0 (§5k: **RF-68 a RF-73**): conflicto externo decidido por contenido (arregla el guardado automático), operaciones de ficheros en el panel Archivos, actualización automática de referencias al mover o renombrar, acción «Nuevo capítulo…», enlaces funcionales en la vista previa e historial local de versiones. Decisiones en `ADR-V0110-001` (`memory.md`).
 > **v1.13 (2026-09-21):** v1.13 abre v0.10.0 (§5j: **RF-61 a RF-67**): arreglo de Formatear, resaltado de BibTeX, pulido (ocultos, números de línea, refresco), guardado automático opcional con indicador de modificado, ruta corta, no compilar los no principales y análisis previo sobre retirar el motor clásico. **Anterior — v1.12 (2026-09-20).** v1.12 abre v0.9.0 (§5i: **RNF-MOTOR, RF-56 a RF-60**): motor de vista previa **en proceso** (Typst como librería) con sincronización exacta por palabra y frase en los dos sentidos, velocidad tras cada edición, menú contextual del editor, diagnósticos en línea y edición de ficheros de texto/código con resaltado. Decisión de arquitectura en `ADR-MOTOR-001` (`memory.md`); **RF-16 queda sustituido por RF-57 en el motor en proceso** y se conserva en el motor clásico de respaldo.
 > **v1.11 (2026-09-19):** v1.11 añade §5h (**RNF-PERF, RF-53, RF-54, RF-55**), registrada **a posteriori** en `/ship` de v0.8.0 (ver `ADR-V080-001` en `memory.md`).
@@ -1172,6 +1173,57 @@ un olvido, es una decisión de alcance tomada en esta misma sesión de `/spec`, 
 - **Manifiesto (RF-83):** conservar formato y comentarios al reescribir el TOML (`toml_edit` frente a la serialización actual).
 - **AppImage (RF-84):** patrón exacto del nombre del asset (GitHub cambia espacios por puntos, `scripts/github-asset-name.mjs`) y orden de los pasos frente a la actualización del Cask.
 - Qué secciones de `ARCHITECTURE.md` hay que ampliar (cliente LSP con varios documentos, pestañas, búsqueda, snippets, capa de texto).
+
+---
+
+## ✨ 5m. Funcionalidades — v0.12.1 (Esquema desde el motor en proceso y arreglos tras publicar la 0.12.0)
+
+> **Origen (2026-09-29):** tras publicar la 0.12.0 llegaron cuatro informes de usuarios reales. (1) Con la ventana pequeña, la vista previa se salía por la derecha. (2) En un Mac, pulsar «Motor: rápido» pasaba al clásico y daba «Operation not permitted (os error 1)». (3) En Linux, el AppImage mostraba «⚠ LSP error» (issue #2, informado sobre la 0.11.0 y reproducido también en la 0.12.0). (4) En otro Mac, el panel Esquema decía «Este documento no tiene encabezados todavía» en un libro que sí los tiene. RF-86 a RF-88 se arreglaron fuera de ciclo el mismo día (**ya construidos**). RF-89 es el requisito nuevo de esta versión. Decisiones en `ADR-V0121-001` (`memory.md`).
+>
+> **Contraste con el código, hecho en `/spec`:** el esquema **no** sale del motor en proceso. Lo calcula el sidecar con `typst eval` y un `query(heading)` sobre la réplica del proyecto (`typst_engine/outline.rs`), la misma vía que el motor clásico. RF-56.7 (0.9.0) ya pedía sacarlo del compilado del motor nuevo, pero en el `/plan` de esa versión se aplazó («Decisión 4», `ADR-MOTOR-002`). Además, `outline/outline.js` solo repinta cuando la llamada sale bien: **un fallo del sidecar se ve igual que un documento sin encabezados**. El motor en proceso ya conserva el documento compuesto (`Arc<PagedDocument>` en `engine/session.rs`), del que salen los enlaces (RF-72) y la capa de texto (RF-82).
+>
+> **Hipótesis sobre el informe (4), sin Mac para confirmarla:** en ese Mac falla la vía del sidecar (lanzar `typst`, o replicar el proyecto en el temporal), como en el informe (2). RF-89 la saca del camino normal y, si aun así falla, el panel dirá el motivo real.
+
+### RF-86 — La vista previa estrecha no se sale del panel *(ya construido, commit `39dad88`)*
+1. **Causa:** `.preview` es una rejilla con solo filas. Su columna implícita `auto` tomaba el ancho mínimo de la barra, donde nada encoge, así que la barra, las páginas y la barra de desplazamiento se salían por la derecha y el zoom quedaba fuera de alcance.
+2. La columna pasa a `minmax(0, 1fr)` (también en `.document`) y la barra de la vista previa salta a una segunda línea (`flex-wrap`).
+3. **Criterios de aceptación (cumplidos):** comprobación nueva en `verify:layout` (barra real en un panel de 260 px); probado por el usuario en la ventana real.
+
+### RF-87 — Se retira el conmutador de motor de la vista previa *(ya construido, commit `39dad88`; modifica RF-56.6)*
+1. **Decisión del usuario:** se quita el botón «Motor: rápido / clásico». La vista previa usa siempre el motor en proceso, y el clásico queda **solo como respaldo automático**. RF-56.6 decía que el clásico se podía «forzar desde un ajuste»: ya no.
+2. La elección guardada por versiones anteriores (`dbv-typst-preview-engine`) se borra al arrancar, para que nadie se quede en el clásico sin forma de volver.
+3. El código del motor clásico no cambia (RF-67, opción c).
+
+### RF-88 — Sidecars intactos en el AppImage e insignia de Tinymist traducida *(ya construido, commit `19e666f`; issue #2)*
+1. **Causa (reproducida en WSL con los AppImage publicados de la 0.11.0 y la 0.12.0):** linuxdeploy pasa `patchelf` por todo `usr/bin`. A `typst` y `tinymist`, binarios musl *static-pie*, les añade `RUNPATH` y un segmento `LOAD`, y mueren con SIGSEGV al arrancar. En el AppImage no funcionaban Tinymist, exportar a PDF/PNG ni el motor clásico. El `.deb` no estaba afectado.
+2. `release-linux.yml` repone los binarios vendorizados en el paso de reempaquetado (RF-84) y **no publica** el AppImage si `typst --version` o `tinymist --version` no arrancan desde él.
+3. Los textos de la insignia de Tinymist y de sus avisos pasan a `i18n.js` y se repintan al cambiar de idioma.
+4. **Criterios de aceptación:** la CI de la 0.12.1 pasa la comprobación nueva; en el AppImage de la 0.12.1, Tinymist arranca y se exporta a PDF.
+
+### RF-89 — El esquema sale del motor en proceso y dice por qué no lo hay *(modifica RF-56.7 y el panel de navegación de §7.8)*
+1. **Fuente del esquema:** con el motor en proceso, el esquema sale **del mismo documento compuesto** que la vista previa, sin lanzar el sidecar ni replicar el proyecto. Se actualiza con cada compilación, así que incluye el contenido sin guardar y siempre coincide con lo que se ve.
+2. **Respaldo *(decisión del usuario)*:** si la compilación la hace el motor clásico (respaldo automático, RF-56.6), el esquema sigue saliendo del CLI (`typst eval`), como hoy.
+3. **Qué encabezados *(decisión del usuario)*:** solo los que irían en el índice del documento: se **omiten los de `outlined: false`**, igual que `#outline()`. Es un cambio de comportamiento: hasta la 0.12.0 salían todos. El respaldo por CLI aplica el mismo filtro, para que el esquema no cambie según el motor.
+4. **Datos de cada entrada, sin cambios:** nivel, texto (plano, aunque el encabezado mezcle estilos), página y posición vertical en puntos. Un clic navega igual que hoy.
+5. **Estados del panel *(decisión del usuario)*:**
+   - **Hay encabezados:** la lista.
+   - **El documento compila y no tiene encabezados** (o todos son `outlined: false`): «Este documento no tiene encabezados todavía». Es el **único** caso en que sale este mensaje.
+   - **El documento tiene un error de compilación:** se **conserva el último esquema bueno**, con un aviso discreto encima de que puede estar desactualizado. Si todavía no había ninguno, se dice que el documento no compila.
+   - **Falla la herramienta** (el motor no responde, el sidecar no arranca, la réplica no se puede crear, la salida no se entiende): se muestra el **motivo real**, en los dos idiomas, en vez de la lista vacía.
+6. **Sin coste extra:** el esquema no puede añadir una segunda compilación. Con el motor en proceso se lee del compilado que ya existe.
+7. **Criterios de aceptación:**
+   - Tests en Rust sobre un documento con varios niveles, encabezados con estilos mezclados, uno `outlined: false`, varios ficheros incluidos y encabezados en páginas distintas: nivel, texto, página y posición correctos; el `outlined: false` no aparece.
+   - Las páginas y posiciones coinciden con las del CLI sobre el mismo documento (prueba de paridad, como la de los crates en RF-56.1).
+   - Tests del panel para los cuatro estados de RF-89.5: en particular, un fallo simulado del sidecar **no** muestra «no tiene encabezados».
+   - `verify:engine`: el esquema del libro de ≥ 200 páginas no alarga el tiempo de la edición.
+   - En `z6-IPbook`, el esquema aparece con el motor en proceso y un clic lleva a cada capítulo; con un error de sintaxis a propósito, se conserva el esquema y aparece el aviso.
+
+### Preguntas abiertas para `/plan` (no se resuelven aquí a propósito)
+- **API de Typst 0.15.1:** cómo se consultan los encabezados en el `Introspector` del `PagedDocument` (selector de `HeadingElem`, campo `outlined`, página y posición de su `Location`), y cómo se aplana su cuerpo a texto. Se comprueba contra los crates reales, no de memoria.
+- **Transporte:** si el esquema viaja en el resultado de cada compilación del motor (sin llamada aparte) o en un comando `engine_outline` que lee el último documento; y cómo sabe el frontend qué motor compiló (ya existe `result.engine`).
+- **Frescura:** qué esquema se muestra mientras la compilación está en curso o se descarta («gana la última», RF-56.3).
+- **Tipos de fallo:** cómo distingue el frontend «error de compilación» de «fallo de la herramienta» con los tipos de error actuales (`TypstError`), sin comparar textos.
+- **Traducción de los mensajes** y dónde va el aviso de «puede estar desactualizado» sin robar sitio a la lista.
 
 ---
 

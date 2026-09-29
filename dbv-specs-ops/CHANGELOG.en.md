@@ -13,6 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- **The "Engine: fast / classic" button is removed from the preview.** The preview always uses the fast (in-process) engine; the classic one (Typst as a separate program) is kept as an **automatic** fallback when the fast engine cannot compile, but it can no longer be picked by hand. On macOS, switching to the classic engine with the button ended in "Operation not permitted (os error 1)" (real user report), and the toggle added nothing since the fast engine became the default. The choice saved by earlier versions is forgotten on startup, so nobody is left on the classic engine with no button to switch back. The classic engine's code is unchanged.
+
+### Fixed
+
+- **The preview no longer spills out of the window when its panel is narrow.** With a small window or a narrow preview panel, its bar (title, status, scope/refresh/engine chips and zoom buttons) widened the panel beyond the space the grid gives it: bar, pages and scrollbar were cut off on the right and the zoom controls were unreachable. Cause: `.preview` is a grid with rows only, and its implicit `auto` column took the bar's minimum width, where nothing shrinks. The column is now `minmax(0, 1fr)` (also in `.document`, for the same reason) and the bar wraps to a second line (`flex-wrap`) instead of overflowing. `verify:layout` gains a check that mounts the real bar in a 260 px panel and requires the bar, the pages and the last zoom button to fit inside it.
+
 ## [0.12.0] - 2026-09-29
 
 Tabs in the editor, navigation and refactoring with Tinymist (go to definition, find references, rename symbol, code actions), find and replace across the whole project, user snippets in VS Code format, find and copy text in the preview, complete and documented keyboard shortcuts, and a main document that travels with the project. Fixes Tinymist autocompletion inside function calls, errors underlined in the wrong file and the page jump when changing the zoom. Includes incremental AppImage updates (`.zsync`).

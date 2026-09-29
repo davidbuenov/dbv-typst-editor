@@ -250,6 +250,38 @@
         `barra=${Math.round(tabsRect.width)} contenido=${tabsEl.scrollWidth} editor=${w('.document')}`
       );
 
+      // 4. Vista previa estrecha: su barra (título, estado, tres chips y los
+      //    botones de zoom, nada de ello encoge) no puede ensanchar el panel.
+      //    Reportado por el usuario con una captura: `.preview` es una rejilla
+      //    con solo filas, su columna implícita es `auto` y adoptaba el ancho
+      //    mínimo de la barra — barra, páginas y su scrollbar se salían por la
+      //    derecha y los botones de zoom quedaban inalcanzables.
+      ws.style.setProperty('--preview-width', '260px');
+      document.querySelector('.preview__bar').innerHTML = `
+        <span class="preview__title">Vista previa</span>
+        <span class="preview__status">páginas: 224</span>
+        <button class="preview__chip" type="button">Documento</button>
+        <button class="preview__chip" type="button">Automático</button>
+        <button class="preview__chip" type="button">Typst</button>
+        <button class="icon-button icon-button--small" type="button">&#10227;</button>
+        <button class="icon-button icon-button--small" type="button">&#8677;</button>
+        <div class="preview__zoom">
+          <button class="icon-button icon-button--small" type="button">&#8596;</button>
+          <button class="icon-button icon-button--small" type="button">&#8722;</button>
+          <button class="preview__zoom-label" type="button"><span>100%</span></button>
+          <button class="icon-button icon-button--small" type="button" id="probe-zoom-in">+</button>
+        </div>`;
+      const previewRect = document.querySelector('.preview').getBoundingClientRect();
+      const fuera = ['.preview__bar', '#preview-pages', '#probe-zoom-in'].filter(
+        (sel) => document.querySelector(sel).getBoundingClientRect().right > previewRect.right + 1
+      );
+      add(
+        'vista previa estrecha: la barra y las páginas caben en el panel',
+        fuera.length === 0 && ws.scrollWidth <= ws.clientWidth,
+        `panel=${Math.round(previewRect.width)}${fuera.length ? ` se salen: ${fuera.join(', ')}` : ''}`
+      );
+      ws.style.removeProperty('--preview-width');
+
       document.getElementById('probe').textContent = `DBV_LAYOUT_JSON${JSON.stringify(checks)}DBV_LAYOUT_END`;
     </script>
   </body>

@@ -395,6 +395,15 @@
 - **Sin telemetría (offline-first, por diseño) no hay forma de saber con qué frecuencia el respaldo salva a alguien en la práctica** — ni build de prueba sin el motor clásico para medir binario/CI real. Ambas cosas quedan como huecos explícitos del informe, no como cifras estimadas.
 - **Recomendación del informe: (c) dejarlo como está** (motor nuevo predeterminado, clásico como respaldo mantenido) — el ahorro es incierto y pequeño, y el motor nuevo usa MÁS memoria de pico que el CLI (2,75 GB vs 2,3 GB, `ADR-MOTOR-002`), así que el respaldo no es solo red de seguridad ante fallos sino también la opción en máquinas con poca RAM. **Pendiente de que el usuario decida entre (a), (b) y (c).**
 
+### ADR-V0130-001 — RF-67 resuelto: se quita el conmutador de motor, el clásico queda solo como respaldo automático
+
+*Registrada el 2026-09-29, tras v0.12.0.*
+
+- **Decisión del usuario:** variante intermedia entre (b) y (c) de `ADR-V0100-002`: se retira el botón «Motor: rápido/clásico» de la barra de la vista previa, pero **no** el código del motor clásico, que sigue como respaldo automático cuando el rápido no compila.
+- **Detonante:** un usuario de macOS pulsó el botón, pasó al clásico y obtuvo «Operation not permitted (os error 1)» en la banda de error. El clásico lanza el sidecar `typst` como proceso aparte; el rápido no.
+- **Consecuencia:** la preferencia `dbv-typst-preview-engine` de `localStorage` se borra al arrancar para que nadie se quede atrapado en el clásico.
+- **Abierto:** exportar PDF/PNG usa ese MISMO sidecar (`typst_export_pdf`/`typst_export_png` en `compile.rs`). Si el EPERM viene de lanzar el sidecar en ese Mac, exportar también le fallará: hay que pedir al usuario que pruebe a exportar.
+
 ### Lección — los permisos ACL de Tauri no los ve ninguna herramienta de este repo (2026-09-22)
 
 `appWindow.destroy()` (RF-64.6) se escribió, se testeó con Vitest y pasó `verify:frontend`/`verify:layout` — y aun así fallaba en la ventana real: "Promesa rechazada: Command plugin:window|destroy not allowed by ACL". `src-tauri/capabilities/main.json` no declaraba `core:window:allow-destroy`. Ninguna comprobación sin Tauri real puede detectar esto: Vitest simula el DOM, no el puente de comandos de Tauri.

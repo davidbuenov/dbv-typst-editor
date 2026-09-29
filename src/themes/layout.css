@@ -1374,6 +1374,9 @@
 .document {
   display: grid;
   grid-template-rows: auto auto 1fr;
+  /* Mismo motivo que en `.preview`: la columna implícita `auto` no debe crecer
+     con el contenido de las barras. */
+  grid-template-columns: minmax(0, 1fr);
   min-width: 0;
   min-height: 0;
 }
@@ -1643,6 +1646,10 @@ button.document__lsp-badge {
   position: relative;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto auto;
+  /* Sin columna explícita, la implícita es `auto` y adopta el ancho mínimo de
+     la barra (nada en ella encoge): con el panel estrecho, barra, páginas y
+     scrollbar se salían por la derecha (captura del usuario). */
+  grid-template-columns: minmax(0, 1fr);
   min-width: 0;
   min-height: 0;
   background: var(--bg-secondary);
@@ -1717,10 +1724,13 @@ button.document__lsp-badge {
   cursor: row-resize;
 }
 
+/* `wrap`: con el panel estrecho los controles bajan a una segunda línea en vez
+   de quedar fuera de alcance. */
 .preview__bar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
+  gap: 6px 10px;
   padding: 6px 12px;
   border-bottom: 1px solid var(--border);
 }

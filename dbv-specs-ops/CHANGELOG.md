@@ -13,6 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Sin publicar] / [Unreleased]
 
+### Changed
+
+- **Se retira el botón «Motor: rápido / clásico» de la vista previa.** La vista previa usa siempre el motor rápido (en proceso); el clásico (Typst como programa aparte) se conserva como respaldo **automático** cuando el rápido no puede compilar, pero ya no se elige a mano. En macOS, pasar al clásico con el botón terminaba en «Operation not permitted (os error 1)» (usuario real), y el conmutador no aportaba nada desde que el rápido es el predeterminado. La elección guardada por versiones anteriores se olvida al arrancar, para que nadie se quede en el clásico sin botón para volver. El código del motor clásico no cambia.
+
+### Fixed
+
+- **La vista previa ya no se sale de la ventana cuando el panel es estrecho.** Con la ventana pequeña o el panel de la vista previa estrecho, su barra (título, estado, chips de alcance/refresco/motor y botones de zoom) ensanchaba el panel por encima del hueco que le da la rejilla: barra, páginas y barra de desplazamiento quedaban cortadas por la derecha y el zoom, inalcanzable. Causa: `.preview` es una rejilla con solo filas, y su columna implícita `auto` adoptaba el ancho mínimo de la barra, donde nada encoge. Ahora la columna es `minmax(0, 1fr)` (también en `.document`, por el mismo motivo) y la barra salta a una segunda línea (`flex-wrap`) en vez de salirse. `verify:layout` gana una comprobación que monta la barra real en un panel de 260 px y exige que barra, páginas y el último botón de zoom quepan dentro.
+
 ## [0.12.0] - 2026-09-29
 
 Pestañas en el editor, navegación y refactorización con Tinymist (ir a la definición, buscar referencias, renombrar símbolo, acciones de código), buscar y reemplazar en todo el proyecto, snippets de usuario en formato VS Code, buscar y copiar texto en la vista previa, atajos de teclado completos y documentados, y un documento principal que viaja con el proyecto. Corrige el autocompletado de Tinymist dentro de las llamadas, los errores subrayados en el fichero equivocado y el salto de página al ajustar el zoom. Incluye actualizaciones incrementales del AppImage (`.zsync`).

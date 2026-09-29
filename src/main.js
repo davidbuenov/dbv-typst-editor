@@ -745,7 +745,6 @@ async function bootstrap() {
   async function refreshProblems(result) {
     // Con el motor clásico no hay rangos: la banda de la vista previa sigue siendo la vía.
     if (result.ok && result.engine !== 'inproc') return clearProblems();
-    if (!result.ok && engineMode !== 'inproc') return clearProblems();
     const report = await engineDiagnostics();
     const list = report.ok ? report.value.diagnostics : [];
     workspace.setEngineDiagnostics(list);
@@ -884,11 +883,9 @@ async function bootstrap() {
     preview.onContentChanged();
     outline.onContentChanged();
   });
-  // Fichero de código o datos sin guardar (RF-60.4): solo el motor en proceso
-  // puede leerlo de memoria; con el clásico se recompila al guardar, como siempre.
-  workspace.setListener('companionChanged', () => {
-    if (engineMode === 'inproc') preview.onContentChanged();
-  });
+  // Fichero de código o datos sin guardar (RF-60.4): el motor en proceso lo lee
+  // de memoria, así que se recompila sin esperar a guardarlo.
+  workspace.setListener('companionChanged', () => preview.onContentChanged());
   // RF-81: snippets de usuario. Se recargan al guardarlos, cuando el
   // observador avisa de un cambio en `.vscode` y (el global) al volver el foco.
   const snippetLoader = createSnippetLoader({
@@ -1394,14 +1391,14 @@ async function bootstrap() {
   workspace.setListener('saveRequested', () => workspace.save());
   // RF-64 (R-A3): un guardado automático llega cada pausa de 2 s — recompilar
   // y consultar Git ahí, sin más, sería trabajo duplicado. Con el motor en
-  // proceso, el contenido en vivo ya compiló al escribir (`documentChanged`);
-  // con el clásico, que solo se entera al guardar, sí hace falta. Git se
+  // proceso, el contenido en vivo ya compiló al escribir (`documentChanged`),
+  // así que solo el guardado explícito recompila. Git se
   // limita a una consulta cada 5 s como mucho durante el autoguardado.
   let lastAutoSaveGitRefreshMs = 0;
   workspace.setListener('saved', (auto) => {
     const savedPath = workspace.getDocumentPath();
     if (savedPath) snippetLoader.handleChanged(savedPath, workspace.getContent());
-    if (!auto || engineMode !== 'inproc') {
+    if (!auto) {
       preview.onContentChanged();
       outline.onContentChanged();
     }
@@ -1485,35 +1482,20 @@ async function bootstrap() {
 
     const mode = preview.getRefreshMode();
     refreshModeButton.textContent = t(mode === 'manual' ? 'preview.refreshManual' : 'preview.refreshAuto');
-    engineButton.textContent = t(engineMode === 'inproc' ? 'preview.engineInproc' : 'preview.engineClassic');
   }
 
-  // Motor de la vista previa (RF-56). El rápido es el de serie desde que el
-  // usuario lo validó en una ventana real (ADR-MOTOR-002); el clásico queda como
-  // respaldo automático y como opción manual.
-  const ENGINE_STORAGE_KEY = 'dbv-typst-preview-engine';
-  const engineButton = el('btn-preview-engine');
-  let engineMode = 'inproc';
+  // Motor de la vista previa (RF-56): siempre el rápido. El clásico sigue como
+  // respaldo AUTOMÁTICO cuando el rápido falla, pero ya no se elige a mano: el
+  // conmutador no aportaba nada tras validar el rápido y, en macOS, pasar al
+  // clásico a mano acababa en "Operation not permitted (os error 1)" (usuario
+  // real). Se olvida la elección guardada por versiones anteriores para que
+  // nadie se quede atrapado en el clásico sin botón para salir.
   try {
-    if (localStorage.getItem(ENGINE_STORAGE_KEY) === 'classic') engineMode = 'classic';
+    localStorage.removeItem('dbv-typst-preview-engine');
   } catch {
-    // Sin almacenamiento se queda el clásico.
+    // Sin almacenamiento no había nada guardado.
   }
-  async function applyEngineMode(mode) {
-    engineMode = mode;
-    try {
-      localStorage.setItem(ENGINE_STORAGE_KEY, mode);
-    } catch {
-      // Es solo una comodidad: se pierde al reiniciar.
-    }
-    await engineSetMode(mode);
-    refreshPreviewControls();
-  }
-  engineSetMode(engineMode);
-  engineButton.addEventListener('click', async () => {
-    await applyEngineMode(engineMode === 'inproc' ? 'classic' : 'inproc');
-    preview.restart();
-  });
+  engineSetMode('inproc');
 
   scopeButton.addEventListener('click', () => {
     workspace.setPreviewScope(workspace.getPreviewScope() === 'document' ? 'file' : 'document');

@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.12.1] - 2026-09-29
+
+The Outline panel now comes from the same compilation as the preview (in-process engine) and says why there is no outline when there isn't one; it only lists the headings that would go in the table of contents. Fixes the Linux AppImage, where Tinymist, export and the classic engine did not start (issue #2), the preview spilling out of the window with a narrow panel, and word-level sync, which could stay paragraph-level for the whole session after falling back to the classic engine. The engine toggle is removed from the preview.
+
 ### Added
 
 - **The Outline panel shows that it is being generated.** While the first outline of a document is on its way (the first one of a large book can take several seconds), the panel shows "Generating the outline…" with the same spinner as the preview, instead of staying blank. Once there is an outline, recompiling while typing does not cover it. 2 new tests.

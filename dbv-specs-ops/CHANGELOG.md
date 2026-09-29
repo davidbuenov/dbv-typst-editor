@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Sin publicar] / [Unreleased]
 
+## [0.12.1] - 2026-09-29
+
+El panel Esquema sale del mismo compilado que la vista previa (motor en proceso) y dice por qué no hay esquema cuando no lo hay; solo lista los encabezados que irían en el índice. Corrige el AppImage de Linux, donde Tinymist, exportar y el motor clásico no arrancaban (issue #2), la vista previa que se salía de la ventana con el panel estrecho y la sincronización por palabra, que podía quedarse por párrafo toda la sesión tras caer al motor clásico. Se retira el conmutador de motor de la vista previa.
+
 ### Added
 
 - **El panel Esquema muestra que se está generando.** Mientras llega el primer esquema de un documento (el primero de un libro grande puede tardar varios segundos), el panel muestra «Generando el esquema…» con el mismo indicador giratorio que la vista previa, en vez de quedarse en blanco. Una vez hay esquema, recompilar al escribir no lo tapa. 2 tests nuevos.

@@ -3,9 +3,9 @@
 **🇪🇸 Español · [🇬🇧 English](./README.en.md)**
 
 [![Sitio Web](https://img.shields.io/badge/Sitio%20Web-davidbuenov.github.io%2Fdbv--typst--editor-2563eb?style=flat&logo=googlechrome&logoColor=white)](https://davidbuenov.github.io/dbv-typst-editor/)
-[![Releases](https://img.shields.io/badge/Releases-v0.12.0-brightgreen?logo=github)](https://github.com/davidbuenov/dbv-typst-editor/releases)
+[![Releases](https://img.shields.io/badge/Releases-v0.12.1-brightgreen?logo=github)](https://github.com/davidbuenov/dbv-typst-editor/releases)
 [![Microsoft Store](https://img.shields.io/badge/Microsoft%20Store-9PCPSVTNJMP0-0078D6?logo=microsoft&logoColor=white)](https://apps.microsoft.com/store/detail/9PCPSVTNJMP0?cid=DevShareMCLPCB)
-![Status](https://img.shields.io/badge/status-estable%20%7C%20v0.12.0-success)
+![Status](https://img.shields.io/badge/status-estable%20%7C%20v0.12.1-success)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
 ![Windows](https://img.shields.io/badge/Windows-10%20%2F%2011%20(Microsoft%20Store)-0078D6?logo=windows&logoColor=white)
 ![macOS](https://img.shields.io/badge/macOS-Universal%20(.dmg)-000000?logo=apple&logoColor=white)
@@ -61,7 +61,7 @@ Sigue la misma filosofía que su proyecto hermano [DBV Markdown Reader](https://
 
 ## 🚦 Estado actual
 
-**Versión actual:** `v0.12.0` · **Estado:** 🟢 Estable y listo para producción
+**Versión actual:** `v0.12.1` · **Estado:** 🟢 Estable y listo para producción
 
 - 🌐 **Sitio Web Oficial:** [https://davidbuenov.github.io/dbv-typst-editor/](https://davidbuenov.github.io/dbv-typst-editor/) (con galería interactiva de capturas en alta resolución y selector bilingüe ES/EN).
 - 📦 **Instaladores disponibles en Releases:** [GitHub Releases](https://github.com/davidbuenov/dbv-typst-editor/releases):
@@ -71,6 +71,7 @@ Sigue la misma filosofía que su proyecto hermano [DBV Markdown Reader](https://
 - 🏬 **Microsoft Store:** disponible en la tienda oficial. [🛒 Consíguelo en Microsoft Store (ID 9PCPSVTNJMP0)](https://apps.microsoft.com/store/detail/9PCPSVTNJMP0?cid=DevShareMCLPCB). Si instalaste una versión previa desde la Store, asegúrate de contar con `v0.3.1` o superior (ver [`CHANGELOG.md`](./dbv-specs-ops/CHANGELOG.md)).
 - 🧪 **Calidad y estabilidad:** 1.484 pruebas automatizadas pasando al 100% (1.051 tests de frontend + 433 tests de backend en Rust) y validación de layout en motor Chromium/WebKit real.
 - 🚀 **Funcionalidades destacadas incluidas:**
+  - **Esquema desde la vista previa y arreglos (v0.12.1):** el panel Esquema sale del mismo compilado que la vista previa, al instante y sin compilar dos veces; lista los encabezados que irían en el índice y, si no puede mostrarlos, dice por qué (documento con errores o fallo de la herramienta) en vez de «no tiene encabezados». Corrige el AppImage de Linux (Tinymist, exportar y el motor clásico no arrancaban), la vista previa que se salía de la ventana con el panel estrecho y la sincronización por palabra tras caer al motor clásico; si la vista previa usa el motor de respaldo, un aviso permite volver al rápido.
   - **Pestañas, navegación y refactorización, búsqueda en todo el proyecto y snippets (v0.12.0):** cada fichero abierto tiene su pestaña (Ctrl+W, Ctrl+Tab, arrastrar para reordenar) y conserva cambios, cursor e historial de deshacer; las pestañas se restauran al reabrir el proyecto. Con Tinymist: ir a la definición (F12 o Ctrl+clic), buscar referencias (Mayús+F12), renombrar un símbolo en todos los ficheros (F2) y acciones de código (Ctrl+.). Buscar y reemplazar en todo el proyecto (Ctrl+Mayús+F) con expresiones regulares y filtros, y deshacer de un paso. Snippets de usuario en el formato de VS Code, globales o del proyecto. Buscar (Ctrl+F) y copiar texto directamente en la vista previa. Todos los atajos documentados en la Ayuda. El documento principal se guarda en `settings/dbv-project.toml` y viaja con el proyecto (git, `.dbvt`). Corrige el autocompletado de Tinymist dentro de las llamadas (ahora con ayuda de firma), los errores subrayados en el fichero equivocado y el salto de página al cambiar el zoom; el AppImage admite actualizaciones incrementales (`.zsync`).
   - **Explorador de archivos, referencias que se actualizan solas, enlaces en la vista previa e historial local (v0.11.0):** el panel Archivos permite crear, renombrar (F2), duplicar, eliminar a la papelera y arrastrar ficheros y carpetas; al mover o renombrar, los `#include`, `image()`, `bibliography()`… de todo el proyecto se reescriben con el analizador de Typst, con «Ver cambios» y «Deshacer». «Nuevo capítulo…» crea el fichero y lo enlaza en el documento principal. Los enlaces de la vista previa funcionan (web al navegador; índice, referencias, citas y notas a su destino) y cada guardado deja una copia local que se puede comparar y restaurar. Corrige además el aviso de cambio externo que saltaba sin parar con el guardado automático.
   - **Guardado automático opcional, punto de modificado y cierre de ventana siempre protegido (v0.10.0):** se guarda solo tras una pausa de escritura o al perder el foco, sin sobrescribir nunca un cambio externo; el texto "sin guardar" pasa a ser un punto discreto junto al nombre del documento. Además: resaltado de sintaxis para `.bib`, ficheros ocultos fuera del árbol por defecto, números de línea optativos, botón de refresco siempre visible y ruta corta y desambiguada en la barra del documento — siete mejoras nacidas de que un amigo del usuario probó la v0.9.0 y mandó su lista de "cosas a arreglar".

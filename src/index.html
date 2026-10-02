@@ -48,6 +48,7 @@
     <link rel="stylesheet" href="./themes/tokens.css" />
     <link rel="stylesheet" href="./themes/base.css" />
     <link rel="stylesheet" href="./themes/layout.css" />
+    <link rel="stylesheet" href="./themes/assist.css" />
   </head>
   <body>
     <div id="fatal-error" class="fatal-error" hidden></div>
@@ -355,6 +356,7 @@
             <button class="sidebar-tab" id="tab-files" type="button" role="tab" data-i18n="sidebar.tabFiles"></button>
             <button class="sidebar-tab" id="tab-outline" type="button" role="tab" data-i18n="sidebar.tabOutline"></button>
             <button class="sidebar-tab" id="tab-search" type="button" role="tab" data-i18n="sidebar.tabSearch"></button>
+            <button class="sidebar-tab" id="tab-problems" type="button" role="tab" data-i18n="sidebar.tabProblems"></button>
           </div>
           <div class="sidebar-panel" id="files-panel">
             <div class="sidebar__filter-row">
@@ -381,6 +383,16 @@
               </div>
             </div>
             <div class="tree" id="project-tree"></div>
+          </div>
+          <!-- RF-97: panel de Problemas (sustituye al desplegable de la insignia). -->
+          <div class="sidebar-panel hidden" id="problems-panel">
+            <div class="problems__filters">
+              <label class="problems__filter"><input type="checkbox" id="problems-errors" checked /> <span data-i18n="problems.filterErrors"></span></label>
+              <label class="problems__filter"><input type="checkbox" id="problems-warnings" checked /> <span data-i18n="problems.filterWarnings"></span></label>
+              <label class="problems__filter"><input type="checkbox" id="problems-active" /> <span data-i18n="problems.filterActive"></span></label>
+            </div>
+            <p class="problems__summary" id="problems-summary" aria-live="polite"></p>
+            <div class="problems__list" id="problems-list"></div>
           </div>
           <div class="sidebar-panel hidden" id="outline-panel">
             <div class="outline__list" id="outline-list"></div>
@@ -1172,11 +1184,30 @@
     <div id="help-panel" class="floating-panel floating-panel--help hidden" role="dialog" aria-modal="false">
       <div class="panel__header">
         <h2 class="floating-panel__title" data-i18n="help.title"></h2>
+        <button id="btn-help-docs" class="button button--compact" type="button" data-i18n="docs.openFromHelp"></button>
         <button id="btn-help-close" class="icon-button icon-button--small" type="button" data-i18n-title="action.close">✕</button>
       </div>
       <div class="help__body">
         <nav class="help__nav" id="help-nav"></nav>
         <div class="help__content" id="help-content"></div>
+      </div>
+    </div>
+
+    <!-- RF-96.6: documentación de Typst sin conexión (la misma que usa la IA). -->
+    <div id="docs-panel" class="floating-panel floating-panel--help floating-panel--docs hidden" role="dialog" aria-modal="false">
+      <div class="panel__header">
+        <h2 class="floating-panel__title" id="docs-title" data-i18n="docs.title"></h2>
+        <button id="btn-docs-close" class="icon-button icon-button--small" type="button" data-i18n-title="action.close">✕</button>
+      </div>
+      <div class="docs__body">
+        <div class="docs__side">
+          <div class="docs__search-row">
+            <button id="docs-back" class="icon-button icon-button--small" type="button" data-i18n-title="docs.back" disabled>←</button>
+            <input id="docs-query" class="form-row__input docs__query" type="search" spellcheck="false" data-i18n-placeholder="docs.search" />
+          </div>
+          <div class="docs__results" id="docs-results"></div>
+        </div>
+        <article class="docs__content md" id="docs-content"></article>
       </div>
     </div>
 

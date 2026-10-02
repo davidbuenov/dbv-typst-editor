@@ -67,8 +67,11 @@ export function buildMenuItems({ hasSelection, canGoToPreview, readOnly = false,
  * @param {() => void} [deps.onShowHistory]
  * @param {(view: any) => void} [deps.onSaveSnippet] RF-81.7.
  * @param {{canNavigate: () => boolean, goToDefinition: (view: any) => void, findReferences: (view: any) => void, renameSymbol: (view: any) => void, codeActions: (view: any) => void}} [deps.navigation]
+ * @param {(view: any) => Array<{id: string, label: string, run: () => void, enabled?: boolean}>} [deps.getExtraItems]
+ *   Entradas que añaden otros módulos al final del menú, con su propio texto:
+ *   «Ver documentación de…» (RF-96.6) y las acciones de la IA (RF-95).
  */
-export function createEditorContextMenu({ hostEl, getView, canGoToPreview, onGoToPreview, notify, t, canShowHistory, onShowHistory, navigation, onSaveSnippet }) {
+export function createEditorContextMenu({ hostEl, getView, canGoToPreview, onGoToPreview, notify, t, canShowHistory, onShowHistory, navigation, onSaveSnippet, getExtraItems }) {
   let menuEl = null;
 
   function close() {
@@ -133,17 +136,20 @@ export function createEditorContextMenu({ hostEl, getView, canGoToPreview, onGoT
     menu.className = 'tree-context-menu editor-context-menu';
     menu.setAttribute('role', 'menu');
 
-    for (const entry of items) {
+    const extras = getExtraItems?.(view) ?? [];
+    if (extras.length) items.at(-1).separatorAfter = true;
+    for (const entry of [...items, ...extras.map((extra) => ({ ...extra, enabled: extra.enabled ?? true, extra: true }))]) {
       const item = document.createElement('button');
       item.type = 'button';
       item.className = 'menu-item';
       item.setAttribute('role', 'menuitem');
       item.dataset.action = entry.id;
       item.disabled = !entry.enabled;
-      item.textContent = t(`editorMenu.${entry.id}`);
+      item.textContent = entry.extra ? entry.label : t(`editorMenu.${entry.id}`);
       item.addEventListener('click', () => {
         close();
-        run(entry.id, view);
+        if (entry.extra) entry.run();
+        else run(entry.id, view);
       });
       menu.append(item);
       if (entry.separatorAfter) {

@@ -17,6 +17,7 @@ import { PANELS, getPanelState, initPanels, togglePanel } from './app/workspaceP
 import { figureActionForPath, jogsAction } from './editor/toolbarActions.js';
 import { clampEditorFontSize, EDITOR_FONT_DEFAULT, stepEditorFontSize } from './editor/fontSize.js';
 import { decideImageDrop, pathsWithExtension } from './app/dropTarget.js';
+import { relativeToRoot } from './app/paths.js';
 import { pickImageFromClipboard, readFileAsBase64 } from './app/clipboardImage.js';
 import { applyTranslations, getLanguage, setLanguage, t } from './i18n/i18n.js';
 import { createHelp } from './help/help.js';
@@ -76,9 +77,15 @@ import {
   pickProjectFolder,
   pickSaveTarget,
   pickTypstFile,
+  docsInfo,
+  docsPage,
+  docsSearch,
+  openExternalUrl,
 } from './services/backend.js';
 import { createChoiceDialog } from './ui/choiceDialog.js';
 import { countProblems, toProblemList } from './editor/diagnosticsModel.js';
+import { createProblemsPanel, parseCliDiagnostics } from './problems/problemsPanel.js';
+import { createDocsViewer, wordAt } from './docs/docsViewer.js';
 import { createEditorContextMenu } from './editor/editorContextMenu.js';
 import { createNavigation } from './editor/navigation.js';
 import { createRefactor } from './editor/refactor.js';
@@ -190,8 +197,8 @@ function wirePanelSwitcher(workspaceEl) {
  * pestañas dentro.
  */
 function wireSidebarTabs(workspaceEl) {
-  const tabs = { files: el('tab-files'), outline: el('tab-outline'), search: el('tab-search') };
-  const panels = { files: el('files-panel'), outline: el('outline-panel'), search: el('search-panel') };
+  const tabs = { files: el('tab-files'), outline: el('tab-outline'), search: el('tab-search'), problems: el('tab-problems') };
+  const panels = { files: el('files-panel'), outline: el('outline-panel'), search: el('search-panel'), problems: el('problems-panel') };
 
   function setActiveTab(name) {
     for (const key of Object.keys(tabs)) {
@@ -203,6 +210,7 @@ function wireSidebarTabs(workspaceEl) {
   tabs.files.addEventListener('click', () => setActiveTab('files'));
   tabs.outline.addEventListener('click', () => setActiveTab('outline'));
   tabs.search.addEventListener('click', () => setActiveTab('search'));
+  tabs.problems.addEventListener('click', () => setActiveTab('problems'));
   setActiveTab('files');
 
   /** Pestaña `name` con el panel lateral visible. */
@@ -219,6 +227,8 @@ function wireSidebarTabs(workspaceEl) {
     showOutline: () => show('outline'),
     /** Referencias (RF-77.3) y búsqueda en el proyecto (RF-78). */
     showSearch: () => show('search'),
+    /** Panel de Problemas (RF-97): lo abre la insignia de la barra del documento. */
+    showProblems: () => show('problems'),
   };
 }
 
@@ -398,8 +408,9 @@ function wireLanguageSwitcher() {
  * botones "?" de cada asistente (RF-52) — `registerPanel.js` no importa
  * `help.js` directamente para evitar un ciclo de imports.
  */
-function wireHelpPanel() {
+function wireHelpPanel(docsViewer) {
   const help = createHelp({ contentEl: el('help-content'), navEl: el('help-nav') });
+  el('btn-help-docs').addEventListener('click', () => docsViewer.open());
   const { open, close } = registerPanel(el('help-panel'), {
     trigger: el('btn-help'),
     toggle: true,
@@ -409,6 +420,24 @@ function wireHelpPanel() {
   setHelpTrigger((sectionId) => {
     open();
     help.scrollToSection(sectionId);
+  });
+}
+
+/** RF-96.6: visor de la documentación de Typst sin conexión. */
+function wireDocsPanel() {
+  const { open, close } = registerPanel(el('docs-panel'), { toggle: false });
+  el('btn-docs-close').addEventListener('click', close);
+  return createDocsViewer({
+    elements: {
+      panel: el('docs-panel'),
+      title: el('docs-title'),
+      input: el('docs-query'),
+      results: el('docs-results'),
+      content: el('docs-content'),
+      back: el('docs-back'),
+    },
+    backend: { docsSearch, docsPage, docsInfo, openExternalUrl },
+    show: open,
   });
 }
 
@@ -426,7 +455,8 @@ async function bootstrap() {
   applyTranslations();
   wireLanguageSwitcher();
   wireAboutPanel();
-  wireHelpPanel();
+  const docsViewer = wireDocsPanel();
+  wireHelpPanel(docsViewer);
 
   const toast = createToast(el('toast'));
   const dialog = createChoiceDialog({
@@ -746,60 +776,52 @@ async function bootstrap() {
     setMode: engineSetMode,
     restart: () => preview.restart(),
   });
-  // Problemas de la compilación (RF-59): subrayado en el editor, chip con el
-  // recuento y lista que salta al sitio. Solo los da el motor en proceso.
+  // Problemas de la compilación (RF-59, RF-97): subrayado en el editor, chip con
+  // el recuento y panel de Problemas en la barra lateral. Con el motor en
+  // proceso llegan con rango; con el clásico, se extraen del texto del CLI.
   const problemsChip = el('problems-chip');
-  let problems = [];
+  const problemsPanel = createProblemsPanel({
+    elements: {
+      list: el('problems-list'),
+      errors: el('problems-errors'),
+      warnings: el('problems-warnings'),
+      onlyActive: el('problems-active'),
+      summary: el('problems-summary'),
+    },
+    goTo: (file, line) => workspace.goToSource(file, line),
+    getActiveFile: () => {
+      const root = workspace.state.project?.root;
+      const path = workspace.getDocumentPath();
+      return root && path ? relativeToRoot(root, path) : null;
+    },
+    getLine: async (file, line) => {
+      const root = workspace.state.project?.root;
+      if (!root) return null;
+      const path = joinPath(root, file);
+      const content = workspace.getTabContent(path) ?? (await readFile(path).then((r) => (r.ok ? r.value.content : null)));
+      return content?.split(/\r?\n/)[line - 1] ?? null;
+    },
+    onShowDocs: (problem) => docsViewer.open({ query: problem.message }),
+  });
   async function refreshProblems(result) {
-    // Con el motor clásico no hay rangos: la banda de la vista previa sigue siendo la vía.
-    if (result.ok && result.engine !== 'inproc') return clearProblems();
-    const report = await engineDiagnostics();
-    const list = report.ok ? report.value.diagnostics : [];
+    let list = [];
+    if (!result.ok || result.engine === 'inproc') {
+      const report = await engineDiagnostics();
+      list = report.ok ? report.value.diagnostics : [];
+    }
     workspace.setEngineDiagnostics(list);
-    problems = toProblemList(list);
-    const { errors, warnings } = countProblems(list);
-    problemsChip.classList.toggle('hidden', list.length === 0);
+    let problems = toProblemList(list);
+    // Motor clásico (RF-97.4): los mensajes del CLI, con fichero y línea si los trae.
+    if (!list.length && (result.engine === 'classic' || !result.ok)) {
+      problems = parseCliDiagnostics(result.ok ? result.warnings : result.error?.message);
+    }
+    problemsPanel.setProblems(problems);
+    const { errors, warnings } = countProblems(problems);
+    problemsChip.classList.toggle('hidden', problems.length === 0);
     problemsChip.dataset.status = errors > 0 ? 'error' : 'starting';
     problemsChip.textContent = `${errors > 0 ? '✖ ' + errors : ''}${errors > 0 && warnings > 0 ? ' · ' : ''}${warnings > 0 ? '⚠ ' + warnings : ''}`;
   }
-  function clearProblems() {
-    problems = [];
-    workspace.setEngineDiagnostics([]);
-    problemsChip.classList.add('hidden');
-  }
-  problemsChip.addEventListener('click', (event) => {
-    const menu = document.createElement('div');
-    menu.className = 'tree-context-menu problems-menu';
-    menu.setAttribute('role', 'menu');
-    for (const problem of problems.slice(0, 50)) {
-      const item = document.createElement('button');
-      item.type = 'button';
-      item.className = 'menu-item';
-      item.setAttribute('role', 'menuitem');
-      item.textContent = `${problem.level === 'error' ? '✖' : '⚠'} ${problem.file ?? '—'}:${problem.line}  ${problem.message}`;
-      item.title = [problem.message, ...problem.hints].join(chr(10));
-      item.addEventListener('click', () => {
-        menu.remove();
-        if (problem.file) workspace.goToSource(problem.file, problem.line);
-      });
-      menu.append(item);
-    }
-    document.body.append(menu);
-    const rect = problemsChip.getBoundingClientRect();
-    menu.style.left = `${Math.max(4, Math.min(rect.left, window.innerWidth - menu.offsetWidth - 4))}px`;
-    menu.style.top = `${rect.bottom + 4}px`;
-    const dismiss = (e) => {
-      if (menu.contains(e.target) && e.type === 'mousedown') return;
-      menu.remove();
-      document.removeEventListener('mousedown', dismiss);
-      document.removeEventListener('keydown', dismiss);
-    };
-    setTimeout(() => {
-      document.addEventListener('mousedown', dismiss);
-      document.addEventListener('keydown', (e) => e.key === 'Escape' && dismiss(e), { once: true });
-    });
-    event.stopPropagation();
-  });
+  problemsChip.addEventListener('click', () => sidebarTabs.showProblems());
   // Posiciones del texto compilado ↔ texto actual del editor (RF-57.5).
   const tracker = createChangeTracker();
   // RF-78.3: los resultados de la búsqueda en el proyecto se recalculan al editar.
@@ -1703,6 +1725,14 @@ async function bootstrap() {
     onShowHistory: () => {
       const path = workspace.getDocumentPath();
       if (path) showHistory(path);
+    },
+    // RF-96.6: «Ver documentación de `x`» sobre una palabra de un `.typ`.
+    getExtraItems: (view) => {
+      if (!/\.typ$/i.test(workspace.getDocumentPath() ?? '')) return [];
+      const head = view.state.selection.main.head;
+      const line = view.state.doc.lineAt(head);
+      const word = wordAt(line.text, head - line.from);
+      return word ? [{ id: 'showDocs', label: t('editorMenu.showDocs').replace('{word}', word), run: () => docsViewer.openFor(word) }] : [];
     },
   });
 

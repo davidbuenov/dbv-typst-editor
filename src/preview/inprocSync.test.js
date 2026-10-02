@@ -262,6 +262,7 @@ describe('sincronización exacta con el motor en proceso', () => {
       engine: 'inproc',
       generation: 5,
       fallbackReason: 'Typst entró en pánico',
+      warnings: '', // RF-97.4: los avisos viajan para el panel de Problemas
       outline: null, // RF-89: este resultado de prueba no trae esquema
     });
     expect(preview.getRenderedStart()).toBe(11);

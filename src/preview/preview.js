@@ -656,6 +656,8 @@ export function createPreview({
       engine: renderedEngine,
       generation: outcome.generation,
       fallbackReason: outcome.fallbackReason ?? null,
+      // RF-97.4: con el motor clásico, el panel de Problemas los extrae de aquí.
+      warnings: outcome.warnings ?? '',
       // RF-89: esquema del mismo compilado (solo el motor en proceso lo trae).
       outline: outcome.outline ?? null,
     });

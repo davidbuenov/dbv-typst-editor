@@ -450,6 +450,17 @@
   - atajo de la IA en línea: Ctrl+Mayús+I.
 - **Sin dependencias nuevas en el frontend:** el renderizador de Markdown (seguro: construye nodos, nunca `innerHTML`), el diff y el lector CSV son propios. En Rust, `keyring` (nuevo) y `flate2` (ya estaba en el lock).
 
+### ADR-V0130-003 — Desvíos del plan durante el `/build` de v0.13.0
+
+*Registrada el 2026-10-02.*
+
+- **Ollama por su API nativa (`/api/chat`), no por la compatible con OpenAI.** Descubierto al probar con el Ollama 0.6.5 de la máquina de desarrollo: trae `OLLAMA_CONTEXT_LENGTH=2048`, y por la API de OpenAI Ollama usa ese contexto y **recorta en silencio** lo que no cabe, aunque DBV calcule otro presupuesto. Solo la API nativa admite `options.num_ctx`. Tercer protocolo en `providers.rs` (NDJSON).
+- **Las traducciones de la IA viven en `src/ai/translations.js`** y se registran al cargar la IA (`registerTranslations`): con ellas en `i18n.js`, el paquete inicial crecía unos 20 KB sin IA configurada, en contra de RNF-IA.1. Las cinco claves que usa el HTML siguen en el diccionario principal.
+- **Herramientas de DBV para agentes por MCP (RF-91.9): sustituidas**, como preveía `ADR-V0130-002`: el primer mensaje de la sesión lleva la ruta de la documentación volcada en Markdown (`docs_export_dir`) y los diagnósticos.
+- **Escrituras por `fs/write_text_file`:** se convierten en propuesta (RF-91.5) y se responde al agente como escritas; Claude Code no las usa (spike), así que el camino principal es el permiso con diff.
+- **Robustez con modelos pequeños** (de las primeras evals con `llama3`): bloques de cambio con espacios tras `=======`, y búsqueda que acepta otra sangría si la coincidencia es única.
+- **`serde` y los enums:** `rename_all` en un enum renombra las variantes, no los campos de las variantes con campos: `Done { stop_reason }` viajaba como `stop_reason`. Lección general para el proyecto.
+
 ### Lección — los permisos ACL de Tauri no los ve ninguna herramienta de este repo (2026-09-22)
 
 `appWindow.destroy()` (RF-64.6) se escribió, se testeó con Vitest y pasó `verify:frontend`/`verify:layout` — y aun así fallaba en la ventana real: "Promesa rechazada: Command plugin:window|destroy not allowed by ACL". `src-tauri/capabilities/main.json` no declaraba `core:window:allow-destroy`. Ninguna comprobación sin Tauri real puede detectar esto: Vitest simula el DOM, no el puente de comandos de Tauri.

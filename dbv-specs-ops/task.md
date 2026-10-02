@@ -617,16 +617,17 @@
 - [x] **Fase 63: `/spec` de v0.13.0 — cerrado el 2026-10-02 (`SPECIFICATIONS.md` v1.17, §5n, RNF-IA, RF-90 a RF-98, RNF-IA-EVAL; `ARCHITECTURE.md` §7.20; `ADR-V0130-001`).** Nace del análisis de Papers AI y del flujo real del usuario (DBV + VS Code con Claude Code). IA opcional con dos caminos (directos: locales o clave de API; agentes por ACP: Claude Code, Gemini CLI, Codex, Copilot), panel de conversación, cambios en varios ficheros revisados y **comprobados compilando**, asistente con herramientas, IA en línea, documentación de Typst offline (también para el usuario), panel de Problemas con «Explicar y arreglar», visor CSV/TSV y evals. Sin recorte por tamaño (decisión del usuario). **Siguiente: `/plan` de v0.13.0**, con las preguntas abiertas de §5n; es la versión más grande hasta ahora, así que el plan necesita `implementation_plan.md` con frontmatter y varios spikes antes de construir (generación de la documentación de la 0.15.1, ACP con agentes reales, almacén de secretos en MSIX/macOS/Linux).
 
 - [x] **Fase 64: `/plan` de v0.13.0 — 2026-10-02 (`implementation_plan.md`, `ADR-V0130-002`).** Aprobación anticipada del usuario para encadenar `/build`, `/test` y `/code-simplify` sin preguntar. Dos spikes: documentación de Typst 0.15.1 compilada desde sus fuentes (203 páginas) y ACP contra Claude Code real (el agente escribe en disco tras pedir permiso con el diff completo; no usa `fs/write_text_file`). Diez slices (127 a 136):
-  - [ ] **Slice 127** — Documentación de Typst: script, recurso y búsqueda (RF-96 backend).
-  - [ ] **Slice 128** — Markdown seguro, visor de documentación y panel de Problemas (RF-96.6, RF-97).
-  - [ ] **Slice 129** — Visor de datos CSV/TSV (RF-98).
-  - [ ] **Slice 130** — Backend de IA: secretos, conexiones, proveedores, comprobación de propuestas, conversaciones.
-  - [ ] **Slice 131** — Frontend de IA: entrada perezosa, «Conectar una IA», panel de conversación (RF-90, RF-92).
-  - [ ] **Slice 132** — Bucle con herramientas, propuestas y revisión (RF-93, RF-94).
-  - [ ] **Slice 133** — IA en línea, «Explicar y arreglar», datos (RF-95, RF-97.5, RF-98.7).
-  - [ ] **Slice 134** — Agentes por ACP (RF-91).
-  - [ ] **Slice 135** — Evals (RNF-IA-EVAL).
-  - [ ] **Slice 136** — Ayuda, atajos, arquitectura y changelog.
+  - [x] **Slice 127** — Documentación de Typst: script, recurso y búsqueda (RF-96 backend).
+  - [x] **Slice 128** — Markdown seguro, visor de documentación y panel de Problemas (RF-96.6, RF-97).
+  - [x] **Slice 129** — Visor de datos CSV/TSV (RF-98).
+  - [x] **Slice 130** — Backend de IA: secretos, conexiones, proveedores, comprobación de propuestas, conversaciones.
+  - [x] **Slice 131** — Frontend de IA: entrada perezosa, «Conectar una IA», panel de conversación (RF-90, RF-92).
+  - [x] **Slice 132** — Bucle con herramientas, propuestas y revisión (RF-93, RF-94).
+  - [x] **Slice 133** — IA en línea, «Explicar y arreglar», datos (RF-95, RF-97.5, RF-98.7).
+  - [x] **Slice 134** — Agentes por ACP (RF-91).
+  - [x] **Slice 135** — Evals (RNF-IA-EVAL).
+  - [x] **Slice 136** — Ayuda, atajos, arquitectura y changelog.
+  - [x] **`/build` de v0.13.0 COMPLETO (2026-10-02).** Commits `32e7c32` (127), `8edbdd5` (128), `fc17c74` (129), `2356337` (130), `dc9ab0d` (131-132), `4da8b5a` (Ollama nativo), `eb4e740` (133), `6abba3a` (134), `e53cd19` (135-136). Desvíos del plan registrados en `ADR-V0130-003`. **Siguiente: `/test`.**
 
 ## 🔄 Context Snapshot / Snapshot de Contexto
 

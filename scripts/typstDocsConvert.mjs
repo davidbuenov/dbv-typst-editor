@@ -14,7 +14,7 @@
 // la Ayuda (RF-96.6) sabe seguir; los externos se conservan.
 
 /** Nodos que no aportan texto: iconos, botones, tooltips, imágenes de ejemplo. */
-const DROP = 'svg, button, img, script, style, .tooltip-context, .sources-link, .breadcrumbs, .preview, .copy';
+const DROP = 'svg, button, img, script, style, .tooltip-context, .sources-link, .breadcrumbs, .preview, .copy, .page-end-buttons';
 
 /** Ruta interna del sitio (`/reference/model/table/#x`) → `typst:reference/model/table#x`. */
 export function rewriteHref(href, pagePath = '') {

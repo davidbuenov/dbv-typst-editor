@@ -448,6 +448,16 @@ pub async fn open_file_dialog(app: tauri::AppHandle) -> Option<String> {
         .map(|file| file.to_string())
 }
 
+/// Selector nativo de un fichero de datos para el visor CSV/TSV (RF-98.6).
+#[tauri::command]
+pub async fn pick_data_file_dialog(app: tauri::AppHandle) -> Option<String> {
+    app.dialog()
+        .file()
+        .add_filter("CSV / TSV", &["csv", "tsv"])
+        .blocking_pick_file()
+        .map(|file| file.to_string())
+}
+
 /// Selector nativo de carpeta de proyecto (RF-02c, "Abrir carpeta de proyecto").
 #[tauri::command]
 pub async fn open_folder_dialog(app: tauri::AppHandle) -> Option<String> {

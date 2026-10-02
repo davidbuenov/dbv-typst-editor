@@ -189,6 +189,10 @@
             <button id="btn-tools-kanban" class="menu-item" type="button" role="menuitem">
               <span class="menu-item__icon menu-item__icon--glyph" aria-hidden="true">▥</span><span data-i18n="action.kanbanEditor"></span>
             </button>
+            <!-- RF-98: visor de datos CSV/TSV. -->
+            <button id="btn-tools-data" class="menu-item" type="button" role="menuitem">
+              <span class="menu-item__icon menu-item__icon--glyph" aria-hidden="true">▦</span><span data-i18n="action.dataViewer"></span>
+            </button>
             <button id="btn-tools-dot" class="menu-item" type="button" role="menuitem">
               <span class="menu-item__icon menu-item__icon--glyph" aria-hidden="true">⌥</span><span data-i18n="action.dotEditor"></span>
             </button>
@@ -431,6 +435,7 @@
             </button>
             <span class="document__path" id="document-path"></span>
             <span class="document__lsp-badge hidden" id="document-language" data-i18n-title="doc.languageTitle"></span>
+            <button class="document__lsp-badge hidden" id="btn-doc-table" type="button" data-i18n-title="doc.showTableTitle"><span data-i18n="doc.showTable"></span></button>
             <button class="document__lsp-badge hidden" id="problems-chip" type="button" data-i18n-title="problems.title"></button>
             <span class="document__lsp-badge hidden" id="lsp-status" title="Language Server Tinymist">● Tinymist</span>
           </div>
@@ -1190,6 +1195,34 @@
       <div class="help__body">
         <nav class="help__nav" id="help-nav"></nav>
         <div class="help__content" id="help-content"></div>
+      </div>
+    </div>
+
+    <!-- RF-98: visor de datos CSV/TSV. -->
+    <div id="data-panel" class="floating-panel floating-panel--help floating-panel--data hidden" role="dialog" aria-modal="false">
+      <div class="panel__header">
+        <h2 class="floating-panel__title"><span data-i18n="data.title"></span> · <span id="data-title"></span></h2>
+        <button id="btn-data-close" class="icon-button icon-button--small" type="button" data-i18n-title="action.close">✕</button>
+      </div>
+      <div class="data__toolbar">
+        <label class="data__option"><input type="checkbox" id="data-header" /> <span data-i18n="data.header"></span></label>
+        <label class="data__option"><span data-i18n="data.delimiter"></span>
+          <select id="data-delimiter" class="form-row__input data__select"><option value=",">,</option><option value=";">;</option><option value="&#9;">Tab</option><option value="|">|</option></select>
+        </label>
+        <input id="data-filter" class="form-row__input data__filter" type="search" spellcheck="false" data-i18n-placeholder="data.filter" />
+        <select id="data-filter-column" class="form-row__input data__select"></select>
+        <span class="data__count" id="data-count" aria-live="polite"></span>
+      </div>
+      <div class="data__scroller" id="data-scroller">
+        <table class="data__table"><thead id="data-head"></thead><tbody id="data-body"></tbody></table>
+      </div>
+      <div class="data__actions">
+        <label class="data__option"><input type="checkbox" id="data-as-figure" /> <span data-i18n="data.asFigure"></span></label>
+        <input id="data-caption" class="form-row__input data__small" type="text" data-i18n-placeholder="data.caption" />
+        <input id="data-label" class="form-row__input data__small" type="text" spellcheck="false" data-i18n-placeholder="data.label" />
+        <button id="data-insert" class="button button--primary button--compact" type="button" data-i18n="data.insert" data-i18n-title="data.insertHint"></button>
+        <button id="data-copy-static" class="button button--compact" type="button" data-i18n="data.copyStatic" data-i18n-title="data.copyStaticHint"></button>
+        <button id="data-ask-ai" class="button button--compact hidden" type="button" data-i18n="ai.askAboutData"></button>
       </div>
     </div>
 

@@ -52,6 +52,9 @@ import {
   engineDiagnostics,
   engineSetMode,
   fileFingerprint,
+  fsCopyInto,
+  fsCreateDir,
+  pickDataFile,
   searchProject,
   snippetsEnsureGlobal,
   snippetsEnsureProject,
@@ -86,6 +89,7 @@ import { createChoiceDialog } from './ui/choiceDialog.js';
 import { countProblems, toProblemList } from './editor/diagnosticsModel.js';
 import { createProblemsPanel, parseCliDiagnostics } from './problems/problemsPanel.js';
 import { createDocsViewer, wordAt } from './docs/docsViewer.js';
+import { createCsvViewer } from './data/csvViewer.js';
 import { createEditorContextMenu } from './editor/editorContextMenu.js';
 import { createNavigation } from './editor/navigation.js';
 import { createRefactor } from './editor/refactor.js';
@@ -421,6 +425,84 @@ function wireHelpPanel(docsViewer) {
     open();
     help.scrollToSection(sectionId);
   });
+}
+
+/**
+ * RF-98: visor de datos CSV/TSV. Se abre desde Herramientas (un fichero
+ * cualquiera; si está fuera del proyecto, se ofrece copiarlo a `data/`) y desde
+ * el botón «Tabla» de la barra del documento con un `.csv` abierto (con su
+ * contenido del editor, aunque no esté guardado).
+ */
+function wireDataViewer({ workspace, notify, dialog, getLastTyp }) {
+  const { open } = registerPanel(el('data-panel'), { toggle: false });
+  el('btn-data-close').addEventListener('click', () => el('data-panel').classList.add('hidden'));
+  const ids = {
+    title: 'data-title', header: 'data-header', delimiter: 'data-delimiter', filter: 'data-filter',
+    filterColumn: 'data-filter-column', count: 'data-count', scroller: 'data-scroller', head: 'data-head',
+    body: 'data-body', asFigure: 'data-as-figure', caption: 'data-caption', label: 'data-label',
+    insert: 'data-insert', copyStatic: 'data-copy-static',
+  };
+  const root = () => workspace.state.project?.root ?? null;
+  const viewer = createCsvViewer({
+    elements: Object.fromEntries(Object.entries(ids).map(([key, id]) => [key, el(id)])),
+    show: open,
+    getTargetTyp: () => {
+      const typ = getLastTyp();
+      return typ && root() ? relativeToRoot(root(), typ) : null;
+    },
+    insertIntoDocument: async (code) => {
+      const typ = getLastTyp();
+      if (!typ || !(await workspace.openDocument(typ))) return false;
+      const view = workspace.getEditorView();
+      if (!view) return false;
+      view.dispatch(view.state.replaceSelection(code), { scrollIntoView: true, userEvent: 'input' });
+      view.focus();
+      return true;
+    },
+    copy: (text) => navigator.clipboard.writeText(text),
+    notify,
+  });
+
+  async function openPath(path) {
+    const projectRoot = root();
+    let target = path;
+    let relative = projectRoot ? relativeToRoot(projectRoot, path) : null;
+    if (projectRoot && !relative) {
+      const choice = await dialog.ask({
+        titleKey: 'data.copyTitle',
+        textKey: 'data.copyIntoProject',
+        choices: [
+          { key: 'view', labelKey: 'data.viewOnly' },
+          { key: 'copy', labelKey: 'data.copyAction', tone: 'primary' },
+        ],
+      });
+      if (choice === 'copy') {
+        await fsCreateDir(projectRoot, projectRoot, 'data');
+        const copied = await fsCopyInto(projectRoot, [path], joinPath(projectRoot, 'data'));
+        if (copied.ok && copied.value[0]) {
+          target = copied.value[0];
+          relative = relativeToRoot(projectRoot, target);
+        } else if (!copied.ok) notify(`${t('data.readError')} — ${copied.error.message}`, 'error');
+      }
+    }
+    const read = await readFile(target);
+    if (!read.ok) {
+      notify(`${t('data.readError')} — ${read.error.message}`, 'error');
+      return;
+    }
+    viewer.open({ text: read.value.content, path: target, relative });
+  }
+
+  el('btn-tools-data').addEventListener('click', async () => {
+    const picked = await pickDataFile();
+    if (picked.ok && picked.value) await openPath(picked.value);
+  });
+  el('btn-doc-table').addEventListener('click', () => {
+    const path = workspace.getDocumentPath();
+    if (!path) return;
+    viewer.open({ text: workspace.getTabContent(path) ?? '', path, relative: root() ? relativeToRoot(root(), path) : null });
+  });
+  return viewer;
 }
 
 /** RF-96.6: visor de la documentación de Typst sin conexión. */
@@ -887,6 +969,8 @@ async function bootstrap() {
   });
 
   let lastTargetDocument = null;
+  /** RF-98: último `.typ` abierto, destino de «Insertar como tabla». */
+  let lastTypPath = null;
 
   // El bucle de vista previa se engancha al workspace en vez de vivir dentro de
   // él: el workspace sabe qué documento está abierto, no cómo se compila.
@@ -895,6 +979,11 @@ async function bootstrap() {
   // documento raíz compilado (main.typ): reiniciar aquí reseteaba el scroll a
   // la página 1 y rompía la experiencia del doble clic (RF-16).
   workspace.setListener('documentOpened', () => {
+    // RF-98: último `.typ` activo (destino de «Insertar como tabla») y botón
+    // «Tabla» con un CSV/TSV abierto.
+    const openedPath = workspace.getDocumentPath() ?? '';
+    if (/\.typ$/i.test(openedPath)) lastTypPath = openedPath;
+    el('btn-doc-table').classList.toggle('hidden', !/\.(csv|tsv)$/i.test(openedPath));
     // Las posiciones de la compilación anterior no valen para otro documento.
     tracker.reset();
     refreshPreviewControls();
@@ -1293,6 +1382,8 @@ async function bootstrap() {
     }
     workspace.openGanttEditor(el('btn-tools-gantt'));
   });
+
+  const dataViewer = wireDataViewer({ workspace, notify: toast.show, dialog, getLastTyp: () => lastTypPath });
 
   el('btn-tools-kanban').addEventListener('click', () => {
     if (!workspace.state.document) {

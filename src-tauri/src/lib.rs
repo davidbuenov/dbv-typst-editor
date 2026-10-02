@@ -149,6 +149,7 @@ pub fn run() {
             commands::file_io::list_directory,
             commands::file_io::open_file_dialog,
             commands::file_io::open_folder_dialog,
+            commands::file_io::pick_data_file_dialog,
             commands::file_io::read_file,
             commands::file_io::reveal_in_file_manager,
             commands::file_io::save_file_dialog,

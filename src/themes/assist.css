@@ -170,3 +170,59 @@
   .docs__body { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
   .docs__side { border-right: 0; border-bottom: 1px solid var(--border); max-height: 40%; }
 }
+
+/* ─── Visor de datos CSV/TSV (RF-98) ──────────────────────────────────────── */
+.floating-panel--data { width: min(1100px, calc(100vw - 48px)); }
+.data__toolbar,
+.data__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  padding: 8px 12px;
+  font-size: 12px;
+  border-top: 1px solid var(--border);
+}
+.data__option { display: inline-flex; align-items: center; gap: 4px; color: var(--text-secondary); }
+.data__select { width: auto; padding-block: 2px; }
+.data__filter { flex: 1 1 160px; min-width: 120px; }
+.data__small { flex: 0 1 180px; min-width: 100px; }
+.data__count { margin-left: auto; color: var(--text-muted); }
+.data__scroller {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  border-top: 1px solid var(--border);
+}
+.data__table { border-collapse: collapse; font-size: 12px; min-width: 100%; }
+.data__table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  padding: 0;
+}
+.data__sort {
+  width: 100%;
+  border: 0;
+  background: none;
+  padding: 5px 8px;
+  font: inherit;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.data__table td {
+  padding: 0 8px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  max-width: 420px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-primary);
+}
+.data__table .data__numeric { text-align: right; font-variant-numeric: tabular-nums; }

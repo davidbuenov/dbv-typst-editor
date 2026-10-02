@@ -365,3 +365,8 @@ export const docsSearch = (query, limit) => call('docs_search', { query, limit: 
 export const docsPage = (path) => call('docs_page', { path });
 /** Vuelca la documentación a la carpeta de datos (para los agentes ACP) y devuelve su ruta. */
 export const docsExportDir = () => call('docs_export_dir');
+
+// ─── Visor de datos CSV/TSV (RF-98) ──────────────────────────────────────────
+
+/** Selector nativo de un `.csv`/`.tsv`. */
+export const pickDataFile = () => call('pick_data_file_dialog');

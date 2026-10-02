@@ -1,7 +1,8 @@
 # 📋 Especificaciones: DBV Typst Editor
 
-> **Fase:** `/spec` (Especificación) → **v0.12.1 especificada**
-> **Estado:** 🔒 **CONGELADO v1.16 — 2026-09-29.** v1.16 abre v0.12.1 (§5m: **RF-86 a RF-89**): la vista previa estrecha no se sale del panel, se retira el conmutador de motor (modifica RF-56.6) y los sidecars van intactos en el AppImage con la insignia de Tinymist traducida (RF-86 a RF-88, ya construidos fuera de ciclo); y el esquema sale del motor en proceso y dice por qué no lo hay (RF-89, recupera RF-56.7). Decisiones en `ADR-V0121-001` (`memory.md`).
+> **Fase:** `/spec` (Especificación) → **v0.13.0 especificada**
+> **Estado:** 🔒 **CONGELADO v1.17 — 2026-10-02.** v1.17 abre v0.13.0 (§5n: **RNF-IA, RF-90 a RF-98 y RNF-IA-EVAL**): IA integrada y opcional, con conexiones directas (locales o con clave de API) y agentes instalados por ACP (Claude Code, Gemini CLI, Codex, Copilot); panel de conversación con el proyecto como contexto y cambios en varios ficheros que se revisan y se comprueban compilando antes de aplicarse; IA en línea sobre la selección; documentación de Typst generada para la versión vendorizada, offline, para la IA y para el usuario; panel de Problemas con «Explicar y arreglar»; y visor de datos CSV/TSV. Adelanta la IA, que §6 y §11 tenían como «Futuro post-1.0», y matiza el riesgo de privacidad de §8. Decisiones en `ADR-V0130-001` (`memory.md`).
+> **v1.16 (2026-09-29):** v1.16 abre v0.12.1 (§5m: **RF-86 a RF-89**): la vista previa estrecha no se sale del panel, se retira el conmutador de motor (modifica RF-56.6) y los sidecars van intactos en el AppImage con la insignia de Tinymist traducida (RF-86 a RF-88, ya construidos fuera de ciclo); y el esquema sale del motor en proceso y dice por qué no lo hay (RF-89, recupera RF-56.7). Decisiones en `ADR-V0121-001` (`memory.md`).
 > **v1.15 (2026-09-28):** *(Precisado en `/plan` el mismo día con lo comprobado contra los binarios reales: RF-77.1, .4, .5 y .9, RF-79.6, RF-81.4 y RF-84.3, y **RF-85** nuevo, la corrección de un fallo publicado. Ver `ADR-V0120-001`.)* v1.15 abre v0.12.0 (§5l: **RF-74 a RF-84**): autocompletado completo y ayuda de firma, zoom que conserva la página y «Proyecto en blanco» más a mano (RF-74 a RF-76, ya construidos fuera de ciclo); navegar y refactorizar con Tinymist; buscar y reemplazar en el proyecto; pestañas; atajos documentados; snippets de usuario; buscar y copiar en la vista previa; el documento principal en el manifiesto (modifica RF-53.4); y actualizaciones incrementales del AppImage. Cierra RF-67: el motor clásico se queda como está. Decisiones en `ADR-V0120-001` (`memory.md`).
 > **v1.14 (2026-09-26):** v1.14 abre v0.11.0 (§5k: **RF-68 a RF-73**): conflicto externo decidido por contenido (arregla el guardado automático), operaciones de ficheros en el panel Archivos, actualización automática de referencias al mover o renombrar, acción «Nuevo capítulo…», enlaces funcionales en la vista previa e historial local de versiones. Decisiones en `ADR-V0110-001` (`memory.md`).
 > **v1.13 (2026-09-21):** v1.13 abre v0.10.0 (§5j: **RF-61 a RF-67**): arreglo de Formatear, resaltado de BibTeX, pulido (ocultos, números de línea, refresco), guardado automático opcional con indicador de modificado, ruta corta, no compilar los no principales y análisis previo sobre retirar el motor clásico. **Anterior — v1.12 (2026-09-20).** v1.12 abre v0.9.0 (§5i: **RNF-MOTOR, RF-56 a RF-60**): motor de vista previa **en proceso** (Typst como librería) con sincronización exacta por palabra y frase en los dos sentidos, velocidad tras cada edición, menú contextual del editor, diagnósticos en línea y edición de ficheros de texto/código con resaltado. Decisión de arquitectura en `ADR-MOTOR-001` (`memory.md`); **RF-16 queda sustituido por RF-57 en el motor en proceso** y se conserva en el motor clásico de respaldo.
@@ -13,7 +14,7 @@
 > **v1.5:** v1.4 consolidó el lanzador (§5d, RF-25 a RF-27, con la precisión de RF-26 criterio 10 añadida el mismo día). **v1.5 añade §5e** —RF-28 (chincheta de ventana encima, portada de DBV Markdown Reader) y RF-29 (ver la previsualización de plantilla a tamaño grande)— tras probar el usuario la aplicación construida, más **§5e.1, que documenta el alcance real de la integración con Git** y por qué NO es integración con GitHub. Ver `ADR-VENTANA-001` en `memory.md`. (baseline de especificación v0.5.0, ampliada). v1.3 especificó el salto a productividad profesional y robustez (v0.5.0): Integración con Git y resolución visual de conflictos (RF-19), Galería visual de plantillas con previsualización (RF-20), Inteligencia de código con Tinymist LSP vendorizado (RF-21), Figuras y datos dinámicos con Python (RF-22), Asistente visual de diagramas CeTZ (RF-23), y Robustez de entorno y guardado atómico (RF-24). **v1.4 reabre ese `/spec`, a decisión del usuario y antes de entregar la versión, para consolidar el lanzador** (§5d): Lanzador de una sola vía (RF-25), Galería unificada de creación de documentos (RF-26) y Tokens semánticos de estado (RF-27). El motivo es que `/build` de v0.5.0 dejó **tres** superficies distintas para elegir plantilla; ver `ADR-LANZADOR-001` en `memory.md`.
 > **Regla de congelación:** a partir de aquí, cualquier cambio de alcance o de requisito exige (1) registrarlo como ADR en `memory.md`, (2) actualizar este documento con nueva versión, y (3) revisar el impacto en `implementation_plan.md`. No se modifican requisitos "al vuelo" durante `/build`.
 > **Documento de diseño:** el sistema visual que rige §5d está en [`DESIGN.md`](./DESIGN.md), escrito el 2026-09-09 (deuda documental abierta desde el `/spec` original, saldada al abordar este rediseño).
-> **Última Revisión:** 2026-09-28
+> **Última Revisión:** 2026-10-02
 
 ---
 
@@ -1229,6 +1230,219 @@ un olvido, es una decisión de alcance tomada en esta misma sesión de `/spec`, 
 
 ---
 
+## ✨ 5n. Funcionalidades — v0.13.0 (IA integrada, documentación de Typst offline, panel de Problemas y visor de datos)
+
+> **Origen (2026-10-02):** el usuario pidió analizar **Papers AI** (papers.ai, Digital Science, el equipo de Overleaf; publicado el 2026-08-04) antes de abrir la versión. Conclusión del análisis: en lo propio de Typst DBV va por delante (Papers AI no tiene modo visual, sincronización, LSP, plantillas ni Universe para Typst), pero nos saca ventaja en **IA con el proyecto como contexto y cambios revisables**, en el **panel de Problemas** y en la conexión con modelos locales. El usuario aportó su flujo real: escribe en DBV y abre la misma carpeta en VS Code con Claude Code para que le ayude con el formato, y vuelve a DBV para verlo. **Esta versión integra ese flujo.** Decisiones en `ADR-V0130-001` (`memory.md`).
+>
+> **Decisiones del usuario (2026-10-02):** (1) entran **los dos caminos** de conexión: modelos directos (locales o con clave de API) y **agentes ya instalados** por el protocolo ACP (Claude Code, Gemini CLI, Codex, GitHub Copilot), que usan la suscripción del propio usuario; (2) **panel de conversación y también IA en línea** sobre la selección; (3) **documentación de Typst generada en el build** para la versión vendorizada, empaquetada y sin descarga; (4) **la IA puede crear y modificar varios ficheros** desde la conversación, siempre con revisión; (5) **la IA es opcional**: sin configurarla, la app se usa como hasta ahora; (6) el **visor de CSV** entra como una herramienta más; (7) **no se recorta por tamaño**: la versión crece lo que haga falta, con el cuidado de siempre.
+>
+> **Fuera de alcance, registrado:** integración con Zotero/Mendeley (el usuario no la usa; el `.bib` basta por ahora); etiquetas en el historial de versiones; comentarios anclados; colaboración en tiempo real; instalar o descargar modelos locales desde DBV (eso lo hace Ollama/LM Studio); autocompletado con IA mientras se escribe («texto fantasma»); acciones de IA personalizadas en un fichero (como los snippets de RF-81); crear un documento entero desde el lanzador con IA; búsqueda semántica con *embeddings*.
+>
+> **Contraste con el código y con fuentes externas, hecho en `/spec`:**
+> - **Problemas:** hoy no hay panel. Es la insignia `problems-chip` (`main.js`) con un desplegable de **50 entradas como máximo**, y solo con el motor en proceso (RF-59). RF-97 la convierte en panel.
+> - **Cambios en varios ficheros:** ya existe una maquinaria única, `app/multiFileEdit.js` (RF-70, RF-77.4, RF-78.4): pestañas abiertas editadas en el editor, ficheros cerrados escritos de forma atómica con copia en el historial (RF-73), validación de huellas antes de escribir y Deshacer todo o nada. RF-93 la reutiliza; no se escribe otra.
+> - **Diferencias:** `editor/diffModal.js` (RF-19) compara dos textos lado a lado, sin aceptar o rechazar por trozo.
+> - **Procesos externos:** el runner de Python (`commands/python_runner.rs`, RF-22) ya detecta un intérprete en el PATH y degrada limpiamente si no está, también en el paquete de la Store. Es el precedente para detectar agentes (RF-91).
+> - **Red:** las descargas van por Rust con `ureq` (Universe, RF-34). No hay almacén de secretos: las preferencias viven en `localStorage` (`app/prefs.js`), **sitio prohibido para una clave de API**.
+> - **Compilar cambios sin escribirlos:** el motor en proceso ya compila contenido en memoria de varias pestañas (`CompileTarget.otherDirty`, `ADR-V0120-002`). Es la base para comprobar una propuesta antes de enseñarla (RF-93.3).
+> - **Documentación de Typst:** **no existe en Markdown ni hay versión offline oficial** (hay una propuesta abierta de `llms.txt`, typst/typst#5840). Sus fuentes están en el repositorio de Typst: páginas en **marcado Typst** y referencia en los comentarios de documentación del código Rust, con un generador propio (`cargo docit` en la rama principal). Cómo se generan para la 0.15.1 y cómo se pasan a Markdown se decide en `/plan` (RF-96.1).
+> - **ACP** (Agent Client Protocol, JSON-RPC sobre stdio, creado por Zed y adoptado por JetBrains): el cliente puede ofrecer leer y escribir ficheros (`fs/read_text_file`, `fs/write_text_file`), pero **son opcionales para el agente**: un agente puede escribir en disco con sus propias herramientas sin pasar por DBV. RF-91.6 cubre ese caso.
+
+### RNF-IA — Principios que rigen todas las funciones de IA
+1. **Opcional de verdad.** Sin ninguna IA configurada, la interfaz es la de la 0.12.1 más **una sola entrada**: «Conectar una IA…» en el menú Herramientas. No se arranca ningún proceso, no se abre ninguna conexión y no se carga el código de IA: el paquete inicial del frontend **no crece** (se mide, como en RF-60.3). Un ajuste **«Mostrar las funciones de IA»** las oculta todas sin borrar la configuración.
+2. **Nada se escribe sin que el usuario lo vea.** Toda modificación de ficheros que venga de la IA pasa por la revisión de RF-93. Única excepción, declarada y cubierta: el agente que escribe en disco por su cuenta (RF-91.6).
+3. **Confinamiento al proyecto.** La IA solo lee y propone cambios **dentro de la carpeta del proyecto abierto**, con el mismo criterio que las operaciones de ficheros (`ensure_inside`, RF-69). Nada de rutas absolutas ajenas, `..` ni `.git`.
+4. **Local por defecto; la nube, con aviso.** La **primera vez** que un proyecto se va a enviar a un proveedor en la nube, se avisa con su nombre («Este proyecto se enviará a Anthropic»), y se recuerda por proyecto y proveedor. El panel muestra siempre a dónde va lo que se envía («Local» o «Nube: …»).
+5. **Secretos fuera de todo fichero.** Las claves de API se guardan en el **almacén de credenciales del sistema** (Administrador de credenciales de Windows, Llavero de macOS, Secret Service en Linux). Nunca en `localStorage`, en el proyecto, en el `.dbvt`, en el historial, en los registros ni en el frontend: **las peticiones salen de Rust** y la clave no cruza el puente IPC. Si el sistema no tiene almacén (un Linux sin Secret Service), se avisa y se ofrece recordarla solo durante la sesión.
+6. **Sin telemetría ni servidor propio.** DBV no tiene backend, no incluye ni descarga modelos y no envía nada a ningún sitio que el usuario no haya configurado.
+7. **El contenido del proyecto es un dato, no una orden.** Las instrucciones del asistente marcan como datos los ficheros que lee, para reducir la inyección de órdenes. Las herramientas de los modelos directos (RF-94) **no acceden a la red ni ejecutan programas**.
+8. **Idioma:** el asistente responde en el idioma de la interfaz salvo que el usuario escriba en otro. Toda la interfaz nueva, en ES y EN.
+
+### RF-90 — Conectar una IA
+1. **Asistente «Conectar una IA»**, desde Herramientas y desde la configuración. Al abrirlo (nunca al arrancar la app) **detecta lo disponible** y lo marca: Ollama escuchando en `localhost:11434`, LM Studio en `localhost:1234` y los agentes de RF-91 en el PATH. Lo que no se encuentra aparece con un enlace a cómo instalarlo.
+2. **Conexiones directas admitidas:**
+   - **Locales:** Ollama, LM Studio y **cualquier servidor compatible con la API de OpenAI** (llama.cpp, vLLM, Jan…), con URL y clave opcional.
+   - **En la nube, con clave de API:** Anthropic (Claude), OpenAI (ChatGPT), Google (Gemini) y OpenRouter.
+   - La pantalla explica, en una frase, que **una suscripción** (Claude Pro, ChatGPT Plus, Gemini, Copilot) **no da una clave de API**, y que para usarla hay que conectar su agente (RF-91).
+3. **Flujo:** elegir el proveedor → pegar la clave si hace falta → **«Probar conexión»** → elegir el modelo de la lista que devuelve el proveedor → nombre de la conexión. Los fallos se explican sin jerga: clave no válida, sin conexión, servidor local apagado, modelo inexistente, límite de uso.
+4. **Varias conexiones, una activa.** El panel de conversación (RF-92) tiene un selector rápido. Cada conexión se puede editar, volver a probar y eliminar; eliminarla **borra su clave del almacén**.
+5. **Capacidades por modelo,** detectadas cuando el proveedor las informa y, si no, con un valor prudente editable: si admite **herramientas**, si admite **imágenes** y su **tamaño de contexto**. Se muestran, porque cambian lo que el asistente puede hacer (RF-94.4).
+6. **Criterios de aceptación:**
+   - Tests de la detección contra servidores simulados (encendido, apagado, respuesta inválida).
+   - Test que guarda una conexión con clave y comprueba que la clave **no aparece** en `localStorage`, en la carpeta de configuración de la app ni en los mensajes que cruzan el IPC.
+   - Prueba manual con Ollama y un modelo pequeño, y con una clave real de al menos un proveedor en la nube.
+
+### RF-91 — Agentes instalados por ACP (Claude Code, Gemini CLI, Codex, GitHub Copilot)
+1. **Agentes reconocidos:** Claude Code, Gemini CLI, Codex y GitHub Copilot CLI, más «Otro agente ACP» con su orden de arranque. La forma exacta de lanzar cada uno (nativo o con adaptador) se fija en `/plan` **contra los binarios reales**, no de memoria.
+2. **Ciclo de vida:** el agente se lanza como proceso hijo **con la carpeta del proyecto como directorio de trabajo** y habla ACP por stdio. Se cierra al cerrar el proyecto o la app. Un agente que no responde se puede detener desde el panel.
+3. **La cuenta es la del agente.** El inicio de sesión lo hace el propio agente con la suscripción del usuario: **DBV no ve ni guarda sus credenciales**. Si el agente pide iniciar sesión, se muestra cómo, con el método que el propio agente anuncia.
+4. **Requisitos que faltan** (el CLI, un adaptador, Node.js): se explica qué falta y cómo instalarlo. **DBV no instala nada sin un permiso explícito** para esa instalación concreta.
+5. **Escrituras por DBV:** DBV ofrece al agente leer ficheros **con el contenido sin guardar del editor** y escribirlos. Lo que el agente escribe por esa vía **no va a disco**: se convierte en una **propuesta de RF-93**. Mientras dura el turno, el agente lee lo que él mismo propuso, para que su trabajo sea coherente. Si el usuario rechaza algo, el siguiente mensaje al agente se lo indica.
+6. **Escrituras directas en disco** (el protocolo no las impide):
+   - Antes de cada turno de un agente, DBV toma un **punto de restauración** de los ficheros de texto del proyecto en el historial local (RF-73).
+   - Al terminar el turno, los ficheros cambiados en disco aparecen en la misma revisión de RF-93, como **«Cambios ya hechos por el agente»**, con sus diferencias respecto al punto de restauración y **Deshacer** por fichero o todo.
+   - Las pestañas abiertas siguen las reglas de conflicto por contenido de RF-68.
+7. **Permisos:** cada petición de permiso del agente (ejecutar una orden, editar, leer algo) se muestra con lo que pide, y se responde con **Permitir una vez**, **Permitir siempre en esta conversación** o **Denegar**. **Nada se aprueba solo por defecto.** Lo que salga de la carpeta del proyecto se deniega con explicación.
+8. **Sin terminal del cliente:** DBV **no ofrece** al agente su propia capacidad de terminal en esta versión. Las órdenes que el agente ejecute por su cuenta pasan por el punto 7 cuando el agente pide permiso.
+9. **Herramientas de DBV para el agente:** si el agente admite servidores MCP en la sesión, DBV le ofrece las suyas: buscar en la documentación de Typst (RF-96), consultar los diagnósticos y **comprobar si una propuesta compila**. Así un agente que no sepa Typst 0.15.1 tiene la misma ayuda que un modelo directo. Su viabilidad se confirma en `/plan`.
+10. **Misma interfaz:** la conversación con un agente se muestra en el panel de RF-92, con sus mensajes, su plan, sus llamadas a herramientas resumidas y sus cambios.
+11. **Criterios de aceptación:**
+    - Tests con un **agente ACP simulado**: inicio, mensaje, escritura convertida en propuesta, lectura de lo propuesto, petición de permiso, cancelación, escritura directa detectada contra el punto de restauración.
+    - Prueba manual del usuario con **Claude Code** en un proyecto real: pedir un cambio de formato que toque varios capítulos, revisarlo y aceptarlo en DBV. Con al menos otro agente si está disponible.
+
+### RF-92 — Panel de conversación con el proyecto como contexto
+1. **Panel propio, conmutable junto a P/E/V** (botón «IA»), visible solo con una IA activa. Ancho redimensionable y recordado. Respeta `DESIGN.md` y los tres temas.
+2. **Contexto automático:** el proyecto (nombre, árbol de ficheros y documento principal), la pestaña activa con la posición del cursor y la selección, los diagnósticos actuales y el esquema. Un indicador muestra **qué se va a enviar** («main.typ · selección · 3 problemas»), se puede desplegar y se puede quitar cualquier elemento.
+3. **Adjuntar:**
+   - **`@`** en el campo de texto para mencionar ficheros del proyecto, con autocompletado.
+   - Arrastrar un fichero desde el árbol, o **«Añadir a la conversación»** en los menús contextuales del árbol y del editor.
+   - Si el modelo admite imágenes: **«Adjuntar la página visible»** de la vista previa, para preguntas como «¿por qué esta tabla se sale del margen?».
+4. **Respuestas en streaming**, en Markdown con los bloques de código Typst resaltados. Cada bloque tiene **Copiar** e **Insertar en el cursor**. Insertar es una acción explícita del usuario, que se deshace con Ctrl+Z.
+5. **Control:** detener la respuesta en cualquier momento, reintentar y editar el último mensaje.
+6. **Conversaciones por proyecto**, guardadas en la carpeta de datos de la aplicación, **nunca en el proyecto** (no ensucian git ni el `.dbvt`). Hay una lista para retomarlas, y se pueden empezar nuevas y borrar una o todas.
+7. **Errores del proveedor** (límite de uso, clave caducada, contexto excedido, sin red) se explican dentro de la conversación, con qué hacer.
+8. **Consumo:** tokens de entrada y salida de la conversación, cuando el proveedor los informa.
+9. **Con la conversación vacía,** sugerencias según el contexto: «Explica la estructura de este proyecto», «Revisa los errores», «Mejora el formato de las tablas»…
+10. **Accesible:** se maneja con teclado, tiene foco visible y lector de pantalla (`aria-live` en la respuesta). ES y EN.
+11. **Criterios de aceptación:**
+    - Tests de la construcción del contexto (qué entra y en qué orden), de las menciones `@`, de la persistencia por proyecto y de que quitar un elemento del indicador lo saca de lo enviado.
+    - Prueba manual en `z6-IPbook`: preguntar por un capítulo concreto lo encuentra y responde sobre él.
+
+### RF-93 — Cambios propuestos por la IA y su revisión
+1. **Qué puede proponer**, en una misma respuesta: **modificar varios ficheros** y **crear ficheros nuevos** (un capítulo, un `.bib`…). También **renombrar y eliminar**: siempre destacados, y eliminar manda a la papelera (RF-69.7). Solo ficheros de texto editables (RF-60).
+2. **Revisión:**
+   - Lista de ficheros afectados con sus líneas añadidas y quitadas.
+   - Diferencias de cada fichero con **Aceptar o Rechazar por trozo, por fichero o todo**.
+   - El texto propuesto **se puede retocar antes de aceptarlo**.
+3. **Comprobación por compilación antes de enseñarla.** El motor en proceso compila el proyecto con los cambios **en memoria, sin tocar el disco**, y la propuesta dice si **compila sin errores**, **introduce N errores nuevos** o **corrige M**. **«Ver en la vista previa»** muestra el documento como quedaría, marcado claramente como propuesta, hasta volver. Con el motor clásico de respaldo, no hay comprobación, y se dice.
+4. **Aplicar** usa la maquinaria de `multiFileEdit.js`, sin una segunda:
+   - las pestañas abiertas se editan en el editor;
+   - los ficheros cerrados se escriben de forma atómica, con copia en el historial (RF-73);
+   - las huellas se validan antes de escribir;
+   - un aviso «N cambios en M ficheros» ofrece **Deshacer** (todo o nada).
+5. **Nunca se aplica sobre otro texto.** Una propuesta se hace sobre una versión de cada fichero. Si el usuario lo cambió después, los trozos que ya no casan **se marcan y no se aplican en silencio**, y se puede pedir a la IA que la rehaga.
+6. **Duración:** una propuesta pendiente sobrevive a cerrar el panel, pero no a cerrar el proyecto; al cerrarlo se avisa de que hay cambios sin revisar.
+7. **Criterios de aceptación:**
+   - Tests con un fichero cerrado, una pestaña abierta con cambios sin guardar, un fichero nuevo y un trozo en conflicto.
+   - Tests de aceptar o rechazar por trozo y de Deshacer.
+   - Test de la comprobación por compilación: una propuesta con un error lo informa, y una que lo arregla informa de la corrección.
+
+### RF-94 — El asistente con herramientas (modelos directos)
+1. **Herramientas** que DBV da a un modelo directo que las admite:
+   - listar ficheros, leer un fichero (o un tramo) y buscar en el proyecto (el motor de RF-78);
+   - ver los diagnósticos y el esquema;
+   - buscar en la documentación de Typst (RF-96);
+   - **proponer cambios** (RF-93) y **comprobar si una propuesta compila**.
+
+   Todas confinadas al proyecto (RNF-IA.3), sin red y sin ejecutar programas.
+2. **Bucle acotado y visible:** el panel enseña lo que hace («Leyendo `cap2.typ`…»). Tiene un **máximo de pasos** por petición, fijado en `/plan` (orientativo: 15), y el usuario lo puede detener.
+3. **Autocorrección:** si la propuesta no compila, el asistente recibe los errores y la puede rehacer **un número limitado de veces** (orientativo: 2). Si aun así no compila, la presenta diciéndolo.
+4. **Modelos sin herramientas** (muchos locales pequeños) funcionan en **modo conversación**:
+   - el contexto se arma por adelantado: fichero activo, selección, diagnósticos y fragmentos de documentación relevantes;
+   - los cambios se piden en un formato de bloque por fichero que DBV convierte en propuesta de RF-93;
+   - si la respuesta no se puede interpretar como propuesta, se queda como texto con «Insertar».
+5. **Presupuesto de contexto:** nunca se supera la ventana del modelo. Prioridad, de más a menos:
+   1. instrucciones;
+   2. selección;
+   3. fichero activo, recortado alrededor del cursor;
+   4. diagnósticos;
+   5. documentación;
+   6. esquema;
+   7. resto.
+
+   El indicador de RF-92.2 dice qué se recortó.
+6. **Instrucciones del sistema propias,** versionadas en el repositorio y en ES/EN. Explican lo básico de Typst 0.15.1, que **no es LaTeX**, que use la documentación y el formato de las propuestas.
+7. **Criterios de aceptación:** tests con un **modelo simulado con guion** (llamadas a herramientas predefinidas) que comprueben:
+   - el bucle y el máximo de pasos;
+   - el reintento tras un fallo de compilación;
+   - el presupuesto de contexto con una ventana pequeña;
+   - el rechazo de una ruta fuera del proyecto;
+   - la conversión del formato de bloque en propuesta en modo conversación.
+
+### RF-95 — IA en línea sobre la selección
+1. **Con texto seleccionado,** el menú contextual del editor tiene **«IA ›»**, y hay un atajo (fijado en `/plan` contra todo el keymap, RF-80). Los dos abren una barra flotante junto a la selección con estas acciones:
+   - **Mejorar redacción**;
+   - **Corregir ortografía y gramática**;
+   - **Traducir a…** (ES, EN u otro idioma);
+   - **Acortar** y **Ampliar**;
+   - **Convertir a tabla Typst** y **Convertir a lista**;
+   - **Explicar** (solo responde, no cambia nada);
+   - un campo libre **«Pide algo…»**.
+2. **Sin selección,** la acción actúa sobre el párrafo actual. Sobre un error subrayado, el menú ofrece **«Explicar y arreglar»** (RF-97.5).
+3. **Resultado en línea:** se ve en el propio editor como diferencia (lo que sale y lo que entra), con **Aceptar**, **Rechazar** y **Reintentar**. «Explicar» abre una nota flotante.
+4. **Respeta el marcado de Typst:** conserva funciones, ecuaciones, etiquetas y citas. En un `.typ`, el resultado se comprueba compilando (RF-93.3) y avisa si introduce errores.
+5. **Qué IA usa:** la conexión directa activa. Si solo hay un agente conectado, la petición se le envía como mensaje, con su revisión normal.
+6. **Criterios de aceptación:** tests de que la petición conserva el marcado (`#`, `$…$`, `<etiqueta>`, `@cita`), de la aplicación de la diferencia y del atajo sin conflictos; prueba manual de traducir un párrafo con una cita y una ecuación sin romperlas.
+
+### RF-96 — Documentación de Typst offline, para la IA y para el usuario
+1. **Generada en el build,** desde las fuentes oficiales de **la versión exacta vendorizada** (hoy 0.15.1, con la misma comprobación de versión que RF-56.1). Se convierte a **Markdown**, se trocea por página y sección y se empaqueta con la aplicación. **Sin descarga ni red.** Un test falla si la versión de la documentación no es la del compilador. El método de generación se decide en `/plan`.
+2. **Contenido:** tutorial, guías y la **referencia completa** (funciones, parámetros, tipos y ejemplos). La documentación de Typst es Apache-2.0: se conservan sus avisos.
+3. **Búsqueda local,** léxica y sin *embeddings*. La documentación está en inglés, así que la búsqueda en español usa un **glosario bilingüe** de términos de Typst (tabla → `table`, figura → `figure`, ecuación → `equation`, pie de figura → `caption`…).
+4. **Uso por la IA:** con la herramienta de RF-94 o con fragmentos inyectados en modo conversación (RF-94.4). Las respuestas **citan la página** que usaron.
+5. **Paquetes del proyecto:** también entra el README (y la documentación que traiga) de los paquetes de Universe que importa el proyecto, **leídos de la caché local de paquetes**, sin red.
+6. **También para el usuario, sin IA:** Ayuda › **«Documentación de Typst (sin conexión)»**, con buscador, páginas renderizadas y enlaces internos. En el menú contextual del editor, **«Ver documentación de `nombre`»** sobre una función. Para renderizar el Markdown se reutiliza lo de DBV Markdown Reader si encaja (prioridad 1 de §11).
+7. **Tamaño:** se mide en `/plan`. Orientativo: menos de 5 MB comprimido en el instalador.
+8. **Criterios de aceptación:**
+   - La generación corre en la CI de las tres plataformas.
+   - Test de la versión.
+   - Tests de búsqueda: «table header» devuelve primero la página de `table`; «cabecera de tabla» llega a la misma por el glosario.
+   - Prueba manual del visor sin conexión.
+
+### RF-97 — Panel de Problemas, con «Explicar y arreglar»
+1. **Pestaña «Problemas» en el panel lateral,** junto a Archivos, Esquema y Buscar, con su contador. La insignia actual se conserva y abre esta pestaña en vez del desplegable.
+2. **Lista completa** (sin el tope de 50), **agrupada por fichero** y con los errores primero. Cada entrada lleva severidad, mensaje, línea y columna, un extracto de la línea y las **pistas** de Typst. Un clic abre el fichero en el sitio (en su pestaña, RF-79).
+3. **Filtros:** errores, avisos y «solo el fichero activo».
+4. **Se actualiza con cada compilación.** Con el motor clásico de respaldo, muestra los mensajes de la banda con su fichero y línea cuando se pueden extraer y, si no, su texto, **sin inventar posiciones**.
+5. **Con IA:** **«Explicar y arreglar»** en cada problema y en el menú del subrayado del editor. Envía el diagnóstico, el fragmento y la documentación relevante (RF-96). Devuelve una **explicación en lenguaje llano** y una **propuesta** (RF-93) comprobada compilando. Con varios errores, **«Arreglar todos»** los trata en una sola propuesta.
+6. **Sin IA:** el panel funciona igual, sin ese botón. Si el error nombra una función, ofrece **«Ver documentación»** (RF-96.6).
+7. **Criterios de aceptación:** tests de agrupación, orden, filtros y de que la insignia abre la pestaña; con un error en un capítulo incluido y no abierto, aparece con su fichero y su línea, y un clic lleva a él.
+
+### RF-98 — Visor de datos CSV/TSV
+1. **Abrir un `.csv` o `.tsv` muestra una tabla,** con un conmutador **Tabla / Texto**. El modo texto es el editor de RF-60. Se recuerda por fichero.
+2. **Lectura:** detecta el separador (`,`, `;` o tabulador) y la cabecera, y admite campos entre comillas con separadores y saltos de línea dentro. UTF-8 con o sin BOM; otra codificación se avisa.
+3. **Explorar:** ordenar por columna (como número cuando la columna es numérica), filtrar (en todas las columnas o en una), número de filas y ancho de columna. Ficheros grandes con desplazamiento virtual (orientativo: 100 000 filas con fluidez).
+4. **Solo lectura en la tabla:** se edita en modo texto.
+5. **«Insertar como tabla»** inserta, en el cursor del último `.typ` activo, código Typst que **lee el fichero con `csv()`** (con la ruta relativa correcta desde ese `.typ`) y lo pinta con `table`. Opciones: cabecera, alineación por columna y envolverla en figura con pie y etiqueta. Para tablas pequeñas, **«Copiar como tabla Typst»** incrusta los datos.
+6. **Herramientas › «Visor de datos…»** abre un CSV del proyecto o de fuera. De fuera, ofrece **copiarlo a `data/`**, como se hace con las imágenes.
+7. **Con IA:** «Preguntar a la IA sobre estos datos» adjunta la cabecera y una muestra, respetando el presupuesto de RF-94.5.
+8. **Criterios de aceptación:**
+   - Tests del lector: comillas, separadores, saltos de línea dentro de comillas, BOM y orden numérico.
+   - El código que genera «Insertar como tabla» **compila** con el sidecar real (`verify:typst`) con ruta en la misma carpeta y en otra.
+   - Prueba manual de fluidez con un CSV grande.
+
+### RNF-IA-EVAL — Evaluación de la IA (evals)
+1. **Corpus versionado** en `testfiles/ai-evals/` con **al menos 30 tareas reales de Typst**:
+   - arreglar errores que da el compilador;
+   - pasar fragmentos de LaTeX o Markdown;
+   - tablas desde CSV;
+   - figuras con pie y etiqueta;
+   - referencias cruzadas y bibliografía;
+   - cambios que tocan varios ficheros;
+   - preguntas de documentación.
+2. **Métricas automáticas:**
+   - la propuesta **compila sin errores nuevos**, lo que prueba además que no inventa funciones;
+   - no toca ficheros fuera de la tarea;
+   - la propuesta tiene un formato válido;
+   - trayectoria: número de pasos y ninguna herramienta fuera del proyecto.
+
+   La calidad del texto se valora con una rúbrica.
+3. **Contra al menos un modelo local pequeño** (en Ollama), **con y sin** la documentación de RF-96. Criterio: **la documentación sube la tasa de compilación**. El umbral absoluto se fija en `/plan` tras medir la línea base. Con un modelo en la nube si el usuario aporta una clave.
+4. **Fuera de la CI normal,** porque necesita un modelo: `npm run eval:ai`, a mano, con los resultados guardados con fecha y modelo. **En la CI sí van** los tests deterministas con modelo y agente simulados (RF-91 a RF-95).
+
+### Preguntas abiertas para `/plan` (no se resuelven aquí a propósito)
+- **Protocolos y crates:** cliente HTTP con streaming (SSE) desde Rust (`ureq` actual o un segundo cliente); API compatible con OpenAI frente a API nativa por proveedor (Anthropic y Gemini); almacén de secretos (crate `keyring` u otro) y su comportamiento en MSIX, macOS sin firmar y Linux sin Secret Service.
+- **ACP:** crate o implementación propia; orden de arranque exacta de cada agente y si necesita adaptador o Node.js; semántica de las escrituras preparadas (RF-91.5) cuando el usuario rechaza a mitad de turno; coste del punto de restauración (RF-91.6) en un libro grande; si ofrecer herramientas por MCP (RF-91.9) es viable con cada agente. Lanzar procesos desde el paquete de la Store (precedente: Python).
+- **Documentación (RF-96):** cómo se generan las páginas de la 0.15.1 desde sus fuentes (el generador de la rama principal ha cambiado), conversión a Markdown, troceado, glosario, algoritmo de búsqueda y tamaño final.
+- **Revisión (RF-93):** vista de diferencias por trozo (ampliar `diffModal.js` o `@codemirror/merge`); compilar una propuesta como sustitución en memoria del motor (precedente `CompileTarget.otherDirty`) y mostrarla en la vista previa sin perder la generación actual.
+- **Panel (RF-92):** sitio en la rejilla junto a P/E/V y su encaje en `verify:layout`; renderizador de Markdown; formato y ubicación de las conversaciones; estimación de tokens sin tokenizador por modelo.
+- **IA en línea (RF-95):** atajo y presentación de la diferencia en línea en CodeMirror.
+- **CSV (RF-98):** lector propio o librería, desplazamiento virtual y sitio del conmutador en la barra del documento.
+- **Ficha de privacidad de la Store:** la app puede enviar datos a terceros si el usuario lo configura; revisar la declaración de privacidad y el texto de la ficha.
+- **Riesgo de deriva:** ACP es joven y los adaptadores cambian; cómo se aísla esa dependencia.
+- Qué secciones de `ARCHITECTURE.md` hay que ampliar (§7.20 nace en este `/spec` como directriz).
+
+---
+
 ## 🚀 6. Funcionalidades — Beta y v1.0 (detalle del Spec Addendum)
 
 Estas funcionalidades están **descritas y arquitectónicamente resueltas** (ver `ARCHITECTURE.md` §7.6–§7.14 y `TYPST_ECOSYSTEM_RESEARCH.md`) pero **fuera del MVP v0.1** por decisión explícita de alcance del usuario. Nota de encuadre: el **Universe Browser** (Package Explorer + Template Explorer, ver árbol de navegación en `ARCHITECTURE.md` §7.6.0.1) se posiciona como punto de entrada de primer nivel de la aplicación (§2), no como un add-on menor — esto afecta a su importancia de diseño y visibilidad en Beta, no reabre el acuerdo de fases ya cerrado con el usuario (el Lanzador de plantillas curadas, MVP, ya adelanta esta experiencia — ver `ARCHITECTURE.md` §7.6):
@@ -1254,7 +1468,7 @@ Estas funcionalidades están **descritas y arquitectónicamente resueltas** (ver
 - Publicación en Microsoft Store / Uptodown, accesibilidad WCAG AA auditada.
 - Paquete Docente (export combinado PDF+SVG+PNG+recursos listo para Moodle/Teams/SharePoint).
 
-**Futuro (post-1.0, exploratorio):** IA (asistentes de redacción académica), repositorio comunitario propio, sincronización, colaboración en tiempo real, integración con Zotero/Mendeley.
+**Futuro (post-1.0, exploratorio):** ~~IA (asistentes de redacción académica)~~ **adelantada a v0.13.0 (§5n, RF-90 a RF-98), 2026-10-02**, repositorio comunitario propio, sincronización, colaboración en tiempo real, integración con Zotero/Mendeley.
 
 ## 🚫 7. Fuera de alcance (v0.1 MVP)
 
@@ -1276,6 +1490,11 @@ Estas funcionalidades están **descritas y arquitectónicamente resueltas** (ver
   - **Mitigación:** Ver `ARCHITECTURE.md` §6 (nueva fila de riesgo) y §7.6.
 - **Riesgo de Seguridad y Privacidad (IA/Datos):** Ninguno de los datos del usuario (documentos académicos) debe salir del equipo — coherente con el objetivo offline-first.
   - **Mitigación:** Cero llamadas de red obligatorias en el flujo de compilación/edición; la única red opcional es la descarga bajo demanda de paquetes/plantillas comunitarias en Beta, con caché local tras la primera descarga.
+  - **Matiz desde v0.13.0 (§5n, `ADR-V0130-001`):** con la IA, los datos **pueden** salir del equipo, pero **solo** si el usuario configura un proveedor en la nube o un agente que lo use. Por defecto no hay ninguna IA; con una IA local no sale nada. La primera vez que un proyecto se va a enviar a la nube se avisa con el nombre del proveedor, las claves viven en el almacén de credenciales del sistema y DBV no tiene servidor propio ni telemetría (RNF-IA).
+- **Riesgo (v0.13.0):** inyección de órdenes. Un fichero del proyecto o el README de un paquete pueden contener texto que intente dirigir a la IA (por ejemplo, borrar ficheros o sacar datos).
+  - **Mitigación:** el contenido se trata como dato (RNF-IA.7); las herramientas de los modelos directos no tienen red ni ejecutan programas; nada se escribe sin revisión (RF-93); los permisos de los agentes nunca se conceden solos (RF-91.7); todo queda confinado al proyecto (RNF-IA.3).
+- **Riesgo (v0.13.0):** dependencia de terceros que cambian deprisa (ACP, adaptadores de agentes, API de los proveedores).
+  - **Mitigación:** la detección degrada limpiamente («no encontrado», «versión no compatible») y nunca rompe el resto de la app; cada proveedor y agente se aísla tras una interfaz propia (ver preguntas para `/plan` de §5n).
 
 ## ❓ 9. Preguntas Abiertas
 
@@ -1309,6 +1528,7 @@ Estas funcionalidades están **descritas y arquitectónicamente resueltas** (ver
 ## 🧪 10. Criterios de Evaluación (No Deterministas)
 
 - No aplica en el MVP: el pipeline de compilación Typst es determinista. Si en fases futuras se añaden asistentes de redacción con IA (§6, Futuro), se definirán evals en ese momento.
+- **Desde v0.13.0:** la IA es el primer componente no determinista. Sus evals están definidas en **RNF-IA-EVAL** (§5n): corpus de tareas reales de Typst, la compilación como juez automático (la propuesta compila sin errores nuevos), confinamiento y trayectoria de herramientas, y comparación con y sin la documentación offline de RF-96.
 
 ## 🚀 11. Roadmap por Fases y Prioridades
 
@@ -1332,9 +1552,10 @@ Orden de prioridad para toda decisión de diseño/arquitectura (fijado explícit
 | **v0.7.0** | **Filtrado del aviso de `ResizeObserver` (RF-40)**, **arreglo del separador bloqueable (RF-41)**, **zoom contextual con teclado/rueda (RF-42)**, **Guardar/PDF/PNG al menú Archivo (RF-43)**, **rediseño de la pantalla de inicio (RF-44)**, **editor de diagramas visible en Herramientas (RF-45)**, **editor visual interactivo de ecuaciones (RF-46)**, **flujogramas con decisiones (RF-47)**, **diagramas de secuencia (RF-48)**, **diagramas de Gantt (RF-49)**, **tableros Kanban (RF-50)**, **render DOT/Graphviz (RF-51)** y **botón de ayuda contextual en cada asistente (RF-52)**. Especificado el 2026-09-14 en una sola pasada; RF-50/RF-51 activados sin condición el día siguiente (v1.9); RF-52 añadido el mismo día tras probar RF-51 en vivo (v1.10). | 📋 Especificado |
 | **v0.10.0** | **Formatear solo en Typst con avisos claros (RF-61)**, **resaltado de BibTeX (RF-62)**, **pulido: ocultos, números de línea y refresco visibles (RF-63)**, **guardado automático opcional e indicador de modificado (RF-64)**, **ruta corta (RF-65)** y **compilar solo el principal (RF-66)** *(si caben)*, y **análisis previo sobre el motor clásico (RF-67)**. Especificado el 2026-09-21 tras filtrar una lista externa de sugerencias. | ✅ `/ship` hecho (2026-09-22) |
 | **v0.11.0** | **Conflicto externo por contenido — arregla el guardado automático (RF-68)**, **operaciones de ficheros en el panel Archivos (RF-69)**, **actualización automática de referencias al mover o renombrar (RF-70)**, **«Nuevo capítulo…» (RF-71)**, **enlaces funcionales en la vista previa (RF-72)** e **historial local de versiones (RF-73)**. Especificado el 2026-09-26 tras el uso intensivo de la 0.10.0 con un libro real. | ✅ `/ship` hecho (2026-09-26) |
+| **v0.13.0** | **IA integrada y opcional** (RNF-IA): **conectar una IA local o con clave de API (RF-90)**, **agentes instalados por ACP: Claude Code, Gemini CLI, Codex, Copilot (RF-91)**, **panel de conversación con el proyecto como contexto (RF-92)**, **cambios en varios ficheros revisados y comprobados compilando (RF-93)**, **asistente con herramientas (RF-94)**, **IA en línea sobre la selección (RF-95)**, **documentación de Typst offline (RF-96)**, **panel de Problemas con «Explicar y arreglar» (RF-97)** y **visor de datos CSV/TSV (RF-98)**, con evals (RNF-IA-EVAL). Especificado el 2026-10-02 tras analizar Papers AI. | 📋 Especificado |
 | **Beta (v0.2–v0.4)** | Navegación estructural, asistentes de inserción con formulario (la barra en sí es v0.2, RF-13), gestión de imágenes por arrastre, modos de escritura, exportación PNG, terminal avanzado, LSP `tinymist`. | ✅ Completado / absorbido por v0.5.0–v0.6.0 |
 | **v1.0** | Ecosistema completo de plantillas, exportación SVG, asistentes avanzados, Paquete Docente, publicación en stores, accesibilidad WCAG AA. | Futuro |
-| **Futuro (post-1.0)** | IA, repositorio comunitario, sincronización, colaboración en tiempo real, integración Zotero/Mendeley, asistentes de redacción académica. | Exploratorio |
+| **Futuro (post-1.0)** | ~~IA~~ (adelantada a v0.13.0), repositorio comunitario, sincronización, colaboración en tiempo real, integración Zotero/Mendeley, asistentes de redacción académica. | Exploratorio |
 
 ---
 **Instrucción para la IA:** No pases a la fase `/plan` (más allá del análisis arquitectónico ya realizado en `ARCHITECTURE.md`) hasta que las Preguntas Abiertas críticas de §9 hayan sido resueltas con el usuario.

@@ -614,7 +614,29 @@
 
 - [x] **Fase 62: `/ship` de v0.12.1 — 2026-09-29, versión Patch (0.12.0 → 0.12.1).** Autorizado por el usuario de principio a fin («sigue sin preguntar… publica los actions, tags y pon la 0.12.1 como activa»). CHANGELOG versionado ES + EN, README ES/EN, `walkthrough.md`, `notasActualizacionStore_v0.12.1.md`. **`.msixbundle` verificado:** `src-tauri/target/msix/dbv-typst-editor_0.12.1.0.msixbundle` (80,7 MB, igual que la 0.12.0), `AppxManifest.xml` con `Version="0.12.1.0"`, `typst.exe`, `tinymist.exe` y `templates\` en `target/appx/x64`. Suite tras el bump: 1077 Vitest · 443 Rust. Pendiente del usuario: subir el `.msixbundle` a la Store y responder al issue #2 (NO lo publico yo: el usuario no pidió comentar en el issue).
 
+- [x] **Fase 63: `/spec` de v0.13.0 — cerrado el 2026-10-02 (`SPECIFICATIONS.md` v1.17, §5n, RNF-IA, RF-90 a RF-98, RNF-IA-EVAL; `ARCHITECTURE.md` §7.20; `ADR-V0130-001`).** Nace del análisis de Papers AI y del flujo real del usuario (DBV + VS Code con Claude Code). IA opcional con dos caminos (directos: locales o clave de API; agentes por ACP: Claude Code, Gemini CLI, Codex, Copilot), panel de conversación, cambios en varios ficheros revisados y **comprobados compilando**, asistente con herramientas, IA en línea, documentación de Typst offline (también para el usuario), panel de Problemas con «Explicar y arreglar», visor CSV/TSV y evals. Sin recorte por tamaño (decisión del usuario). **Siguiente: `/plan` de v0.13.0**, con las preguntas abiertas de §5n; es la versión más grande hasta ahora, así que el plan necesita `implementation_plan.md` con frontmatter y varios spikes antes de construir (generación de la documentación de la 0.15.1, ACP con agentes reales, almacén de secretos en MSIX/macOS/Linux).
+
+- [x] **Fase 64: `/plan` de v0.13.0 — 2026-10-02 (`implementation_plan.md`, `ADR-V0130-002`).** Aprobación anticipada del usuario para encadenar `/build`, `/test` y `/code-simplify` sin preguntar. Dos spikes: documentación de Typst 0.15.1 compilada desde sus fuentes (203 páginas) y ACP contra Claude Code real (el agente escribe en disco tras pedir permiso con el diff completo; no usa `fs/write_text_file`). Diez slices (127 a 136):
+  - [ ] **Slice 127** — Documentación de Typst: script, recurso y búsqueda (RF-96 backend).
+  - [ ] **Slice 128** — Markdown seguro, visor de documentación y panel de Problemas (RF-96.6, RF-97).
+  - [ ] **Slice 129** — Visor de datos CSV/TSV (RF-98).
+  - [ ] **Slice 130** — Backend de IA: secretos, conexiones, proveedores, comprobación de propuestas, conversaciones.
+  - [ ] **Slice 131** — Frontend de IA: entrada perezosa, «Conectar una IA», panel de conversación (RF-90, RF-92).
+  - [ ] **Slice 132** — Bucle con herramientas, propuestas y revisión (RF-93, RF-94).
+  - [ ] **Slice 133** — IA en línea, «Explicar y arreglar», datos (RF-95, RF-97.5, RF-98.7).
+  - [ ] **Slice 134** — Agentes por ACP (RF-91).
+  - [ ] **Slice 135** — Evals (RNF-IA-EVAL).
+  - [ ] **Slice 136** — Ayuda, atajos, arquitectura y changelog.
+
 ## 🔄 Context Snapshot / Snapshot de Contexto
+
+> ### 👉 RETOMAR AQUÍ (2026-10-02): `/spec` de v0.13.0 CERRADO — siguiente `/plan`
+>
+> v0.12.1 está publicada (Fase 62). El `/spec` de la 0.13.0 («IA integrada») está en `SPECIFICATIONS.md` §5n
+> (RNF-IA, RF-90 a RF-98, RNF-IA-EVAL), con la directriz de arquitectura en `ARCHITECTURE.md` §7.20 y las
+> decisiones en `ADR-V0130-001`. Siguiente paso: `/plan`, empezando por los spikes de las preguntas abiertas
+> de §5n (documentación de Typst 0.15.1 a Markdown, ACP contra Claude Code real, almacén de secretos, compilar
+> una propuesta en memoria). Backlog que sigue abierto: extraer las pestañas de `workspace.js`, Flathub.
 
 > ### 👉 RETOMAR AQUÍ (2026-09-29): v0.12.0 PUBLICADA
 >

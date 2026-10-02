@@ -409,6 +409,47 @@
 - **Regresión de RF-87 hallada en la prueba del usuario (2026-09-29):** con `npm run dev`, abrir `z6-IPbook` volvía la sincronización por párrafo. Causa: `set_mode(InProc)` era también lo que BORRABA la desactivación de sesión del motor rápido (plazo o pánico); al quitar el conmutador no quedaba forma de reactivarlo. Lo disparó el plazo de 45 s: en depuración el libro tarda 34 s en frío (5,4 s en release) y Tinymist lo compila a la vez. Arreglo: aviso «⚠ Motor clásico» en la barra de la vista previa que reactiva el motor, `engineSetMode('inproc')` al abrir cada proyecto, y plazo de 300 s solo en depuración. **Lección:** antes de retirar un control, buscar TODO lo que hacía su comando en el backend, no solo su efecto visible.
 - **Abierto:** sin un Mac no se puede confirmar qué falla exactamente en la vía del sidecar (Gatekeeper sobre el binario sin firmar, o la réplica en el temporal). Pendiente de que el usuario de Mac pruebe a exportar PDF y a ejecutar `…/Contents/MacOS/typst --version`. Exportar PDF/PNG sigue usando ese mismo sidecar, así que si es eso, exportar también le falla.
 
+### ADR-V0130-001 — v0.13.0: IA integrada y opcional, documentación de Typst offline, Problemas y visor de datos
+
+*Registrada el 2026-10-02, en `/spec` de v0.13.0 (`SPECIFICATIONS.md` v1.17, §5n, RNF-IA, RF-90 a RF-98, RNF-IA-EVAL).*
+
+- **Origen:** análisis de Papers AI (Digital Science/Overleaf, 2026-08-04) pedido por el usuario. Lo que se trae: IA con el proyecto como contexto y cambios revisables, modelos locales y panel de Problemas. Lo que no: colaboración, nube, edición de `.docx`, Kanban, cuadernos (cada uno es otro producto y nos saca del posicionamiento de §2).
+- **Motivo real:** el flujo del usuario era escribir en DBV y abrir la carpeta en VS Code con Claude Code para el formato. Integrarlo es el objetivo.
+- **Decisiones del usuario:**
+  - los dos caminos en la misma versión: directos (locales o clave de API) y agentes por ACP con la suscripción del usuario;
+  - panel y también IA en línea;
+  - documentación generada en el build y empaquetada;
+  - la IA puede crear y modificar varios ficheros, siempre con revisión;
+  - IA opcional, sin rastro si no se configura;
+  - visor CSV como herramienta;
+  - **no recortar por tamaño**.
+- **Aplazado por el usuario:** Zotero (no lo usa), etiquetas en el historial y comentarios.
+- **Cambios de principio que esta versión introduce:**
+  - **la IA sale de «Futuro post-1.0»**;
+  - **§8 deja de prometer que ningún dato sale del equipo**: ahora puede salir, solo con un proveedor en la nube configurado por el usuario y con aviso por proyecto;
+  - **DBV pasa a custodiar secretos** (claves de API), siempre en el almacén del sistema. Es justo lo que `ADR-GITHUB-001` evitó para GitHub; aquí se acepta porque sin clave no hay proveedores en la nube, y se mitiga no guardándola nunca en fichero ni dejándola cruzar el IPC.
+- **Hechos comprobados en `/spec` que condicionan el diseño:**
+  - **suscripción ≠ clave de API:** las suscripciones de Claude, ChatGPT, Gemini y Copilot solo se pueden usar a través de sus agentes, de ahí ACP;
+  - **en ACP, `fs/write_text_file` es opcional para el agente:** puede escribir en disco sin pasar por DBV, de ahí el punto de restauración por turno (RF-91.6);
+  - **la documentación de Typst no existe en Markdown ni offline:** su fuente es marcado Typst con un generador propio que ha cambiado en la rama principal; se resuelve en `/plan` para la 0.15.1;
+  - **hoy el «panel de Problemas» es una insignia** con desplegable de 50 entradas.
+- **Por qué la compilación es el juez:** el motor en proceso puede compilar una propuesta en memoria. Eso da al usuario «compila / no compila» antes de aceptar, permite al asistente autocorregirse y sirve como métrica automática de las evals sin necesitar un modelo juez. Es la ventaja que ningún asistente genérico (Papers AI incluido) tiene sobre Typst.
+
+### ADR-V0130-002 — Decisiones de `/plan` de v0.13.0 tomadas SIN el usuario (para revisar)
+
+*Registrada el 2026-10-02. El usuario autorizó encadenar `/plan` → `/build` → `/test` → `/code-simplify` sin preguntas intermedias. Detalle en `implementation_plan.md` §5.*
+
+- **Spike S-ACP con Claude Code real** (`@agentclientprotocol/claude-agent-acp` 0.85.1): el agente **no usa `fs/write_text_file`** aunque el cliente lo ofrezca. Escribe en disco con sus herramientas Edit/Write **después de pedir permiso**, y la petición de permiso trae el diff completo (`content: [{type:"diff", path, oldText, newText}]`). Por eso la revisión de RF-93 para agentes se hace **en la petición de permiso**, antes de escribir (mejor que la revisión posterior prevista en RF-91.6). El punto de restauración por turno se conserva como red de seguridad, en memoria durante el turno.
+- **Documentación de Typst:** se genera con un script de mantenimiento (`cargo docit compile` del repositorio de Typst en la etiqueta exacta + conversión HTML → Markdown) **una vez por versión de Typst**, y se versiona como recurso. Un test falla si no coincide con el sidecar. No se compila en la CI de cada plataforma, porque el contenido no depende de la plataforma y la compilación tarda más de 3 minutos.
+- **RF-91.9 (herramientas MCP de DBV para los agentes): no en esta versión.** Exigiría un servidor HTTP local con token, que es superficie nueva de ataque. Sustituto: el primer mensaje de cada sesión le dice al agente dónde está la documentación en Markdown y cuáles son los diagnósticos actuales.
+- **El bucle de herramientas de los modelos directos vive en el frontend** (pestañas, contenido sin guardar y diagnósticos están allí). Rust solo hace la petición de red; la clave nunca sale de Rust.
+- **Valores fijados:**
+  - 15 pasos por petición y 2 reintentos por compilación;
+  - estimación de 1 token ≈ 4 caracteres, con un 20 % de margen;
+  - contexto por defecto de 8 192 tokens (32 768 en los proveedores de nube conocidos);
+  - atajo de la IA en línea: Ctrl+Mayús+I.
+- **Sin dependencias nuevas en el frontend:** el renderizador de Markdown (seguro: construye nodos, nunca `innerHTML`), el diff y el lector CSV son propios. En Rust, `keyring` (nuevo) y `flate2` (ya estaba en el lock).
+
 ### Lección — los permisos ACL de Tauri no los ve ninguna herramienta de este repo (2026-09-22)
 
 `appWindow.destroy()` (RF-64.6) se escribió, se testeó con Vitest y pasó `verify:frontend`/`verify:layout` — y aun así fallaba en la ventana real: "Promesa rechazada: Command plugin:window|destroy not allowed by ACL". `src-tauri/capabilities/main.json` no declaraba `core:window:allow-destroy`. Ninguna comprobación sin Tauri real puede detectar esto: Vitest simula el DOM, no el puente de comandos de Tauri.

@@ -730,6 +730,27 @@ Principio común: **una sola maquinaria de edición en varios ficheros** para re
 | Atajos (RF-80) | `editor/shortcuts.js` | Registro único del que salen los keymaps y la sección de la ayuda; los de CodeMirror se describen por combinación (Vite minimiza los nombres de función). |
 | `.zsync` del AppImage (RF-84) | `.github/workflows/release-linux.yml` | `appimagetool -u` con `zsyncmake`, salida con el nombre de GitHub y verificación de las tres piezas (la cadena se lee de `.upd_info` con `objcopy`). |
 
+### 7.20. Arquitectura v0.13.0: IA integrada *(directriz de `/spec`; el diseño detallado se hace en `/plan`)*
+
+> Alcance en `SPECIFICATIONS.md` §5n (RNF-IA, RF-90 a RF-98, RNF-IA-EVAL); decisiones en `ADR-V0130-001`.
+
+**Idea rectora:** la IA **propone** y DBV **decide, comprueba y escribe**. Ningún modelo ni agente escribe en el proyecto por una vía que no pase por la maquinaria de edición que ya existe (`multiFileEdit.js`, historial RF-73) o, si un agente escribe en disco por su cuenta, por un punto de restauración tomado antes del turno.
+
+**Piezas previstas** (nombres provisionales, se fijan en `/plan`):
+
+| Pieza | Responsabilidad |
+| --- | --- |
+| `ai::providers` (Rust) | Una interfaz común de conversación con streaming y herramientas, con una implementación por protocolo (compatible con OpenAI para locales, OpenAI y OpenRouter; nativas donde haga falta). **Toda la red sale de Rust**: el frontend nunca ve una clave ni llama a un proveedor. |
+| `ai::secrets` (Rust) | Claves en el almacén de credenciales del sistema. El frontend solo conoce «hay clave / no hay clave». |
+| `ai::acp` (Rust) | Cliente ACP: lanza el agente como proceso hijo en la carpeta del proyecto, habla JSON-RPC por stdio, sirve `fs/*` sobre el contenido del editor y convierte las escrituras en propuestas, reenvía las peticiones de permiso a la interfaz y toma el punto de restauración por turno. |
+| `ai::tools` | Herramientas de los modelos directos (y, si es viable, servidor MCP para los agentes): listar, leer, buscar (motor de RF-78), diagnósticos, esquema, documentación, proponer y comprobar compilación. Confinadas con `ensure_inside`; sin red ni procesos. |
+| `ai::proposals` | Modelo de una propuesta (ficheros, trozos, versión base de cada fichero) y su compilación como **sustitución en memoria** en el motor en proceso (precedente: `CompileTarget.otherDirty`). |
+| `docs` (build + Rust) | Generación de la documentación de Typst para la versión vendorizada, conversión a Markdown, índice de búsqueda léxica con glosario bilingüe; consultas para la IA y para el visor de la Ayuda. |
+| Frontend `ai/` | Panel de conversación, indicador de contexto, revisión por trozo, IA en línea y asistente «Conectar una IA». **Carga perezosa**: sin IA configurada no se importa nada. |
+| `problems/`, `data/` | Panel de Problemas (RF-97) y visor CSV/TSV (RF-98). No dependen de la IA. |
+
+**Reglas de diseño que ya son requisitos:** confinamiento al proyecto en todas las herramientas; las claves no cruzan el IPC; las conversaciones viven en la carpeta de datos de la app, nunca en el proyecto; el contenido de los ficheros se pasa al modelo como dato; los permisos de los agentes nunca se conceden por defecto; la documentación coincide exactamente con la versión de Typst vendorizada (misma regla que RF-56.1).
+
 ## 🔑 Decisiones Técnicas Clave (resumen)
 
 ### Seguridad
@@ -738,6 +759,7 @@ Principio común: **una sola maquinaria de edición en varios ficheros** para re
 - **Importación de `.dbvt`:** validación obligatoria anti *zip-slip* antes de escribir a disco (§7.12, §6).
 - **Plantillas comunitarias (Beta):** whitelist curada inicial antes de abrir al registro completo sin filtrar (§7.6.3, §6).
 - **Datos sensibles:** ninguno específico del dominio; se mantiene el principio de menor privilegio ya aplicado en `capabilities/main.json` de DBV Markdown Reader.
+- **Desde v0.13.0 (§7.20):** claves de API de proveedores de IA en el almacén de credenciales del sistema, nunca en ficheros ni en el frontend. Red hacia proveedores de IA solo si el usuario los configura, con aviso por proyecto antes del primer envío a la nube.
 
 ### Estilo de Código
 

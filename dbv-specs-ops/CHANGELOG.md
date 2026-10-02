@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Sin publicar] / [Unreleased]
 
+## [0.13.0] - 2026-10-02
+
+Llega un asistente de IA integrado y **opcional**: local (Ollama, LM Studio), en la nube con tu clave de API (Anthropic, OpenAI, Gemini, OpenRouter) o tu agente instalado con tu suscripción (Claude Code, Gemini CLI, Codex, Copilot). Conversa con el proyecto como contexto y propone cambios en varios ficheros que DBV compila en memoria antes de enseñarlos y que se revisan trozo a trozo antes de aplicar; IA en línea sobre la selección y «Explicar y arreglar» en los errores. Sin configurar nada, el editor funciona igual que siempre. Además: documentación oficial de Typst sin conexión, panel de Problemas completo y visor de datos CSV/TSV.
+
 ### Added
 
 - **Evaluación de la IA (RNF-IA-EVAL).** `npm run eval:ai -- --model <modelo>` ejecuta el mismo bucle del asistente que la aplicación contra un modelo de Ollama sobre un corpus de 32 tareas reales de Typst (`testfiles/ai-evals/tasks.json`: arreglar errores reales del compilador, pasar de LaTeX, tablas desde CSV, figuras y referencias, cambios en varios ficheros, preguntas de documentación), con y sin la documentación offline. El juez es el compilador real: la propuesta debe compilar sin errores y cumplir lo que pide la tarea, sin salir del proyecto. Resultados con fecha y modelo en `testfiles/ai-evals/results/`. De paso, los bloques de cambio toleran espacios tras el separador y la búsqueda acepta el texto con otra sangría si la coincidencia es única (los modelos pequeños los copian así).

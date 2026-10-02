@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-10-02
+
+A built-in, **optional** AI assistant arrives: local (Ollama, LM Studio), in the cloud with your API key (Anthropic, OpenAI, Gemini, OpenRouter) or your installed agent with your subscription (Claude Code, Gemini CLI, Codex, Copilot). It chats with the project as context and proposes multi-file changes that DBV compiles in memory before showing them and that you review hunk by hunk before applying; inline AI on the selection and "Explain and fix" on errors. With nothing configured, the editor works exactly as before. Plus: offline official Typst documentation, a complete Problems panel and a CSV/TSV data viewer.
+
 ### Added
 
 - **AI evaluation (RNF-IA-EVAL).** `npm run eval:ai -- --model <model>` runs the same assistant loop as the app against an Ollama model over a corpus of 32 real Typst tasks (`testfiles/ai-evals/tasks.json`: fixing real compiler errors, converting from LaTeX, tables from CSV, figures and references, multi-file changes, documentation questions), with and without the offline documentation. The judge is the real compiler: the proposal must compile without errors and do what the task asks, without leaving the project. Results with date and model in `testfiles/ai-evals/results/`. Along the way, change blocks tolerate spaces after the separator and the search accepts text with different indentation when the match is unique (small models copy it that way).

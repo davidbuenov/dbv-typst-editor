@@ -20,7 +20,7 @@ const sources = readdirSync(dir)
 /** Claves dinámicas (`ai.kind.${…}`) y sus valores posibles. */
 const DYNAMIC = {
   'ai.kind.': ['modify', 'create', 'delete', 'rename'],
-  'ai.provider.': ['ollama', 'lmStudio', 'openAiCompatible', 'anthropic', 'openAi', 'gemini', 'openRouter'],
+  'ai.provider.': ['ollama', 'lmStudio', 'openAiCompatible', 'anthropic', 'openAi', 'gemini', 'openRouter', 'agent'],
   'ai.error.': ['auth', 'rateLimit', 'network', 'notFound', 'contextTooLong', 'badRequest', 'server', 'cancelled', 'config', 'secretStore', 'unknown', 'bridge'],
   'ai.agent.': ['claude', 'gemini', 'codex', 'copilot'],
   'ai.inline.': ['improve', 'proofread', 'translate', 'shorten', 'expand', 'toTable', 'toList', 'explain'],

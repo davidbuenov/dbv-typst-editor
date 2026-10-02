@@ -135,7 +135,7 @@ pub struct ProviderInfo {
 #[tauri::command]
 pub fn ai_providers() -> Vec<ProviderInfo> {
     use ProviderKind::*;
-    [Ollama, LmStudio, OpenAiCompatible, Anthropic, OpenAi, Gemini, OpenRouter]
+    [Ollama, LmStudio, OpenAiCompatible, Anthropic, OpenAi, Gemini, OpenRouter, Agent]
         .into_iter()
         .map(|provider| ProviderInfo { provider, base_url: provider.default_base_url(), cloud: provider.is_cloud(), context_tokens: provider.default_context() })
         .collect()

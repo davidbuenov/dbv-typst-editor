@@ -10,6 +10,7 @@
 // bucle del asistente (herramientas, contexto, propuestas) vive en el
 // frontend, donde están las pestañas y el contenido sin guardar.
 
+pub mod acp;
 pub mod check;
 pub mod commands;
 pub mod connections;

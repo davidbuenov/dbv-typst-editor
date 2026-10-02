@@ -156,7 +156,8 @@ export function createConnectWizard({ host, backend, onChanged, onAgent, notify 
       });
       const provider = providers.find((p) => p.provider === connection.provider);
       item.append(radio, el('span', 'ai-conn__name', connection.name), el('span', 'ai-conn__detail', `${provider?.cloud ? '☁ ' : ''}${connection.model}`));
-      item.append(button(t('ai.edit'), () => openForm(form, connection), 'button button--compact button--ghost'));
+      // Un agente no tiene nada que editar: su cuenta y su modelo los lleva él.
+      if (connection.provider !== 'agent') item.append(button(t('ai.edit'), () => openForm(form, connection), 'button button--compact button--ghost'));
       item.append(
         button(t('ai.delete'), async () => {
           const deleted = await backend.aiDeleteConnection(connection.id);
@@ -177,7 +178,7 @@ export function createConnectWizard({ host, backend, onChanged, onAgent, notify 
     section.classList.remove('hidden');
     section.replaceChildren(el('h3', 'ai-form__title', editing ? t('ai.editConnection') : t('ai.newConnection')));
     const providerSelect = el('select', 'form-row__input');
-    for (const p of providers) providerSelect.append(new Option(providerLabel(p.provider), p.provider, false, p.provider === initial.provider));
+    for (const p of providers.filter((x) => x.provider !== 'agent')) providerSelect.append(new Option(providerLabel(p.provider), p.provider, false, p.provider === initial.provider));
     providerSelect.disabled = Boolean(editing);
     const name = el('input', 'form-row__input');
     name.value = editing?.name ?? '';

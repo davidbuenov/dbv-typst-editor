@@ -393,3 +393,17 @@ export const aiCheckProposal = (root, main, files) => call('ai_check_proposal', 
 export const aiProjectStateLoad = (root) => call('ai_project_state_load', { root });
 export const aiProjectStateSave = (root, value) => call('ai_project_state_save', { root, value });
 export const aiRelease = () => call('ai_release');
+
+// ─── Agentes por ACP (RF-91) ─────────────────────────────────────────────────
+// Transporte: Rust lanza el agente y reenvía sus mensajes como `acp-message`.
+
+export const acpStart = (spec, cwd) => call('acp_start', { spec, cwd });
+export const acpRequest = (method, params) => call('acp_request', { method, params });
+export const acpNotify = (method, params) => call('acp_notify', { method, params });
+export const acpRespond = (id, result, error) => call('acp_respond', { id, result: result ?? null, error: error ?? null });
+export const acpStop = () => call('acp_stop');
+export const acpRunning = () => call('acp_running');
+/** Punto de restauración de los ficheros de texto del proyecto (antes de cada turno). */
+export const acpSnapshot = (root) => call('acp_snapshot', { root });
+/** Ficheros que cambiaron en disco desde el punto de restauración. */
+export const acpChanges = () => call('acp_changes');

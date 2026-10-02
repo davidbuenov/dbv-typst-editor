@@ -27,6 +27,9 @@ pub enum ProviderKind {
     Anthropic,
     Gemini,
     OpenRouter,
+    /// Agente instalado por ACP (RF-91): `base_url` = `acp:<agente>` y, si es
+    /// `acp:custom`, `model` lleva la orden completa.
+    Agent,
 }
 
 /// Protocolo de red que habla el proveedor.
@@ -51,12 +54,14 @@ impl ProviderKind {
             Self::Anthropic => "https://api.anthropic.com/v1",
             Self::Gemini => "https://generativelanguage.googleapis.com/v1beta/openai",
             Self::OpenRouter => "https://openrouter.ai/api/v1",
+            Self::Agent => "acp:claude",
         }
     }
 
     /// ¿Los datos salen del equipo? (aviso de RNF-IA.4).
     pub fn is_cloud(self) -> bool {
-        matches!(self, Self::OpenAi | Self::Anthropic | Self::Gemini | Self::OpenRouter)
+        // Un agente (Claude Code, Gemini CLI…) habla con su nube.
+        matches!(self, Self::OpenAi | Self::Anthropic | Self::Gemini | Self::OpenRouter | Self::Agent)
     }
 
     /// Contexto prudente si el proveedor no lo informa (ADR-V0130-002). Ollama
@@ -107,7 +112,12 @@ impl Connection {
     /// Una URL que no sea `http(s)` no se acepta (ni `file:`, ni nada raro).
     pub fn validate(&self) -> Result<(), AiError> {
         let url = self.base_url.trim();
-        if !(url.starts_with("http://") || url.starts_with("https://")) {
+        if self.provider == ProviderKind::Agent {
+            let known = ["acp:claude", "acp:gemini", "acp:codex", "acp:copilot", "acp:custom"];
+            if !known.contains(&url) {
+                return Err(AiError::Config(format!("agente no reconocido ({url})")));
+            }
+        } else if !(url.starts_with("http://") || url.starts_with("https://")) {
             return Err(AiError::Config(format!("la dirección debe empezar por http:// o https:// ({url})")));
         }
         if self.id.trim().is_empty() || self.id.contains(['/', '\\']) {
@@ -206,6 +216,12 @@ mod tests {
         connection.base_url = "http://localhost:11434/v1".into();
         assert!(connection.validate().is_ok());
         connection.id = "../x".into();
+        assert!(connection.validate().is_err());
+        connection.id = "a1".into();
+        connection.provider = ProviderKind::Agent;
+        connection.base_url = "acp:claude".into();
+        assert!(connection.validate().is_ok());
+        connection.base_url = "acp:../../x".into();
         assert!(connection.validate().is_err());
     }
 }

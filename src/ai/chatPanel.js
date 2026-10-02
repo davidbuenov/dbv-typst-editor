@@ -244,6 +244,7 @@ export function createChatPanel({ host, callbacks }) {
       messages.append(bubble);
       scrollToEnd();
       return {
+        text: () => text,
         append(chunk) {
           text += chunk;
           bubble.textContent = text;

@@ -85,6 +85,7 @@ pub fn run() {
         .manage(commands::universe_index::UniverseIndexState::default())
         .manage(docs::DocsState::default())
         .manage(ai::AiState::default())
+        .manage(ai::acp::AcpState::default())
         .setup(|app| {
             // Historial local (RF-73): en la carpeta de datos de la aplicación,
             // nunca dentro del proyecto.
@@ -125,6 +126,14 @@ pub fn run() {
             ai::commands::ai_project_state_load,
             ai::commands::ai_project_state_save,
             ai::commands::ai_release,
+            ai::acp::acp_start,
+            ai::acp::acp_request,
+            ai::acp::acp_notify,
+            ai::acp::acp_respond,
+            ai::acp::acp_stop,
+            ai::acp::acp_running,
+            ai::acp::acp_snapshot,
+            ai::acp::acp_changes,
             docs::docs_info,
             docs::docs_search,
             docs::docs_page,

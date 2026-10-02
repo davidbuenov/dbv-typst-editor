@@ -370,3 +370,26 @@ export const docsExportDir = () => call('docs_export_dir');
 
 /** Selector nativo de un `.csv`/`.tsv`. */
 export const pickDataFile = () => call('pick_data_file_dialog');
+
+// ─── IA integrada (RF-90 a RF-95) ────────────────────────────────────────────
+// Ningún comando devuelve una clave de API: la clave solo viaja de ida, al
+// guardar una conexión, y vive en el almacén de credenciales del sistema.
+
+export const aiConnections = () => call('ai_connections');
+/** `apiKey`: `null` no la toca, `''` la borra, otro valor la guarda en el almacén del sistema. */
+export const aiSaveConnection = (connection, apiKey, activate = false) =>
+  call('ai_save_connection', { request: { connection, apiKey: apiKey ?? null, activate } });
+export const aiDeleteConnection = (id) => call('ai_delete_connection', { id });
+export const aiSetPreferences = ({ active, showAi } = {}) =>
+  call('ai_set_preferences', { active: active ?? null, showAi: showAi ?? null });
+export const aiProviders = () => call('ai_providers');
+export const aiDetect = () => call('ai_detect');
+export const aiListModels = (connection, apiKey) => call('ai_list_models', { connection, apiKey: apiKey ?? null });
+/** Lanza una petición; la respuesta llega por el evento `ai-stream` con este `requestId`. */
+export const aiChat = (requestId, connectionId, request) => call('ai_chat', { requestId, connectionId, request });
+export const aiCancel = (requestId) => call('ai_cancel', { requestId });
+/** Errores y avisos que tendría el proyecto con `files` (`{path, content}`) en memoria. */
+export const aiCheckProposal = (root, main, files) => call('ai_check_proposal', { root, main, files });
+export const aiProjectStateLoad = (root) => call('ai_project_state_load', { root });
+export const aiProjectStateSave = (root, value) => call('ai_project_state_save', { root, value });
+export const aiRelease = () => call('ai_release');

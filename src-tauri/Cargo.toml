@@ -82,6 +82,7 @@ typst-layout = "=0.15.1"
 typst-svg = "=0.15.1"
 typst-kit = { version = "=0.15.1", default-features = false, features = ["datetime", "embedded-fonts", "scan-fonts", "system-files"] }
 trash = "5"
+keyring = "4"
 
 # Beta: menú nativo de macOS (macos_menu.rs) — dependencia exclusiva de esa
 # plataforma (`[target...]`, no una feature): en Windows/Linux ni siquiera se

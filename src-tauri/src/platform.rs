@@ -48,6 +48,12 @@ pub fn augment_path() {
             program_files.join("Git/bin"),
             local.join("Programs/Git/cmd"),
             local.join("Programs/Git/bin"),
+            // v0.13.0 (RF-91): agentes de IA. Claude Code se instala en
+            // `~/.local/bin`; los CLI de npm (Gemini, Codex, Copilot), en
+            // `%APPDATA%/npm`; Node.js, en `Program Files/nodejs`.
+            home.join(".local/bin"),
+            std::env::var("APPDATA").map(PathBuf::from).unwrap_or_else(|_| home.join("AppData/Roaming")).join("npm"),
+            program_files.join("nodejs"),
         ]
     } else {
         let home = std::env::var("HOME")
@@ -60,6 +66,8 @@ pub fn augment_path() {
             PathBuf::from("/usr/local/sbin"),
             home.join(".cargo/bin"),
             home.join(".local/bin"),
+            // v0.13.0 (RF-91): CLI de agentes instalados con npm global.
+            home.join(".npm-global/bin"),
         ]
     };
 

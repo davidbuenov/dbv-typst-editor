@@ -53,7 +53,7 @@ fn fnv1a(text: &str) -> String {
 const CASE_INSENSITIVE: bool = cfg!(any(windows, target_os = "macos"));
 
 /// Clave de una ruta: sin distinguir mayúsculas donde el sistema no lo hace.
-fn key_of(text: &str) -> String {
+pub(crate) fn key_of(text: &str) -> String {
     let normalized = text.replace('\\', "/");
     fnv1a(&if CASE_INSENSITIVE { normalized.to_lowercase() } else { normalized })
 }

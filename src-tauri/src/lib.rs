@@ -9,6 +9,7 @@
 // vive en submódulos (ARCHITECTURE.md §7.4) — decisión consciente frente al
 // monolito de DBV Markdown Reader.
 
+pub mod ai;
 pub mod archive;
 pub mod assets;
 pub mod bibliography;
@@ -83,6 +84,7 @@ pub fn run() {
         .manage(commands::tinymist::TinymistState::default())
         .manage(commands::universe_index::UniverseIndexState::default())
         .manage(docs::DocsState::default())
+        .manage(ai::AiState::default())
         .setup(|app| {
             // Historial local (RF-73): en la carpeta de datos de la aplicación,
             // nunca dentro del proyecto.
@@ -110,6 +112,19 @@ pub fn run() {
             bibliography::bibliography_entries,
             bibliography::bibliography_keys,
             commands::app_info::app_info,
+            ai::commands::ai_connections,
+            ai::commands::ai_save_connection,
+            ai::commands::ai_delete_connection,
+            ai::commands::ai_set_preferences,
+            ai::commands::ai_providers,
+            ai::commands::ai_detect,
+            ai::commands::ai_list_models,
+            ai::commands::ai_chat,
+            ai::commands::ai_cancel,
+            ai::commands::ai_check_proposal,
+            ai::commands::ai_project_state_load,
+            ai::commands::ai_project_state_save,
+            ai::commands::ai_release,
             docs::docs_info,
             docs::docs_search,
             docs::docs_page,

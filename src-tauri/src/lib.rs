@@ -14,6 +14,7 @@ pub mod assets;
 pub mod bibliography;
 pub mod chapters;
 pub mod commands;
+pub mod docs;
 pub mod error;
 pub mod history;
 pub mod engine;
@@ -81,6 +82,7 @@ pub fn run() {
         .manage(commands::startup::PendingDocument::default())
         .manage(commands::tinymist::TinymistState::default())
         .manage(commands::universe_index::UniverseIndexState::default())
+        .manage(docs::DocsState::default())
         .setup(|app| {
             // Historial local (RF-73): en la carpeta de datos de la aplicación,
             // nunca dentro del proyecto.
@@ -108,6 +110,10 @@ pub fn run() {
             bibliography::bibliography_entries,
             bibliography::bibliography_keys,
             commands::app_info::app_info,
+            docs::docs_info,
+            docs::docs_search,
+            docs::docs_page,
+            docs::docs_export_dir,
             commands::app_info::is_packaged_app,
             commands::app_info::open_external_url,
             commands::file_io::file_modified_ms,

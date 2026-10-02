@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **Offline Typst documentation (RF-96, groundwork).** The official documentation for the exact version of the vendored compiler (0.15.1: full reference, guides and tutorial; 182 pages) ships with the app as Markdown, compressed to 0.30 MB (`src-tauri/resources/typst-docs.json.gz`). It is produced by `npm run docs:typst`, a maintenance script that clones Typst at the version tag, builds its documentation (`cargo docit compile`) and converts it with jsdom; it runs once per Typst version, and a test fails if it does not match the sidecar. Per-section BM25 search (`docs_search`) with a Spanish → English glossary: "cabecera de tabla" leads to `table`, "pie de figura" to `figure`. It underpins the AI assistance and the Help viewer. 9 Rust tests and 6 converter tests.
+
 ## [0.12.1] - 2026-09-29
 
 The Outline panel now comes from the same compilation as the preview (in-process engine) and says why there is no outline when there isn't one; it only lists the headings that would go in the table of contents. Fixes the Linux AppImage, where Tinymist, export and the classic engine did not start (issue #2), the preview spilling out of the window with a narrow panel, and word-level sync, which could stay paragraph-level for the whole session after falling back to the classic engine. The engine toggle is removed from the preview.

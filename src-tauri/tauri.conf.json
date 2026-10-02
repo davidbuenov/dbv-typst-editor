@@ -32,7 +32,8 @@
       "binaries/tinymist"
     ],
     "resources": [
-      "../templates"
+      "../templates",
+      "resources/typst-docs.json.gz"
     ],
     "icon": [
       "icons/32x32.png",

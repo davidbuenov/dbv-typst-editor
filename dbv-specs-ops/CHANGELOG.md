@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Sin publicar] / [Unreleased]
 
+### Added
+
+- **Documentación de Typst sin conexión (RF-96, base).** La documentación oficial de la versión exacta del compilador vendorizado (0.15.1: referencia completa, guías y tutorial; 182 páginas) viaja con la aplicación en Markdown, comprimida en 0,30 MB (`src-tauri/resources/typst-docs.json.gz`). La genera `npm run docs:typst`, un script de mantenimiento que clona Typst en la etiqueta de la versión, compila su documentación (`cargo docit compile`) y la convierte con jsdom; se ejecuta una vez por versión de Typst y un test falla si no coincide con el sidecar. Búsqueda BM25 por sección (`docs_search`), con un glosario español → inglés: «cabecera de tabla» lleva a `table`, «pie de figura» a `figure`. Es la base de la ayuda de la IA y del visor de la Ayuda. 9 tests de Rust y 6 del conversor.
+
 ## [0.12.1] - 2026-09-29
 
 El panel Esquema sale del mismo compilado que la vista previa (motor en proceso) y dice por qué no hay esquema cuando no lo hay; solo lista los encabezados que irían en el índice. Corrige el AppImage de Linux, donde Tinymist, exportar y el motor clásico no arrancaban (issue #2), la vista previa que se salía de la ventana con el panel estrecho y la sincronización por palabra, que podía quedarse por párrafo toda la sesión tras caer al motor clásico. Se retira el conmutador de motor de la vista previa.

@@ -67,6 +67,9 @@ ureq = { version = "3", features = ["json"] }
 # en vez de un crate distinto que pudiera divergir de lo que la app compila
 # de verdad (ADR-BIBLIOGRAFIA-001, memory.md).
 hayagriva = "0.10.1"
+# v0.13.0: documentación de Typst offline (RF-96), empaquetada comprimida. Ya
+# estaba en `Cargo.lock` (dependencia de `zip`): pasa a directa sin descarga.
+flate2 = "1"
 
 # v0.9.0 (ADR-MOTOR-001): motor de vista previa EN PROCESO. Typst como librería, con
 # versiones EXACTAS iguales a las del sidecar vendorizado (`scripts/vendor-typst.mjs`):

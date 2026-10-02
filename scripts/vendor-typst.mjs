@@ -29,6 +29,8 @@ import { fileURLToPath } from 'node:url';
 // Se actualiza de forma explícita y probada, nunca automáticamente: el
 // compilador es parte del producto (ARCHITECTURE.md §6, riesgo de estabilidad
 // de flags/salida del CLI entre versiones).
+// Al cambiar la versión, regenerar la documentación offline (RF-96):
+// `npm run docs:typst`. Un test de Rust (`docs::tests`) falla hasta hacerlo.
 const TYPST_VERSION = '0.15.1';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');

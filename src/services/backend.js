@@ -354,3 +354,14 @@ export const compileDot = (dot, { root } = {}) =>
 
 
 
+
+// ─── Documentación de Typst offline (RF-96) ──────────────────────────────────
+
+/** Versión de Typst de la documentación empaquetada y número de páginas. */
+export const docsInfo = () => call('docs_info');
+/** Secciones más relevantes para `query` (glosario español → inglés incluido). */
+export const docsSearch = (query, limit) => call('docs_search', { query, limit: limit ?? null });
+/** Página completa en Markdown (`reference/model/table`). */
+export const docsPage = (path) => call('docs_page', { path });
+/** Vuelca la documentación a la carpeta de datos (para los agentes ACP) y devuelve su ruta. */
+export const docsExportDir = () => call('docs_export_dir');

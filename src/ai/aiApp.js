@@ -68,7 +68,8 @@ export function historyMessages(entries, budget) {
 
 /** ¿El error del proveedor dice que el modelo no admite herramientas? */
 export function isToolsUnsupported(error) {
-  return error?.kind === 'badRequest' && /tool|function/i.test(error?.message ?? '');
+  // El bucle guarda el error como mensaje `{role: 'error', content, kind}`.
+  return error?.kind === 'badRequest' && /tool|function/i.test(error?.message ?? error?.content ?? '');
 }
 
 /**

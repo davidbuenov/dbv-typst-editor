@@ -28,6 +28,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - **Safe Markdown renderer.** It builds nodes and never inserts HTML: whatever the text contains is shown as text. It only follows `typst:` and `http(s):` links. It underpins the documentation viewer and the AI chat. 15 tests, several with known XSS payloads.
 - **Offline Typst documentation (RF-96, groundwork).** The official documentation for the exact version of the vendored compiler (0.15.1: full reference, guides and tutorial; 182 pages) ships with the app as Markdown, compressed to 0.30 MB (`src-tauri/resources/typst-docs.json.gz`). It is produced by `npm run docs:typst`, a maintenance script that clones Typst at the version tag, builds its documentation (`cargo docit compile`) and converts it with jsdom; it runs once per Typst version, and a test fails if it does not match the sidecar. Per-section BM25 search (`docs_search`) with a Spanish → English glossary: "cabecera de tabla" leads to `table`, "pie de figura" to `figure`. It underpins the AI assistance and the Help viewer. 9 Rust tests and 6 converter tests.
 
+### Changed
+
+- **0.13.0 `/test`:** AI integration test (`src/ai/aiApp.test.js`) that walks the real wiring with mocked backend, workspace and model: no trace without AI; direct model with tools that reads, proposes, gets checked and is applied through `multiFileEdit`; chat-mode fallback; provider error explained; cloud warning once per project and provider; ACP agent with permission, diff and on-disk changes. Suites: 1191 Vitest · 484 Rust · `verify:frontend` 12/12 · `verify:layout` 20/20 · `verify:typst` 8/8 · `verify:templates` 40/40 · `verify:engine` (68 ms edit, unchanged). Initial bundle: the AI code (87 KB) is only downloaded with it; the initial bundle grows 13.6 KB over the pre-AI state (wiring, wrappers, shortcut and the AI Help section).
+
+### Fixed
+
+- **AI: a model without tools did not fall back to chat mode.** Detecting the "does not support tools" error looked for the text in a field the loop stores under another name, so with models such as `llama3` the request failed instead of being retried in chat mode. Found by the new integration test.
+- **AI: the streaming response listener was module-global** and stayed bound to the first backend that used it; it now belongs to each client.
+
+
 ## [0.12.1] - 2026-09-29
 
 The Outline panel now comes from the same compilation as the preview (in-process engine) and says why there is no outline when there isn't one; it only lists the headings that would go in the table of contents. Fixes the Linux AppImage, where Tinymist, export and the classic engine did not start (issue #2), the preview spilling out of the window with a narrow panel, and word-level sync, which could stay paragraph-level for the whole session after falling back to the classic engine. The engine toggle is removed from the preview.

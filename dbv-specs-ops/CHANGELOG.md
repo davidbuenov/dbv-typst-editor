@@ -28,6 +28,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - **Renderizador de Markdown seguro.** Construye nodos y nunca inserta HTML: lo que traiga el texto se ve como texto. Solo sigue enlaces `typst:` y `http(s):`. Es la base del visor de documentación y del chat de la IA. 15 tests, varios con cargas XSS conocidas.
 - **Documentación de Typst sin conexión (RF-96, base).** La documentación oficial de la versión exacta del compilador vendorizado (0.15.1: referencia completa, guías y tutorial; 182 páginas) viaja con la aplicación en Markdown, comprimida en 0,30 MB (`src-tauri/resources/typst-docs.json.gz`). La genera `npm run docs:typst`, un script de mantenimiento que clona Typst en la etiqueta de la versión, compila su documentación (`cargo docit compile`) y la convierte con jsdom; se ejecuta una vez por versión de Typst y un test falla si no coincide con el sidecar. Búsqueda BM25 por sección (`docs_search`), con un glosario español → inglés: «cabecera de tabla» lleva a `table`, «pie de figura» a `figure`. Es la base de la ayuda de la IA y del visor de la Ayuda. 9 tests de Rust y 6 del conversor.
 
+### Changed
+
+- **`/test` de la 0.13.0:** test de integración de la IA (`src/ai/aiApp.test.js`) que recorre el cableado real con backend, workspace y modelo simulados: sin IA no hay rastro; modelo directo con herramientas que lee, propone, se comprueba y se aplica con `multiFileEdit`; recaída al modo conversación; error del proveedor explicado; aviso de nube una vez por proyecto y proveedor; agente por ACP con permiso, diff y cambios en disco. Suites: 1191 Vitest · 484 Rust · `verify:frontend` 12/12 · `verify:layout` 20/20 · `verify:typst` 8/8 · `verify:templates` 40/40 · `verify:engine` (edición 68 ms, sin cambios). Paquete inicial: el código de la IA (87 KB) solo se descarga con ella; el inicial crece 13,6 KB sobre el previo a la IA (cableado, envoltorios, atajo y la sección de Ayuda de la IA).
+
+### Fixed
+
+- **IA: un modelo sin herramientas no pasaba al modo conversación.** La detección del error «does not support tools» buscaba el texto en un campo que el bucle guarda con otro nombre, así que con modelos como `llama3` la petición fallaba en vez de repetirse en modo conversación. Encontrado por el test de integración nuevo.
+- **IA: el oyente de las respuestas en streaming era global al módulo** y quedaba atado al primer backend que lo usaba; ahora es de cada cliente.
+
+
 ## [0.12.1] - 2026-09-29
 
 El panel Esquema sale del mismo compilado que la vista previa (motor en proceso) y dice por qué no hay esquema cuando no lo hay; solo lista los encabezados que irían en el índice. Corrige el AppImage de Linux, donde Tinymist, exportar y el motor clásico no arrancaban (issue #2), la vista previa que se salía de la ventana con el panel estrecho y la sincronización por palabra, que podía quedarse por párrafo toda la sesión tras caer al motor clásico. Se retira el conmutador de motor de la vista previa.

@@ -12,8 +12,6 @@
 // Un solo oyente del evento reparte por `requestId`.
 
 let counter = 0;
-const pending = new Map();
-let listening = null;
 
 /** Mensajes del asistente → formato del backend (`toolCalls`, `toolCallId`). */
 export function toBackendMessages(messages) {
@@ -47,6 +45,10 @@ export function reduceEvent(state, payload) {
  * @param {(event: string, handler: Function) => Promise<() => void>} deps.on
  */
 export function createModelClient({ aiChat, aiCancel, on }) {
+  // Por cliente, no por módulo: cada cliente escucha con SU backend.
+  const pending = new Map();
+  let listening = null;
+
   async function ensureListener() {
     listening ??= on('ai-stream', (payload) => {
       const entry = pending.get(payload.requestId);

@@ -10,10 +10,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>DBV Typst Editor — Desktop editor for Typst</title>
-  <meta name="description" content="Native desktop editor for Typst: academic templates, real-time PDF preview, 100% local and offline. Windows." />
+  <meta name="description" content="Native desktop editor for Typst: academic templates, real-time PDF preview, 100% local and offline, plus an optional AI assistant of your choice (local, cloud or your subscription). Windows, macOS and Linux." />
 
   <meta property="og:title" content="DBV Typst Editor — Desktop editor for Typst" />
-  <meta property="og:description" content="Start your thesis, dissertation or paper from a template, write with a real-time PDF preview. Free and open source." />
+  <meta property="og:description" content="Start your thesis, dissertation or paper from a template, write with a real-time PDF preview and, if you want, an AI assistant of your choice. Free and open source." />
   <meta property="og:image" content="https://davidbuenov.github.io/dbv-typst-editor/images/og-image.jpg" />
   <meta property="og:image:width" content="1920" />
   <meta property="og:image:height" content="1080" />
@@ -36,6 +36,7 @@
       </a>
       <nav class="nav-links">
         <a href="#features">Features</a>
+        <a href="#ai">AI</a>
         <a href="#gallery">Screenshots</a>
         <a href="#templates">Templates</a>
         <a href="#download">Download</a>
@@ -98,7 +99,7 @@
       <div class="stats-inner">
         <div class="stat"><span class="stat-num">8</span><span class="stat-label">Academic templates</span></div>
         <div class="stat"><span class="stat-num">+1,500</span><span class="stat-label">Typst Universe packages</span></div>
-        <div class="stat"><span class="stat-num">100%</span><span class="stat-label">Local & offline</span></div>
+        <div class="stat"><span class="stat-num">100%</span><span class="stat-label">Local & offline (optional AI)</span></div>
         <div class="stat"><span class="stat-num">0</span><span class="stat-label">Telemetry</span></div>
         <div class="stat"><span class="stat-num">MIT</span><span class="stat-label">Free license</span></div>
       </div>
@@ -202,6 +203,59 @@
           </article>
 
         </div>
+      </div>
+    </section>
+
+    <!-- ─── IA ────────────────────────────────────────────────────────────── -->
+    <section class="features" id="ai">
+      <div class="features-inner">
+        <h2>An AI assistant of your choice, that never writes without you seeing it</h2>
+        <p class="section-sub">It is optional: with none connected, the editor works exactly as it always has. With a local AI, nothing leaves your computer.</p>
+        <div class="feature-grid">
+
+          <article class="feature-card">
+            <div class="feature-icon">🔌</div>
+            <h3>Connect a local or cloud AI</h3>
+            <p>Local (Ollama, LM Studio, llama.cpp, any OpenAI-compatible server) or cloud with your API key (Anthropic, OpenAI, Gemini, OpenRouter). "Connect an AI" detects what is already on your computer.</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon">🤖</div>
+            <h3>Use your subscription</h3>
+            <p>Connect the agent you already have installed (Claude Code, Codex, Gemini CLI or Copilot) and use your account. DBV never sees your credentials and every agent permission is asked of you with its diff.</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon">✅</div>
+            <h3>It proposes, compiles, and you decide</h3>
+            <p>The AI proposes changes, across several files if needed. DBV compiles them in memory and tells you whether they compile before showing them to you; you accept or reject each hunk and can always undo.</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon">🔒</div>
+            <h3>Privacy by design</h3>
+            <p>With a local AI nothing leaves your computer. In the cloud you are asked before the project is sent. Keys go to the system credential store, never to a file.</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon">🎯</div>
+            <h3>You control the context</h3>
+            <p>You see what is sent: the open file, the selection, problems, outline, files mentioned with @ and the preview page. You can remove any item.</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon">✍️</div>
+            <h3>Inline AI and "Explain and fix"</h3>
+            <p>Ctrl+Shift+I on a selection: improve, fix, translate, shorten, convert to a table or list. In Problems, "Explain and fix" solves an error with an already-checked proposal.</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon">📚</div>
+            <h3>Offline Typst documentation</h3>
+            <p>The official documentation for the exact compiler version ships with the app, with a search that also understands Spanish terms. The AI looks things up in it instead of inventing functions.</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon">🧮</div>
+            <h3>Problems and data at hand</h3>
+            <p>A Problems panel with every error in the project and a CSV/TSV data viewer with "Insert as table".</p>
+          </article>
+
+        </div>
+        <p class="section-sub"><a href="https://github.com/davidbuenov/dbv-typst-editor/blob/master/docs/IA.en.md" class="btn btn-ghost btn-lg" target="_blank" rel="noopener">📖 Guide: what to install for each AI</a></p>
       </div>
     </section>
 

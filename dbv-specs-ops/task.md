@@ -628,20 +628,22 @@
   - [x] **Slice 135** — Evals (RNF-IA-EVAL).
   - [x] **Slice 136** — Ayuda, atajos, arquitectura y changelog.
   - [x] **`/ship` de v0.13.0 — 2026-10-02, versión Minor (0.12.1 → 0.13.0), SIN push** (petición del usuario: revisará la app y la documentación antes). CHANGELOG versionado ES + EN, README ES/EN, `walkthrough.md`, `notasActualizacionStore_v0.13.0.md` (con sección nueva de privacidad), `.msixbundle` generado y verificado: `src-tauri/target/msix/dbv-typst-editor_0.13.0.0.msixbundle` (81,3 MB; en `target/appx/x64` están `typst.exe`, `tinymist.exe`, `templates` y `resources/typst-docs.json.gz`; `Version="0.13.0.0"`). Commit y tag `v0.13.0` en local.
+  - [x] **`/ship` de v0.13.0 REABIERTO tras la prueba real — 2026-10-02 (ADR-V0130-004), sin subir versión.** Prueba del usuario con Gemma 4 por `llama-server`: arreglados el panel de la IA cortado con la ventana baja y el `TypeError` de `propose_changes` (2 tests de regresión); entregados `docs/IA.md` + `docs/IA.en.md` (guía de uso con las consultas que dan los datos del formulario), su resumen en la Ayuda (`docLink.urlEn`), la sección de IA de la web (`docs/index.html`, `docs/en/index.html`) y la política de privacidad actualizada (`privacidad.html`, `privacy.html`). CHANGELOG ES + EN: las entradas pasan de [Unreleased] a la sección 0.13.0. 1199 Vitest, `verify:layout` 20/20. **`.msixbundle` regenerado y verificado** (77,56 MB; `typst.exe`, `tinymist.exe`, `templates\local` 53 ficheros, `resources\typst-docs.json.gz`; manifiesto 0.13.0.0): `src-tauri/target/msix/dbv-typst-editor_0.13.0.0.msixbundle`. Tag `v0.13.0` movido al commit final; push de `master` + tags.
   - [x] **`/code-simplify` de v0.13.0 — 2026-10-02.** Bugs: [Crítico] comprobaciones en paralelo sobre el mismo mundo (veredicto cambiado) → exclusión en Rust + una sola función en el frontend; [Importante] respuesta en curso al cambiar de proyecto, doble aviso al detener, conversación activa inexistente. Seguridad: [Importante] la clave guardada iba a una dirección cambiada en el formulario → ligada a su dirección. Cumplimiento: [Importante] faltaban «borrar todas» (RF-92.6) y el aviso de propuestas sin revisar (RF-93.6); cabeceras, changelog ES/EN y `clippy` limpios. Nits: 2 (lectura sin plazo de un stream colgado, que «Detener» ya libera en el frontend; `CLOUD` duplicado en JS y Rust). Suites: 1196 Vitest · 487 Rust.
   - [x] **`/test` de v0.13.0 — 2026-10-02.** Test de integración de la IA (`aiApp.test.js`) que destapó dos fallos reales (recaída sin herramientas; oyente global). Revisión adelantada: tope y foto completa del punto de restauración, Deshacer sin pisar, Detener que libera. Mutación 10/10. Evals reales con `llama3` y `qwen2.5:3b` (`testfiles/ai-evals/README.md`). Paquete inicial: +13,6 KB sobre el previo a la IA (el código de la IA, 87 KB, va aparte). Suites: 1194 Vitest · 485 Rust · `verify:frontend` 12/12 · `verify:layout` 20/20 · `verify:typst` 8/8 · `verify:templates` 40/40 · `verify:engine` 68 ms. **Pendiente del usuario:** prueba en ventana real (Ollama, Claude Code por ACP, una clave de nube). **Siguiente: `/code-simplify`.**
   - [x] **`/build` de v0.13.0 COMPLETO (2026-10-02).** Commits `32e7c32` (127), `8edbdd5` (128), `fc17c74` (129), `2356337` (130), `dc9ab0d` (131-132), `4da8b5a` (Ollama nativo), `eb4e740` (133), `6abba3a` (134), `e53cd19` (135-136). Desvíos del plan registrados en `ADR-V0130-003`. **Siguiente: `/test`.**
 
 ## 🔄 Context Snapshot / Snapshot de Contexto
 
-> ### 👉 RETOMAR AQUÍ (2026-10-02): v0.13.0 con `/ship` hecho, SIN push
+> ### 👉 RETOMAR AQUÍ (2026-10-02): v0.13.0 reabierta tras la prueba real y empujada
 >
-> Ciclo completo `/spec` → `/ship` de la 0.13.0 («IA integrada») en la misma sesión. Commit y tag
-> `v0.13.0` solo en local. Pendiente del usuario (lista en `walkthrough.md` §5): prueba en ventana real
-> (Ollama, Claude Code por ACP sobre una copia de un proyecto, una clave de nube), revisar la
-> documentación, `git push origin master --tags` y publicar la Release, subir el `.msixbundle` y revisar
-> la privacidad de la ficha de la Store. Si al probar sale algo, corregir y mover el tag
-> (`git tag -f v0.13.0`) ANTES del push.
+> La prueba real del usuario (Gemma 4 por `llama-server`) destapó dos fallos y la falta de guía; se
+> arreglaron y se reabrió la 0.13.0 sin subir versión (`ADR-V0130-004`). Push de `master` + tags: el tag
+> `v0.13.0` dispara las Release de Linux y macOS. El `.msixbundle` está en
+> `src-tauri/target/msix/dbv-typst-editor_0.13.0.0.msixbundle` (verificado, 77,56 MB). Pendiente del
+> usuario: instalarlo con el certificado de pruebas, subirlo a Partner Center con los textos de
+> `notasActualizacionStore_v0.13.0.md`, revisar la privacidad y la descripción de la ficha (§4 de ese
+> fichero) y publicar la Release de GitHub. Backlog: extraer las pestañas de `workspace.js`, Flathub.
 
 > ### 👉 RETOMAR AQUÍ (2026-10-02): `/spec` de v0.13.0 CERRADO — siguiente `/plan`
 >

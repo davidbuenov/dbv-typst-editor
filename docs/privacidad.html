@@ -10,7 +10,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Política de Privacidad — DBV Typst Editor</title>
-  <meta name="description" content="Política de privacidad de DBV Typst Editor: la aplicación no recolecta datos personales ni telemetría. Todo el procesamiento ocurre en local." />
+  <meta name="description" content="Política de privacidad de DBV Typst Editor: la aplicación no recolecta datos personales ni telemetría. Todo el procesamiento ocurre en local, salvo la IA en la nube que tú decidas conectar (opcional)." />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22><text y=%2220%22 font-size=%2220%22>📝</text></svg>" />
   <link rel="stylesheet" href="styles.css" />
 </head>
@@ -37,10 +37,10 @@
   <main>
     <article class="legal">
       <h1>Política de Privacidad</h1>
-      <p class="legal-updated">Última actualización: 6 de septiembre de 2026</p>
+      <p class="legal-updated">Última actualización: 2 de octubre de 2026</p>
 
       <div class="legal-summary">
-        <p><strong>Resumen:</strong> DBV Typst Editor no recolecta, almacena en servidores propios, ni comparte con terceros ningún dato personal. No tiene cuentas de usuario, no incluye analítica ni publicidad, y no envía telemetría de ningún tipo. Todo el procesamiento de tus documentos ocurre en tu propio equipo.</p>
+        <p><strong>Resumen:</strong> DBV Typst Editor no recolecta, almacena en servidores propios, ni comparte con terceros ningún dato personal. No tiene cuentas de usuario, no incluye analítica ni publicidad, y no envía telemetría de ningún tipo. Todo el procesamiento de tus documentos ocurre en tu propio equipo, salvo que tú conectes una IA en la nube o un agente (función opcional, explicada más abajo): entonces el contexto que elijas enviar sale directamente de tu equipo hacia el servicio que hayas elegido, nunca a un servidor nuestro.</p>
       </div>
 
       <h2>Qué hace la aplicación en tu equipo</h2>
@@ -49,14 +49,16 @@
       <h2>Datos guardados localmente (nunca transmitidos)</h2>
       <ul>
         <li><strong>Proyectos recientes:</strong> la lista de los últimos proyectos abiertos se guarda en un archivo <code>recent_projects.json</code> dentro de la carpeta de datos de la aplicación en tu equipo. Puedes quitar cualquier entrada desde el propio lanzador.</li>
+        <li><strong>Asistente de IA (opcional):</strong> la lista de tus conexiones (proveedor, dirección y modelo) se guarda en un archivo <code>ai-connections.json</code> en la carpeta de configuración de la aplicación, y las conversaciones de cada proyecto en la carpeta de datos de la aplicación. Ninguno de los dos contiene claves de API: estas se guardan en el almacén de credenciales del sistema (Administrador de credenciales de Windows, Llavero de macOS o Secret Service en Linux). Puedes borrar una conversación o una conexión desde el propio panel; borrar una conexión elimina también su clave.</li>
         <li><strong>Preferencias:</strong> el tema visual (claro/oscuro/sepia), el idioma de la interfaz, el reparto de los paneles y el nivel de zoom de la vista previa se guardan localmente en el navegador integrado de la aplicación (<code>localStorage</code>), sin salir de tu equipo.</li>
       </ul>
 
       <h2>Las únicas conexiones a internet que hace la aplicación</h2>
-      <p>DBV Typst Editor no se conecta a internet salvo cuando tú lo pides explícitamente, en estos tres casos:</p>
+      <p>DBV Typst Editor no se conecta a internet salvo cuando tú lo pides explícitamente, en estos cuatro casos:</p>
       <ul>
         <li><strong>Typst Universe:</strong> si creas un proyecto o insertas un paquete desde el catálogo de la comunidad (botón ✦), el compilador descarga ese paquete concreto desde el registro público oficial de Typst y lo guarda en caché para no volver a descargarlo. Si además pulsas el enlace de un paquete para ver su ficha, se abre esa página en tu navegador predeterminado.</li>
         <li><strong>Buscar actualizaciones:</strong> solo al pulsar el botón "Buscar actualizaciones" del panel "Acerca de" — la aplicación nunca comprueba actualizaciones automáticamente al arrancar. Esta comprobación consulta la información pública de la última versión publicada en GitHub.</li>
+        <li><strong>Asistente de IA que tú conectes (opcional):</strong> la IA es opcional y no hace ninguna conexión mientras no conectes una. Con una IA <em>local</em> (Ollama, LM Studio, llama.cpp u otro servidor propio) la conversación va solo a ese servidor de tu equipo o de tu red. Con una IA <em>en la nube</em> con tu clave de API (Anthropic, OpenAI, Google Gemini u OpenRouter), la aplicación envía directamente desde tu equipo al proveedor el contexto de la conversación (por ejemplo, el fichero abierto, la selección, los errores y lo que adjuntes), y <strong>la primera vez por proyecto y proveedor te lo pregunta antes de enviar nada</strong>. El panel muestra qué contexto se envía y puedes quitar cualquier elemento. Si conectas un <em>agente</em> instalado (Claude Code, Codex, Gemini CLI o GitHub Copilot CLI), es ese programa quien se comunica con su servicio con tu propia cuenta; la aplicación no ve ni guarda tus credenciales, y cada permiso que el agente pide se te muestra antes de concederse. En todos los casos lo recibe y lo trata ese proveedor según sus propias condiciones y política de privacidad, no nosotros.</li>
         <li><strong>Enlaces que tú mismo escribes:</strong> si tu documento contiene un enlace o una imagen remota y la vista previa la carga, esa petición sale directamente desde tu equipo hacia esa dirección — nunca a través de un servidor nuestro.</li>
       </ul>
 
@@ -64,7 +66,7 @@
       <p>Si instalas DBV Typst Editor desde la Microsoft Store, la Mac App Store o cualquier otra tienda, esa plataforma puede recopilar datos de instalación, uso y diagnóstico según sus propias políticas de privacidad, independientes de esta aplicación. Consulta la política de privacidad de la tienda correspondiente para más información sobre esos datos.</p>
 
       <h2>Terceros</h2>
-      <p>La aplicación no incluye analítica, publicidad, ni SDKs de terceros que recojan datos de uso. Las librerías externas que usa (CodeMirror, el compilador Typst) se ejecutan localmente y no realizan llamadas de red por su cuenta, salvo la descarga explícita de paquetes de Typst Universe descrita arriba.</p>
+      <p>La aplicación no incluye analítica, publicidad, ni SDKs de terceros que recojan datos de uso. Las librerías externas que usa (CodeMirror, el compilador Typst) se ejecutan localmente y no realizan llamadas de red por su cuenta, salvo la descarga explícita de paquetes de Typst Universe descrita arriba. Si conectas una IA en la nube o un agente, ese proveedor es un tercero que trata los datos que le envías según su propia política; la aplicación no lo elige ni lo intermedia.</p>
 
       <h2>Contacto</h2>
       <p>Si tienes dudas sobre esta política, puedes abrir un <a href="https://github.com/davidbuenov/dbv-typst-editor/issues" target="_blank" rel="noopener">issue en GitHub</a> o escribir a través de <a href="https://davidbuenov.com" target="_blank" rel="noopener">davidbuenov.com</a>.</p>

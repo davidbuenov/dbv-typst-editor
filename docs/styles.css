@@ -364,6 +364,9 @@ section > *, .nav-inner, .footer-inner { max-width: var(--max-width); margin-inl
 .templates { padding: 48px 24px 80px; background-color: var(--bg-secondary); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
 .templates-inner { text-align: center; }
 .section-sub { color: var(--text-secondary); margin-top: 0; margin-bottom: 32px; font-size: 15px; }
+/* Sección de IA: subtítulo centrado como el resto y botón de la guía separado de la rejilla. */
+.features .section-sub { text-align: center; }
+.features .section-sub:last-child { margin-top: 32px; margin-bottom: 0; }
 .template-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; max-width: var(--max-width); margin-inline: auto; }
 .template-chip {
   background-color: var(--bg-primary);

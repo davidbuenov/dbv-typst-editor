@@ -20,6 +20,7 @@ Versión 0.13.0 — Asistente de IA opcional, documentación sin conexión y má
 • Documentación oficial de Typst sin conexión, con buscador también en español.
 • Nuevo panel de Problemas con la lista completa de errores y avisos.
 • Visor de datos CSV/TSV con «Insertar como tabla».
+• Guía y ayuda para conectar cada IA (local, nube o tu suscripción).
 • Con una IA local nada sale de tu equipo; las claves se guardan en el almacén de credenciales de Windows.
 ```
 
@@ -35,6 +36,7 @@ Version 0.13.0 — Optional AI assistant, offline documentation and more:
 • Offline official Typst documentation, searchable.
 • New Problems panel with the full list of errors and warnings.
 • CSV/TSV data viewer with "Insert as table".
+• Guide and help for connecting each AI (local, cloud or your subscription).
 • With a local AI nothing leaves your computer; keys are stored in the Windows Credential Manager.
 ```
 
@@ -60,11 +62,13 @@ QUICK 2-MINUTE TESTING GUIDE:
 3. Click "View documentation" on that problem (or open Help > "Typst documentation" and search "table"): the offline documentation opens on the table page.
 4. Tools > "Data viewer (CSV/TSV)…": pick any .csv file. It is shown as a sortable, filterable table; "Copy as Typst table" copies Typst code.
 5. Tools > "Connect an AI…": the dialog shows what was detected on the computer (nothing needs to be connected). Close it: no AI panel or button appears unless an AI is connected.
+6. Help > "AI assistant (optional)": explains what must be installed for each route (local server, API key, or an installed agent) and links to the full guide.
 
 ADDITIONAL TECHNICAL CONTEXT:
 - No new sidecars: still the Typst compiler and the tinymist Language Server. New bundled resource: the Typst documentation (typst-docs.json.gz, 0.3 MB).
 - Network access happens only when the user connects a cloud AI provider (HTTPS to that provider) or downloads Typst packages, as before. AI agents are only launched on explicit user action.
 - No background telemetry, no advertising, no tracking — consistent with all previous releases.
+- The privacy policy (https://davidbuenov.github.io/dbv-typst-editor/privacy.html) was updated on 2026-10-02 to describe the optional AI connections: nothing is sent unless the user connects a cloud AI or an agent, the data goes directly from the user's machine to the provider they chose, and the app has no server of its own.
 ```
 
 ---
@@ -76,7 +80,7 @@ Sigue habiendo **DOS sidecars** (ver `dbv-specs-ops/docs/MICROSOFT_STORE.md` §6
 - [x] Haber ejecutado `npm run vendor:typst` **y** `npm run vendor:tinymist` antes de empaquetar (`src-tauri/binaries/` con los dos `.exe`).
 - [x] Comprobar versión del paquete: **`0.13.0.0`** (en el nombre del archivo y en `AppxManifest.xml`).
 - [x] `Get-ChildItem src-tauri\target\appx\x64` debe contener `typst.exe`, `tinymist.exe`, `templates\` **y** `resources\typst-docs.json.gz`.
-- [x] Comprobar tamaño del paquete: del orden de la v0.12.1 (~80 MB). Si cae de forma notable (~30 MB), falta un sidecar — **NO SUBIR**. *(81,3 MB, verificado el 2026-10-02.)*
+- [x] Comprobar tamaño del paquete: del orden de la v0.12.1 (~80 MB). Si cae de forma notable (~30 MB), falta un sidecar — **NO SUBIR**. *(77,56 MB, verificado el 2026-10-02 tras reconstruir con los cambios finales; la 0.12.1 pesó 77,0 MB. Contenido comprobado: `typst.exe`, `tinymist.exe`, `templates\local` con 53 ficheros y `resources\typst-docs.json.gz`.)*
 - [ ] Instalar el `.msixbundle` localmente (certificado de pruebas + `signtool` + `Add-AppxPackage`) y ejecutar la guía de prueba de 2 minutos de la sección 2.
 - [ ] **Nuevo en esta versión, en la app instalada desde el paquete:** Ayuda › «Documentación de Typst» abre (comprueba que el recurso viaja en el MSIX); en «Conectar una IA», guardar una conexión con una clave de prueba y comprobar que no sale el aviso «solo durante la sesión» (el Administrador de credenciales funciona desde el paquete); si tienes Ollama o Claude Code, una pregunta de prueba.
 - [ ] En Partner Center → Envíos → Paquetes: arrastrar `src-tauri/target/msix/dbv-typst-editor_0.13.0.0.msixbundle`.
@@ -87,5 +91,6 @@ Sigue habiendo **DOS sidecars** (ver `dbv-specs-ops/docs/MICROSOFT_STORE.md` §6
 
 Hasta la 0.12.1 la app no enviaba ningún dato del usuario a terceros. Desde la 0.13.0 **puede hacerlo, solo si el usuario conecta una IA en la nube o un agente**: el contenido del proyecto que la conversación necesite va al proveedor que el propio usuario elige, con su clave o su cuenta. DBV no tiene servidor propio ni telemetría.
 
-- [ ] Revisar la política de privacidad enlazada en la ficha (y la de la web) para decir esto con claridad.
+- [x] La política de privacidad de la web (`docs/privacidad.html` y `docs/privacy.html`) se actualizó el 2026-10-02 para decir esto con claridad. **Falta que la leas** y que la URL que figura en la ficha de Partner Center sea esa.
+- [ ] Actualizar la descripción de la ficha (`descripcionStore_es.md` y `descripcionStore_en.md`), que aún no menciona la IA opcional.
 - [ ] Revisar en Partner Center las declaraciones de la ficha relacionadas con datos o privacidad, si las hay, para que sean coherentes.

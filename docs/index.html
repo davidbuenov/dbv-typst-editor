@@ -10,10 +10,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>DBV Typst Editor — Editor de escritorio para Typst</title>
-  <meta name="description" content="Editor de escritorio nativo para Typst: plantillas académicas, vista previa PDF en tiempo real, 100% local y sin conexión. Windows, macOS y Linux." />
+  <meta name="description" content="Editor de escritorio nativo para Typst: plantillas académicas, vista previa PDF en tiempo real, 100% local y sin conexión, y un asistente de IA opcional que tú eliges (local, en la nube o tu suscripción). Windows, macOS y Linux." />
 
   <meta property="og:title" content="DBV Typst Editor — Editor de escritorio para Typst" />
-  <meta property="og:description" content="Crea tu TFG, TFM, tesis o artículo desde una plantilla, escribe con vista previa PDF en tiempo real. Gratis y de código abierto." />
+  <meta property="og:description" content="Crea tu TFG, TFM, tesis o artículo desde una plantilla, escribe con vista previa PDF en tiempo real y, si quieres, con un asistente de IA que tú eliges. Gratis y de código abierto." />
   <meta property="og:image" content="https://davidbuenov.github.io/dbv-typst-editor/images/og-image.jpg" />
   <meta property="og:image:width" content="1920" />
   <meta property="og:image:height" content="1080" />
@@ -36,6 +36,7 @@
       </a>
       <nav class="nav-links">
         <a href="#features">Características</a>
+        <a href="#ai">IA</a>
         <a href="#gallery">Galería</a>
         <a href="#templates">Plantillas</a>
         <a href="#download">Descargar</a>
@@ -98,7 +99,7 @@
       <div class="stats-inner">
         <div class="stat"><span class="stat-num">8</span><span class="stat-label">Plantillas académicas</span></div>
         <div class="stat"><span class="stat-num">+1.500</span><span class="stat-label">Paquetes Typst Universe</span></div>
-        <div class="stat"><span class="stat-num">100%</span><span class="stat-label">Local y sin conexión</span></div>
+        <div class="stat"><span class="stat-num">100%</span><span class="stat-label">Local y sin conexión (IA opcional)</span></div>
         <div class="stat"><span class="stat-num">0</span><span class="stat-label">Telemetría</span></div>
         <div class="stat"><span class="stat-num">MIT</span><span class="stat-label">Licencia libre</span></div>
       </div>
@@ -203,6 +204,59 @@
           </article>
 
         </div>
+      </div>
+    </section>
+
+    <!-- ─── IA ────────────────────────────────────────────────────────────── -->
+    <section class="features" id="ai">
+      <div class="features-inner">
+        <h2>Un asistente de IA que eliges tú, y que nunca escribe sin que lo veas</h2>
+        <p class="section-sub">Es opcional: sin conectar ninguna, el editor funciona exactamente igual que siempre. Con una IA local, nada sale de tu equipo.</p>
+        <div class="feature-grid">
+
+          <article class="feature-card">
+            <div class="feature-icon">🔌</div>
+            <h3>Conecta una IA local o en la nube</h3>
+            <p>Local (Ollama, LM Studio, llama.cpp, cualquier servidor compatible con OpenAI) o en la nube con tu clave de API (Anthropic, OpenAI, Gemini, OpenRouter). «Conectar una IA» detecta lo que ya hay en tu equipo.</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon">🤖</div>
+            <h3>Usa tu suscripción</h3>
+            <p>Conecta el agente que ya tienes instalado (Claude Code, Codex, Gemini CLI o Copilot) y usa tu cuenta. DBV nunca ve tus credenciales y cada permiso del agente se te pide con su diff.</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon">✅</div>
+            <h3>Propone, compila y tú decides</h3>
+            <p>La IA propone cambios, también en varios ficheros. DBV los compila en memoria y te dice si compilan antes de enseñártelos; aceptas o rechazas cada trozo y siempre puedes deshacer.</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon">🔒</div>
+            <h3>Privacidad por diseño</h3>
+            <p>Con una IA local no sale nada de tu equipo. En la nube se te pregunta antes de enviar el proyecto. Las claves van al almacén de credenciales del sistema, nunca a un fichero.</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon">🎯</div>
+            <h3>Tú controlas el contexto</h3>
+            <p>Se ve qué se envía: fichero abierto, selección, problemas, esquema, ficheros mencionados con @ y la página de la vista previa. Puedes quitar cualquier elemento.</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon">✍️</div>
+            <h3>IA en línea y «Explicar y arreglar»</h3>
+            <p>Ctrl+Mayús+I sobre la selección: mejorar, corregir, traducir, acortar, convertir a tabla o lista. En Problemas, «Explicar y arreglar» resuelve un error con una propuesta ya comprobada.</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon">📚</div>
+            <h3>Documentación de Typst sin conexión</h3>
+            <p>La documentación oficial de la versión exacta del compilador viaja con la aplicación, con buscador que entiende también términos en español. La IA la consulta en vez de inventar funciones.</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon">🧮</div>
+            <h3>Problemas y datos a mano</h3>
+            <p>Panel de Problemas con todos los errores del proyecto y visor de datos CSV/TSV con «Insertar como tabla».</p>
+          </article>
+
+        </div>
+        <p class="section-sub"><a href="https://github.com/davidbuenov/dbv-typst-editor/blob/master/docs/IA.md" class="btn btn-ghost btn-lg" target="_blank" rel="noopener">📖 Guía: qué instalar para cada IA</a></p>
       </div>
     </section>
 

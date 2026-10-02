@@ -10,7 +10,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Privacy Policy — DBV Typst Editor</title>
-  <meta name="description" content="Privacy policy for DBV Typst Editor: the app collects no personal data and no telemetry. All processing happens locally." />
+  <meta name="description" content="Privacy policy for DBV Typst Editor: the app collects no personal data and no telemetry. All processing happens locally, except for the optional cloud AI you decide to connect." />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22><text y=%2220%22 font-size=%2220%22>📝</text></svg>" />
   <link rel="stylesheet" href="styles.css" />
 </head>
@@ -37,10 +37,10 @@
   <main>
     <article class="legal">
       <h1>Privacy Policy</h1>
-      <p class="legal-updated">Last updated: September 6, 2026</p>
+      <p class="legal-updated">Last updated: October 2, 2026</p>
 
       <div class="legal-summary">
-        <p><strong>Summary:</strong> DBV Typst Editor does not collect, store on its own servers, or share with third parties any personal data. It has no user accounts, no analytics, no advertising, and sends no telemetry of any kind. All processing of your documents happens on your own machine.</p>
+        <p><strong>Summary:</strong> DBV Typst Editor does not collect, store on its own servers, or share with third parties any personal data. It has no user accounts, no analytics, no advertising, and sends no telemetry of any kind. All processing of your documents happens on your own machine, unless you connect a cloud AI or an agent (an optional feature, explained below): then the context you choose to send goes directly from your machine to the service you chose, never to a server of ours.</p>
       </div>
 
       <h2>What the app does on your machine</h2>
@@ -49,14 +49,16 @@
       <h2>Data stored locally (never transmitted)</h2>
       <ul>
         <li><strong>Recent projects:</strong> the list of your most recently opened projects is saved to a <code>recent_projects.json</code> file inside the app's data folder on your machine. You can remove any entry from the launcher itself.</li>
+        <li><strong>AI assistant (optional):</strong> the list of your connections (provider, address and model) is saved to an <code>ai-connections.json</code> file in the app's configuration folder, and each project's conversations in the app's data folder. Neither contains API keys: those are stored in the system credential store (Windows Credential Manager, macOS Keychain or Secret Service on Linux). You can delete a conversation or a connection from the panel itself; deleting a connection also removes its key.</li>
         <li><strong>Preferences:</strong> the visual theme (light/dark/sepia), interface language, panel layout and preview zoom level are saved locally in the app's built-in browser storage (<code>localStorage</code>), without leaving your machine.</li>
       </ul>
 
       <h2>The only internet connections the app makes</h2>
-      <p>DBV Typst Editor does not connect to the internet except when you explicitly ask it to, in these three cases:</p>
+      <p>DBV Typst Editor does not connect to the internet except when you explicitly ask it to, in these four cases:</p>
       <ul>
         <li><strong>Typst Universe:</strong> if you create a project or insert a package from the community catalogue (the ✦ button), the compiler downloads that specific package from Typst's official public registry and caches it so it isn't downloaded again. If you also click a package's link to view its page, that page opens in your default browser.</li>
         <li><strong>Checking for updates:</strong> only when you click "Check for updates" in the "About" panel — the app never checks for updates automatically on launch. This check reads the publicly available information about the latest release on GitHub.</li>
+        <li><strong>An AI assistant you connect (optional):</strong> the AI is optional and makes no connection until you connect one. With a <em>local</em> AI (Ollama, LM Studio, llama.cpp or another server of your own) the conversation goes only to that server on your machine or network. With a <em>cloud</em> AI using your API key (Anthropic, OpenAI, Google Gemini or OpenRouter), the app sends the conversation's context (for example the open file, the selection, the errors and whatever you attach) directly from your machine to the provider, and <strong>the first time per project and provider it asks you before sending anything</strong>. The panel shows what context is sent and you can remove any item. If you connect an installed <em>agent</em> (Claude Code, Codex, Gemini CLI or GitHub Copilot CLI), it is that program that talks to its service with your own account; the app does not see or store your credentials, and every permission the agent asks for is shown to you before it is granted. In every case, the data is received and handled by that provider under its own terms and privacy policy, not by us.</li>
         <li><strong>Links you write yourself:</strong> if your document contains a remote link or image and the preview loads it, that request goes directly from your machine to that address — never through a server of ours.</li>
       </ul>
 
@@ -64,7 +66,7 @@
       <p>If you install DBV Typst Editor from the Microsoft Store, the Mac App Store, or any other store, that platform may collect installation, usage and diagnostic data under its own privacy policy, independent of this app. Check that store's own privacy policy for details.</p>
 
       <h2>Third parties</h2>
-      <p>The app includes no analytics, advertising, or third-party SDKs that collect usage data. The external libraries it uses (CodeMirror, the Typst compiler) run locally and make no network calls on their own, other than the explicit Typst Universe package download described above.</p>
+      <p>The app includes no analytics, advertising, or third-party SDKs that collect usage data. The external libraries it uses (CodeMirror, the Typst compiler) run locally and make no network calls on their own, other than the explicit Typst Universe package download described above. If you connect a cloud AI or an agent, that provider is a third party that handles the data you send under its own policy; the app neither chooses nor intermediates it.</p>
 
       <h2>Contact</h2>
       <p>If you have questions about this policy, you can open an <a href="https://github.com/davidbuenov/dbv-typst-editor/issues" target="_blank" rel="noopener">issue on GitHub</a> or reach out via <a href="https://davidbuenov.com" target="_blank" rel="noopener">davidbuenov.com</a>.</p>

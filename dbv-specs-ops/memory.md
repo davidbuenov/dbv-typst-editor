@@ -9,7 +9,7 @@
 
 ## 🎯 Contexto Activo
 
-- **Estado (2026-10-02): v0.13.0 («IA integrada») con `/ship` hecho, commit y tag solo en local, sin push.** IA opcional (local, nube con clave, agentes por ACP), documentación de Typst offline, Problemas y CSV. `ADR-V0130-001` a `-003`. El usuario revisará la app y la documentación antes del push.
+- **Estado (2026-10-02): v0.13.0 («IA integrada») REABIERTA tras la prueba real del usuario, con el `/ship` rehecho y push de `master` + tags.** IA opcional (local, nube con clave, agentes por ACP), documentación de Typst offline, Problemas y CSV; guía de uso (`docs/IA.md`/`IA.en.md`), web y política de privacidad actualizadas. `ADR-V0130-001` a `-004`.
 
 - **Estado actual (2026-09-19): v0.8.0 PUBLICADA en GitHub** (tag, Release como Latest con Linux y macOS, tap de Homebrew actualizado solo por el workflow) — rendimiento con documentos grandes, documento principal elegible, Tinymist bajo demanda y comando `typs`/canal Homebrew (`ADR-V080-001`, `SPECIFICATIONS.md` §5h). **Windows solo por Microsoft Store desde la 0.8.0 (`ADR-WINDOWS-001`, 2026-09-20)**: no hay instalador `.exe` en la Release y su `latest.json` es una copia de la 0.7.0 con la URL corregida. **2026-09-20: la v0.8.0 se queda como está y NO habrá 0.8.1** (el arreglo de sincronización y la marca visual, aún sin commitear, entran en la 0.9.0). **`/spec` de v0.9.0 cerrado (SPECIFICATIONS v1.12, §5i)**: motor de vista previa EN PROCESO (Typst como crate) con sincronización exacta por palabra/frase y compilación incremental ≈0,6 s, con el motor clásico como respaldo automático (`ADR-MOTOR-001`); RF-56 a RF-60 (incluye menú contextual del editor, diagnósticos en línea y edición de ficheros de código con resaltado). **Siguiente: `/plan`.** Pendiente del usuario: probar `z6-IPbook` y `typs` en un Mac real.
 - **Ubicación:** `d:/Programacion/github-davidbuenov/dbv-typst-editor` (renombrado el 2026-09-05 desde `dbv-academic-writer`; si esa ruta no existe, probar el nombre antiguo).
@@ -462,6 +462,15 @@
 - **Escrituras por `fs/write_text_file`:** se convierten en propuesta (RF-91.5) y se responde al agente como escritas; Claude Code no las usa (spike), así que el camino principal es el permiso con diff.
 - **Robustez con modelos pequeños** (de las primeras evals con `llama3`): bloques de cambio con espacios tras `=======`, y búsqueda que acepta otra sangría si la coincidencia es única.
 - **`serde` y los enums:** `rename_all` en un enum renombra las variantes, no los campos de las variantes con campos: `Done { stop_reason }` viajaba como `stop_reason`. Lección general para el proyecto.
+
+### ADR-V0130-004 — Reabrir la 0.13.0 en vez de publicar una 0.13.1 (2026-10-02)
+
+*Decidida por el usuario al hacer el `/ship` final.*
+
+- **Contexto.** La 0.13.0 solo existía en local (tag sin empujar, sin Release, sin Store). La prueba real con Gemma 4 por `llama-server` destapó dos fallos (panel de la IA cortado con la ventana baja; `propose_changes` con argumentos mal formados tumbaba el turno) y la necesidad de una guía de uso, de la web y de revisar la política de privacidad.
+- **Decisión.** No subir versión: los cambios entran en la sección 0.13.0 del changelog, el tag `v0.13.0` se mueve al commit final y el `.msixbundle` se regenera con la misma versión. Lo público pasa de 0.12.1 a 0.13.0. Posible porque nada había salido; con la 0.13.0 ya publicada habría sido una 0.13.1.
+- **Lecciones de la prueba con un modelo real.** (1) `llama-server` con un modelo que «piensa» (Gemma 4) deja `content` vacío mientras razona en `reasoning_content`: hay que arrancarlo con `--reasoning-budget 0`. (2) El `n_ctx` de `/props` es el **total**, y cada slot recibe `n_ctx / total_slots`. (3) Un servidor que no es Ollama no debe conectarse como «Ollama»: el protocolo nativo no se entiende y el asistente se queda mudo; la guía lo avisa. (4) Los argumentos de las herramientas los escribe el modelo: nada que los use fuera del `try` (ni siquiera una etiqueta) puede dar por hecho su forma.
+- **Privacidad.** `privacidad.html`/`privacy.html` dejan de afirmar que todo ocurre en el equipo sin matices: la conexión con una IA en la nube o un agente es opcional y va del equipo del usuario al proveedor que elige, con aviso previo.
 
 ### Lección — los permisos ACL de Tauri no los ve ninguna herramienta de este repo (2026-09-22)
 

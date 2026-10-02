@@ -73,10 +73,10 @@ ADDITIONAL TECHNICAL CONTEXT:
 
 Sigue habiendo **DOS sidecars** (ver `dbv-specs-ops/docs/MICROSOFT_STORE.md` §6) y se añade un recurso empaquetado: `resources/typst-docs.json.gz`.
 
-- [ ] Haber ejecutado `npm run vendor:typst` **y** `npm run vendor:tinymist` antes de empaquetar (`src-tauri/binaries/` con los dos `.exe`).
-- [ ] Comprobar versión del paquete: **`0.13.0.0`** (en el nombre del archivo y en `AppxManifest.xml`).
-- [ ] `Get-ChildItem src-tauri\target\appx\x64` debe contener `typst.exe`, `tinymist.exe`, `templates\` **y** `resources\typst-docs.json.gz`.
-- [ ] Comprobar tamaño del paquete: del orden de la v0.12.1 (~80 MB). Si cae de forma notable (~30 MB), falta un sidecar — **NO SUBIR**.
+- [x] Haber ejecutado `npm run vendor:typst` **y** `npm run vendor:tinymist` antes de empaquetar (`src-tauri/binaries/` con los dos `.exe`).
+- [x] Comprobar versión del paquete: **`0.13.0.0`** (en el nombre del archivo y en `AppxManifest.xml`).
+- [x] `Get-ChildItem src-tauri\target\appx\x64` debe contener `typst.exe`, `tinymist.exe`, `templates\` **y** `resources\typst-docs.json.gz`.
+- [x] Comprobar tamaño del paquete: del orden de la v0.12.1 (~80 MB). Si cae de forma notable (~30 MB), falta un sidecar — **NO SUBIR**. *(81,3 MB, verificado el 2026-10-02.)*
 - [ ] Instalar el `.msixbundle` localmente (certificado de pruebas + `signtool` + `Add-AppxPackage`) y ejecutar la guía de prueba de 2 minutos de la sección 2.
 - [ ] **Nuevo en esta versión, en la app instalada desde el paquete:** Ayuda › «Documentación de Typst» abre (comprueba que el recurso viaja en el MSIX); en «Conectar una IA», guardar una conexión con una clave de prueba y comprobar que no sale el aviso «solo durante la sesión» (el Administrador de credenciales funciona desde el paquete); si tienes Ollama o Claude Code, una pregunta de prueba.
 - [ ] En Partner Center → Envíos → Paquetes: arrastrar `src-tauri/target/msix/dbv-typst-editor_0.13.0.0.msixbundle`.

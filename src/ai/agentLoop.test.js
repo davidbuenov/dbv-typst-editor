@@ -38,6 +38,20 @@ describe('runAgent', () => {
     expect(steps[0].label).toContain('main.typ');
   });
 
+  it('una etiqueta que falla con argumentos raros no tumba el turno', async () => {
+    // Regresión: un modelo pequeño mandó `changes` como objeto y `label` lanzó
+    // TypeError fuera del try, así que el turno entero moría sin respuesta.
+    const odd = { ...tool('propose_changes', async () => 'ok'), label: () => { throw new TypeError('x.map is not a function'); } };
+    const { callModel } = scripted(
+      { text: '', toolCalls: [{ id: 'c1', name: 'propose_changes', arguments: '{"changes":{"path":"a.typ"}}' }] },
+      { text: 'Hecho.', toolCalls: [] },
+    );
+    const steps = [];
+    const result = await runAgent({ callModel, tools: [odd], messages: [], onStep: (s) => steps.push(s) });
+    expect(result.outcome).toBe('done');
+    expect(steps[0].label).toBe('propose_changes');
+  });
+
   it('se para en el máximo de pasos', async () => {
     const loop = tool('list_files', async () => 'a.typ');
     const callModel = vi.fn(async () => ({ text: '', toolCalls: [{ id: 'x', name: 'list_files', arguments: '{}' }] }));

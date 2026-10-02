@@ -65,6 +65,15 @@ export function parseArguments(raw) {
   return result;
 }
 
+/** Etiqueta de un paso. Los argumentos los escribe el modelo: si no encajan, nunca debe tumbar el turno. */
+function safeLabel(tool, args, fallback) {
+  try {
+    return tool?.label?.(args) ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 /**
  * Ejecuta el bucle. Devuelve los mensajes nuevos (asistente y herramientas) y
  * cómo terminó: `done`, `maxSteps`, `cancelled` o `error`.
@@ -127,7 +136,7 @@ export async function runAgent({ callModel, tools, messages, useTools = true, ma
           result = `error: ${failure?.message ?? failure}`;
         }
       }
-      onStep({ tool: call.name, label: tool?.label?.(args) ?? call.name, result });
+      onStep({ tool: call.name, label: safeLabel(tool, args, call.name), result });
       added.push({ role: 'tool', toolCallId: call.id, content: String(result) });
       if (isCancelled()) break;
     }

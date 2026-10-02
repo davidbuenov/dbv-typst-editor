@@ -13,6 +13,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Sin publicar] / [Unreleased]
 
+### Added
+
+- **Guía de uso de la IA, en el repositorio y en la ayuda.** Nuevo [`docs/IA.md`](../docs/IA.md) (y su espejo [`docs/IA.en.md`](../docs/IA.en.md)), enlazado desde los dos README: qué hay que tener instalado para cada vía (IA local con Ollama, LM Studio o un servidor propio como `llama-server`; nube con clave de API; agentes con suscripción, con la orden exacta que lanza DBV y el requisito de Node.js), cómo conectar un servidor propio compatible con OpenAI, **las consultas que dan los datos del formulario** (`ollama list`/`show`/`ps`, `/api/tags`, `/v1/models` y `/props` de llama.cpp, con versión PowerShell) y una tabla de problemas frecuentes. La sección «Asistente de IA» de la Ayuda de la aplicación resume lo mismo y enlaza a la guía del repositorio en el idioma de la interfaz (`docLink` admite ahora `urlEn`).
+
+### Fixed
+
+- **El panel de la IA se cortaba con la ventana baja.** Cabecera, contexto y caja de escritura se encogían (el contexto quedaba en una tira de 13 px, la lista de mensajes en 20 px) y la caja se salía del panel sin poder alcanzarse. Los bloques fijos ya no se encogen, los mensajes tienen una altura mínima y el panel entero se desplaza cuando no cabe. Reproducido en Chrome headless; `verify:layout` sigue 20/20.
+- **Un turno de la IA moría sin respuesta si el modelo mandaba mal los argumentos de `propose_changes`.** La etiqueta de la herramienta daba por hecho que `changes` era una lista y se calculaba fuera del `try` del bucle, así que un modelo pequeño que enviara un objeto provocaba `TypeError: (args.changes ?? []).map is not a function` (promesa rechazada) y el asistente se quedaba en «espera mientras reviso». La etiqueta tolera cualquier forma y el bucle protege el cálculo de cualquier etiqueta. Dos tests de regresión (fallan sin el arreglo).
+
 ## [0.13.0] - 2026-10-02
 
 Llega un asistente de IA integrado y **opcional**: local (Ollama, LM Studio), en la nube con tu clave de API (Anthropic, OpenAI, Gemini, OpenRouter) o tu agente instalado con tu suscripción (Claude Code, Gemini CLI, Codex, Copilot). Conversa con el proyecto como contexto y propone cambios en varios ficheros que DBV compila en memoria antes de enseñarlos y que se revisan trozo a trozo antes de aplicar; IA en línea sobre la selección y «Explicar y arreglar» en los errores. Sin configurar nada, el editor funciona igual que siempre. Además: documentación oficial de Typst sin conexión, panel de Problemas completo y visor de datos CSV/TSV.

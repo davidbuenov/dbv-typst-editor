@@ -13,6 +13,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **AI usage guide, in the repository and in the help.** New [`docs/IA.en.md`](../docs/IA.en.md) (and its Spanish mirror [`docs/IA.md`](../docs/IA.md)), linked from both READMEs: what must be installed for each route (a local AI with Ollama, LM Studio or your own server such as `llama-server`; cloud with an API key; agents with a subscription, including the exact command DBV launches and the Node.js requirement), how to connect your own OpenAI-compatible server, **the queries that give you the form values** (`ollama list`/`show`/`ps`, `/api/tags`, llama.cpp's `/v1/models` and `/props`, with a PowerShell version) and a table of common problems. The app's Help "AI assistant" section summarizes the same and links to the repository guide in the interface language (`docLink` now accepts `urlEn`).
+
+### Fixed
+
+- **The AI panel was cut off with a short window.** Header, context and composer all shrank (the context to a 13 px strip, the message list to 20 px) and the composer spilled out of the panel, unreachable. Fixed blocks no longer shrink, messages have a minimum height and the whole panel scrolls when it does not fit. Reproduced in headless Chrome; `verify:layout` is still 20/20.
+- **An AI turn died with no reply when the model sent malformed `propose_changes` arguments.** The tool's label assumed `changes` was a list and was computed outside the loop's `try`, so a small model sending an object triggered `TypeError: (args.changes ?? []).map is not a function` (unhandled rejection) and the assistant stalled at "wait while I review". The label now tolerates any shape and the loop guards every tool's label. Two regression tests (they fail without the fix).
+
 ## [0.13.0] - 2026-10-02
 
 A built-in, **optional** AI assistant arrives: local (Ollama, LM Studio), in the cloud with your API key (Anthropic, OpenAI, Gemini, OpenRouter) or your installed agent with your subscription (Claude Code, Gemini CLI, Codex, Copilot). It chats with the project as context and proposes multi-file changes that DBV compiles in memory before showing them and that you review hunk by hunk before applying; inline AI on the selection and "Explain and fix" on errors. With nothing configured, the editor works exactly as before. Plus: offline official Typst documentation, a complete Problems panel and a CSV/TSV data viewer.

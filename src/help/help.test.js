@@ -13,7 +13,7 @@ vi.mock('../services/backend.js', () => ({ openExternalUrl: (...args) => openExt
 import { createHelp } from './help.js';
 import { HELP_SECTIONS } from './helpContent.js';
 import { formatCombo, SHORTCUT_SCOPES } from '../editor/shortcuts.js';
-import { getLanguage } from '../i18n/i18n.js';
+import { getLanguage, setLanguage } from '../i18n/i18n.js';
 
 describe('createHelp', () => {
   let contentEl;
@@ -68,5 +68,19 @@ describe('createHelp', () => {
 
     expect(event.defaultPrevented).toBe(true);
     expect(openExternalUrl).toHaveBeenCalledWith(link.getAttribute('href'));
+  });
+
+  it('la guía de la IA enlaza a su versión en el idioma de la interfaz', () => {
+    const previous = getLanguage();
+    try {
+      for (const [language, file] of [['es', 'IA.md'], ['en', 'IA.en.md']]) {
+        setLanguage(language);
+        createHelp({ contentEl, navEl });
+        const hrefs = [...contentEl.querySelectorAll('.help__doc-link')].map((node) => node.getAttribute('href'));
+        expect(hrefs.some((href) => href.endsWith(`/docs/${file}`)), `${language}: falta el enlace a ${file}`).toBe(true);
+      }
+    } finally {
+      setLanguage(previous);
+    }
   });
 });

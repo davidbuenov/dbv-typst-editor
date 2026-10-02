@@ -51,6 +51,15 @@ describe('herramientas', () => {
     expect(deps.readText).not.toHaveBeenCalled();
   });
 
+  it('la etiqueta de propose_changes tolera argumentos que no son una lista', () => {
+    const { tools } = setup();
+    for (const changes of [undefined, null, 'cap.typ', { path: 'cap.typ' }, [null, { path: 'a.typ' }]]) {
+      expect(() => tools.propose_changes.label({ changes })).not.toThrow();
+    }
+    expect(tools.propose_changes.label({ changes: { path: 'cap.typ' } })).toContain('el proyecto');
+    expect(tools.propose_changes.label({ changes: [{ path: 'a.typ' }] })).toContain('a.typ');
+  });
+
   it('propose_changes acumula en la propuesta y dice que compila', async () => {
     const { tools, proposal } = setup();
     const report = await tools.propose_changes.run({ summary: 'Arreglo', changes: [{ path: 'cap.typ', action: 'edit', search: 'Uno.', replace: 'Uno bis.' }] });

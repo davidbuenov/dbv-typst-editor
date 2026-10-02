@@ -181,7 +181,8 @@ export function createTools(deps) {
         },
         ['changes'],
       ),
-      label: (args) => `Preparando cambios en ${(args.changes ?? []).map((c) => c.path).filter(Boolean).join(', ') || 'el proyecto'}`,
+      // `changes` lo escribe el modelo: un modelo pequeño puede mandar un objeto o un texto.
+      label: (args) => `Preparando cambios en ${(Array.isArray(args.changes) ? args.changes : []).map((c) => c?.path).filter(Boolean).join(', ') || 'el proyecto'}`,
       run: async ({ changes = [], summary = '' }) => {
         const proposal = deps.getProposal();
         if (summary) proposal.summary = summary;

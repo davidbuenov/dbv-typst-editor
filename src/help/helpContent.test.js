@@ -43,6 +43,7 @@ describe('HELP_SECTIONS', () => {
     eachBlock((block, path) => {
       if (!block.docLink) return;
       expect(block.docLink.url, `${path}: enlace sin URL`).toMatch(/^https:\/\//);
+      if (block.docLink.urlEn) expect(block.docLink.urlEn, `${path}: URL inglesa no https`).toMatch(/^https:\/\//);
       expect(block.docLink.label.es, `${path}: enlace sin etiqueta en español`).toBeTruthy();
       expect(block.docLink.label.en, `${path}: enlace sin etiqueta en inglés`).toBeTruthy();
     });

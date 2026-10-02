@@ -72,13 +72,16 @@ export function createHelp({ contentEl, navEl }) {
       // (comando Rust que abre el navegador del sistema) en vez de dejar que
       // el propio WebView navegue — un `<a>` normal se quedaría intentando
       // cargar la URL externa dentro de la propia app.
+      // `urlEn` (opcional): la versión en inglés cuando la documentación tiene
+      // una por idioma, como la guía de la IA del propio repositorio.
+      const url = getLanguage() === 'en' && block.docLink.urlEn ? block.docLink.urlEn : block.docLink.url;
       const link = document.createElement('a');
       link.className = 'help__doc-link';
-      link.href = block.docLink.url;
+      link.href = url;
       link.textContent = pick(block.docLink.label);
       link.addEventListener('click', (event) => {
         event.preventDefault();
-        openExternalUrl(block.docLink.url);
+        openExternalUrl(url);
       });
       return link;
     }

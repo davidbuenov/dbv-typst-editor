@@ -17,6 +17,7 @@ import { runAgent } from './agentLoop.js';
 import { createProposalApplier } from './applyProposal.js';
 import { createChatPanel, mentionedPaths } from './chatPanel.js';
 import { createConnectWizard } from './connectWizard.js';
+import { createInlineAi } from './inline.js';
 import { buildContext, estimateTokens, RESPONSE_RESERVE, systemPrompt } from './context.js';
 import { createModelClient } from './modelClient.js';
 import { applyChange, createProposal, overrides, parseChangeBlocks } from './proposal.js';
@@ -590,6 +591,73 @@ export function createAiApp(deps) {
     wizard.open();
   }
 
+  // ─── IA en línea (RF-95) ───────────────────────────────────────────────────
+
+  /** ¿Compila el proyecto con `relative` sustituido por `text`? (RF-95.4) */
+  async function checkText(relative, text) {
+    const target = workspace.getCompileTarget();
+    if (!target || !projectRoot) return null;
+    const unsaved = checkFiles(null).filter((file) => file.path !== joinPath(projectRoot, relative));
+    const [baseline, checked] = await Promise.all([
+      backend.aiCheckProposal(projectRoot, target.document, checkFiles(null)),
+      backend.aiCheckProposal(projectRoot, target.document, [...unsaved, { path: joinPath(projectRoot, relative), content: text }]),
+    ]);
+    if (!baseline.ok || !checked.ok) return null;
+    const simplify = (list) => list.map((d) => ({ level: d.level, file: d.file, line: d.startLine, message: d.message }));
+    return describeCheck(simplify(baseline.value), simplify(checked.value));
+  }
+
+  const inline = createInlineAi({
+    getView: () => workspace.getEditorView(),
+    getPath: () => {
+      const path = workspace.getDocumentPath();
+      return path && projectRoot ? relativeToRoot(projectRoot, path) : null;
+    },
+    complete: async (messages, onText) => {
+      const connection = activeConnection();
+      if (!(await confirmCloud(connection))) throw Object.assign(new Error(t('ai.cancelledByUser')), { kind: 'cancelled' });
+      const response = await client.call(connection.id, { messages, tools: [] }, { onText });
+      return response.text;
+    },
+    check: checkText,
+    typstVersion: deps.typstVersion,
+    notify: toast.show,
+  });
+
+  // ─── «Explicar y arreglar» (RF-97.5) y datos (RF-98.7) ─────────────────────
+
+  async function explainAndFix(problem) {
+    const location = `${problem.file ?? ''}${problem.line ? `:${problem.line}` : ''}`;
+    const hints = problem.hints?.length ? `\nTypst hints: ${problem.hints.join('; ')}` : '';
+    const content = problem.file ? await readText(problem.file) : null;
+    await ask(
+      `Explain in plain language this Typst compile error and propose a fix (as a reviewable change):\n${problem.level}: ${problem.message} (${location})${hints}`,
+      {
+        label: t('ai.explainFixLabel').replace('{message}', problem.message).replace('{where}', location),
+        attachments: content !== null ? [{ path: problem.file, content }] : [],
+      },
+    );
+  }
+
+  async function fixAll(problems) {
+    const errors = problems.filter((p) => p.level === 'error').slice(0, 30);
+    const list = errors.map((p) => `- ${p.file ?? ''}${p.line ? `:${p.line}` : ''}: ${p.message}`).join('\n');
+    await ask(`Fix all these Typst compile errors in a single proposal, explaining each fix briefly:\n${list}`, {
+      label: t('ai.fixAllLabel').replace('{n}', String(errors.length)),
+    });
+  }
+
+  function askAboutData(sample) {
+    if (!sample) return;
+    const rows = [sample.header, ...sample.rows].filter(Boolean).map((row) => row.join(' | ')).join('\n');
+    attachments = attachments.filter((a) => a.path !== sample.path);
+    attachments.push({ kind: 'file', path: sample.path, content: `${rows}\n(${sample.total} rows in total; sample above)` });
+    setPanelOpen(true);
+    renderContextPreview();
+    panel.input.value = t('ai.dataPrompt').replace('{file}', sample.path);
+    panel.focus();
+  }
+
   renderConnections();
   refreshVisibility();
 
@@ -606,6 +674,10 @@ export function createAiApp(deps) {
     makeChecker,
     showProposal,
     panel,
+    inline,
+    explainAndFix,
+    fixAll,
+    askAboutData,
     setPanelOpen,
     client,
     refreshContext: () => projectRoot && renderContextPreview(),

@@ -377,3 +377,31 @@
   .ai-form__row { grid-template-columns: minmax(0, 1fr); }
   .ai-form__row .ai-form__hint { grid-column: 1; }
 }
+
+/* ─── IA en línea (RF-95) ─────────────────────────────────────────────────── */
+.ai-inline__removed { text-decoration: line-through; background: var(--status-error-bg); color: var(--status-error); }
+.ai-inline {
+  margin: 4px 0;
+  padding: 6px 8px;
+  border-left: 3px solid var(--status-ok);
+  background: var(--status-ok-bg);
+  border-radius: 4px;
+  font-family: var(--font-ui);
+}
+.ai-inline__added { margin: 0 0 6px; white-space: pre-wrap; font-family: var(--font-mono); font-size: 0.95em; color: var(--text-primary); }
+.ai-inline__bar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.ai-inline__status { font-size: 12px; color: var(--text-secondary); margin-right: auto; }
+.ai-inline-bar,
+.ai-inline-explain {
+  position: fixed;
+  z-index: 60;
+  max-width: min(560px, calc(100vw - 16px));
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-primary);
+  box-shadow: var(--shadow);
+}
+.ai-inline-bar { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.ai-inline-bar__input { flex: 1 1 200px; min-width: 160px; padding-block: 3px; }
+.ai-inline-explain { max-height: 50vh; overflow: auto; padding: 8px 12px; font-size: 13px; }

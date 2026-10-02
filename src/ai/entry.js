@@ -11,6 +11,11 @@
 // las funciones de IA están visibles, importa `aiApp.js` bajo demanda. El
 // paquete inicial del frontend no crece (se comprueba en /test).
 
+/** Ctrl+Mayús+I (Cmd en macOS): la IA en línea (RF-95.1, atajo `aiInline` de RF-80). */
+export function isAiInlineShortcut(event) {
+  return (event.ctrlKey || event.metaKey) && event.shiftKey && !event.altKey && event.key.toLowerCase() === 'i';
+}
+
 /**
  * @param {object} deps Lo que necesita `aiApp.js`, más `aiConnections` y `connectButton`.
  */

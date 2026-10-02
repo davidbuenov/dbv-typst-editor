@@ -90,7 +90,7 @@ import { countProblems, toProblemList } from './editor/diagnosticsModel.js';
 import { createProblemsPanel, parseCliDiagnostics } from './problems/problemsPanel.js';
 import { createDocsViewer, wordAt } from './docs/docsViewer.js';
 import { createCsvViewer } from './data/csvViewer.js';
-import { initAi } from './ai/entry.js';
+import { initAi, isAiInlineShortcut } from './ai/entry.js';
 import * as backendModule from './services/backend.js';
 import { createEditorContextMenu } from './editor/editorContextMenu.js';
 import { createNavigation } from './editor/navigation.js';
@@ -1875,13 +1875,47 @@ async function bootstrap() {
     },
     // RF-96.6: «Ver documentación de `x`» sobre una palabra de un `.typ`.
     getExtraItems: (view) => {
-      if (!/\.typ$/i.test(workspace.getDocumentPath() ?? '')) return [];
+      const items = [];
+      const path = workspace.getDocumentPath() ?? '';
       const head = view.state.selection.main.head;
       const line = view.state.doc.lineAt(head);
-      const word = wordAt(line.text, head - line.from);
-      return word ? [{ id: 'showDocs', label: t('editorMenu.showDocs').replace('{word}', word), run: () => docsViewer.openFor(word) }] : [];
+      if (/\.typ$/i.test(path)) {
+        const word = wordAt(line.text, head - line.from);
+        if (word) items.push({ id: 'showDocs', label: t('editorMenu.showDocs').replace('{word}', word), run: () => docsViewer.openFor(word) });
+      }
+      // RF-95, RF-92.3 y RF-97.5: solo con una IA conectada y lista.
+      const app = ai?.app;
+      if (app && path) {
+        items.push({ id: 'aiInline', label: t('editorMenu.aiInline'), run: () => app.inline.open() });
+        items.push({ id: 'aiAttach', label: t('editorMenu.aiAttach'), run: () => app.attachFile(path) });
+        const root = workspace.state.project?.root;
+        const relative = root ? relativeToRoot(root, path) : null;
+        const problem = problemsPanel.getProblems().find((p) => p.file === relative && p.line === line.number);
+        if (problem) items.push({ id: 'aiExplainFix', label: t('editorMenu.aiExplainFix'), run: () => app.explainAndFix(problem) });
+      }
+      return items;
     },
   });
+
+  // RF-95.1: Ctrl+Mayús+I (Cmd en macOS) abre la IA en línea sobre la selección.
+  el('editor-host').addEventListener('keydown', (event) => {
+    if (!isAiInlineShortcut(event)) return;
+    const app = ai?.app;
+    if (!app) return;
+    event.preventDefault();
+    event.stopPropagation();
+    app.inline.open();
+  });
+  // RF-97.5 y RF-98.7: acciones de la IA en Problemas y en el visor de datos.
+  problemsPanel.setActionProvider(
+    (problem) => (ai?.app && problem.level === 'error' ? [{ label: t('problems.explainFix'), run: () => ai.app.explainAndFix(problem), primary: true }] : []),
+    (all) => (ai?.app ? { label: t('problems.fixAll').replace('{n}', String(all.filter((p) => p.level === 'error').length)), run: () => ai.app.fixAll(all) } : null),
+  );
+  ai.onLoaded(() => problemsPanel.refresh());
+  el('data-ask-ai').addEventListener('click', () => ai?.app?.askAboutData(dataViewer.getSample()));
+  const refreshDataAsk = () => el('data-ask-ai').classList.toggle('hidden', !ai?.app);
+  el('btn-tools-data').addEventListener('click', refreshDataAsk);
+  el('btn-doc-table').addEventListener('click', refreshDataAsk);
 
   el('btn-zoom-in').addEventListener('click', preview.zoomIn);
   el('btn-zoom-out').addEventListener('click', preview.zoomOut);

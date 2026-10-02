@@ -23,6 +23,7 @@ const DYNAMIC = {
   'ai.provider.': ['ollama', 'lmStudio', 'openAiCompatible', 'anthropic', 'openAi', 'gemini', 'openRouter'],
   'ai.error.': ['auth', 'rateLimit', 'network', 'notFound', 'contextTooLong', 'badRequest', 'server', 'cancelled', 'config', 'secretStore', 'unknown', 'bridge'],
   'ai.agent.': ['claude', 'gemini', 'codex', 'copilot'],
+  'ai.inline.': ['improve', 'proofread', 'translate', 'shorten', 'expand', 'toTable', 'toList', 'explain'],
 };
 
 describe('textos de la IA (RNF-IA.8)', () => {

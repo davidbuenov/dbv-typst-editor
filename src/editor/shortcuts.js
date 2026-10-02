@@ -98,6 +98,7 @@ export const APP_SHORTCUTS = [
   { id: 'findReferences', scope: 'editor', key: 'Shift-F12', label: { es: 'Buscar las referencias (con Tinymist)', en: 'Find references (with Tinymist)' } },
   { id: 'renameSymbol', scope: 'editor', key: 'F2', label: { es: 'Renombrar el símbolo en todo el proyecto (con Tinymist)', en: 'Rename the symbol across the project (with Tinymist)' } },
   { id: 'codeActions', scope: 'editor', key: 'Mod-.', label: { es: 'Acciones de código de este punto (con Tinymist)', en: 'Code actions at this point (with Tinymist)' } },
+  { id: 'aiInline', scope: 'editor', key: 'Mod-Shift-i', label: { es: 'IA sobre la selección o el párrafo (con una IA conectada)', en: 'AI on the selection or paragraph (with an AI connected)' } },
   {
     id: 'addCursorClick',
     scope: 'editor',

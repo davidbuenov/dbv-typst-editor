@@ -785,6 +785,11 @@ const DICTIONARIES = {
     'ai.connectTitle': 'Conectar una IA',
     'ai.panelShort': 'IA',
     'ai.panelToggle': 'Mostrar u ocultar el panel de la IA',
+    'editorMenu.aiInline': 'IA… (Ctrl+Mayús+I)',
+    'editorMenu.aiAttach': 'Añadir a la conversación con la IA',
+    'editorMenu.aiExplainFix': 'Explicar y arreglar este error con la IA',
+    'problems.explainFix': 'Explicar y arreglar',
+    'problems.fixAll': 'Arreglar los {n} errores con la IA',
   },
   en: {
     'app.tagline': 'Academic and technical writing made simple. Powered by Typst.',
@@ -1553,6 +1558,11 @@ const DICTIONARIES = {
     'ai.connectTitle': 'Connect an AI',
     'ai.panelShort': 'AI',
     'ai.panelToggle': 'Show or hide the AI panel',
+    'editorMenu.aiInline': 'AI… (Ctrl+Shift+I)',
+    'editorMenu.aiAttach': 'Add to the AI conversation',
+    'editorMenu.aiExplainFix': 'Explain and fix this error with the AI',
+    'problems.explainFix': 'Explain and fix',
+    'problems.fixAll': 'Fix the {n} errors with the AI',
   },
 };
 

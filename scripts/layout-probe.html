@@ -17,6 +17,7 @@
     <link rel="stylesheet" href="../src/themes/tokens.css" />
     <link rel="stylesheet" href="../src/themes/base.css" />
     <link rel="stylesheet" href="../src/themes/layout.css" />
+    <link rel="stylesheet" href="../src/themes/assist.css" />
   </head>
   <body>
     <header class="app-header">
@@ -105,6 +106,8 @@
           <pre class="preview__band hidden" id="preview-band"></pre>
         </aside>
       </section>
+      <div class="splitter hidden" id="splitter-ai"></div>
+      <aside class="ai-panel hidden" id="ai-panel">IA</aside>
     </main>
     <pre id="probe"></pre>
     <script>
@@ -281,6 +284,27 @@
         `panel=${Math.round(previewRect.width)}${fuera.length ? ` se salen: ${fuera.join(', ')}` : ''}`
       );
       ws.style.removeProperty('--preview-width');
+
+      // 5. RF-92: con el panel de la IA abierto, el espacio de trabajo (con
+      //    sus tres paneles) y el panel se reparten la ventana sin desbordar;
+      //    cerrado, el espacio de trabajo vuelve a ocuparla entera.
+      const body = document.querySelector('.app-body');
+      const splitterAi = document.getElementById('splitter-ai');
+      const aiPanel = document.getElementById('ai-panel');
+      body.classList.add('app-body--ai');
+      splitterAi.classList.remove('hidden');
+      aiPanel.classList.remove('hidden');
+      const sumAi = w('#workspace-view') + w('#splitter-ai') + w('#ai-panel');
+      const innerTotal = PARTS.map(w).reduce((a, b) => a + b, 0);
+      add(
+        'panel de IA abierto: espacio de trabajo + panel = ventana, sin desbordar',
+        sumAi === viewport && innerTotal === w('#workspace-view') && body.scrollWidth <= body.clientWidth && w('#ai-panel') === 380,
+        `suma=${sumAi} ventana=${viewport} panel=${w('#ai-panel')} trabajo=${w('#workspace-view')}`
+      );
+      body.classList.remove('app-body--ai');
+      splitterAi.classList.add('hidden');
+      aiPanel.classList.add('hidden');
+      add('panel de IA cerrado: el espacio de trabajo vuelve a ocupar la ventana', w('#workspace-view') === viewport, `${w('#workspace-view')}/${viewport}`);
 
       document.getElementById('probe').textContent = `DBV_LAYOUT_JSON${JSON.stringify(checks)}DBV_LAYOUT_END`;
     </script>

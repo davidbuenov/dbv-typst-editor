@@ -751,6 +751,20 @@ Principio común: **una sola maquinaria de edición en varios ficheros** para re
 
 **Reglas de diseño que ya son requisitos:** confinamiento al proyecto en todas las herramientas; las claves no cruzan el IPC; las conversaciones viven en la carpeta de datos de la app, nunca en el proyecto; el contenido de los ficheros se pasa al modelo como dato; los permisos de los agentes nunca se conceden por defecto; la documentación coincide exactamente con la versión de Typst vendorizada (misma regla que RF-56.1).
 
+**Así quedó en `/build` (slices 127 a 136):**
+
+| Pieza | Dónde | Qué decide |
+| --- | --- | --- |
+| Documentación (RF-96) | `scripts/typst-docs.mjs` + `typstDocsConvert.mjs` → `src-tauri/resources/typst-docs.json.gz` (0,29 MB); `docs.rs` | Generada una vez por versión con `cargo docit compile` sobre la etiqueta exacta; BM25 por sección con glosario ES→EN; `docs_export_dir` la vuelca en Markdown para los agentes. Test de versión contra `vendor-typst.mjs`. |
+| Problemas y visor (RF-96.6, RF-97) | `problems/problemsPanel.js`, `docs/docsViewer.js`, `ui/markdown.js` | Pestaña del panel lateral; CLI parseado con el motor clásico. Markdown seguro (nodos, nunca `innerHTML`). |
+| Datos (RF-98) | `data/csv.js`, `data/csvViewer.js`, `pick_data_file_dialog` | Lector RFC 4180 tolerante, desplazamiento virtual, `csv()` con ruta relativa desde el `.typ`. |
+| Proveedores | `ai/providers.rs` | Tres protocolos: compatible con OpenAI (SSE), Anthropic (SSE) y **Ollama nativo** (`/api/chat`, NDJSON) — este último para fijar `num_ctx`: por la API de OpenAI, Ollama usa su `OLLAMA_CONTEXT_LENGTH` (2 048 en la máquina de desarrollo) y recorta en silencio. |
+| Claves | `ai/secrets.rs` | `keyring` 4 (`v1`: Credential Manager, Keychain, `zbus` Secret Service sin `libdbus`); respaldo en memoria de sesión. |
+| Comprobación | `ai/check.rs` | Mundo de Typst propio y persistente (`Arc<CheckWorlds>`); no llama a `comemo::evict` para no envejecer la caché de la vista previa. |
+| Agentes | `ai/acp.rs` (transporte), `ai/acpSession.js`, `ai/acpView.js` | `spawn_agent` con un `Sink` (Tauri o canal en los tests). Permisos con el diff de la propia petición y compilación en memoria; punto de restauración (`walkdir`, ≤ 2 MB por fichero) y Deshacer de lo escrito en disco. |
+| Frontend | `ai/entry.js` (eager, pocas líneas), `ai/aiApp.js` + resto **perezosos** (`import()`), `ai/translations.js` | Las traducciones de la IA viajan con ella (`registerTranslations`). Bucle `agentLoop.js` puro, reutilizado por `scripts/eval-ai.mjs`. Propuestas: `proposal.js` (búsqueda exacta y, si no, por líneas sin sangría con coincidencia única), `diff.js` (`rebase` sobre el texto actual), `applyProposal.js` (sobre `multiFileEdit`). |
+| Maquetación | `assist.css`, `.app-body--ai` | El panel va a la derecha con `.app-body` en fila solo cuando está abierto; las 7 combinaciones de P/E/V no cambian (`verify:layout` 20/20). |
+
 ## 🔑 Decisiones Técnicas Clave (resumen)
 
 ### Seguridad

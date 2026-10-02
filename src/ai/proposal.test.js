@@ -6,7 +6,7 @@
 // =============================================================================
 
 import { describe, expect, it } from 'vitest';
-import { applyChange, createProposal, editProposed, overrides, parseChangeBlocks, resultText } from './proposal.js';
+import { applyChange, createProposal, editProposed, looseMatch, overrides, parseChangeBlocks, resultText } from './proposal.js';
 
 const disk = { 'main.typ': '= Hola\n#include "cap.typ"\n', 'cap.typ': 'Uno.\nDos.\n' };
 const readBase = async (path) => disk[path] ?? null;
@@ -90,6 +90,17 @@ describe('parseChangeBlocks (modelos sin herramientas)', () => {
       { path: 'caps/nuevo.typ', action: 'replace_all', content: '= Nuevo\n' },
       { path: 'viejo.typ', action: 'delete' },
     ]);
+  });
+
+  it('tolera espacios tras el separador y busca sin la sangría si la coincidencia es única', async () => {
+    const text = '```dbv-edit path="t.typ"\n<<<<<<< SEARCH\n#tabla(\n   [Año], [Ventas],\n)\n======= \n#table(\n  [Año], [Ventas],\n)\n>>>>>>> END\n```';
+    const [change] = parseChangeBlocks(text);
+    expect(change.replace).toBe('#table(\n  [Año], [Ventas],\n)');
+    const proposal = createProposal();
+    const disk = { 't.typ': '= T\n#tabla(\n  [Año], [Ventas],\n)\nFin.\n' };
+    expect((await applyChange(proposal, change, async (p) => disk[p] ?? null)).ok).toBe(true);
+    expect(resultText(proposal.files.get('t.typ'))).toBe('= T\n#table(\n  [Año], [Ventas],\n)\nFin.\n');
+    expect(looseMatch('a\n  x\nb\n  x\n', 'x')).toBeNull();
   });
 
   it('un bloque de código normal no es un cambio', () => {

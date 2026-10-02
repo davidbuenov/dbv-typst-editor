@@ -247,6 +247,66 @@ export const HELP_SECTIONS = [
     ],
   },
   {
+    id: 'problemas',
+    title: { es: 'Problemas y documentación de Typst', en: 'Problems and Typst documentation' },
+    blocks: [
+      {
+        es: 'La pestaña Problemas de la barra lateral (o la insignia roja de la barra del documento) lista todos los errores y avisos de la última compilación, agrupados por fichero y con los errores primero: mensaje, línea, la línea de código y las pistas de Typst. Un clic lleva al sitio. Se puede filtrar por errores, avisos o el fichero activo.',
+        en: 'The Problems tab in the sidebar (or the red badge on the document bar) lists every error and warning of the last compilation, grouped by file with errors first: message, line, the line of code and Typst\'s hints. One click takes you there. You can filter by errors, warnings or the active file.',
+      },
+      {
+        es: 'La documentación oficial de Typst de la misma versión que compila la aplicación viaja con ella y funciona sin conexión: Ayuda › «Documentación de Typst», o «Ver documentación de…» en el menú contextual del editor sobre una función. El buscador entiende también términos en español («cabecera de tabla», «pie de figura»).',
+        en: 'The official Typst documentation for the same version the app compiles with ships with it and works offline: Help › "Typst documentation", or "View documentation for…" in the editor context menu on a function.',
+      },
+    ],
+  },
+  {
+    id: 'datos',
+    title: { es: 'Visor de datos (CSV/TSV)', en: 'Data viewer (CSV/TSV)' },
+    blocks: [
+      {
+        es: 'Herramientas › «Visor de datos…», o el botón «Tabla» con un .csv abierto, enseñan el fichero como tabla: detecta el separador y la cabecera, ordena al pulsar una columna (como número si lo es) y filtra. «Insertar como tabla» escribe en el documento Typst activo el código que lee el fichero con csv(), así la tabla sigue al fichero; «Copiar como tabla Typst» copia la vista con los datos incrustados. Un fichero de fuera del proyecto se puede copiar a data/.',
+        en: 'Tools › "Data viewer…", or the "Table" button with a .csv open, show the file as a table: it detects the delimiter and the header, sorts when you click a column (numerically if it is a number) and filters. "Insert as table" writes into the active Typst document code that reads the file with csv(), so the table follows the file; "Copy as Typst table" copies the view with the data embedded. A file outside the project can be copied into data/.',
+      },
+    ],
+  },
+  {
+    id: 'ia',
+    title: { es: 'Asistente de IA (opcional)', en: 'AI assistant (optional)' },
+    blocks: [
+      {
+        es: 'La IA es opcional: sin conectar ninguna, el editor funciona igual que siempre. Herramientas › «Conectar una IA…» detecta lo que hay en el equipo y lo conecta con un botón:',
+        en: 'AI is optional: without one, the editor works exactly as before. Tools › "Connect an AI…" detects what is on your computer and connects it with one button:',
+      },
+      {
+        list: {
+          es: [
+            'Local: Ollama o LM Studio, o cualquier servidor compatible con OpenAI. Nada sale de tu equipo.',
+            'En la nube, con clave de API: Anthropic (Claude), OpenAI, Google Gemini u OpenRouter. La clave se guarda en el almacén de credenciales del sistema, nunca en un fichero.',
+            'Agentes instalados: Claude Code, Gemini CLI, Codex o Copilot CLI. Usan tu suscripción a través del propio agente (una suscripción no da clave de API).',
+          ],
+          en: [
+            'Local: Ollama or LM Studio, or any OpenAI-compatible server. Nothing leaves your computer.',
+            'In the cloud, with an API key: Anthropic (Claude), OpenAI, Google Gemini or OpenRouter. The key is stored in the system credential store, never in a file.',
+            'Installed agents: Claude Code, Gemini CLI, Codex or Copilot CLI. They use your subscription through the agent itself (a subscription does not give an API key).',
+          ],
+        },
+      },
+      {
+        es: 'El panel de la IA se abre con el botón «IA» junto a P/E/V. Dice a dónde va lo que envías y qué contexto se manda (fichero abierto, selección, problemas, esquema, ficheros mencionados con @, la página de la vista previa); puedes quitar cualquier elemento. La primera vez que un proyecto se va a enviar a la nube, se pregunta.',
+        en: 'The AI panel opens with the "AI" button next to P/E/V. It shows where your data goes and what context is sent (open file, selection, problems, outline, files mentioned with @, the preview page); you can remove any item. The first time a project would be sent to the cloud, you are asked.',
+      },
+      {
+        es: 'La IA nunca escribe sin que lo veas: propone cambios (también en varios ficheros, o ficheros nuevos), DBV los compila en memoria y te dice si compilan, y tú aceptas o rechazas cada trozo, puedes retocar el texto y verlo en la vista previa antes de aplicar; después, Deshacer. Con un agente, cada edición llega como petición de permiso con su diff, y al acabar se listan los ficheros que cambió con Deshacer.',
+        en: 'The AI never writes without you seeing it: it proposes changes (across several files, or new files), DBV compiles them in memory and tells you whether they compile, and you accept or reject each hunk, can edit the text and see it in the preview before applying; then, Undo. With an agent, every edit arrives as a permission request with its diff, and afterwards the files it changed are listed with Undo.',
+      },
+      {
+        es: 'Ctrl+Mayús+I (o «IA…» en el menú contextual) actúa sobre la selección o el párrafo: mejorar, corregir, traducir, acortar, ampliar, convertir a tabla o lista, explicar o lo que pidas. En Problemas, «Explicar y arreglar» resuelve un error con una propuesta comprobada.',
+        en: 'Ctrl+Shift+I (or "AI…" in the context menu) works on the selection or the paragraph: improve, fix, translate, shorten, expand, convert to table or list, explain, or anything you ask. In Problems, "Explain and fix" solves an error with a checked proposal.',
+      },
+    ],
+  },
+  {
     id: 'snippets',
     title: { es: 'Snippets', en: 'Snippets' },
     blocks: [

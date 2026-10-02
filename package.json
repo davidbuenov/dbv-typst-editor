@@ -17,6 +17,7 @@
     "vendor:typst": "node scripts/vendor-typst.mjs",
     "vendor:tinymist": "node scripts/vendor-tinymist.mjs",
     "docs:typst": "node scripts/typst-docs.mjs",
+    "eval:ai": "node scripts/eval-ai.mjs",
     "verify:typst": "node scripts/verify-typst-sidecar.mjs",
     "verify:templates": "node scripts/verify-templates.mjs",
     "verify:frontend": "node scripts/verify-frontend.mjs",

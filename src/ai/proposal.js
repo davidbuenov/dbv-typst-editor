@@ -47,6 +47,30 @@ export function normalizePath(path) {
   return String(path ?? '').trim().replace(/\\/g, '/').replace(/^\.\//, '').replace(/^\/+/, '');
 }
 
+/**
+ * Coincidencia ÚNICA de `search` en `text` comparando línea a línea sin los
+ * espacios de los extremos. Devuelve el tramo de `text` que ocupa, o `null`.
+ */
+export function looseMatch(text, search) {
+  const lines = text.split('\n');
+  const wanted = search.split('\n').map((line) => line.trim());
+  while (wanted.length && wanted.at(-1) === '') wanted.pop();
+  while (wanted.length && wanted[0] === '') wanted.shift();
+  let result = null;
+  if (wanted.length) {
+    const starts = [];
+    for (let i = 0; i + wanted.length <= lines.length; i += 1) {
+      if (wanted.every((line, k) => lines[i + k].trim() === line)) starts.push(i);
+    }
+    if (starts.length === 1) {
+      const offset = (line) => lines.slice(0, line).reduce((sum, l) => sum + l.length + 1, 0);
+      const last = starts[0] + wanted.length - 1;
+      result = { from: offset(starts[0]), to: offset(last) + lines[last].length };
+    }
+  }
+  return result;
+}
+
 /** Cuántas veces aparece `needle` en `text`. */
 function occurrences(text, needle) {
   let count = 0;
@@ -80,11 +104,16 @@ export async function applyChange(proposal, change, readBase) {
   if (action === 'edit') {
     const search = String(change.search ?? '');
     const count = occurrences(file.proposed, search);
+    // Modelos pequeños copian el texto con otra sangría: si no aparece tal
+    // cual, se busca línea a línea sin espacios en los extremos, y solo vale
+    // si la coincidencia es única.
+    const loose = count === 0 && search ? looseMatch(file.proposed, search) : null;
     if (!file.exists && file.kind !== 'create') result = { ok: false, message: `${path} no existe` };
     else if (!search) result = { ok: false, message: 'falta el texto a buscar (search)' };
-    else if (count === 0) result = { ok: false, message: `no se encontró el texto a buscar en ${path}; cópialo exactamente, con sus espacios` };
     else if (count > 1) result = { ok: false, message: `el texto a buscar aparece ${count} veces en ${path}; añade más líneas de contexto para que sea único` };
-    else file.proposed = file.proposed.replace(search, () => String(change.replace ?? ''));
+    else if (count === 1) file.proposed = file.proposed.replace(search, () => String(change.replace ?? ''));
+    else if (loose) file.proposed = file.proposed.slice(0, loose.from) + String(change.replace ?? '') + file.proposed.slice(loose.to);
+    else result = { ok: false, message: `no se encontró el texto a buscar en ${path}; cópialo exactamente, con sus espacios` };
   } else if (action === 'create' || action === 'replace_all') {
     file.proposed = String(change.content ?? '');
     if (!file.exists) file.kind = 'create';
@@ -179,7 +208,7 @@ export function parseChangeBlocks(text) {
     if (kind === 'file') changes.push({ path, action: 'replace_all', content: body.replace(/\n$/, '') + '\n' });
     else if (kind === 'delete') changes.push({ path, action: 'delete' });
     else {
-      const edit = body.match(/<{7}[^\n]*\n([\s\S]*?)\n?={7}\n([\s\S]*?)\n?>{7}/);
+      const edit = body.match(/<{7}[^\n]*\n([\s\S]*?)\n?={7}[ \t]*\n([\s\S]*?)\n?>{7}/);
       if (edit) changes.push({ path, action: 'edit', search: edit[1], replace: edit[2] });
     }
   }

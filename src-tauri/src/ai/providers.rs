@@ -93,7 +93,10 @@ pub enum StreamEvent {
     Text { text: String },
     ToolCall { id: String, name: String, arguments: String },
     Usage { input: u64, output: u64 },
-    Done { stop_reason: String },
+    Done {
+        #[serde(rename = "stopReason")]
+        stop_reason: String,
+    },
 }
 
 // ---------------------------------------------------------------------------
@@ -216,6 +219,45 @@ pub fn anthropic_body(request: &ChatRequest, model: &str) -> Value {
     body
 }
 
+/// Cuerpo para `/api/chat` (Ollama nativo): argumentos de herramienta como
+/// objeto, imágenes en base64 y `num_ctx` explícito.
+pub fn ollama_body(request: &ChatRequest, model: &str, context: u32) -> Value {
+    let messages: Vec<Value> = request
+        .messages
+        .iter()
+        .map(|message| {
+            let mut entry = json!({ "role": message.role, "content": message.content });
+            if !message.images.is_empty() {
+                entry["images"] = message.images.iter().map(|image| json!(image.base64)).collect();
+            }
+            if !message.tool_calls.is_empty() {
+                entry["tool_calls"] = message
+                    .tool_calls
+                    .iter()
+                    .map(|call| json!({ "function": { "name": call.name, "arguments": serde_json::from_str::<Value>(&call.arguments).unwrap_or_else(|_| json!({})) } }))
+                    .collect();
+            }
+            entry
+        })
+        .collect();
+    let mut options = json!({ "num_ctx": context });
+    if let Some(temperature) = request.temperature {
+        options["temperature"] = json!(temperature);
+    }
+    if let Some(max) = request.max_tokens {
+        options["num_predict"] = json!(max);
+    }
+    let mut body = json!({ "model": model, "messages": messages, "stream": true, "options": options });
+    if !request.tools.is_empty() {
+        body["tools"] = request
+            .tools
+            .iter()
+            .map(|tool| json!({ "type": "function", "function": { "name": tool.name, "description": tool.description, "parameters": tool.parameters } }))
+            .collect();
+    }
+    body
+}
+
 // ---------------------------------------------------------------------------
 // Respuesta en streaming
 // ---------------------------------------------------------------------------
@@ -329,6 +371,67 @@ impl AnthropicStream {
     }
 }
 
+/// Stream de Ollama: una línea JSON por trozo (NDJSON), la última con `done`.
+#[derive(Default)]
+pub struct OllamaStream {
+    calls: Vec<(String, String)>,
+    input: u64,
+    output: u64,
+    stop: Option<String>,
+}
+
+impl OllamaStream {
+    pub fn feed(&mut self, line: &str, emit: &mut dyn FnMut(StreamEvent)) {
+        let Ok(chunk) = serde_json::from_str::<Value>(line) else { return };
+        let message = &chunk["message"];
+        if let Some(text) = message["content"].as_str().filter(|t| !t.is_empty()) {
+            emit(StreamEvent::Text { text: text.to_string() });
+        }
+        for call in message["tool_calls"].as_array().into_iter().flatten() {
+            let name = call["function"]["name"].as_str().unwrap_or_default().to_string();
+            let arguments = match &call["function"]["arguments"] {
+                Value::String(text) => text.clone(),
+                other => other.to_string(),
+            };
+            self.calls.push((name, arguments));
+        }
+        if chunk["done"].as_bool() == Some(true) {
+            self.input = chunk["prompt_eval_count"].as_u64().unwrap_or(0);
+            self.output = chunk["eval_count"].as_u64().unwrap_or(0);
+            self.stop = Some(chunk["done_reason"].as_str().unwrap_or("stop").to_string());
+        }
+    }
+
+    pub fn finish(self, emit: &mut dyn FnMut(StreamEvent)) {
+        let has_calls = !self.calls.is_empty();
+        for (index, (name, arguments)) in self.calls.into_iter().enumerate() {
+            emit(StreamEvent::ToolCall { id: format!("call_{index}"), name, arguments: if arguments.is_empty() { "{}".into() } else { arguments } });
+        }
+        emit(StreamEvent::Usage { input: self.input, output: self.output });
+        let stop = if has_calls { "tool_calls".to_string() } else { self.stop.unwrap_or_else(|| "stop".into()) };
+        emit(StreamEvent::Done { stop_reason: normalize_stop(&stop) });
+    }
+}
+
+/// Lee un stream NDJSON (una línea JSON por evento), con cancelación.
+pub fn read_lines(reader: impl Read, cancelled: &AtomicBool, mut on_line: impl FnMut(&str)) -> Result<(), AiError> {
+    for line in BufReader::new(reader).lines() {
+        if cancelled.load(Ordering::SeqCst) {
+            return Err(AiError::Cancelled("cancelado por el usuario".into()));
+        }
+        let line = line.map_err(|error| AiError::Network(format!("la conexión se cortó: {error}")))?;
+        if !line.trim().is_empty() {
+            on_line(&line);
+        }
+    }
+    Ok(())
+}
+
+/// Raíz del servidor de Ollama a partir de la URL de la conexión (`…/v1`).
+pub fn ollama_host(base_url: &str) -> String {
+    base_url.trim_end_matches('/').trim_end_matches("/v1").trim_end_matches('/').to_string()
+}
+
 /// Motivos de parada de los dos protocolos → `stop`, `toolCalls`, `length`.
 fn normalize_stop(reason: &str) -> String {
     match reason {
@@ -413,7 +516,7 @@ fn with_headers<B>(request: ureq::RequestBuilder<B>, connection: &Connection, ke
                 request = request.header("x-api-key", key);
             }
         }
-        Protocol::OpenAi => {
+        Protocol::OpenAi | Protocol::Ollama => {
             if let Some(key) = key {
                 request = request.header("Authorization", &format!("Bearer {key}"));
             }
@@ -436,6 +539,7 @@ pub fn stream_chat(
     let (url, body) = match connection.protocol() {
         Protocol::Anthropic => (format!("{base}/messages"), anthropic_body(request, &connection.model)),
         Protocol::OpenAi => (format!("{base}/chat/completions"), openai_body(request, &connection.model)),
+        Protocol::Ollama => (format!("{}/api/chat", ollama_host(base)), ollama_body(request, &connection.model, connection.context())),
     };
     let response = with_headers(agent().post(&url), connection, key)
         .send_json(&body)
@@ -455,6 +559,11 @@ pub fn stream_chat(
         Protocol::OpenAi => {
             let mut stream = OpenAiStream::default();
             read_sse(body.into_reader(), cancelled, |data| stream.feed(data, emit))?;
+            stream.finish(emit);
+        }
+        Protocol::Ollama => {
+            let mut stream = OllamaStream::default();
+            read_lines(body.into_reader(), cancelled, |line| stream.feed(line, emit))?;
             stream.finish(emit);
         }
     }
@@ -565,6 +674,11 @@ mod tests {
                 read_sse(sse.as_bytes(), &cancelled, |data| stream.feed(data, &mut emit)).unwrap();
                 stream.finish(&mut emit);
             }
+            Protocol::Ollama => {
+                let mut stream = OllamaStream::default();
+                read_lines(sse.as_bytes(), &cancelled, |line| stream.feed(line, &mut emit)).unwrap();
+                stream.finish(&mut emit);
+            }
         }
         events
     }
@@ -615,6 +729,66 @@ event: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason
         let cancelled = AtomicBool::new(true);
         let result = read_sse(OPENAI_SSE.as_bytes(), &cancelled, |_| {});
         assert!(matches!(result, Err(AiError::Cancelled(_))));
+    }
+
+    #[test]
+    fn ollama_nativo_fija_el_contexto_y_lee_ndjson() {
+        let body = ollama_body(&request(), "llama3", 8192);
+        assert_eq!(body["options"]["num_ctx"], 8192);
+        assert_eq!(body["messages"][1]["images"][0], "AAA");
+        assert_eq!(body["messages"][2]["tool_calls"][0]["function"]["arguments"]["path"], "main.typ");
+        assert_eq!(ollama_host("http://localhost:11434/v1/"), "http://localhost:11434");
+
+        let ndjson = concat!(
+            r#"{"message":{"role":"assistant","content":"Ho"},"done":false}"#, "\n",
+            r#"{"message":{"role":"assistant","content":"","tool_calls":[{"function":{"name":"read_file","arguments":{"path":"a.typ"}}}]},"done":false}"#, "\n",
+            r#"{"message":{"role":"assistant","content":""},"done":true,"done_reason":"stop","prompt_eval_count":40,"eval_count":7}"#, "\n",
+        );
+        let mut events = Vec::new();
+        let mut stream = OllamaStream::default();
+        read_lines(ndjson.as_bytes(), &AtomicBool::new(false), |line| stream.feed(line, &mut |e| events.push(e))).unwrap();
+        stream.finish(&mut |e| events.push(e));
+        assert_eq!(
+            events,
+            vec![
+                StreamEvent::Text { text: "Ho".into() },
+                StreamEvent::ToolCall { id: "call_0".into(), name: "read_file".into(), arguments: r#"{"path":"a.typ"}"#.into() },
+                StreamEvent::Usage { input: 40, output: 7 },
+                StreamEvent::Done { stop_reason: "toolCalls".into() },
+            ]
+        );
+    }
+
+    /// Prueba con un Ollama real: `DBV_OLLAMA_MODEL=llama3 cargo test --lib ollama_real -- --ignored`.
+    #[test]
+    #[ignore]
+    fn ollama_real_responde_en_streaming_y_avisa_si_no_admite_herramientas() {
+        let model = std::env::var("DBV_OLLAMA_MODEL").unwrap_or_else(|_| "llama3".into());
+        let mut conn = connection("http://localhost:11434/v1", ProviderKind::Ollama);
+        conn.model = model;
+        let mut ask = request();
+        ask.messages = vec![ChatMessage { role: "user".into(), content: "Reply with the single word: hola".into(), images: vec![], tool_calls: vec![], tool_call_id: None }];
+        let mut no_tools = ask.clone();
+        no_tools.tools.clear();
+        let mut events = Vec::new();
+        stream_chat(&conn, None, &no_tools, &AtomicBool::new(false), &mut |e| events.push(e)).expect("Ollama debe responder");
+        let text: String = events.iter().filter_map(|e| if let StreamEvent::Text { text } = e { Some(text.as_str()) } else { None }).collect();
+        assert!(text.to_lowercase().contains("hola"), "{text}");
+        assert!(matches!(events.last(), Some(StreamEvent::Done { .. })));
+        // Con herramientas: o las admite, o el error lo dice (el frontend pasa a modo conversación).
+        match stream_chat(&conn, None, &ask, &AtomicBool::new(false), &mut |_| {}) {
+            Ok(()) => {}
+            Err(AiError::BadRequest(message)) => assert!(message.contains("tools"), "{message}"),
+            Err(other) => panic!("error inesperado: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn los_eventos_viajan_en_camel_case() {
+        let raw = serde_json::to_value(StreamEvent::Done { stop_reason: "stop".into() }).unwrap();
+        assert_eq!(raw, json!({"type": "done", "stopReason": "stop"}));
+        let call = serde_json::to_value(StreamEvent::ToolCall { id: "1".into(), name: "n".into(), arguments: "{}".into() }).unwrap();
+        assert_eq!(call["type"], "toolCall");
     }
 
     #[test]
@@ -700,7 +874,7 @@ event: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason
     fn listar_modelos_admite_los_dos_formatos() {
         let body = r#"{"data":[{"id":"qwen2.5:7b"},{"id":"llama3.2"}]}"#;
         let (address, server) = serve(format!("HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len()));
-        let models = list_models(&connection(&address, ProviderKind::Ollama), None).unwrap();
+        let models = list_models(&connection(&address, ProviderKind::LmStudio), None).unwrap();
         server.join().unwrap();
         assert_eq!(models, vec!["llama3.2", "qwen2.5:7b"]);
     }

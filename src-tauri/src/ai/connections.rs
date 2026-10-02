@@ -34,6 +34,10 @@ pub enum ProviderKind {
 pub enum Protocol {
     OpenAi,
     Anthropic,
+    /// API nativa de Ollama (`/api/chat`): la única forma de fijar el contexto
+    /// (`num_ctx`); la compatible con OpenAI usa el de su configuración, que
+    /// puede ser de solo 2 048 tokens y recorta en silencio.
+    Ollama,
 }
 
 impl ProviderKind {
@@ -88,11 +92,16 @@ pub struct Connection {
 
 impl Connection {
     pub fn protocol(&self) -> Protocol {
-        if self.provider == ProviderKind::Anthropic {
-            Protocol::Anthropic
-        } else {
-            Protocol::OpenAi
+        match self.provider {
+            ProviderKind::Anthropic => Protocol::Anthropic,
+            ProviderKind::Ollama => Protocol::Ollama,
+            _ => Protocol::OpenAi,
         }
+    }
+
+    /// Contexto con el que se pide al modelo (el configurado o el prudente).
+    pub fn context(&self) -> u32 {
+        self.context_tokens.unwrap_or_else(|| self.provider.default_context())
     }
 
     /// Una URL que no sea `http(s)` no se acepta (ni `file:`, ni nada raro).

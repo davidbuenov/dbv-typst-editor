@@ -75,6 +75,8 @@
             <button class="mode-switcher__button" type="button" data-panel="sidebar" data-i18n-title="panel.sidebar">P</button>
             <button class="mode-switcher__button" type="button" data-panel="editor" data-i18n-title="panel.editor">E</button>
             <button class="mode-switcher__button" type="button" data-panel="preview" data-i18n-title="panel.preview">V</button>
+            <!-- RF-92: panel de la IA; solo aparece con una IA conectada (RNF-IA.1). -->
+            <button class="mode-switcher__button hidden" id="btn-ai-panel" type="button" aria-pressed="false" data-i18n-title="ai.panelToggle" data-i18n="ai.panelShort"></button>
           </div>
         </div>
 
@@ -158,6 +160,11 @@
             <span class="header-menu__caret" aria-hidden="true">▾</span>
           </button>
           <div id="tools-menu" class="floating-panel floating-panel--menu hidden" role="menu">
+            <!-- RF-90 / RNF-IA.1: la única huella de la IA cuando no hay ninguna conectada. -->
+            <button id="btn-ai-connect" class="menu-item" type="button" role="menuitem">
+              <span class="menu-item__icon menu-item__icon--glyph" aria-hidden="true">✦</span><span data-i18n="ai.connectMenu"></span>
+            </button>
+            <div class="menu-separator" role="separator"></div>
             <button id="btn-terminal" class="menu-item" type="button" role="menuitem">
               <span class="menu-item__icon menu-item__icon--glyph" aria-hidden="true">&gt;_</span><span data-i18n="action.terminal"></span>
             </button>
@@ -480,6 +487,9 @@
           <pre class="preview__band hidden" id="preview-band"></pre>
         </aside>
       </section>
+      <!-- RF-92: panel de la IA, a la derecha del espacio de trabajo. -->
+      <div class="splitter hidden" id="splitter-ai" role="separator" aria-orientation="vertical"></div>
+      <aside class="ai-panel hidden" id="ai-panel" aria-label="IA"></aside>
     </main>
 
     <div class="toast hidden" id="toast"></div>
@@ -1196,6 +1206,15 @@
         <nav class="help__nav" id="help-nav"></nav>
         <div class="help__content" id="help-content"></div>
       </div>
+    </div>
+
+    <!-- RF-90: «Conectar una IA». -->
+    <div id="ai-connect-panel" class="floating-panel floating-panel--help floating-panel--ai-connect hidden" role="dialog" aria-modal="false">
+      <div class="panel__header">
+        <h2 class="floating-panel__title" data-i18n="ai.connectTitle"></h2>
+        <button id="btn-ai-connect-close" class="icon-button icon-button--small" type="button" data-i18n-title="action.close">✕</button>
+      </div>
+      <div class="ai-form" id="ai-connect-body"></div>
     </div>
 
     <!-- RF-98: visor de datos CSV/TSV. -->

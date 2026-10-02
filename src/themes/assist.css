@@ -226,3 +226,154 @@
   color: var(--text-primary);
 }
 .data__table .data__numeric { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* ─── Panel de la IA (RF-92) ──────────────────────────────────────────────── */
+/* Solo con el panel abierto, .app-body pasa a fila: el espacio de trabajo
+   conserva sus 7 combinaciones de rejilla (P/E/V) y el panel va a su derecha. */
+.app-body.app-body--ai { display: flex; }
+.app-body.app-body--ai > .workspace { flex: 1 1 auto; min-width: 0; }
+.app-body.app-body--ai > #splitter-ai { flex: 0 0 5px; }
+.ai-panel {
+  flex: 0 0 var(--ai-width, 380px);
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--bg-primary);
+  border-left: 1px solid var(--border);
+}
+.ai-panel__header { padding: 8px 10px 6px; border-bottom: 1px solid var(--border); display: grid; gap: 6px; }
+.ai-panel__row { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.ai-panel__title { flex: 1 1 auto; margin: 0; font-size: 14px; }
+.ai-panel__select { flex: 1 1 0; min-width: 0; padding-block: 2px; font-size: 12px; }
+.ai-panel__destination { padding: 4px 10px; font-size: 11px; color: var(--status-ok); background: var(--status-ok-bg); }
+.ai-panel__destination--cloud { color: var(--status-warn); background: var(--status-warn-bg); }
+.ai-panel__context {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 6px 10px;
+  font-size: 11px;
+  border-bottom: 1px solid var(--border);
+  max-height: 88px;
+  overflow: auto;
+}
+.ai-panel__context-label { color: var(--text-muted); align-self: center; }
+.ai-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  max-width: 100%;
+  padding: 1px 4px 1px 7px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+.ai-chip--trimmed { border-style: dashed; }
+.ai-chip--out { text-decoration: line-through; opacity: 0.7; }
+.ai-chip__remove { border: 0; background: none; color: inherit; cursor: pointer; padding: 0 3px; font: inherit; }
+.ai-panel__messages { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+.ai-msg { border-radius: var(--radius); padding: 7px 10px; font-size: 13px; overflow-wrap: anywhere; }
+.ai-msg--user { align-self: flex-end; max-width: 88%; background: var(--accent-subtle, var(--bg-tertiary)); white-space: pre-wrap; }
+.ai-msg--assistant { background: var(--bg-secondary); white-space: pre-wrap; }
+.ai-msg--assistant.md { white-space: normal; }
+.ai-step { font-size: 11px; color: var(--text-muted); font-style: italic; }
+.ai-note { font-size: 12px; padding: 6px 8px; border-radius: var(--radius); background: var(--bg-tertiary); color: var(--text-secondary); }
+.ai-note--error { background: var(--status-error-bg); color: var(--status-error); border: 1px solid var(--status-error-border); }
+.ai-panel__suggestions { display: grid; gap: 6px; }
+.ai-panel__hint { margin: 0; font-size: 12px; color: var(--text-muted); }
+.ai-panel__suggestion { text-align: left; white-space: normal; }
+.ai-panel__composer { position: relative; border-top: 1px solid var(--border); padding: 8px 10px; display: grid; gap: 6px; }
+.ai-panel__input {
+  width: 100%;
+  resize: vertical;
+  min-height: 56px;
+  max-height: 240px;
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+.ai-panel__composer-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.ai-panel__attachments { display: inline-flex; flex-wrap: wrap; gap: 4px; flex: 1 1 auto; }
+.ai-panel__usage { font-size: 10px; color: var(--text-muted); }
+.ai-panel__mentions {
+  position: absolute;
+  bottom: 100%;
+  left: 10px;
+  right: 10px;
+  max-height: 200px;
+  overflow: auto;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  z-index: 5;
+}
+.ai-panel__mention { display: block; width: 100%; border: 0; background: none; text-align: left; padding: 4px 8px; font: inherit; font-size: 12px; color: var(--text-primary); cursor: pointer; }
+.ai-panel__mention.is-active,
+.ai-panel__mention:hover { background: var(--bg-tertiary); }
+
+/* ─── Revisión de una propuesta (RF-93) ───────────────────────────────────── */
+.ai-review { border: 1px solid var(--accent); border-radius: var(--radius); padding: 8px; background: var(--bg-primary); display: grid; gap: 6px; font-size: 12px; }
+.ai-review__head { display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; }
+.ai-review__summary { color: var(--text-secondary); }
+.ai-review__status { margin: 0; color: var(--text-secondary); }
+.ai-review__status--ok { color: var(--status-ok); }
+.ai-review__status--error { color: var(--status-error); }
+.ai-review__errors { margin: 4px 0 0; padding-left: 18px; }
+.ai-review__actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.ai-review__report { flex: 1 1 100%; }
+.ai-review__warn { margin: 2px 0; color: var(--status-warn); }
+.ai-review__done { color: var(--text-muted); }
+.ai-file { border: 1px solid var(--border); border-radius: var(--radius); }
+.ai-file__summary { display: flex; align-items: center; gap: 6px; padding: 4px 6px; cursor: pointer; }
+.ai-file__kind { font-size: 10px; text-transform: uppercase; padding: 0 4px; border-radius: 4px; background: var(--bg-tertiary); }
+.ai-file__kind--delete { background: var(--status-error-bg); color: var(--status-error); }
+.ai-file__kind--create { background: var(--status-ok-bg); color: var(--status-ok); }
+.ai-file__path { flex: 1 1 auto; font-family: var(--font-mono); overflow-wrap: anywhere; }
+.ai-file__stats { color: var(--text-muted); font-family: var(--font-mono); }
+.ai-file__body { padding: 4px 6px 6px; display: grid; gap: 6px; }
+.ai-file__tools { display: flex; gap: 6px; }
+.ai-file__editor { width: 100%; min-height: 160px; font-family: var(--font-mono); font-size: 12px; background: var(--code-bg); color: var(--text-primary); border: 1px solid var(--border); border-radius: var(--radius); }
+.ai-hunk__toggle { display: flex; gap: 6px; align-items: center; color: var(--text-secondary); }
+.ai-hunk__diff { margin: 2px 0 0; padding: 4px 6px; background: var(--code-bg); border-radius: 4px; overflow-x: auto; font-family: var(--font-mono); font-size: 11px; line-height: 1.4; }
+.ai-hunk__del { display: block; color: var(--status-error); background: var(--status-error-bg); }
+.ai-hunk__add { display: block; color: var(--status-ok); background: var(--status-ok-bg); }
+
+/* ─── «Conectar una IA» (RF-90) ───────────────────────────────────────────── */
+.floating-panel--ai-connect { width: min(760px, calc(100vw - 48px)); }
+.ai-form { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 10px 16px 16px; font-size: 13px; display: grid; gap: 10px; align-content: start; }
+.ai-form__intro { margin: 0; }
+.ai-form__note { margin: 0; padding: 8px 10px; border-left: 3px solid var(--accent); background: var(--quote-bg); color: var(--text-secondary); font-size: 12px; }
+.ai-form__section { display: grid; gap: 6px; }
+.ai-form__title { margin: 6px 0 2px; font-size: 13px; }
+.ai-form__hint { color: var(--text-muted); font-size: 11px; }
+.ai-form__row { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 2px 10px; align-items: center; }
+.ai-form__row .ai-form__hint { grid-column: 2; }
+.ai-form__label { color: var(--text-secondary); font-size: 12px; }
+.ai-form__actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.ai-form__status { margin: 0; font-size: 12px; color: var(--text-secondary); }
+.ai-form__status.is-ok { color: var(--status-ok); }
+.ai-form__status.is-error { color: var(--status-error); }
+.ai-form__toggle { display: flex; gap: 6px; align-items: center; color: var(--text-secondary); }
+.ai-detect,
+.ai-conn { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.ai-detect__item,
+.ai-conn__item { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 4px 6px; border-radius: var(--radius); background: var(--bg-secondary); }
+.ai-detect__item.is-ok .ai-detect__mark { color: var(--status-ok); }
+.ai-detect__mark { width: 14px; color: var(--text-muted); }
+.ai-detect__name,
+.ai-conn__name { flex: 1 1 auto; font-weight: 600; }
+.ai-detect__detail,
+.ai-conn__detail { color: var(--text-muted); font-size: 12px; }
+@media (max-width: 600px) {
+  .ai-form__row { grid-template-columns: minmax(0, 1fr); }
+  .ai-form__row .ai-form__hint { grid-column: 1; }
+}

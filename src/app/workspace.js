@@ -304,6 +304,9 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
    *
    * @returns {import('../services/backend.js').CompileTarget | null}
    */
+  /** RF-93.3: propuesta de la IA que la vista previa enseña en memoria, o `null`. */
+  let previewOverrides = null;
+
   function getCompileTarget() {
     const dirtyPath = state.dirty && state.document ? state.document.path : null;
     // RF-79: las pestañas de fondo sin guardar también cuentan (un capítulo
@@ -312,11 +315,17 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     for (const entry of background.values()) {
       if (entry.dirty && entry.saved) otherDirty.push({ path: entry.document.path, content: entry.saved.state.doc.toString() });
     }
+    // Las sustituciones de una propuesta van al final: el motor en proceso se
+    // queda con la última de cada ruta, así que ganan a lo que haya sin guardar.
+    if (previewOverrides) otherDirty.push(...previewOverrides);
+    let dirtyContent = dirtyPath ? editor.getContent() : null;
+    const activeOverride = previewOverrides?.find((file) => file.path === dirtyPath);
+    if (activeOverride) dirtyContent = activeOverride.content;
     return buildCompileTarget({
       project: state.project,
       previewDocument: state.previewDocument,
       dirtyPath,
-      dirtyContent: dirtyPath ? editor.getContent() : null,
+      dirtyContent,
       otherDirty,
       scope: state.previewScope,
     });
@@ -416,6 +425,8 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     externalChange: null,
     /** @type {null | ((project: object) => void)} */
     projectOpened: null,
+    /** @type {null | (() => void)} Se cerró el proyecto (la IA libera su estado, RF-92). */
+    projectClosed: null,
     /** @type {null | ((doc: object) => void)} */
     documentOpened: null,
     /** @type {null | (() => void)} */
@@ -979,6 +990,7 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     state.dirty = false;
     renderProjectBar();
     renderDocumentBar();
+    listeners.projectClosed?.();
     return true;
   }
 
@@ -1746,6 +1758,15 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     exportPdf: exportToPdf,
     /** Objetivo de compilación vigente (RF-14), o `null` si no hay nada que compilar. */
     getCompileTarget,
+    /**
+     * RF-93.3: la vista previa compila con estos ficheros (`{path, content}`,
+     * rutas absolutas) en memoria, sin tocar el disco; `null` vuelve a lo real.
+     * Quien llama recompila la vista previa.
+     */
+    setPreviewOverrides(files) {
+      previewOverrides = files?.length ? files : null;
+    },
+    hasPreviewOverrides: () => previewOverrides !== null,
     /** Alcance actual de la vista previa: 'document' | 'file'. */
     /** Diagnósticos del motor en proceso (RF-59): se subrayan y se combinan con los de Tinymist. */
     setEngineDiagnostics(diagnostics) {

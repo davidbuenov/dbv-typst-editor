@@ -90,6 +90,8 @@ import { countProblems, toProblemList } from './editor/diagnosticsModel.js';
 import { createProblemsPanel, parseCliDiagnostics } from './problems/problemsPanel.js';
 import { createDocsViewer, wordAt } from './docs/docsViewer.js';
 import { createCsvViewer } from './data/csvViewer.js';
+import { initAi } from './ai/entry.js';
+import * as backendModule from './services/backend.js';
 import { createEditorContextMenu } from './editor/editorContextMenu.js';
 import { createNavigation } from './editor/navigation.js';
 import { createRefactor } from './editor/refactor.js';
@@ -950,6 +952,7 @@ async function bootstrap() {
     },
     onRendered: (id) => tracker.rendered(id),
     onCompiled: (result) => {
+      if (result.ok && Array.isArray(result.outline)) lastOutline = result.outline;
       refreshProblems(result);
       outline.onCompiled(result);
       engineNotice.onCompiled(result);
@@ -969,6 +972,18 @@ async function bootstrap() {
   });
 
   let lastTargetDocument = null;
+  /** RF-94: esquema de la última compilación (herramienta `get_outline`). */
+  let lastOutline = [];
+  /** Versión de Typst vendorizada (instrucciones del asistente, RF-94.6). */
+  let typstVersionText = '0.15.1';
+  getTypstVersion().then((result) => {
+    const match = result.ok ? String(result.value).match(/\d+\.\d+\.\d+/) : null;
+    if (match) typstVersionText = match[0];
+  });
+  /** IA integrada (v0.13.0); se crea más abajo, cuando existen sus dependencias. */
+  let ai = null;
+  /** El backend completo para la IA: lo usa `ai/aiApp.js`, que se carga bajo demanda. */
+  const aiBackend = backendModule;
   /** RF-98: último `.typ` abierto, destino de «Insertar como tabla». */
   let lastTypPath = null;
 
@@ -1013,10 +1028,13 @@ async function bootstrap() {
   snippetLoader.loadGlobal();
   window.addEventListener('focus', () => snippetLoader.loadGlobal());
   workspace.setListener('projectOpened', (project) => {
+    ai?.onProjectOpened(project);
     snippetLoader.loadProject(project.isSingleFile ? null : project.root);
     // Cada proyecto empieza con el motor rápido, aunque el anterior lo desactivara.
     engineSetMode('inproc');
   });
+
+  workspace.setListener('projectClosed', () => ai?.onProjectClosed());
 
   workspace.setListener('externalChange', (change) => {
     if (!change.isActiveDocument) preview.onExternalChange();
@@ -1760,6 +1778,44 @@ async function bootstrap() {
   });
   workspace.setListener('renameSymbol', (view) => refactor.renameSymbol(view));
   workspace.setListener('codeActions', (view) => refactor.codeActions(view));
+
+  // v0.13.0: IA integrada y OPCIONAL (RNF-IA.1). `entry.js` solo lee la lista
+  // de conexiones; el resto (`ai/aiApp.js`) se importa bajo demanda.
+  ai = initAi({
+    workspace,
+    toast,
+    dialog,
+    multiFileEdit,
+    docsViewer,
+    joinPath,
+    relativeToRoot,
+    registerPanel,
+    connectButton: el('btn-ai-connect'),
+    elements: {
+      panel: el('ai-panel'),
+      splitter: el('splitter-ai'),
+      toggle: el('btn-ai-panel'),
+      appBody: document.querySelector('.app-body'),
+      connectPanel: el('ai-connect-panel'),
+      connectBody: el('ai-connect-body'),
+      connectClose: el('btn-ai-connect-close'),
+    },
+    backend: aiBackend,
+    getProblems: () => problemsPanel.getProblems(),
+    getOutline: () => lastOutline,
+    refreshPreview: () => preview.onContentChanged(),
+    capturePreviewPage: () => import('./ai/pageCapture.js').then((module) => module.capturePage(el('preview-pages'))),
+    typstVersion: () => typstVersionText,
+  });
+  if (workspace.state.project) ai.onProjectOpened(workspace.state.project);
+  createSplitter(el('splitter-ai'), {
+    hostEl: document.querySelector('.app-body'),
+    cssVariable: '--ai-width',
+    storageKey: 'dbv-typst-ai-width',
+    measureFrom: 'end',
+    min: 280,
+    max: (hostWidth) => Math.max(320, hostWidth - 520),
+  });
 
   // RF-78: buscar y reemplazar en todo el proyecto, en la pestaña «Buscar».
   projectSearch = createProjectSearch({

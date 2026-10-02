@@ -780,6 +780,11 @@ const DICTIONARIES = {
     'doc.showTable': 'Tabla',
     'doc.showTableTitle': 'Ver este fichero como tabla (visor de datos)',
     'ai.askAboutData': 'Preguntar a la IA sobre estos datos',
+    'history.reasonAi': 'antes de aplicar un cambio de la IA',
+    'ai.connectMenu': 'Conectar una IA…',
+    'ai.connectTitle': 'Conectar una IA',
+    'ai.panelShort': 'IA',
+    'ai.panelToggle': 'Mostrar u ocultar el panel de la IA',
   },
   en: {
     'app.tagline': 'Academic and technical writing made simple. Powered by Typst.',
@@ -1543,6 +1548,11 @@ const DICTIONARIES = {
     'doc.showTable': 'Table',
     'doc.showTableTitle': 'View this file as a table (data viewer)',
     'ai.askAboutData': 'Ask the AI about this data',
+    'history.reasonAi': 'before applying an AI change',
+    'ai.connectMenu': 'Connect an AI…',
+    'ai.connectTitle': 'Connect an AI',
+    'ai.panelShort': 'AI',
+    'ai.panelToggle': 'Show or hide the AI panel',
   },
 };
 
@@ -1576,6 +1586,16 @@ export function getLanguage() {
  * @param {string} key
  * @returns {string}
  */
+/**
+ * Añade traducciones de un módulo que se carga bajo demanda (la IA, v0.13.0:
+ * sus textos no deben engordar el paquete inicial, RNF-IA.1) y repinta.
+ * @param {{es: Record<string, string>, en: Record<string, string>}} extra
+ */
+export function registerTranslations(extra) {
+  for (const language of Object.keys(DICTIONARIES)) Object.assign(DICTIONARIES[language], extra[language] ?? {});
+  if (typeof document !== 'undefined') applyTranslations();
+}
+
 export function t(key) {
   return DICTIONARIES[currentLanguage][key] ?? key;
 }

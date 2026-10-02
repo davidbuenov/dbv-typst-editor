@@ -20,6 +20,7 @@ const REASON_KEYS = {
   refs: 'history.reasonRefs',
   rename: 'history.reasonRename',
   replace: 'history.reasonReplace',
+  ai: 'history.reasonAi',
 };
 
 /**

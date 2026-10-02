@@ -21,7 +21,7 @@ import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, 
 import { tmpdir } from 'node:os';
 import { dirname, join, relative, sep } from 'node:path';
 import { gunzipSync } from 'node:zlib';
-import { runAgent } from '../src/ai/agentLoop.js';
+import { proposeNudge, runAgent } from '../src/ai/agentLoop.js';
 import { buildContext, systemPrompt } from '../src/ai/context.js';
 import { applyChange, createProposal, parseChangeBlocks, resultText } from '../src/ai/proposal.js';
 import { createTools, describeCheck } from '../src/ai/tools.js';
@@ -164,7 +164,7 @@ async function runTask(task, withDocs) {
   ];
   const started = Date.now();
   const steps = [];
-  let result = await runAgent({ callModel, tools: toolset, messages, useTools, onStep: (step) => steps.push(step) });
+  let result = await runAgent({ callModel, tools: toolset, messages, useTools, onStep: (step) => steps.push(step), followUp: (reply) => (useTools && proposal.files.size === 0 ? proposeNudge(reply) : null) });
   const failure = result.messages.find((m) => m.role === 'error');
   if (failure && useTools && /tool/i.test(failure.content)) {
     toolsSupported = false;

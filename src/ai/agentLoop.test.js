@@ -6,7 +6,7 @@
 // =============================================================================
 
 import { describe, expect, it, vi } from 'vitest';
-import { parseArguments, runAgent } from './agentLoop.js';
+import { extractTextToolCalls, parseArguments, proposeNudge, runAgent } from './agentLoop.js';
 import { buildContext, estimateTokens, systemPrompt, windowAround } from './context.js';
 
 /** Modelo simulado con guion: devuelve las respuestas en orden. */
@@ -88,6 +88,25 @@ describe('runAgent', () => {
     const result = await runAgent({ callModel: failing, tools: [], messages: [] });
     expect(result.outcome).toBe('error');
     expect(result.messages[0]).toMatchObject({ role: 'error', kind: 'auth' });
+  });
+
+  it('ejecuta las llamadas escritas como texto <tool_call> (Qwen/Hermes)', async () => {
+    const read = tool('read_file', async () => 'x');
+    const text = ['Voy:', '<tool_call>', '{"name": "read_file", "arguments": {"path": "a.typ"}}', '</tool_call>'].join('\n');
+    const { callModel } = scripted({ text, toolCalls: [] });
+    const result = await runAgent({ callModel, tools: [read], messages: [] });
+    expect(read.run).toHaveBeenCalledWith({ path: 'a.typ' });
+    expect(result.messages[0].content).toBe('Voy:');
+    expect(extractTextToolCalls('<tool_call>no json</tool_call>').calls).toEqual([]);
+  });
+
+  it('recuerda una sola vez usar la herramienta si el modelo la menciona sin llamarla', async () => {
+    const { callModel, calls } = scripted({ text: 'Usa propose_changes para cambiarlo.', toolCalls: [] }, { text: 'Sigue sin llamarla: propose_changes.', toolCalls: [] });
+    const result = await runAgent({ callModel, tools: [], messages: [], followUp: proposeNudge });
+    expect(calls).toHaveLength(2);
+    expect(calls[1].messages.at(-1).content).toMatch(/did not call it/);
+    expect(result.outcome).toBe('done');
+    expect(proposeNudge('Respuesta normal')).toBeNull();
   });
 
   it('parseArguments tolera vacío y objetos', () => {

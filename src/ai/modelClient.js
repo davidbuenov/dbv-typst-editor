@@ -74,7 +74,16 @@ export function createModelClient({ aiChat, aiCancel, on }) {
     const requestId = `r${Date.now().toString(36)}-${(counter += 1)}`;
     const state = { text: '', toolCalls: [], usage: null, done: null, error: null, onText };
     const promise = new Promise((resolve, reject) => pending.set(requestId, { state, resolve, reject }));
-    register?.(() => aiCancel(requestId));
+    // Detener avisa al backend Y libera la petición aquí: si el hilo del
+    // backend hubiera muerto sin emitir nada, la conversación no se queda colgada.
+    register?.(() => {
+      aiCancel(requestId);
+      const entry = pending.get(requestId);
+      if (entry) {
+        pending.delete(requestId);
+        entry.reject(Object.assign(new Error('cancelled'), { kind: 'cancelled' }));
+      }
+    });
     const started = await aiChat(requestId, connectionId, { messages: toBackendMessages(messages), tools, maxTokens: maxTokens ?? null });
     if (!started.ok) {
       pending.delete(requestId);

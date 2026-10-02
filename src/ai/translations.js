@@ -186,6 +186,7 @@ export const AI_TRANSLATIONS = {
     'ai.permRejectAlways': 'Denegar siempre',
     'ai.inlineViaAgent': 'IA en línea (enviada al agente)',
     'ai.inlineSentToAgent': 'Enviado a la conversación con el agente.',
+    'ai.undoChanged': '{file} ha cambiado desde que lo escribió el agente: no se deshace para no perder esos cambios.',
   },
   en: {
     'ai.connectIntro': 'Pick an AI to help with formatting, errors and writing. It is optional: without one, the editor works exactly as before.',
@@ -362,5 +363,6 @@ export const AI_TRANSLATIONS = {
     'ai.permRejectAlways': 'Always deny',
     'ai.inlineViaAgent': 'Inline AI (sent to the agent)',
     'ai.inlineSentToAgent': 'Sent to the conversation with the agent.',
+    'ai.undoChanged': '{file} changed after the agent wrote it: not undone, so those changes are not lost.',
   },
 };

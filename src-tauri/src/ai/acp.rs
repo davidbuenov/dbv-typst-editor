@@ -43,6 +43,8 @@ pub const CODEX_ADAPTER: &str = "@zed-industries/codex-acp";
 /// proyecto Typst son pequeños; un CSV enorme no se vigila).
 const SNAPSHOT_MAX_BYTES: u64 = 2 * 1024 * 1024;
 const SNAPSHOT_MAX_FILES: usize = 4000;
+/// Memoria total del punto de restauración.
+const SNAPSHOT_MAX_TOTAL: u64 = 64 * 1024 * 1024;
 
 /// Qué agente lanzar. `custom` lleva su orden completa.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
@@ -123,7 +125,7 @@ impl Drop for Running {
 #[derive(Default)]
 pub struct AcpState {
     running: Mutex<Option<Running>>,
-    snapshot: Mutex<Option<(PathBuf, HashMap<String, String>)>>,
+    snapshot: Mutex<Option<(PathBuf, Snapshot)>>,
 }
 
 fn lock<T>(mutex: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
@@ -333,20 +335,31 @@ fn read_text(path: &Path) -> Option<String> {
     String::from_utf8(bytes).ok()
 }
 
-/// Ficheros de texto del proyecto (sin carpetas ocultas) → contenido.
-pub fn snapshot_dir(root: &Path) -> HashMap<String, String> {
-    let mut files = HashMap::new();
+/// Foto del proyecto: TODOS sus ficheros (sin carpetas ocultas), con el
+/// contenido de los de texto mientras quepa en los topes, y `None` para los
+/// demás. Saber que un fichero existía, aunque no se guarde su contenido,
+/// evita tomarlo después por «creado por el agente» (y que Deshacer lo borre).
+pub type Snapshot = HashMap<String, Option<String>>;
+
+pub fn snapshot_dir(root: &Path) -> Snapshot {
+    let mut files = Snapshot::new();
+    let mut captured = 0usize;
+    let mut total = 0u64;
     let walker = walkdir::WalkDir::new(root).into_iter().filter_entry(|entry| entry.depth() == 0 || !entry.file_name().to_string_lossy().starts_with('.'));
     for entry in walker.flatten() {
-        if files.len() >= SNAPSHOT_MAX_FILES {
-            break;
-        }
         if !entry.file_type().is_file() {
             continue;
         }
-        if let (Ok(relative), Some(text)) = (entry.path().strip_prefix(root), read_text(entry.path())) {
-            files.insert(relative.to_string_lossy().replace('\\', "/"), text);
+        let Ok(relative) = entry.path().strip_prefix(root) else { continue };
+        // Topes de contenido: ficheros y memoria total (un proyecto con muchos
+        // CSV grandes no debe llevarse gigas de memoria en cada turno).
+        let room = captured < SNAPSHOT_MAX_FILES && total < SNAPSHOT_MAX_TOTAL;
+        let text = if room { read_text(entry.path()) } else { None };
+        if let Some(text) = &text {
+            captured += 1;
+            total += text.len() as u64;
         }
+        files.insert(relative.to_string_lossy().replace('\\', "/"), text);
     }
     files
 }
@@ -360,16 +373,21 @@ pub struct DiskChange {
     pub after: Option<String>,
 }
 
-/// Diferencias entre dos fotos del proyecto.
-pub fn diff_snapshots(before: &HashMap<String, String>, after: &HashMap<String, String>) -> Vec<DiskChange> {
+/// Diferencias entre dos fotos del proyecto. Solo se informa de lo que se
+/// puede comparar y deshacer: un fichero sin contenido en alguna de las dos
+/// fotos (binario, demasiado grande o fuera de los topes) no se lista.
+pub fn diff_snapshots(before: &Snapshot, after: &Snapshot) -> Vec<DiskChange> {
     let mut changes: Vec<DiskChange> = Vec::new();
     for (path, text) in after {
-        if before.get(path) != Some(text) {
-            changes.push(DiskChange { path: path.clone(), before: before.get(path).cloned(), after: Some(text.clone()) });
+        let Some(text) = text else { continue };
+        match before.get(path) {
+            None => changes.push(DiskChange { path: path.clone(), before: None, after: Some(text.clone()) }),
+            Some(Some(old)) if old != text => changes.push(DiskChange { path: path.clone(), before: Some(old.clone()), after: Some(text.clone()) }),
+            _ => {}
         }
     }
     for (path, text) in before {
-        if !after.contains_key(path) {
+        if let (Some(text), false) = (text, after.contains_key(path)) {
             changes.push(DiskChange { path: path.clone(), before: Some(text.clone()), after: None });
         }
     }
@@ -426,7 +444,8 @@ mod tests {
         std::fs::write(dir.path().join(".git").join("HEAD"), "ref").unwrap();
         std::fs::write(dir.path().join("foto.png"), [0u8, 1, 2, 0]).unwrap();
         let before = snapshot_dir(dir.path());
-        assert_eq!(before.len(), 2, "sin .git ni binarios: {before:?}");
+        assert_eq!(before.len(), 3, "sin .git: {before:?}");
+        assert_eq!(before["foto.png"], None, "un binario consta, sin contenido");
 
         std::fs::write(dir.path().join("main.typ"), "= Hola mundo").unwrap();
         std::fs::remove_file(dir.path().join("viejo.typ")).unwrap();
@@ -441,6 +460,17 @@ mod tests {
                 DiskChange { path: "viejo.typ".into(), before: Some("x".into()), after: None },
             ]
         );
+    }
+
+    #[test]
+    fn un_fichero_que_existia_sin_contenido_no_se_toma_por_creado() {
+        let mut before = Snapshot::new();
+        before.insert("grande.csv".into(), None);
+        let mut after = Snapshot::new();
+        after.insert("grande.csv".into(), Some("a,b".into()));
+        after.insert("nuevo.typ".into(), Some("= Nuevo".into()));
+        let changes = diff_snapshots(&before, &after);
+        assert_eq!(changes, vec![DiskChange { path: "nuevo.typ".into(), before: None, after: Some("= Nuevo".into()) }]);
     }
 
     #[test]

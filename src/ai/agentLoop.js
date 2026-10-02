@@ -24,6 +24,35 @@ export const MAX_STEPS = 15;
  * @typedef {{name: string, description: string, parameters: object, run: (args: any) => Promise<string>, label?: (args: any) => string}} Tool
  */
 
+/**
+ * Llamadas a herramientas escritas como texto (`<tool_call>{"name": …,
+ * "arguments": …}</tool_call>`, el formato de Qwen/Hermes) cuando el servidor
+ * no las reconoció. Devuelve las llamadas y el texto sin ellas.
+ */
+export function extractTextToolCalls(text) {
+  const calls = [];
+  const rest = String(text ?? '').replace(/<tool_call>\s*([\s\S]*?)\s*<\/tool_call>/g, (match, body) => {
+    try {
+      const value = JSON.parse(body);
+      if (value && typeof value.name === 'string') {
+        calls.push({ id: `text_${calls.length}`, name: value.name, arguments: JSON.stringify(value.arguments ?? value.parameters ?? {}) });
+        return '';
+      }
+    } catch {
+      // No es una llamada válida: se queda como texto.
+    }
+    return match;
+  });
+  return { calls, text: rest.trim() };
+}
+
+/** Recordatorio si el modelo dice que hay que usar `propose_changes` y no la usa. */
+export function proposeNudge(text) {
+  return /propose_changes/.test(text ?? '')
+    ? 'You mentioned propose_changes but did not call it. If a file must change, call the propose_changes tool now with the exact edit; otherwise answer briefly without code.'
+    : null;
+}
+
 /** Argumentos de una llamada (JSON del modelo); un JSON roto da `{}` y un aviso. */
 export function parseArguments(raw) {
   let result = { args: {}, error: null };
@@ -48,12 +77,13 @@ export function parseArguments(raw) {
  * @param {(step: {tool: string, label: string, result: string}) => void} [options.onStep]
  * @param {() => boolean} [options.isCancelled]
  */
-export async function runAgent({ callModel, tools, messages, useTools = true, maxSteps = MAX_STEPS, onStep = () => {}, isCancelled = () => false }) {
+export async function runAgent({ callModel, tools, messages, useTools = true, maxSteps = MAX_STEPS, onStep = () => {}, isCancelled = () => false, followUp = () => null }) {
   const added = [];
   const byName = new Map(tools.map((tool) => [tool.name, tool]));
   const specs = useTools ? tools.map(({ name, description, parameters }) => ({ name, description, parameters })) : [];
   let outcome = 'done';
   let usage = { input: 0, output: 0 };
+  let nudged = false;
   for (let step = 0; ; step += 1) {
     if (isCancelled()) {
       outcome = 'cancelled';
@@ -72,9 +102,18 @@ export async function runAgent({ callModel, tools, messages, useTools = true, ma
       break;
     }
     usage = { input: usage.input + (response.usage?.input ?? 0), output: usage.output + (response.usage?.output ?? 0) };
-    const calls = useTools ? response.toolCalls ?? [] : [];
-    added.push({ role: 'assistant', content: response.text ?? '', toolCalls: calls });
-    if (!calls.length) break;
+    // Modelos pequeños escriben a veces la llamada como texto (`<tool_call>…`).
+    const fromText = useTools && !response.toolCalls?.length ? extractTextToolCalls(response.text ?? '') : null;
+    const calls = useTools ? (fromText?.calls.length ? fromText.calls : response.toolCalls ?? []) : [];
+    added.push({ role: 'assistant', content: fromText?.calls.length ? fromText.text : response.text ?? '', toolCalls: calls });
+    if (!calls.length) {
+      // Un solo recordatorio si el modelo dijo que iba a usar una herramienta y no lo hizo.
+      const nudge = nudged ? null : followUp(response.text ?? '');
+      if (!nudge) break;
+      nudged = true;
+      added.push({ role: 'user', content: nudge });
+      continue;
+    }
     for (const call of calls) {
       const tool = byName.get(call.name);
       const { args, error } = parseArguments(call.arguments);

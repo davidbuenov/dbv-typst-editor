@@ -13,7 +13,7 @@
 
 import { t, getLanguage, registerTranslations } from '../i18n/i18n.js';
 import { AI_TRANSLATIONS } from './translations.js';
-import { runAgent } from './agentLoop.js';
+import { proposeNudge, runAgent } from './agentLoop.js';
 import { createProposalApplier } from './applyProposal.js';
 import { createChatPanel, mentionedPaths } from './chatPanel.js';
 import { createConnectWizard } from './connectWizard.js';
@@ -514,6 +514,7 @@ export function createAiApp(deps) {
         messages,
         useTools: tools,
         isCancelled: () => cancelled,
+        followUp: (reply) => (tools && proposal.files.size === 0 ? proposeNudge(reply) : null),
         onStep: (step) => panel.addStep(step.label),
         callModel: async (request) => {
           bubble = panel.addAssistant();
@@ -669,6 +670,15 @@ export function createAiApp(deps) {
   /** Deshace un cambio que el agente hizo en disco (RF-91.6). */
   async function undoDiskChange(change) {
     const path = joinPath(projectRoot, change.path);
+    // Solo si el fichero sigue como lo dejó el agente: si se editó después,
+    // Deshacer no debe pisar ese trabajo (mismo criterio que multiFileEdit).
+    if (change.after !== null) {
+      const current = await backend.readFile(path);
+      if (!current.ok || current.value.content !== change.after) {
+        toast.show(t('ai.undoChanged').replace('{file}', change.path), 'error');
+        return false;
+      }
+    }
     let result;
     if (change.before === null) result = await backend.fsTrash(projectRoot, [path]);
     else if (change.after === null) {

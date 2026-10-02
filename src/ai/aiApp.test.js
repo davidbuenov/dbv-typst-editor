@@ -237,7 +237,7 @@ describe('agente por ACP (RF-91)', () => {
       }),
     };
     const agentConnection = { id: 'a1', name: 'Claude Code', provider: 'agent', baseUrl: 'acp:claude', model: 'claude', hasKey: false };
-    const { app, backend, handlers } = setup({ connections: [agentConnection], agent });
+    const { app, backend, handlers, disk } = setup({ connections: [agentConnection], agent });
     backend.on.mockImplementation(async (event, handler) => {
       handlers[event] = handler;
       if (event === 'acp-message') acpHandler = handler;
@@ -263,5 +263,14 @@ describe('agente por ACP (RF-91)', () => {
     expect(agent.acpRespond).toHaveBeenCalledWith(0, { outcome: { outcome: 'selected', optionId: 'allow' } }, null);
     expect(document.getElementById('panel').textContent).toContain('Hecho.');
     expect(document.getElementById('panel').textContent).toMatch(/cambió 1 ficheros/);
+
+    // Deshacer no pisa un fichero que cambió después de que lo escribiera el agente.
+    const undo = [...document.querySelectorAll('.ai-review button')].find((b) => b.textContent === 'Deshacer');
+    undo.click();
+    await vi.waitFor(() => expect(undo.disabled).toBe(false));
+    expect(backend.writeFile).not.toHaveBeenCalled();
+    disk['D:/p/main.typ'] = '= Hola\n\nUno, agente.\n';
+    undo.click();
+    await vi.waitFor(() => expect(backend.writeFile).toHaveBeenCalledWith('D:/p/main.typ', '= Hola\n\nUno.\n', 'ai'));
   });
 });

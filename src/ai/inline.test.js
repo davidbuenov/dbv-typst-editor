@@ -24,7 +24,7 @@ describe('funciones puras', () => {
 
   it('las instrucciones piden conservar el marcado de Typst (RF-95.4)', () => {
     const prompt = inlinePrompt({ explain: false, typstVersion: '0.15.1' });
-    for (const mark of ['#', '$', '<', '@', 'NOT LaTeX', 'ONLY']) expect(prompt).toContain(mark);
+    for (const mark of ['PRESERVE all Typst markup', '#', '$', '<', '@', 'NOT LaTeX', 'ONLY']) expect(prompt).toContain(mark);
     expect(inlinePrompt({ explain: true, typstVersion: '0.15.1' })).toContain('explanation');
   });
 

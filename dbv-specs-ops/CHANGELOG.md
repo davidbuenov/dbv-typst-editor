@@ -30,10 +30,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- **Evals con modelos locales reales (RNF-IA-EVAL):** `llama3` (8B, sin herramientas) 5/32 sin documentación y 6/32 con ella; en las preguntas de documentación, **1/5 → 5/5**. `qwen2.5:3b` (con herramientas) 2/32 y 1/32: un 3B es demasiado pequeño para editar Typst. Conclusión en `testfiles/ai-evals/README.md`: la documentación empaquetada evita que el modelo invente la sintaxis; para editar con soltura hace falta un modelo de 14B o más, uno en la nube o un agente. En ninguna ejecución el asistente consiguió salir del proyecto. Además, el bucle acepta las llamadas a herramientas escritas como texto (`<tool_call>`, formato de Qwen) y recuerda una vez usar `propose_changes` cuando el modelo la menciona sin llamarla. Prueba de mutación sobre las salvaguardas de la IA: 10 de 10 detectadas (la décima tras reforzar un test).
 - **`/test` de la 0.13.0:** test de integración de la IA (`src/ai/aiApp.test.js`) que recorre el cableado real con backend, workspace y modelo simulados: sin IA no hay rastro; modelo directo con herramientas que lee, propone, se comprueba y se aplica con `multiFileEdit`; recaída al modo conversación; error del proveedor explicado; aviso de nube una vez por proyecto y proveedor; agente por ACP con permiso, diff y cambios en disco. Suites: 1191 Vitest · 484 Rust · `verify:frontend` 12/12 · `verify:layout` 20/20 · `verify:typst` 8/8 · `verify:templates` 40/40 · `verify:engine` (edición 68 ms, sin cambios). Paquete inicial: el código de la IA (87 KB) solo se descarga con ella; el inicial crece 13,6 KB sobre el previo a la IA (cableado, envoltorios, atajo y la sección de Ayuda de la IA).
 
 ### Fixed
 
+- **IA: el punto de restauración de un agente podía tomar por «creado» un fichero que existía** (si quedaba fuera de los topes de contenido) y Deshacer lo habría borrado; ahora la foto recuerda todos los ficheros y lo que no puede comparar no se lista. Tiene además un tope de memoria total (64 MB).
+- **IA: Deshacer un cambio del agente ya no pisa un fichero que se editó después**, y «Detener» libera la petición aunque el backend no responda.
 - **IA: un modelo sin herramientas no pasaba al modo conversación.** La detección del error «does not support tools» buscaba el texto en un campo que el bucle guarda con otro nombre, así que con modelos como `llama3` la petición fallaba en vez de repetirse en modo conversación. Encontrado por el test de integración nuevo.
 - **IA: el oyente de las respuestas en streaming era global al módulo** y quedaba atado al primer backend que lo usaba; ahora es de cada cliente.
 

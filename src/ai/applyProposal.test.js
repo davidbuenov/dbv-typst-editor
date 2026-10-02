@@ -129,6 +129,15 @@ describe('cliente del modelo', () => {
     ]);
   });
 
+  it('Detener libera la petición aunque el backend no emita nada', async () => {
+    const client = createModelClient({ aiChat: async () => ({ ok: true }), aiCancel: vi.fn(), on: async () => () => {} });
+    let stop = null;
+    const pending = client.call('c1', { messages: [], tools: [] }, { register: (fn) => (stop = fn) });
+    await vi.waitFor(() => expect(stop).not.toBeNull());
+    stop();
+    await expect(pending).rejects.toMatchObject({ kind: 'cancelled' });
+  });
+
   it('resuelve con los eventos de su petición y rechaza con el tipo de error', async () => {
     let handler;
     const on = async (event, fn) => {

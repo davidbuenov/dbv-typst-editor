@@ -627,6 +627,7 @@
   - [x] **Slice 134** — Agentes por ACP (RF-91).
   - [x] **Slice 135** — Evals (RNF-IA-EVAL).
   - [x] **Slice 136** — Ayuda, atajos, arquitectura y changelog.
+  - [x] **`/test` de v0.13.0 — 2026-10-02.** Test de integración de la IA (`aiApp.test.js`) que destapó dos fallos reales (recaída sin herramientas; oyente global). Revisión adelantada: tope y foto completa del punto de restauración, Deshacer sin pisar, Detener que libera. Mutación 10/10. Evals reales con `llama3` y `qwen2.5:3b` (`testfiles/ai-evals/README.md`). Paquete inicial: +13,6 KB sobre el previo a la IA (el código de la IA, 87 KB, va aparte). Suites: 1194 Vitest · 485 Rust · `verify:frontend` 12/12 · `verify:layout` 20/20 · `verify:typst` 8/8 · `verify:templates` 40/40 · `verify:engine` 68 ms. **Pendiente del usuario:** prueba en ventana real (Ollama, Claude Code por ACP, una clave de nube). **Siguiente: `/code-simplify`.**
   - [x] **`/build` de v0.13.0 COMPLETO (2026-10-02).** Commits `32e7c32` (127), `8edbdd5` (128), `fc17c74` (129), `2356337` (130), `dc9ab0d` (131-132), `4da8b5a` (Ollama nativo), `eb4e740` (133), `6abba3a` (134), `e53cd19` (135-136). Desvíos del plan registrados en `ADR-V0130-003`. **Siguiente: `/test`.**
 
 ## 🔄 Context Snapshot / Snapshot de Contexto

@@ -30,10 +30,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- **Evals with real local models (RNF-IA-EVAL):** `llama3` (8B, no tools) 5/32 without documentation and 6/32 with it; on documentation questions, **1/5 → 5/5**. `qwen2.5:3b` (with tools) 2/32 and 1/32: a 3B model is too small to edit Typst. Conclusion in `testfiles/ai-evals/README.md`: the bundled documentation stops the model from inventing syntax; editing fluently needs a 14B+ model, a cloud one or an agent. In no run did the assistant manage to leave the project. Also, the loop now accepts tool calls written as text (`<tool_call>`, Qwen format) and reminds the model once to use `propose_changes` when it mentions it without calling it. Mutation test on the AI safeguards: 10 of 10 caught (the tenth after strengthening a test).
 - **0.13.0 `/test`:** AI integration test (`src/ai/aiApp.test.js`) that walks the real wiring with mocked backend, workspace and model: no trace without AI; direct model with tools that reads, proposes, gets checked and is applied through `multiFileEdit`; chat-mode fallback; provider error explained; cloud warning once per project and provider; ACP agent with permission, diff and on-disk changes. Suites: 1191 Vitest · 484 Rust · `verify:frontend` 12/12 · `verify:layout` 20/20 · `verify:typst` 8/8 · `verify:templates` 40/40 · `verify:engine` (68 ms edit, unchanged). Initial bundle: the AI code (87 KB) is only downloaded with it; the initial bundle grows 13.6 KB over the pre-AI state (wiring, wrappers, shortcut and the AI Help section).
 
 ### Fixed
 
+- **AI: an agent's restore point could take a file that already existed as "created"** (when it fell outside the content limits) and Undo would have deleted it; the snapshot now remembers every file and anything it cannot compare is not listed. It also has a total memory cap (64 MB).
+- **AI: undoing an agent change no longer overwrites a file edited afterwards**, and "Stop" releases the request even if the backend does not answer.
 - **AI: a model without tools did not fall back to chat mode.** Detecting the "does not support tools" error looked for the text in a field the loop stores under another name, so with models such as `llama3` the request failed instead of being retried in chat mode. Found by the new integration test.
 - **AI: the streaming response listener was module-global** and stayed bound to the first backend that used it; it now belongs to each client.
 

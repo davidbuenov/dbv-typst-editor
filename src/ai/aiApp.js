@@ -122,7 +122,7 @@ export function createAiApp(deps) {
         const saved = await backend.aiSetPreferences({ active: id });
         if (saved.ok) file = saved.value;
         // Otra conexión: el agente que estuviera en marcha se cierra.
-        if (activeConnection()?.provider !== 'agent') acp.stop();
+        if (activeConnection()?.provider !== 'agent' && acp.sessionId) acp.stop();
         renderDestination();
       },
       onSelectConversation: (id) => {
@@ -143,11 +143,12 @@ export function createAiApp(deps) {
           textKey: 'ai.deleteConversationText',
           choices: [
             { key: 'cancel', labelKey: 'action.cancel' },
+            { key: 'all', labelKey: 'ai.deleteAll', tone: 'danger' },
             { key: 'delete', labelKey: 'ai.delete', tone: 'danger' },
           ],
         });
-        if (choice !== 'delete') return;
-        projectState.conversations = projectState.conversations.filter((c) => c.id !== projectState.activeId);
+        if (choice !== 'delete' && choice !== 'all') return;
+        projectState.conversations = choice === 'all' ? [] : projectState.conversations.filter((c) => c.id !== projectState.activeId);
         if (!projectState.conversations.length) projectState.conversations.push(newConversation());
         projectState.activeId = projectState.conversations[0].id;
         renderConversation();
@@ -246,6 +247,9 @@ export function createAiApp(deps) {
   }
 
   async function onProjectOpened(project) {
+    // Una respuesta en curso es del proyecto anterior: se detiene.
+    if (busy) stop();
+    if (acp.sessionId) acp.stop();
     projectRoot = project?.root ?? null;
     refreshVisibility();
     if (!projectRoot) return;
@@ -253,7 +257,7 @@ export function createAiApp(deps) {
     const value = loaded.ok && loaded.value && Array.isArray(loaded.value.conversations) ? loaded.value : null;
     projectState = value ?? { version: 1, conversations: [newConversation()], activeId: null, consents: [] };
     if (!projectState.conversations.length) projectState.conversations.push(newConversation());
-    projectState.activeId ??= projectState.conversations[0].id;
+    if (!projectState.conversations.some((c) => c.id === projectState.activeId)) projectState.activeId = projectState.conversations[0].id;
     projectState.consents ??= [];
     excluded = new Set();
     attachments = [];
@@ -273,8 +277,12 @@ export function createAiApp(deps) {
   }
 
   function onProjectClosed() {
+    // RF-93.6: las propuestas sin revisar no sobreviven al cierre; se avisa.
+    const pending = [...shownProposals].filter((proposal) => proposal.status === 'pending').length;
+    if (pending) toast.show(t('ai.pendingDiscarded').replace('{n}', String(pending)), 'error');
+    shownProposals.clear();
     stop();
-    acp.stop();
+    if (acp.sessionId) acp.stop();
     clearPreview();
     projectRoot = null;
     projectState = null;
@@ -341,25 +349,37 @@ export function createAiApp(deps) {
     return read.ok ? read.value.content : null;
   }
 
-  function checkFiles(proposal) {
-    const unsaved = workspace.getOpenTexts().map((doc) => ({ path: doc.path, content: doc.content }));
-    return proposal ? [...unsaved, ...overrides(proposal, projectRoot, joinPath)] : unsaved;
+  /** Lo que el editor tiene sin guardar (rutas absolutas). */
+  function unsavedFiles() {
+    return workspace.getOpenTexts().map((doc) => ({ path: doc.path, content: doc.content }));
   }
 
-  /** Errores nuevos y corregidos de la propuesta frente a lo que hay ahora. */
+  const toProblems = (list) => list.map((d) => ({ level: d.level, file: d.file, line: d.startLine, message: d.message }));
+
+  /**
+   * Errores nuevos y corregidos si el proyecto tuviera `files` (rutas
+   * absolutas) en vez de lo que hay ahora (RF-93.3, RF-95.4, RF-91.7). Las dos
+   * compilaciones van de una en una: comparten el mundo de comprobación.
+   * `cache` guarda la línea base entre comprobaciones de una misma propuesta.
+   */
+  async function checkWith(files, cache = {}) {
+    const target = workspace.getCompileTarget();
+    if (!target || !projectRoot) return null;
+    const unsaved = unsavedFiles();
+    cache.baseline ??= await backend.aiCheckProposal(projectRoot, target.document, unsaved);
+    const merged = [...unsaved.filter((file) => !files.some((other) => other.path === file.path)), ...files];
+    const checked = await backend.aiCheckProposal(projectRoot, target.document, merged);
+    return cache.baseline.ok && checked.ok ? describeCheck(toProblems(cache.baseline.value), toProblems(checked.value)) : null;
+  }
+
+  /** Comprobador de una propuesta: la línea base se calcula una vez. */
   function makeChecker() {
-    let baseline = null;
-    return async (proposal) => {
-      const target = workspace.getCompileTarget();
-      if (!target || !projectRoot) return null;
-      baseline ??= await backend.aiCheckProposal(projectRoot, target.document, checkFiles(null));
-      const checked = await backend.aiCheckProposal(projectRoot, target.document, checkFiles(proposal));
-      if (!baseline.ok || !checked.ok) return null;
-      const simplify = (list) => list.map((d) => ({ level: d.level, file: d.file, line: d.startLine, message: d.message }));
-      return describeCheck(simplify(baseline.value), simplify(checked.value));
-    };
+    const cache = {};
+    return (proposal) => checkWith(overrides(proposal, projectRoot, joinPath), cache);
   }
 
+  /** Propuestas enseñadas y aún sin aplicar ni rechazar (RF-93.6). */
+  const shownProposals = new Set();
   let previewing = null;
   function clearPreview() {
     if (!previewing) return;
@@ -377,6 +397,7 @@ export function createAiApp(deps) {
   });
 
   function showProposal(proposal, check) {
+    shownProposals.add(proposal);
     const card = createReviewCard({
       proposal,
       check: () => check(proposal),
@@ -550,7 +571,7 @@ export function createAiApp(deps) {
         }
       }
       if (finalText) current.entries.push({ role: 'assistant', content: finalText });
-      const error = result.messages.find((m) => m.role === 'error');
+      const error = result.messages.find((m) => m.role === 'error' && m.kind !== 'cancelled');
       if (error) {
         const message = `${t(`ai.error.${error.kind}`)} ${error.content}`;
         panel.addNote(message, 'error');
@@ -626,8 +647,6 @@ export function createAiApp(deps) {
         toRelative,
         isDirty: (relative) => workspace.hasUnsavedChangesIn([joinPath(projectRoot, relative)]),
         check: async (diffs) => {
-          const target = workspace.getCompileTarget();
-          if (!target) return null;
           const files = [];
           for (const diff of diffs) {
             const relative = toRelative(diff.path);
@@ -640,13 +659,7 @@ export function createAiApp(deps) {
             if (after === null) return null;
             files.push({ path: joinPath(projectRoot, relative), content: after });
           }
-          const [baseline, checked] = await Promise.all([
-            backend.aiCheckProposal(projectRoot, target.document, checkFiles(null)),
-            backend.aiCheckProposal(projectRoot, target.document, [...checkFiles(null).filter((f) => !files.some((g) => g.path === f.path)), ...files]),
-          ]);
-          if (!baseline.ok || !checked.ok) return null;
-          const simplify = (list) => list.map((d) => ({ level: d.level, file: d.file, line: d.startLine, message: d.message }));
-          return describeCheck(simplify(baseline.value), simplify(checked.value));
+          return checkWith(files);
         },
       });
       pendingPermission = permission;
@@ -793,17 +806,8 @@ export function createAiApp(deps) {
   // ─── IA en línea (RF-95) ───────────────────────────────────────────────────
 
   /** ¿Compila el proyecto con `relative` sustituido por `text`? (RF-95.4) */
-  async function checkText(relative, text) {
-    const target = workspace.getCompileTarget();
-    if (!target || !projectRoot) return null;
-    const unsaved = checkFiles(null).filter((file) => file.path !== joinPath(projectRoot, relative));
-    const [baseline, checked] = await Promise.all([
-      backend.aiCheckProposal(projectRoot, target.document, checkFiles(null)),
-      backend.aiCheckProposal(projectRoot, target.document, [...unsaved, { path: joinPath(projectRoot, relative), content: text }]),
-    ]);
-    if (!baseline.ok || !checked.ok) return null;
-    const simplify = (list) => list.map((d) => ({ level: d.level, file: d.file, line: d.startLine, message: d.message }));
-    return describeCheck(simplify(baseline.value), simplify(checked.value));
+  function checkText(relative, text) {
+    return checkWith([{ path: joinPath(projectRoot, relative), content: text }]);
   }
 
   const inline = createInlineAi({

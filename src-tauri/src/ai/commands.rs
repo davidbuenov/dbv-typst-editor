@@ -37,6 +37,16 @@ fn data_dir(app: &AppHandle) -> Result<PathBuf, AiError> {
     app.path().app_data_dir().map_err(|error| AiError::Config(error.to_string()))
 }
 
+/// ¿Puede usarse la clave GUARDADA de `connection`? Solo si la conexión
+/// guardada con ese id apunta al mismo proveedor y la misma dirección: una
+/// dirección cambiada en el formulario (una errata, un intermediario) no debe
+/// recibir la clave sin volver a escribirla.
+pub fn stored_key_allowed(file: &ConnectionsFile, connection: &Connection) -> bool {
+    file.connections
+        .iter()
+        .any(|saved| saved.id == connection.id && saved.provider == connection.provider && saved.base_url.trim() == connection.base_url.trim())
+}
+
 /// Conexiones guardadas (sin claves) y si mostrar la IA.
 #[tauri::command]
 pub fn ai_connections(app: AppHandle) -> Result<ConnectionsFile, AiError> {
@@ -79,7 +89,11 @@ pub fn ai_save_connection(app: AppHandle, state: State<'_, AiState>, request: Sa
             connection.has_key = true;
         }
         None => {
-            connection.has_key = file.connections.iter().any(|c| c.id == connection.id && c.has_key);
+            let had_key = file.connections.iter().any(|c| c.id == connection.id && c.has_key);
+            if had_key && !stored_key_allowed(&file, &connection) {
+                return Err(AiError::Config("cambiaste la dirección de la conexión: vuelve a escribir la clave".into()));
+            }
+            connection.has_key = had_key;
         }
     }
     match file.connections.iter_mut().find(|c| c.id == connection.id) {
@@ -149,9 +163,11 @@ pub async fn ai_detect() -> Detection {
 /// «Probar conexión»: lista los modelos con la conexión TAL COMO está en el
 /// formulario (aún sin guardar), con la clave escrita o con la guardada.
 #[tauri::command]
-pub async fn ai_list_models(state: State<'_, AiState>, connection: Connection, api_key: Option<String>) -> Result<Vec<String>, AiError> {
+pub async fn ai_list_models(app: AppHandle, state: State<'_, AiState>, connection: Connection, api_key: Option<String>) -> Result<Vec<String>, AiError> {
     connection.validate()?;
-    let key = api_key.filter(|key| !key.is_empty()).or_else(|| state.secrets.get(&connection.id));
+    let saved = connections::load(&config_dir(&app)?)?;
+    let stored = if stored_key_allowed(&saved, &connection) { state.secrets.get(&connection.id) } else { None };
+    let key = api_key.filter(|key| !key.is_empty()).or(stored);
     tauri::async_runtime::spawn_blocking(move || providers::list_models(&connection, key.as_deref()))
         .await
         .map_err(|error| AiError::Server(error.to_string()))?
@@ -239,4 +255,33 @@ pub fn ai_project_state_save(app: AppHandle, root: String, value: Value) -> Resu
 #[tauri::command]
 pub fn ai_release(state: State<'_, AiState>) {
     state.checks.release();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn connection(base_url: &str) -> Connection {
+        Connection {
+            id: "c1".into(),
+            name: "Claude".into(),
+            provider: ProviderKind::Anthropic,
+            base_url: base_url.into(),
+            model: "m".into(),
+            has_key: true,
+            context_tokens: None,
+            supports_tools: None,
+            supports_images: None,
+        }
+    }
+
+    #[test]
+    fn la_clave_guardada_solo_vale_para_su_direccion() {
+        let file = ConnectionsFile { connections: vec![connection("https://api.anthropic.com/v1")], active: None, show_ai: true };
+        assert!(stored_key_allowed(&file, &connection("https://api.anthropic.com/v1")));
+        assert!(!stored_key_allowed(&file, &connection("https://api.anthropic.com.evil.example/v1")));
+        let mut other = connection("https://api.anthropic.com/v1");
+        other.id = "c2".into();
+        assert!(!stored_key_allowed(&file, &other), "otra conexión no hereda la clave");
+    }
 }

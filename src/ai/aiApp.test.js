@@ -91,10 +91,11 @@ function setup({ connections, script = [], agent = null } = {}) {
     undo: vi.fn(async () => true),
   };
   const dialog = { ask: vi.fn(async () => 'send') };
+  const toast = { show: vi.fn() };
   const app = createAiApp({
     workspace,
     backend,
-    toast: { show: vi.fn() },
+    toast,
     dialog,
     multiFileEdit,
     docsViewer: { open: vi.fn() },
@@ -117,7 +118,7 @@ function setup({ connections, script = [], agent = null } = {}) {
     capturePreviewPage: async () => null,
     typstVersion: () => '0.15.1',
   });
-  return { app, backend, workspace, multiFileEdit, dialog, disk, saved, handlers };
+  return { app, backend, workspace, multiFileEdit, dialog, disk, saved, handlers, toast };
 }
 
 const ollama = { id: 'o1', name: 'Ollama', provider: 'ollama', baseUrl: 'http://localhost:11434/v1', model: 'qwen', hasKey: false, supportsTools: null };
@@ -183,6 +184,31 @@ describe('modelo directo con herramientas (RF-92, RF-93, RF-94)', () => {
     expect(backend.aiChat.mock.calls[1][2].tools).toEqual([]);
     expect(backend.aiSaveConnection.mock.calls[0][0].supportsTools).toBe(false);
     expect(document.querySelector('.ai-review .ai-file__path').textContent).toBe('main.typ');
+  });
+
+  it('cerrar el proyecto con una propuesta sin revisar la descarta y lo avisa (RF-93.6)', async () => {
+    const script = [
+      { toolCalls: [{ id: 't1', name: 'propose_changes', arguments: JSON.stringify({ changes: [{ path: 'main.typ', action: 'edit', search: 'Uno.', replace: 'Dos.' }] }) }] },
+      { text: 'Hecho.', toolCalls: [] },
+    ];
+    const { app, toast, multiFileEdit } = setup({ connections: [ollama], script });
+    await app.onProjectOpened({ root: 'D:/p' });
+    await app.ask('cambia');
+    app.onProjectClosed();
+    expect(toast.show.mock.calls.some(([message]) => /sin revisar/.test(message))).toBe(true);
+    expect(multiFileEdit.apply).not.toHaveBeenCalled();
+  });
+
+  it('abrir otro proyecto detiene la respuesta en curso sin avisos de error', async () => {
+    const { app, backend } = setup({ connections: [ollama] });
+    backend.aiChat.mockImplementation(async () => ok(null)); // nunca responde
+    await app.onProjectOpened({ root: 'D:/p' });
+    const pending = app.ask('hola');
+    await vi.waitFor(() => expect(backend.aiChat).toHaveBeenCalled());
+    await app.onProjectOpened({ root: 'D:/otro' });
+    await pending;
+    expect(backend.aiCancel).toHaveBeenCalled();
+    expect(document.querySelector('.ai-note--error')).toBeNull();
   });
 
   it('un error del proveedor se explica en la conversación', async () => {

@@ -187,6 +187,8 @@ export const AI_TRANSLATIONS = {
     'ai.inlineViaAgent': 'IA en línea (enviada al agente)',
     'ai.inlineSentToAgent': 'Enviado a la conversación con el agente.',
     'ai.undoChanged': '{file} ha cambiado desde que lo escribió el agente: no se deshace para no perder esos cambios.',
+    'ai.deleteAll': 'Borrar todas',
+    'ai.pendingDiscarded': 'Se cerró el proyecto con {n} propuestas de la IA sin revisar: se han descartado sin aplicar nada.',
   },
   en: {
     'ai.connectIntro': 'Pick an AI to help with formatting, errors and writing. It is optional: without one, the editor works exactly as before.',
@@ -364,5 +366,7 @@ export const AI_TRANSLATIONS = {
     'ai.inlineViaAgent': 'Inline AI (sent to the agent)',
     'ai.inlineSentToAgent': 'Sent to the conversation with the agent.',
     'ai.undoChanged': '{file} changed after the agent wrote it: not undone, so those changes are not lost.',
+    'ai.deleteAll': 'Delete all',
+    'ai.pendingDiscarded': 'The project was closed with {n} unreviewed AI proposals: they were discarded without applying anything.',
   },
 };

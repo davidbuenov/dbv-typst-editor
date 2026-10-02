@@ -38,6 +38,10 @@ pub struct FileContent {
 #[derive(Default)]
 pub struct CheckWorlds {
     current: Mutex<Option<(PathBuf, PathBuf, Arc<EngineWorld>)>>,
+    /// Una comprobación a la vez: dos en paralelo sobre el mismo mundo se
+    /// pisarían las sustituciones a mitad de compilación (hallado en
+    /// `/code-simplify`: el veredicto podía ser el de la otra comprobación).
+    exclusive: Mutex<()>,
 }
 
 impl CheckWorlds {
@@ -64,6 +68,7 @@ impl CheckWorlds {
 pub fn check(worlds: &CheckWorlds, root: &str, main: &str, files: &[FileContent]) -> Result<Vec<Diagnostic>, AiError> {
     let root = PathBuf::from(root);
     let main = PathBuf::from(main);
+    let _turn = worlds.exclusive.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
     let world = worlds.world(&root, &main)?;
     let overrides: Vec<(PathBuf, String)> = files.iter().map(|file| (PathBuf::from(&file.path), file.content.clone())).collect();
     world.replace_overrides(&overrides);
@@ -131,6 +136,27 @@ mod tests {
         let result = check(&worlds, &root, &main, &proposal).unwrap();
         assert!(result.iter().all(|d| d.level != Level::Error), "{result:?}");
         assert!(!dir.path().join("caps").exists(), "no se crea nada en disco");
+    }
+
+    #[test]
+    fn dos_comprobaciones_a_la_vez_no_se_mezclan() {
+        let dir = project(&[("main.typ", "Bien.")]);
+        let worlds = Arc::new(CheckWorlds::default());
+        let main = dir.path().join("main.typ").to_string_lossy().to_string();
+        let root = dir.path().to_string_lossy().to_string();
+        let handles: Vec<_> = (0..8)
+            .map(|i| {
+                let (worlds, root, main) = (worlds.clone(), root.clone(), main.clone());
+                let content = if i % 2 == 0 { "#roto(".to_string() } else { "Bien.".to_string() };
+                let file = FileContent { path: main.clone(), content };
+                std::thread::spawn(move || (i, check(&worlds, &root, &main, &[file]).unwrap()))
+            })
+            .collect();
+        for handle in handles {
+            let (i, result) = handle.join().unwrap();
+            let has_error = result.iter().any(|d| d.level == Level::Error);
+            assert_eq!(has_error, i % 2 == 0, "la comprobación {i} recibió el resultado de otra");
+        }
     }
 
     #[test]

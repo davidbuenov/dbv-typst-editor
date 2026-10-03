@@ -172,6 +172,14 @@ describe('contexto con presupuesto (RF-94.5)', () => {
     expect(items.some((i) => i.id === 'diagnostics')).toBe(false);
   });
 
+  it('un documento suelto se presenta como tal y no lista nada más (RF-106.7)', () => {
+    const { text, items } = buildContext({ ...source, singleFile: true, files: ['carta.typ'], entrypoint: 'carta.typ' }, 100000);
+    expect(text).toContain('Loose document "carta.typ"');
+    expect(text).toContain('you can only read and change this one');
+    expect(items.find((i) => i.id === 'files')).toMatchObject({ label: 'documento suelto', included: true });
+    expect(buildContext({ ...source, files: ['a.typ', 'b.typ'] }, 100000).text).toContain('a.typ\nb.typ');
+  });
+
   it('windowAround corta en límites de línea', () => {
     const view = windowAround('a\nbb\nccc\ndddd\neeeee', 9, 8);
     expect(view.trimmed).toBe(true);

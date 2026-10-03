@@ -22,7 +22,7 @@ import { createAcpSession, insideProject } from './acpSession.js';
 import { createChangesCard, createPermissionCard } from './acpView.js';
 import { buildContext, estimateTokens, RESPONSE_RESERVE, systemPrompt } from './context.js';
 import { createModelClient } from './modelClient.js';
-import { applyChange, createProposal, overrides, parseChangeBlocks } from './proposal.js';
+import { applyChange, createProposal, normalizePath, overrides, parseChangeBlocks } from './proposal.js';
 import { createReviewCard } from './reviewView.js';
 import { createTools, describeCheck } from './tools.js';
 
@@ -81,6 +81,8 @@ export function createAiApp(deps) {
   let file = deps.initialFile;
   let projectState = null;
   let projectRoot = null;
+  /** Documento suelto (`.typ` sin proyecto): su raíz es SU CARPETA, pero la IA solo ve ese fichero (RF-106.7). */
+  let singleFile = null;
   let files = [];
   let excluded = new Set();
   let attachments = [];
@@ -230,7 +232,11 @@ export function createAiApp(deps) {
     renderContextPreview();
   }
 
+  /** ¿Puede la IA leer o cambiar este fichero? Un documento suelto solo admite el suyo. */
+  const inScope = (relative) => !singleFile || normalizePath(relative) === singleFile;
+
   async function listProjectFiles(root) {
+    if (singleFile) return [singleFile];
     const found = [];
     const queue = [root];
     while (queue.length && found.length < FILE_LIMIT) {
@@ -251,6 +257,7 @@ export function createAiApp(deps) {
     if (busy) stop();
     if (acp.sessionId) acp.stop();
     projectRoot = project?.root ?? null;
+    singleFile = project?.isSingleFile ? (project.entrypoint ?? null) : null;
     refreshVisibility();
     if (!projectRoot) return;
     const loaded = await backend.aiProjectStateLoad(projectRoot);
@@ -285,6 +292,7 @@ export function createAiApp(deps) {
     if (acp.sessionId) acp.stop();
     clearPreview();
     projectRoot = null;
+    singleFile = null;
     projectState = null;
     setPanelOpen(false);
     refreshVisibility();
@@ -309,6 +317,7 @@ export function createAiApp(deps) {
     return {
       projectName: project?.name ?? '',
       entrypoint: project?.entrypoint ?? null,
+      singleFile: Boolean(singleFile),
       files,
       active: activeSource(),
       diagnostics: deps.getProblems(),
@@ -342,6 +351,7 @@ export function createAiApp(deps) {
   // ─── Propuestas (RF-93) ────────────────────────────────────────────────────
 
   async function readText(relative) {
+    if (!inScope(relative)) return null;
     const path = joinPath(projectRoot, relative);
     const tab = workspace.getTabContent(path);
     if (tab !== null) return tab;
@@ -511,10 +521,11 @@ export function createAiApp(deps) {
         getRoot: () => projectRoot,
         join: joinPath,
         readText,
+        allowPath: inScope,
         listFiles: async () => files,
         search: async (query, regex) => {
           const result = await backend.searchProject(projectRoot, query, { caseSensitive: false, wholeWord: false, regex, include: '', exclude: '', includeHidden: false }, { openDocuments: workspace.getOpenTexts() });
-          return result.ok ? result.value.files.flatMap((f) => f.matches.map((m) => ({ relative: f.relative, line: m.start.line + 1, text: m.preview }))) : [];
+          return result.ok ? result.value.files.filter((f) => inScope(f.relative)).flatMap((f) => f.matches.map((m) => ({ relative: f.relative, line: m.start.line + 1, text: m.preview }))) : [];
         },
         diagnostics: async () => deps.getProblems(),
         outline: () => deps.getOutline(),
@@ -566,7 +577,7 @@ export function createAiApp(deps) {
       const finalText = result.messages.filter((m) => m.role === 'assistant').map((m) => m.content).filter(Boolean).join('\n\n');
       if (!useTools) {
         for (const change of parseChangeBlocks(finalText)) {
-          const applied = await applyChange(proposal, change, readText);
+          const applied = inScope(change.path) ? await applyChange(proposal, change, readText) : { ok: false, message: t('ai.singleFileOnly') };
           if (!applied.ok) panel.addNote(`${change.path}: ${applied.message}`, 'error');
         }
       }

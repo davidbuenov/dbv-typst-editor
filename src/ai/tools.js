@@ -63,6 +63,7 @@ export function describeCheck(baseline, checked) {
  * @param {(path: string) => Promise<string|null>} deps.docsPage
  * @param {(proposal: object) => Promise<Array|null>} deps.checkProposal Diagnósticos con la propuesta; `null` si no se puede comprobar.
  * @param {() => object} deps.getProposal Propuesta de la respuesta en curso.
+ * @param {(path: string) => boolean} [deps.allowPath] Si existe, solo se pueden proponer cambios en las rutas que admite (documento suelto, RF-106.7).
  */
 export function createTools(deps) {
   let fixAttempts = 0;
@@ -193,6 +194,10 @@ export function createTools(deps) {
           return 'error: no changes were received, so NOTHING was proposed. Call propose_changes again with `changes` as a non-empty array of {path, action, search, replace}. Do not tell the user a proposal was made.';
         }
         for (const change of received) {
+          if (deps.allowPath && !deps.allowPath(change?.path)) {
+            report.push(`error: ${change?.path}: this is a single loose document, not a project: only its own file can be read or changed`);
+            continue;
+          }
           const result = await applyChange(proposal, { ...change, newPath: change?.new_path ?? change?.newPath }, (path) => deps.readText(path));
           report.push(result.ok ? `ok: ${change.action} ${change.path}` : `error: ${change?.path}: ${result.message}`);
         }

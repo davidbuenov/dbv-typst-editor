@@ -85,6 +85,22 @@ describe('herramientas', () => {
     expect(resultText(proposal.files.get('cap.typ'))).toBe('Uno bis.\n');
   });
 
+  it('en un documento suelto propose_changes rechaza cualquier otro fichero (RF-106.7)', async () => {
+    const { tools, proposal, deps } = setup();
+    const confined = Object.fromEntries(createTools({ ...deps, allowPath: (path) => path === 'cap.typ' }).map((tool) => [tool.name, tool]));
+    const report = await confined.propose_changes.run({
+      changes: [
+        { path: 'main.typ', action: 'edit', search: 'Hola', replace: 'Adiós' },
+        { path: 'nuevo.typ', action: 'create', content: 'x' },
+        { path: 'cap.typ', action: 'edit', search: 'Uno.', replace: 'Uno bis.' },
+      ],
+    });
+    expect(report).toContain('error: main.typ');
+    expect(report).toContain('error: nuevo.typ');
+    expect(report).toContain('ok: edit cap.typ');
+    expect([...proposal.files.keys()]).toEqual(['cap.typ']);
+  });
+
   it('propose_changes avisa si ningún cambio modifica un fichero (idéntico o fallido)', async () => {
     const { tools, proposal } = setup();
     const same = await tools.propose_changes.run({ changes: [{ path: 'cap.typ', action: 'edit', search: 'Uno.', replace: 'Uno.' }] });

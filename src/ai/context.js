@@ -136,7 +136,9 @@ export function buildContext(source, budget) {
     add('outline', 'esquema', `## Document outline\n${outline.slice(0, 120).map((h) => `${'  '.repeat(Math.max(0, h.level - 1))}- ${h.text}`).join('\n')}`);
   }
   const files = source.files ?? [];
-  if (files.length) {
+  if (source.singleFile && files.length) {
+    add('files', 'documento suelto', `## Loose document "${files[0]}" (not a project): there are no other files; you can only read and change this one.`);
+  } else if (files.length) {
     const head = `## Project "${source.projectName ?? ''}"${source.entrypoint ? ` (main document: ${source.entrypoint})` : ''}\n`;
     add('files', `${files.length} ficheros`, `${head}${files.join('\n')}`, {
       trimmable: (chars) => ({ text: `${head}${files.join('\n').slice(0, Math.max(100, chars))}\n…`, trimmed: true }),

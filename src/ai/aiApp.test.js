@@ -174,6 +174,29 @@ describe('modelo directo con herramientas (RF-92, RF-93, RF-94)', () => {
     await vi.waitFor(() => expect(saved.at(-1)?.conversations[0].entries.some((e) => e.role === 'assistant')).toBe(true), { timeout: 2000 });
   });
 
+  it('en un documento suelto la IA solo ve y cambia su fichero, aunque la carpeta tenga más (RF-106.7)', async () => {
+    const script = [
+      { toolCalls: [{ id: 't1', name: 'list_files', arguments: '{}' }] },
+      { toolCalls: [{ id: 't2', name: 'read_file', arguments: '{"path":"privado.typ"}' }] },
+      { toolCalls: [{ id: 't3', name: 'propose_changes', arguments: JSON.stringify({ changes: [{ path: 'privado.typ', action: 'edit', search: 'secreto', replace: 'x' }] }) }] },
+      { text: 'Listo.', toolCalls: [] },
+    ];
+    const { app, backend, disk } = setup({ connections: [ollama], script });
+    disk['D:/p/privado.typ'] = 'secreto';
+    backend.listDirectory.mockResolvedValue(ok([
+      { name: 'main.typ', path: 'D:/p/main.typ', isDir: false, isTypst: true, isEditable: true },
+      { name: 'privado.typ', path: 'D:/p/privado.typ', isDir: false, isTypst: true, isEditable: true },
+    ]));
+    await app.onProjectOpened({ root: 'D:/p', name: 'main.typ', entrypoint: 'main.typ', isSingleFile: true });
+    await app.ask('hola');
+    const toolResults = backend.aiChat.mock.calls.at(-1)[2].messages.filter((m) => m.role === 'tool').map((m) => m.content);
+    expect(toolResults[0]).toBe('main.typ');
+    expect(toolResults[1]).toMatch(/does not exist/);
+    expect(toolResults[2]).toMatch(/single loose document/);
+    expect(backend.readFile.mock.calls.some(([path]) => path.endsWith('privado.typ'))).toBe(false);
+    expect(document.querySelector('.ai-review')).toBeNull();
+  });
+
   it('si el modelo no admite herramientas, repite en modo conversación y lo recuerda (RF-94.4)', async () => {
     const block = '```dbv-edit path="main.typ"\n<<<<<<< SEARCH\nUno.\n=======\nUno corregido.\n>>>>>>> END\n```';
     const script = [{ error: { kind: 'badRequest', message: 'qwen does not support tools' } }, { text: `Aquí va:\n${block}`, toolCalls: [] }];

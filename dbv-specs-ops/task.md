@@ -635,15 +635,17 @@
 
 ## 🔄 Context Snapshot / Snapshot de Contexto
 
-> ### 👉 RETOMAR AQUÍ (2026-10-02): v0.13.0 reabierta tras la prueba real y empujada
+> ### 👉 RETOMAR AQUÍ (2026-10-03): v0.13.0 PUBLICADA
 >
-> La prueba real del usuario (Gemma 4 por `llama-server`) destapó dos fallos y la falta de guía; se
-> arreglaron y se reabrió la 0.13.0 sin subir versión (`ADR-V0130-004`). Push de `master` + tags: el tag
-> `v0.13.0` dispara las Release de Linux y macOS. El `.msixbundle` está en
+> Release publicada: https://github.com/davidbuenov/dbv-typst-editor/releases/tag/v0.13.0 (notas ES + EN;
+> `.dmg`, `.app.tar.gz`, `.AppImage`, `.zsync` y `.deb`). El push destapó un fallo real que la CI de Linux
+> cazó (`Secrets::delete` fallaba sin Secret Service y no dejaba borrar conexiones): arreglado en `4cbf30f`
+> y la etiqueta `v0.13.0` movida a ese commit antes de publicar (el borrador anterior se borró; nada de la
+> 0.13.0 había sido público). CI, Release Linux y Release macOS en verde. El `.msixbundle` está en
 > `src-tauri/target/msix/dbv-typst-editor_0.13.0.0.msixbundle` (verificado, 77,56 MB). Pendiente del
 > usuario: instalarlo con el certificado de pruebas, subirlo a Partner Center con los textos de
-> `notasActualizacionStore_v0.13.0.md`, revisar la privacidad y la descripción de la ficha (§4 de ese
-> fichero) y publicar la Release de GitHub. Backlog: extraer las pestañas de `workspace.js`, Flathub.
+> `notasActualizacionStore_v0.13.0.md`, y revisar la privacidad y la descripción de la ficha (§4 de ese
+> fichero). Backlog: extraer las pestañas de `workspace.js`, Flathub.
 
 > ### 👉 RETOMAR AQUÍ (2026-10-02): `/spec` de v0.13.0 CERRADO — siguiente `/plan`
 >

@@ -36,9 +36,10 @@ function setup({ connections, script = [], agent = null } = {}) {
           handlers['ai-stream']({ requestId, type: 'error', error: next.error });
           return;
         }
+        if (next.thinking) handlers['ai-stream']({ requestId, type: 'thinking', text: next.thinking });
         if (next.text) handlers['ai-stream']({ requestId, type: 'text', text: next.text });
         for (const call of next.toolCalls ?? []) handlers['ai-stream']({ requestId, type: 'toolCall', ...call });
-        handlers['ai-stream']({ requestId, type: 'usage', input: 10, output: 5 });
+        handlers['ai-stream']({ requestId, type: 'usage', input: 10, output: 5, ...next.usage });
         handlers['ai-stream']({ requestId, type: 'done', stopReason: next.toolCalls?.length ? 'toolCalls' : 'stop' });
       });
       return ok(null);
@@ -195,6 +196,49 @@ describe('modelo directo con herramientas (RF-92, RF-93, RF-94)', () => {
     expect(toolResults[2]).toMatch(/single loose document/);
     expect(backend.readFile.mock.calls.some(([path]) => path.endsWith('privado.typ'))).toBe(false);
     expect(document.querySelector('.ai-review')).toBeNull();
+  });
+
+  it('el razonamiento se ve plegado, pero no vuelve al modelo ni se guarda en la conversación (RF-100.4)', async () => {
+    const script = [
+      { thinking: 'SECRETO-DEL-RAZONAMIENTO voy a leer', toolCalls: [{ id: 't1', name: 'read_file', arguments: '{"path":"main.typ"}' }] },
+      { thinking: 'otro pensamiento', text: 'He mirado el fichero.', toolCalls: [] },
+    ];
+    const { app, backend, saved } = setup({ connections: [ollama], script });
+    await app.onProjectOpened({ root: 'D:/p' });
+    await app.ask('mira');
+    const panel = document.getElementById('panel');
+    const blocks = [...panel.querySelectorAll('.ai-think')];
+    expect(blocks).toHaveLength(2);
+    expect(blocks.every((block) => block.open === false)).toBe(true);
+    expect(panel.querySelector('.ai-think__text').textContent).toContain('SECRETO-DEL-RAZONAMIENTO');
+    // La segunda petición (con el resultado de la herramienta) no lleva el razonamiento de la primera.
+    expect(backend.aiChat).toHaveBeenCalledTimes(2);
+    expect(JSON.stringify(backend.aiChat.mock.calls[1][2])).not.toContain('SECRETO-DEL-RAZONAMIENTO');
+    // Y lo que se guarda en disco tampoco.
+    await vi.waitFor(() => expect(saved.length).toBeGreaterThan(0), { timeout: 2000 });
+    expect(JSON.stringify(saved)).not.toContain('SECRETO-DEL-RAZONAMIENTO');
+    expect(JSON.stringify(saved)).not.toContain('otro pensamiento');
+  });
+
+  it('muestra los tokens por segundo y sugiere mirar la GPU una sola vez con un modelo local lento (RF-102)', async () => {
+    const slow = { usage: { input: 10, output: 100, evalMs: 50000 } };
+    const script = [{ text: 'Uno.', ...slow }, { text: 'Dos.', ...slow }];
+    const { app } = setup({ connections: [ollama], script });
+    await app.onProjectOpened({ root: 'D:/p' });
+    await app.ask('primero');
+    const panel = document.getElementById('panel');
+    expect(panel.querySelector('.ai-panel__speed').textContent).toBe('2 tokens/s · 50 s');
+    expect(panel.textContent).toContain('comprueba que cabe en la GPU');
+    await app.ask('segundo');
+    expect(panel.textContent.split('comprueba que cabe en la GPU')).toHaveLength(2);
+  });
+
+  it('con una IA en la nube lenta no se habla de la GPU (RF-102.2)', async () => {
+    const script = [{ text: 'Uno.', usage: { input: 10, output: 100, evalMs: 50000 } }];
+    const { app } = setup({ connections: [claudeApi], script });
+    await app.onProjectOpened({ root: 'D:/p' });
+    await app.ask('primero');
+    expect(document.getElementById('panel').textContent).not.toContain('GPU');
   });
 
   it('si el modelo no admite herramientas, repite en modo conversación y lo recuerda (RF-94.4)', async () => {

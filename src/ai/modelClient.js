@@ -31,8 +31,12 @@ export function reduceEvent(state, payload) {
   if (payload.type === 'text') {
     state.text += payload.text;
     state.onText?.(payload.text);
+  } else if (payload.type === 'thinking') {
+    // El razonamiento SOLO se muestra (RF-100.4): va por su callback y nunca se
+    // acumula en la respuesta, que es lo que consume el bucle y acaba en el historial.
+    state.onThinking?.(payload.text);
   } else if (payload.type === 'toolCall') state.toolCalls.push({ id: payload.id, name: payload.name, arguments: payload.arguments });
-  else if (payload.type === 'usage') state.usage = { input: payload.input, output: payload.output };
+  else if (payload.type === 'usage') state.usage = { input: payload.input, output: payload.output, evalMs: payload.evalMs ?? 0 };
   else if (payload.type === 'done') state.done = { stopReason: payload.stopReason };
   else if (payload.type === 'error') state.error = payload.error;
   return state;
@@ -69,10 +73,10 @@ export function createModelClient({ aiChat, aiCancel, on }) {
    * Una llamada al modelo. `onText` recibe cada trozo; `signal.cancelled`
    * se consulta para detenerla.
    */
-  async function call(connectionId, { messages, tools, maxTokens }, { onText, register } = {}) {
+  async function call(connectionId, { messages, tools, maxTokens }, { onText, onThinking, register } = {}) {
     await ensureListener();
     const requestId = `r${Date.now().toString(36)}-${(counter += 1)}`;
-    const state = { text: '', toolCalls: [], usage: null, done: null, error: null, onText };
+    const state = { text: '', toolCalls: [], usage: null, done: null, error: null, onText, onThinking };
     const promise = new Promise((resolve, reject) => pending.set(requestId, { state, resolve, reject }));
     // Detener avisa al backend Y libera la petición aquí: si el hilo del
     // backend hubiera muerto sin emitir nada, la conversación no se queda colgada.

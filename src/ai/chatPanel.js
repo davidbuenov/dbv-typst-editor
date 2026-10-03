@@ -15,6 +15,9 @@
 import { t } from '../i18n/i18n.js';
 import { renderMarkdown } from '../ui/markdown.js';
 
+/** Cada cuántos ms se pinta el razonamiento acumulado (agrupa los trozos que llegan muy seguidos). */
+const THOUGHT_PAINT_MS = 40;
+
 function el(tag, className, text) {
   const node = document.createElement(tag);
   if (className) node.className = className;
@@ -90,9 +93,10 @@ export function createChatPanel({ host, callbacks }) {
   const attachPage = button(t('ai.attachPage'), () => callbacks.onAttachPage(), 'button button--compact button--ghost');
   const attachments = el('span', 'ai-panel__attachments');
   const usage = el('span', 'ai-panel__usage');
+  const speed = el('span', 'ai-panel__usage ai-panel__speed');
   const stopButton = button(t('ai.stop'), () => callbacks.onStop(), 'button button--compact hidden');
   const sendButton = button(t('ai.send'), () => send(), 'button button--primary button--compact');
-  composerActions.append(attachPage, attachments, usage, stopButton, sendButton);
+  composerActions.append(attachPage, attachments, speed, usage, stopButton, sendButton);
   composer.append(mentionList, input, composerActions);
   host.append(header, destination, contextBar, messages, composer);
 
@@ -222,6 +226,10 @@ export function createChatPanel({ host, callbacks }) {
     setUsage(text) {
       usage.textContent = text;
     },
+    /** Tokens por segundo y tiempo de la última respuesta (RF-102.1). */
+    setSpeed(text) {
+      speed.textContent = text;
+    },
     clearMessages() {
       messages.replaceChildren();
     },
@@ -236,27 +244,93 @@ export function createChatPanel({ host, callbacks }) {
       messages.append(el('div', 'ai-msg ai-msg--user', text));
       scrollToEnd();
     },
-    /** Burbuja del asistente; devuelve funciones para ir llenándola. */
+    /**
+     * Burbuja del asistente; devuelve funciones para ir llenándola: el texto
+     * (`append`/`finish`), el indicador de actividad (RF-100.3) y el bloque
+     * plegable de razonamiento (RF-100.2), que solo se muestra y nunca se guarda.
+     */
     addAssistant(initial = '') {
       const bubble = el('div', 'ai-msg ai-msg--assistant md');
+      const activityLine = el('div', 'ai-activity hidden');
+      activityLine.setAttribute('role', 'status');
+      const thinkBox = el('details', 'ai-think hidden');
+      const thinkSummary = el('summary', 'ai-think__summary');
+      const thinkText = el('div', 'ai-think__text');
+      // La lista de mensajes es `aria-live`: el razonamiento no se anuncia, solo el indicador de estado (RF-100.6).
+      thinkBox.setAttribute('aria-live', 'off');
+      thinkBox.append(thinkSummary, thinkText);
+      const body = el('div', 'ai-msg__body');
+      bubble.append(activityLine, thinkBox, body);
       let text = initial;
-      if (text) renderInto(bubble, text);
+      if (text) renderInto(body, text);
       messages.append(bubble);
       scrollToEnd();
-      return {
+
+      let activityKind = null;
+      let thoughtStart = null;
+      let thoughtSeconds = null;
+      let timer = null;
+      let pendingThought = '';
+      let frame = null;
+      const seconds = () => Math.max(0, Math.round((Date.now() - thoughtStart) / 1000));
+      const flushThought = () => {
+        if (frame !== null) clearTimeout(frame);
+        frame = null;
+        if (!pendingThought) return;
+        thinkText.textContent += pendingThought;
+        pendingThought = '';
+        scrollToEnd();
+      };
+      const paintSummary = () => {
+        thinkSummary.textContent = (thoughtSeconds === null ? t('ai.thinkingFor') : t('ai.thoughtFor')).replace('{s}', String(thoughtSeconds ?? seconds()));
+      };
+
+      const api = {
         text: () => text,
         append(chunk) {
           text += chunk;
-          bubble.textContent = text;
+          body.textContent = text;
           scrollToEnd();
+        },
+        /** Qué está haciendo el modelo: `waiting`, `thinking`, `writing` o `null` (nada). */
+        activity(kind) {
+          if (kind === activityKind) return;
+          activityKind = kind;
+          activityLine.classList.toggle('hidden', !kind);
+          activityLine.textContent = kind ? t(`ai.activity.${kind}`) : '';
+        },
+        /** Un trozo de razonamiento: el bloque aparece abierto y se va llenando. */
+        thinking(chunk) {
+          if (thoughtStart === null) {
+            thoughtStart = Date.now();
+            thinkBox.classList.remove('hidden');
+            thinkBox.open = true;
+            paintSummary();
+            timer = setInterval(paintSummary, 1000);
+          }
+          pendingThought += chunk;
+          // Un modelo que razona emite cientos de trozos por segundo: se pintan agrupados.
+          if (frame === null) frame = setTimeout(flushThought, THOUGHT_PAINT_MS);
+        },
+        /** El razonamiento terminó: se contrae a «Pensó durante N s». */
+        endThinking() {
+          if (thoughtStart === null || thoughtSeconds !== null) return;
+          clearInterval(timer);
+          flushThought();
+          thoughtSeconds = seconds();
+          thinkBox.open = false;
+          paintSummary();
         },
         finish(final = text) {
           text = final;
-          if (text.trim()) renderInto(bubble, text);
-          else bubble.remove();
+          api.endThinking();
+          api.activity(null);
+          if (text.trim()) renderInto(body, text);
+          else if (thoughtStart === null) bubble.remove();
           scrollToEnd();
         },
       };
+      return api;
     },
     addStep(label) {
       messages.append(el('div', 'ai-step', `⋯ ${label}`));

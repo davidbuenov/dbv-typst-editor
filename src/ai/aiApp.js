@@ -22,6 +22,7 @@ import { createAcpSession, insideProject } from './acpSession.js';
 import { createChangesCard, createPermissionCard } from './acpView.js';
 import { buildContext, estimateTokens, RESPONSE_RESERVE, systemPrompt } from './context.js';
 import { CONTEXT_FILL_RATIO, TOOL_SPEC_TOKENS } from './modelFit.js';
+import { computeSpeed, formatSpeed, shouldHintSlow } from './speed.js';
 import { createModelClient } from './modelClient.js';
 import { applyChange, createProposal, normalizePath, overrides, parseChangeBlocks } from './proposal.js';
 import { createReviewCard } from './reviewView.js';
@@ -88,6 +89,8 @@ export function createAiApp(deps) {
   let excluded = new Set();
   let attachments = [];
   let busy = false;
+  /** Conversaciones en las que ya se sugirió comprobar la GPU (RF-102.2): una vez por conversación. */
+  const slowHinted = new Set();
   let cancel = null;
   let cancelled = false;
   let saveTimer = null;
@@ -329,6 +332,19 @@ export function createAiApp(deps) {
     };
   }
 
+  /** Tokens por segundo de la última respuesta, y una sola sugerencia por conversación si un modelo local va lento (RF-102). */
+  function reportSpeed(response, wallMs, connection, conversationId) {
+    const outputTokens = response.usage?.output ?? 0;
+    const speed = computeSpeed({ outputTokens, evalMs: response.usage?.evalMs ?? 0, wallMs });
+    if (!speed) return;
+    const { rate, seconds } = formatSpeed(speed);
+    panel.setSpeed(t('ai.speed').replace('{rate}', rate).replace('{seconds}', seconds));
+    if (shouldHintSlow({ speed, outputTokens, local: !isCloud(connection), alreadyHinted: slowHinted.has(conversationId) })) {
+      slowHinted.add(conversationId);
+      panel.addNote(t('ai.slowHint'));
+    }
+  }
+
   function contextBudget(connection) {
     const total = connection?.contextTokens ?? providerInfo.find((p) => p.provider === connection?.provider)?.contextTokens ?? 8192;
     // Las definiciones de las herramientas viajan en cada petición y ocupan ventana (≈631 tokens).
@@ -553,9 +569,25 @@ export function createAiApp(deps) {
         onStep: (step) => panel.addStep(step.label),
         callModel: async (request) => {
           bubble = panel.addAssistant();
+          bubble.activity('waiting');
+          let firstAt = 0;
           try {
-            const response = await client.call(connection.id, request, { onText: (chunk) => bubble.append(chunk), register: (fn) => (cancel = fn) });
+            const response = await client.call(connection.id, request, {
+              onThinking: (chunk) => {
+                firstAt ||= Date.now();
+                bubble.activity('thinking');
+                bubble.thinking(chunk);
+              },
+              onText: (chunk) => {
+                firstAt ||= Date.now();
+                bubble.endThinking();
+                bubble.activity('writing');
+                bubble.append(chunk);
+              },
+              register: (fn) => (cancel = fn),
+            });
             bubble.finish(response.text);
+            reportSpeed(response, firstAt ? Date.now() - firstAt : 0, connection, current.id);
             return response;
           } catch (error) {
             bubble.finish('');

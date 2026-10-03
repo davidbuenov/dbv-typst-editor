@@ -46,10 +46,13 @@ export function extractTextToolCalls(text) {
   return { calls, text: rest.trim() };
 }
 
-/** Recordatorio si el modelo dice que hay que usar `propose_changes` y no la usa. */
+/** El modelo habla de la herramienta o anuncia una propuesta («revisa y acepta esta propuesta», «I propose…»). */
+const CLAIMS_PROPOSAL = /propose_changes|\bpropuest[ao]s?\b|\bpropon(?:go|iendo|er|e)\b|\bpropongo\b|\b(?:proposal|proposing|i(?:'ll| will) propose)\b|(?:review|accept) (?:and accept |this |the )/i;
+
+/** Recordatorio si el modelo dice que propone un cambio (o que usa `propose_changes`) y no llama a la herramienta. */
 export function proposeNudge(text) {
-  return /propose_changes/.test(text ?? '')
-    ? 'You mentioned propose_changes but did not call it. If a file must change, call the propose_changes tool now with the exact edit; otherwise answer briefly without code.'
+  return CLAIMS_PROPOSAL.test(text ?? '')
+    ? 'You said you are proposing a change but did not call the propose_changes tool, so NOTHING was proposed and the user sees no proposal. If a file must change, call the propose_changes tool now with the exact edit; otherwise answer briefly without code.'
     : null;
 }
 

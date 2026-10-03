@@ -118,9 +118,19 @@ describe('runAgent', () => {
     const { callModel, calls } = scripted({ text: 'Usa propose_changes para cambiarlo.', toolCalls: [] }, { text: 'Sigue sin llamarla: propose_changes.', toolCalls: [] });
     const result = await runAgent({ callModel, tools: [], messages: [], followUp: proposeNudge });
     expect(calls).toHaveLength(2);
-    expect(calls[1].messages.at(-1).content).toMatch(/did not call it/);
+    expect(calls[1].messages.at(-1).content).toMatch(/NOTHING was proposed/);
     expect(result.outcome).toBe('done');
     expect(proposeNudge('Respuesta normal')).toBeNull();
+  });
+
+  it('también lo recuerda si anuncia una propuesta sin nombrar la herramienta', () => {
+    for (const text of [
+      'Intentaré de nuevo proponiendo la modificación exacta. Por favor, revisa y acepta esta propuesta.',
+      'He propuesto un cambio para añadir la ecuación.',
+      'Aquí está la propuesta para añadir la ecuación.',
+      "I'll propose the exact edit. Please review and accept it.",
+    ]) expect(proposeNudge(text), text).not.toBeNull();
+    expect(proposeNudge('La ecuación se escribe con $ ... $ en Typst.')).toBeNull();
   });
 
   it('parseArguments tolera vacío y objetos', () => {

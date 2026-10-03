@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Sin publicar] / [Unreleased]
 
+### Fixed
+
+- **La IA ya no dice «propuesto» cuando no ha propuesto nada.** Si el modelo llamaba a `propose_changes` con `changes` vacío, ausente o que no era una lista, la herramienta devolvía una cadena vacía: no aparecía tarjeta de revisión y el modelo, sin error que leer, afirmaba haber propuesto (o incluso aplicado) el cambio. Ahora la herramienta devuelve un error explícito («NOTHING was proposed…») cuando no llega ningún cambio o cuando ninguno modifica un fichero (edición idéntica al texto actual o que falló), de modo que el modelo reintenta o se lo dice al usuario; y un único cambio enviado como objeto se acepta como lista de uno. 3 tests nuevos en `tools.test.js`.
+- **El asistente recuerda llamar a la herramienta aunque no la nombre.** Con Gemma 4 el modelo escribía «Intentaré de nuevo proponiendo… revisa y acepta esta propuesta» sin llamar a `propose_changes`, y el turno acababa sin propuesta: el recordatorio solo saltaba si el texto contenía literalmente `propose_changes`. Ahora salta (una vez por turno, y solo si aún no hay propuesta) también ante frases como «propuesta», «proponiendo» o «review and accept», y el aviso dice que NO se ha propuesto nada. 1 test nuevo en `agentLoop.test.js`.
+
 ## [0.13.0] - 2026-10-02
 
 Llega un asistente de IA integrado y **opcional**: local (Ollama, LM Studio), en la nube con tu clave de API (Anthropic, OpenAI, Gemini, OpenRouter) o tu agente instalado con tu suscripción (Claude Code, Gemini CLI, Codex, Copilot). Conversa con el proyecto como contexto y propone cambios en varios ficheros que DBV compila en memoria antes de enseñarlos y que se revisan trozo a trozo antes de aplicar; IA en línea sobre la selección y «Explicar y arreglar» en los errores. Sin configurar nada, el editor funciona igual que siempre. Además: documentación oficial de Typst sin conexión, panel de Problemas completo y visor de datos CSV/TSV.

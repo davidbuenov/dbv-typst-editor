@@ -472,6 +472,26 @@
 - **Lecciones de la prueba con un modelo real.** (1) `llama-server` con un modelo que «piensa» (Gemma 4) deja `content` vacío mientras razona en `reasoning_content`: hay que arrancarlo con `--reasoning-budget 0`. (2) El `n_ctx` de `/props` es el **total**, y cada slot recibe `n_ctx / total_slots`. (3) Un servidor que no es Ollama no debe conectarse como «Ollama»: el protocolo nativo no se entiende y el asistente se queda mudo; la guía lo avisa. (4) Los argumentos de las herramientas los escribe el modelo: nada que los use fuera del `try` (ni siquiera una etiqueta) puede dar por hecho su forma.
 - **Privacidad.** `privacidad.html`/`privacy.html` dejan de afirmar que todo ocurre en el equipo sin matices: la conexión con una IA en la nube o un agente es opcional y va del equipo del usuario al proveedor que elige, con aviso previo.
 
+### ADR-V0130-005 — v0.13.1: la 0.13.0 no va a la Store; la IA se endereza con modelos locales (2026-10-03)
+
+*Decidida por el usuario al probar la 0.13.0 con modelos reales.*
+
+- **Contexto.** La 0.13.0 ya está en GitHub (`ADR-V0130-004` movió el tag antes de publicar). La prueba con Gemma 4, `qwen2.5:3b`, `qwen3:8b` y Claude destapó: propuestas anunciadas pero inexistentes (`propose_changes` con argumentos vacíos devolvía una cadena vacía; el recordatorio solo saltaba si el texto decía literalmente `propose_changes`), un panel mudo mientras el modelo razona (el backend descartaba `thinking`/`reasoning_content`), una guía que recomendaba un modelo de 3B que la evaluación deja en 2/32, y espera larga con `qwen3:8b` en una RTX 4070 Ti de 12 GB.
+- **Decisión.** No publicar la 0.13.0 en la Microsoft Store; la Store recibirá la **0.13.1** (§5o, RF-99 a RF-104). Como la 0.13.0 ya salió en GitHub, aquí sí es una versión nueva, no una reapertura como en `ADR-V0130-004`.
+- **Decisiones de producto (usuario):** razonamiento **desactivado por defecto con interruptor por conexión**; mostrarlo solo en **Ollama y compatibles con OpenAI** (el resto de proveedores, mejora futura); entran indicador de velocidad, medición con recomendación de modelos y análisis del contexto mínimo.
+- **Lecciones.** (1) Una herramienta que falla en silencio es peor que una que da error: el modelo, sin nada que leer, afirma que lo hizo. (2) Un recordatorio basado en una palabra exacta no sirve con modelos que parafrasean. (3) Un ejemplo en la documentación es una recomendación: hay que respaldarlo con la evaluación. (4) Los dos arreglos de RF-99 se hicieron fuera de ciclo, antes del `/spec`, y se registran aquí como «ya construido».
+
+### ADR-V0130-006 — Decisiones de `/plan` de v0.13.1 tomadas SIN el usuario (para revisar)
+
+*Plan en `implementation_plan.md`. Aprobación explícita pendiente.*
+
+- **Hallazgo crítico (R-B1).** Un `.typ` suelto tiene como raíz su carpeta (`describe_single_file`) y `listProjectFiles` la recorre entera: la IA veía —y con una IA en la nube enviaba— ficheros ajenos. Ya pasaba con «Abrir archivo»; «Nuevo documento» con «última carpeta» lo amplificaba. Slice 137 confina la IA al fichero, antes de «Nuevo documento».
+- **Presupuesto de contexto.** No descontaba las definiciones de las herramientas (≈631 tokens; el sistema, ≈313). Se corrige. Mínimo orientativo 8 192, recomendado 16 384 con razonamiento (Ollama arranca con 4 096: presupuesto útil ≈2 250).
+- **Razonamiento.** `think` solo si `/api/show` declara `thinking`; `chat_template_kwargs.enable_thinking` solo en `OpenAiCompatible` (nunca en OpenAI, Gemini, OpenRouter ni LM Studio, que podrían rechazar el campo); un 400 se reintenta una vez sin él. El razonamiento viaja por un callback y NUNCA en la respuesta del bucle: no entra en el historial ni en disco.
+- **Nuevo documento.** Si la ruta final ya existe (nombre sin `.typ` que cambia el destino) no se toca y se avisa; `lastDocumentDir` es una preferencia de interfaz; atajo `Ctrl+Alt+N`, a verificar contra RF-80.
+- **Umbral de recomendación (RF-104):** ≥ 40 % de tareas superadas y ≥ 80 % de las que compilan, a confirmar al medir.
+- **Orden de RF-105:** primero las tareas y la métrica con línea base, después el prompt, para poder comparar.
+
 ### Lección — los permisos ACL de Tauri no los ve ninguna herramienta de este repo (2026-09-22)
 
 `appWindow.destroy()` (RF-64.6) se escribió, se testeó con Vitest y pasó `verify:frontend`/`verify:layout` — y aun así fallaba en la ventana real: "Promesa rechazada: Command plugin:window|destroy not allowed by ACL". `src-tauri/capabilities/main.json` no declaraba `core:window:allow-destroy`. Ninguna comprobación sin Tauri real puede detectar esto: Vitest simula el DOM, no el puente de comandos de Tauri.

@@ -633,9 +633,42 @@
   - [x] **`/test` de v0.13.0 — 2026-10-02.** Test de integración de la IA (`aiApp.test.js`) que destapó dos fallos reales (recaída sin herramientas; oyente global). Revisión adelantada: tope y foto completa del punto de restauración, Deshacer sin pisar, Detener que libera. Mutación 10/10. Evals reales con `llama3` y `qwen2.5:3b` (`testfiles/ai-evals/README.md`). Paquete inicial: +13,6 KB sobre el previo a la IA (el código de la IA, 87 KB, va aparte). Suites: 1194 Vitest · 485 Rust · `verify:frontend` 12/12 · `verify:layout` 20/20 · `verify:typst` 8/8 · `verify:templates` 40/40 · `verify:engine` 68 ms. **Pendiente del usuario:** prueba en ventana real (Ollama, Claude Code por ACP, una clave de nube). **Siguiente: `/code-simplify`.**
   - [x] **`/build` de v0.13.0 COMPLETO (2026-10-02).** Commits `32e7c32` (127), `8edbdd5` (128), `fc17c74` (129), `2356337` (130), `dc9ab0d` (131-132), `4da8b5a` (Ollama nativo), `eb4e740` (133), `6abba3a` (134), `e53cd19` (135-136). Desvíos del plan registrados en `ADR-V0130-003`. **Siguiente: `/test`.**
 
+- [x] **Fase 65: `/spec` de v0.13.1 — cerrado el 2026-10-03 (`SPECIFICATIONS.md` v1.18, §5o, RF-99 a RF-106; `ADR-V0130-005`).** Nace de probar la 0.13.0 con modelos reales (Gemma 4, `qwen2.5:3b`, `qwen3:8b`, Claude). La 0.13.0 NO se publica en la Microsoft Store; la Store recibirá la 0.13.1.
+  - [x] **RF-99 (ya construido, sin commit):** `propose_changes` nunca devuelve vacío y dice «NOTHING was proposed» (`tools.js`); el recordatorio por falta de llamada salta con frases como «propuesta/proponiendo» (`agentLoop.js`). 4 tests nuevos; changelog ES+EN en `[Sin publicar]`.
+  - [ ] **RF-100** razonamiento (`thinking`/`reasoning_content`) visible y plegable + indicador de actividad (Ollama y compatibles con OpenAI; nunca se reenvía ni se guarda).
+  - [ ] **RF-101** interruptor «Razonamiento» por conexión, desactivado por defecto (`think` en Ollama).
+  - [ ] **RF-102** tokens/s y tiempo en el panel, con sugerencia si va lento (`ollama ps`).
+  - [ ] **RF-103** aviso de modelo pequeño (<7B) y de contexto menor que el mínimo recomendable (se mide en `/plan`); sustituir el ejemplo `qwen2.5:3b` en la guía y la Ayuda.
+  - [ ] **RF-104** `eval:ai` con `qwen3:8b` y `qwen3:14b` (con/sin razonamiento y documentación) y tabla de recomendación con datos en la guía.
+  - [ ] **RF-105** la IA separa presentación de contenido: el estilo (`#set`/`#show`, formato) va en ficheros de estilo, no en el principal; usa el que haya o lo crea con un `#import`; métrica y tareas nuevas en `eval:ai`. Añadido el 2026-10-03 tras verlo en la prueba.
+  - [ ] **RF-106** «Nuevo documento…» suelto sin proyecto (opción A: se guarda primero y se abre como documento suelto; carpeta por defecto = la última usada; plantilla vacía). Petición recurrente de usuarios; añadido el 2026-10-03.
+  - Decisiones del usuario: razonamiento desactivado por defecto; solo Ollama y compatibles (otros proveedores, mejora futura); entran velocidad, medición y contexto mínimo. **Siguiente: `/plan`.**
+
+- [x] **Fase 66: `/plan` de v0.13.1 — 2026-10-03 (`implementation_plan.md`, `ADR-V0130-006`). APROBACIÓN DEL USUARIO PENDIENTE.** Modo Orquestador, nueve slices, un commit por slice con changelog ES+EN. Hallazgo crítico: un `.typ` suelto deja a la IA ver su carpeta entera (R-B1).
+  - [ ] **Slice 136** — commitear RF-99 (ya construido) tras verificar `vitest` y changelog.
+  - [ ] **Slice 137** — confinar la IA a un documento suelto: lista, lectura, búsqueda y propuesta solo del fichero; aviso en el indicador (RF-106.7, R-B1).
+  - [ ] **Slice 138** — «Nuevo documento…» (RF-106): `create_empty_document`, `save_file_dialog` con carpeta, `lastDocumentDir`, menú + macOS + inicio + atajo, ES/EN, tests.
+  - [ ] **Slice 139** — backend del razonamiento (RF-100.1, 101.2, 102.1): `StreamEvent::Thinking`, `think`, `enable_thinking`, `eval_ms`, `Connection.reasoning`; tests con servidor simulado.
+  - [ ] **Slice 140** — conocer el modelo (RF-103): `ai_model_info` (`/api/show`), `modelFit.js` puro, presupuesto que descuenta las herramientas.
+  - [ ] **Slice 141** — panel (RF-100.2-.4/.6, RF-102): bloque `<details>`, indicador de actividad, tokens/s y sugerencia de GPU.
+  - [ ] **Slice 142** — formulario (RF-101, RF-103): interruptor «Razonamiento», aviso de modelo pequeño y de contexto corto.
+  - [ ] **Slice 143** — separar presentación de contenido (RF-105): tareas y métrica + línea base con `qwen3:8b`, luego prompt y ficheros de estilo en el contexto.
+  - [ ] **Slice 144** — medir y recomendar (RF-104, RF-103.4): `eval:ai` con `qwen3:8b`/`14b`, tabla en la guía ES/EN y Ayuda sin `qwen2.5:3b`.
+  - Después: `/test`, `/code-simplify`, `/ship` 0.13.1 (`.msixbundle` y `notasActualizacionStore_v0.13.1.md`). **Siguiente: aprobación del plan y `/build`.**
+
 ## 🔄 Context Snapshot / Snapshot de Contexto
 
-> ### 👉 RETOMAR AQUÍ (2026-10-03): v0.13.0 PUBLICADA
+> ### 👉 RETOMAR AQUÍ (2026-10-03): v0.13.1 PLANIFICADA — falta la aprobación del usuario para `/build`
+>
+> `/spec` de v0.13.1 hecho (`SPECIFICATIONS.md` v1.18, §5o, RF-99 a RF-106; `ADR-V0130-005`). RF-99 ya está
+> construido en el árbol de trabajo SIN commit (`src/ai/tools.js`, `agentLoop.js`, sus tests y el changelog ES+EN
+> en `[Sin publicar]`): hay que commitearlo. Los demás RF están por hacer. La 0.13.0 no va a la Store; la
+> Store recibirá la 0.13.1. Preguntas abiertas para `/plan` al final de §5o (`think` en Ollama, parámetro por
+> petición en llama.cpp, mínimo de contexto medido, umbral de recomendación). El vídeo de demostración queda
+> pospuesto hasta tener esto. Nota: hay `memory.md` y `task.md` sin seguimiento en la raíz del repositorio,
+> ajenos a `dbv-specs-ops/`: revisar si sobran.
+>
+> **Estado anterior (2026-10-03): v0.13.0 PUBLICADA**
 >
 > Release publicada: https://github.com/davidbuenov/dbv-typst-editor/releases/tag/v0.13.0 (notas ES + EN;
 > `.dmg`, `.app.tar.gz`, `.AppImage`, `.zsync` y `.deb`). El push destapó un fallo real que la CI de Linux

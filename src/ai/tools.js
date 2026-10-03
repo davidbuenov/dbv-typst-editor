@@ -187,9 +187,17 @@ export function createTools(deps) {
         const proposal = deps.getProposal();
         if (summary) proposal.summary = summary;
         const report = [];
-        for (const change of Array.isArray(changes) ? changes : []) {
-          const result = await applyChange(proposal, { ...change, newPath: change.new_path ?? change.newPath }, (path) => deps.readText(path));
-          report.push(result.ok ? `ok: ${change.action} ${change.path}` : `error: ${change.path}: ${result.message}`);
+        // Un modelo pequeño manda a veces un solo cambio como objeto en vez de lista.
+        const received = Array.isArray(changes) ? changes : changes && typeof changes === 'object' ? [changes] : [];
+        if (!received.length) {
+          return 'error: no changes were received, so NOTHING was proposed. Call propose_changes again with `changes` as a non-empty array of {path, action, search, replace}. Do not tell the user a proposal was made.';
+        }
+        for (const change of received) {
+          const result = await applyChange(proposal, { ...change, newPath: change?.new_path ?? change?.newPath }, (path) => deps.readText(path));
+          report.push(result.ok ? `ok: ${change.action} ${change.path}` : `error: ${change?.path}: ${result.message}`);
+        }
+        if (!proposal.files.size) {
+          report.push('NOTHING was proposed: no change modified any file (the edit may be empty or identical to the current text). Tell the user the proposal is empty or retry with a correct edit.');
         }
         const checked = proposal.files.size ? await deps.checkProposal(proposal) : null;
         if (checked) {

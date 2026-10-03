@@ -91,6 +91,20 @@ Sigue habiendo **DOS sidecars** (ver `dbv-specs-ops/docs/MICROSOFT_STORE.md` §6
 
 Hasta la 0.12.1 la app no enviaba ningún dato del usuario a terceros. Desde la 0.13.0 **puede hacerlo, solo si el usuario conecta una IA en la nube o un agente**: el contenido del proyecto que la conversación necesite va al proveedor que el propio usuario elige, con su clave o su cuenta. DBV no tiene servidor propio ni telemetría.
 
-- [x] La política de privacidad de la web (`docs/privacidad.html` y `docs/privacy.html`) se actualizó el 2026-10-02 para decir esto con claridad. **Falta que la leas** y que la URL que figura en la ficha de Partner Center sea esa.
-- [ ] Actualizar la descripción de la ficha (`descripcionStore_es.md` y `descripcionStore_en.md`), que aún no menciona la IA opcional.
+- [x] La política de privacidad de la web (`docs/privacidad.html` y `docs/privacy.html`) se actualizó el 2026-10-02 para decir esto con claridad y **fue revisada y dada por buena por el usuario**. Falta comprobar que la URL de política de privacidad que figura en la ficha de Partner Center es esa.
+- [x] La descripción de la ficha (`descripcionStore_es.md` y `descripcionStore_en.md`) se revisó para mencionar la IA opcional: ver la sección 5.
 - [ ] Revisar en Partner Center las declaraciones de la ficha relacionadas con datos o privacidad, si las hay, para que sean coherentes.
+
+## 5. Descripción de la ficha: revisión para la IA opcional
+
+La descripción de la ficha seguía diciendo «100% local» sin matiz, su campo «Novedades» aún hablaba de la v0.4/0.5 y la lista de características ya usaba los 20 huecos permitidos. Se revisaron los dos ficheros fuente (`descripcionStore_es.md` y `descripcionStore_en.md`); **en Partner Center hay que repetir el copiado de estos campos**, no solo el de «Novedades»:
+
+| Campo de Partner Center | Qué cambió | Límite | Medida |
+| --- | --- | --- | --- |
+| Descripción | Frase inicial: «100% local **por defecto** … con un asistente de IA opcional que eliges tú»; cinco viñetas nuevas (IA opcional con sus tres vías, la IA propone y la app comprueba que compila, IA sobre la selección y «Explicar y arreglar», documentación sin conexión, Problemas y visor CSV/TSV); el párrafo final nombra la IA entre las conexiones y explica qué sale del equipo y que las claves van al Administrador de credenciales | — | — |
+| Novedades de esta versión | Texto de la 0.13.0 (el mismo de la sección 1) en lugar del de la v0.4/0.5 | 1.500 | ES 1.027 · EN 979 |
+| Características del producto | Se fusionan cuatro pares de líneas parecidas (tinymist + Typstyle, Git + conflictos, citas + imágenes, sincronización + chincheta) y el esquema pasa a «Esquema y Problemas»; entran cuatro líneas de IA, documentación y datos | 20 | 20 y 20 |
+| Descripción corta | Pasa de «100% local» a «local por defecto» y menciona la IA opcional; se retira la mención a los temas por espacio | 270 recomendado | ES 251 · EN 255 |
+
+- [ ] Pegar los cuatro campos en español y en inglés en Partner Center → Descripciones de la Store.
+- [ ] Capturas de la ficha: ninguna muestra el asistente de IA. Opcional: añadir una del panel de la IA para que lo prometido en la descripción se vea.

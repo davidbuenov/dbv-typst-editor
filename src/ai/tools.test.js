@@ -69,6 +69,32 @@ describe('herramientas', () => {
     expect(proposal.summary).toBe('Arreglo');
   });
 
+  it('propose_changes sin cambios utilizables avisa de que NO se propuso nada', async () => {
+    const { tools, proposal, deps } = setup();
+    for (const changes of [undefined, [], null, 'cap.typ', 7]) {
+      expect(await tools.propose_changes.run({ changes })).toMatch(/NOTHING was proposed/);
+    }
+    expect(proposal.files.size).toBe(0);
+    expect(deps.readText).not.toHaveBeenCalled();
+  });
+
+  it('propose_changes acepta un único cambio como objeto en vez de lista', async () => {
+    const { tools, proposal } = setup();
+    const report = await tools.propose_changes.run({ changes: { path: 'cap.typ', action: 'edit', search: 'Uno.', replace: 'Uno bis.' } });
+    expect(report).toContain('ok: edit cap.typ');
+    expect(resultText(proposal.files.get('cap.typ'))).toBe('Uno bis.\n');
+  });
+
+  it('propose_changes avisa si ningún cambio modifica un fichero (idéntico o fallido)', async () => {
+    const { tools, proposal } = setup();
+    const same = await tools.propose_changes.run({ changes: [{ path: 'cap.typ', action: 'edit', search: 'Uno.', replace: 'Uno.' }] });
+    expect(same).toMatch(/NOTHING was proposed/);
+    const missing = await tools.propose_changes.run({ changes: [{ path: 'cap.typ', action: 'edit', search: 'no existe', replace: 'x' }] });
+    expect(missing).toContain('error: cap.typ');
+    expect(missing).toMatch(/NOTHING was proposed/);
+    expect(proposal.files.size).toBe(0);
+  });
+
   it('si la propuesta no compila, pide corregir y deja de insistir tras los reintentos (RF-94.3)', async () => {
     const check = async () => ({ fresh: [err('cap.typ', 'unknown variable: y')], fixed: 0 });
     const { tools } = setup({ check });

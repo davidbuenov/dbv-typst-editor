@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **The AI no longer says "proposed" when it proposed nothing.** If the model called `propose_changes` with an empty, missing or non-list `changes`, the tool returned an empty string: no review card appeared and the model, with no error to read, claimed it had proposed (or even applied) the change. The tool now returns an explicit error ("NOTHING was proposed…") when no change arrives or when none modifies a file (an edit identical to the current text, or one that failed), so the model retries or tells the user; and a single change sent as an object is accepted as a one-item list. 3 new tests in `tools.test.js`.
+- **The assistant is reminded to call the tool even when it does not name it.** With Gemma 4 the model wrote "I'll try again by proposing… please review and accept this proposal" without calling `propose_changes`, and the turn ended with no proposal: the reminder only fired if the text literally contained `propose_changes`. It now also fires (once per turn, and only while there is no proposal yet) on phrases such as "propuesta", "proponiendo" or "review and accept", and the notice says NOTHING was proposed. 1 new test in `agentLoop.test.js`.
+
 ## [0.13.0] - 2026-10-02
 
 A built-in, **optional** AI assistant arrives: local (Ollama, LM Studio), in the cloud with your API key (Anthropic, OpenAI, Gemini, OpenRouter) or your installed agent with your subscription (Claude Code, Gemini CLI, Codex, Copilot). It chats with the project as context and proposes multi-file changes that DBV compiles in memory before showing them and that you review hunk by hunk before applying; inline AI on the selection and "Explain and fix" on errors. With nothing configured, the editor works exactly as before. Plus: offline official Typst documentation, a complete Problems panel and a CSV/TSV data viewer.

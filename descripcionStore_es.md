@@ -6,7 +6,7 @@
 
 ## Descripción *
 
-DBV Typst Editor es el entorno de escritorio más accesible para el ecosistema Typst: un editor nativo para Windows, ligero, rápido y 100% local — sin cuentas, sin publicidad, sin telemetría.
+DBV Typst Editor es el entorno de escritorio más accesible para el ecosistema Typst: un editor nativo para Windows, ligero, rápido y 100% local por defecto — sin cuentas, sin publicidad, sin telemetría — con un asistente de IA opcional que eliges tú.
 
 Crea un proyecto desde una plantilla académica (TFG, TFM, tesis doctoral, artículo, informe técnico, presentación o currículum) y empieza a escribir con resaltado de sintaxis real de Typst mientras ves el PDF actualizarse solo, sin pulsar nada. Un asistente de creación rellena por ti los datos del documento (título, autor, tutor, institución...), y una barra de herramientas inserta el marcado por ti — negrita, encabezados, tablas, ecuaciones, citas — para quien no quiera aprenderse la sintaxis. El compilador oficial de Typst viaja dentro de la propia aplicación: todo funciona sin conexión, y un proyecto creado aquí es un proyecto Typst normal y corriente, sin ataduras.
 
@@ -21,18 +21,33 @@ Características principales:
 • Panel de navegación estructural (esquema) con clic para saltar a esa página
 • Typst Universe integrado: plantillas y paquetes de la comunidad, con licencia visible antes de instalar
 • Exportación a PDF y PNG, y empaquetado del proyecto completo en un solo fichero (.dbvt) para compartirlo
+• Asistente de IA opcional: local (Ollama, LM Studio u otro servidor compatible con OpenAI), en la nube con tu clave de API (Anthropic, OpenAI, Gemini, OpenRouter) o con tu suscripción mediante tu agente instalado (Claude Code, Codex, Gemini CLI, Copilot)
+• La IA propone cambios, también en varios ficheros; la aplicación comprueba que compilan antes de enseñártelos y los revisas trozo a trozo, con Deshacer
+• IA sobre la selección (Ctrl+Mayús+I) y «Explicar y arreglar» en cada error de compilación
+• Documentación oficial de Typst sin conexión, con buscador también en español
+• Panel de Problemas con todos los errores del proyecto y visor de datos CSV/TSV con «Insertar como tabla»
 • Terminal avanzado opcional para quien prefiera el CLI de Typst directamente
 • Tres temas: Claro, Oscuro y Sepia
 • Interfaz disponible en español e inglés
 • Instancia única: abrir un segundo documento enfoca la ventana existente
 
-Sin conexión a internet requerida para compilar ni editar. Typst Universe y la comprobación manual de actualizaciones son las únicas conexiones, y solo cuando tú las pides.
+Sin conexión a internet requerida para compilar ni editar. Typst Universe, la comprobación manual de actualizaciones y la IA que tú conectes son las únicas conexiones, y solo cuando tú las pides. Con una IA local, nada sale de tu equipo; si conectas una IA en la nube o un agente, lo que envíes va directamente de tu equipo al proveedor que elijas y se te pregunta antes. Las claves de API se guardan en el Administrador de credenciales de Windows, nunca en un fichero.
 
 ---
 
 ## Novedades de esta versión
 
-v0.4.0 y v0.5.0: autocompletado semántico, diagnósticos en vivo y formateo con un clic gracias al Language Server oficial de Typst integrado (tinymist); galería de plantillas rediseñada con previsualización maquetada a tamaño completo, también para las plantillas de Typst Universe; nuevo asistente de diagramas CeTZ, runner de Python para figuras y datos dinámicos, e integración con Git (commit/push/pull y comparador de diferencias lado a lado ante cualquier conflicto). Además: chincheta para mantener la ventana siempre encima, sincronización bidireccional entre editor y vista previa con doble clic, y la vista previa pasa a compilar el documento completo del proyecto —con bibliografía y referencias cruzadas reales— y control de refresco automático o manual.
+Versión 0.13.0 — Asistente de IA opcional, documentación sin conexión y más:
+
+• Asistente de IA OPCIONAL: conecta una IA local (Ollama, LM Studio), en la nube con tu clave (Anthropic, OpenAI, Gemini, OpenRouter) o tu agente instalado (Claude Code, Gemini CLI, Codex, Copilot). Sin configurar nada, el editor funciona igual que siempre.
+• La IA propone cambios, también en varios ficheros; DBV comprueba que compilan antes de enseñártelos y los revisas trozo a trozo antes de aplicar, con Deshacer.
+• IA sobre la selección (Ctrl+Mayús+I): mejorar, corregir, traducir, convertir a tabla, explicar…
+• «Explicar y arreglar» en cada error de compilación.
+• Documentación oficial de Typst sin conexión, con buscador también en español.
+• Nuevo panel de Problemas con la lista completa de errores y avisos.
+• Visor de datos CSV/TSV con «Insertar como tabla».
+• Guía y ayuda para conectar cada IA (local, nube o tu suscripción).
+• Con una IA local nada sale de tu equipo; las claves se guardan en el almacén de credenciales de Windows.
 
 ---
 
@@ -40,25 +55,25 @@ v0.4.0 y v0.5.0: autocompletado semántico, diagnósticos en vivo y formateo con
 *(máximo 20, resúmenes breves — se muestran como lista con viñetas)*
 
 1. Editor Typst nativo con vista previa PDF en tiempo real
-2. 100% local: sin cuentas, sin telemetría, sin publicidad
-3. Autocompletado semántico y diagnósticos en vivo con el Language Server oficial de Typst (tinymist)
-4. Formateo de código con un clic (Typstyle)
-5. 8 plantillas académicas: TFG, TFM, tesis doctoral, artículo, informe técnico, presentación, CV, proyecto en blanco
-6. Galería visual de plantillas con previsualización maquetada a tamaño completo
-7. Typst Universe integrado: explora, previsualiza y usa plantillas y paquetes de la comunidad
-8. Asistente de creación de proyecto con formulario de datos (título, autor, institución...)
-9. Barra de herramientas de inserción: formato, estructura, tablas, ecuaciones y símbolos matemáticos
-10. Asistente de diagramas CeTZ: diagramas de flujo, de bloques, gráficas matemáticas y lienzos
-11. Runner de Python integrado para figuras y datos dinámicos (Matplotlib, NumPy, pandas)
-12. Integración con Git: estado, commit, push y pull sin salir del editor
-13. Resolución de conflictos con comparador de diferencias lado a lado
-14. Asistente de citas con autocompletado desde tu propio fichero .bib
-15. Gestión de imágenes por arrastrar y soltar, sin copias duplicadas
-16. Panel de esquema con navegación directa a la vista previa
-17. Sincronización bidireccional editor↔vista previa con doble clic
-18. Chincheta para mantener la ventana siempre encima
-19. Exportación a PDF y PNG, y empaquetado del proyecto en un solo fichero (.dbvt)
-20. Tres temas (Claro, Oscuro, Sepia) e interfaz en español e inglés
+2. 100% local por defecto: sin cuentas, sin telemetría, sin publicidad (la IA es opcional)
+3. Autocompletado semántico, diagnósticos en vivo (tinymist) y formateo con un clic (Typstyle)
+4. 8 plantillas académicas: TFG, TFM, tesis doctoral, artículo, informe técnico, presentación, CV, proyecto en blanco
+5. Galería visual de plantillas con previsualización maquetada a tamaño completo
+6. Typst Universe integrado: explora, previsualiza y usa plantillas y paquetes de la comunidad
+7. Asistente de creación de proyecto con formulario de datos (título, autor, institución...)
+8. Barra de herramientas de inserción: formato, estructura, tablas, ecuaciones y símbolos matemáticos
+9. Asistente de diagramas CeTZ: diagramas de flujo, de bloques, gráficas matemáticas y lienzos
+10. Runner de Python integrado para figuras y datos dinámicos (Matplotlib, NumPy, pandas)
+11. Integración con Git: estado, commit, push, pull y resolución de conflictos con comparador lado a lado
+12. Asistente de citas con autocompletado desde tu .bib y gestión de imágenes por arrastrar y soltar
+13. Paneles de esquema y de Problemas con navegación directa a la vista previa y al error
+14. Sincronización bidireccional editor↔vista previa y chincheta para mantener la ventana encima
+15. Exportación a PDF y PNG, y empaquetado del proyecto en un solo fichero (.dbvt)
+16. Tres temas (Claro, Oscuro, Sepia) e interfaz en español e inglés
+17. IA opcional: local (Ollama, LM Studio), en la nube con tu clave de API o con tu suscripción mediante un agente (Claude Code, Codex, Gemini CLI, Copilot)
+18. La IA propone, la aplicación comprueba que compila y tú decides trozo a trozo, con Deshacer
+19. IA sobre la selección (Ctrl+Mayús+I) y «Explicar y arreglar» en cada error
+20. Documentación oficial de Typst sin conexión y visor de datos CSV/TSV
 
 ---
 
@@ -72,7 +87,7 @@ DBV Typst Editor
 ### Descripción corta
 *(máx. recomendado 270 caracteres)*
 
-Editor de escritorio nativo para Typst: rápido, ligero y 100% local. Crea proyectos desde plantillas académicas, escribe con vista previa PDF en tiempo real, inserta citas/tablas/ecuaciones con la barra de herramientas y compila sin conexión. Temas Claro/Oscuro/Sepia. Sin telemetría.
+Editor de escritorio nativo para Typst: rápido, ligero y local por defecto. Plantillas académicas, vista previa PDF en tiempo real, barra de inserción y compilación sin conexión. Asistente de IA opcional (local, nube o tu suscripción). Sin telemetría.
 
 ---
 

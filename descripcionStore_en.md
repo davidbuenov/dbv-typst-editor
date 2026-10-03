@@ -6,7 +6,7 @@
 
 ## Description *
 
-DBV Typst Editor is the most accessible desktop environment for the Typst ecosystem: a native Windows editor, lightweight, fast, and 100% local — no accounts, no ads, no telemetry.
+DBV Typst Editor is the most accessible desktop environment for the Typst ecosystem: a native Windows editor, lightweight, fast, and 100% local by default — no accounts, no ads, no telemetry — with an optional AI assistant of your choice.
 
 Create a project from an academic template (bachelor thesis, master thesis, doctoral thesis, paper, technical report, presentation, or CV) and start writing with real Typst syntax highlighting while the PDF updates on its own, with nothing to click. A creation assistant fills in the document's data for you (title, author, supervisor, institution...), and a toolbar inserts markup for you — bold, headings, tables, equations, citations — for anyone who'd rather not learn the syntax. The official Typst compiler ships inside the app itself: everything works offline, and a project created here is an ordinary Typst project, with no lock-in.
 
@@ -21,18 +21,33 @@ Key features:
 • Structural outline panel with click-to-jump to that page
 • Built-in Typst Universe: community templates and packages, with the license shown before installing
 • Export to PDF and PNG, and packing the whole project into a single file (.dbvt) to share it
+• Optional AI assistant: local (Ollama, LM Studio or any OpenAI-compatible server), cloud with your own API key (Anthropic, OpenAI, Gemini, OpenRouter), or your subscription through your installed agent (Claude Code, Codex, Gemini CLI, Copilot)
+• The AI proposes changes, across several files too; the app checks they compile before showing them and you review them hunk by hunk, with Undo
+• AI on the selection (Ctrl+Shift+I) and "Explain and fix" on every compile error
+• Official Typst documentation offline, searchable (also in Spanish)
+• Problems panel with every error in the project, and a CSV/TSV data viewer with "Insert as table"
 • Optional advanced terminal for anyone who prefers the Typst CLI directly
 • Three themes: Light, Dark, and Sepia
 • Interface available in English and Spanish
 • Single instance: opening a second document focuses the existing window
 
-No internet connection required to compile or edit. Typst Universe and the manual update check are the only connections, and only when you ask for them.
+No internet connection required to compile or edit. Typst Universe, the manual update check and the AI you connect are the only connections, and only when you ask for them. With a local AI nothing leaves your computer; if you connect a cloud AI or an agent, what you send goes straight from your machine to the provider you chose, and you are asked first. API keys are stored in the Windows Credential Manager, never in a file.
 
 ---
 
 ## What's new in this version
 
-v0.4.0 and v0.5.0: semantic autocomplete, live diagnostics, and one-click formatting thanks to the official Typst Language Server now built in (tinymist); a redesigned template gallery with full-size rendered previews, now including Typst Universe templates; a new CeTZ diagram assistant, a Python runner for dynamic figures and data, and Git integration (commit/push/pull plus a side-by-side diff viewer for conflicts). Also: a pin to keep the window always on top, two-way editor↔preview sync with double-click, and the preview now compiles the whole project document — with real bibliography and cross-references — with automatic or manual refresh control.
+Version 0.13.0 — Optional AI assistant, offline documentation and more:
+
+• OPTIONAL AI assistant: connect a local AI (Ollama, LM Studio), a cloud one with your key (Anthropic, OpenAI, Gemini, OpenRouter) or your installed agent (Claude Code, Gemini CLI, Codex, Copilot). With nothing configured, the editor works exactly as before.
+• The AI proposes changes, across several files too; DBV checks they compile before showing them and you review them hunk by hunk before applying, with Undo.
+• AI on the selection (Ctrl+Shift+I): improve, fix, translate, convert to table, explain…
+• "Explain and fix" on every compile error.
+• Offline official Typst documentation, searchable (also in Spanish).
+• New Problems panel with the full list of errors and warnings.
+• CSV/TSV data viewer with "Insert as table".
+• Guide and help for connecting each AI (local, cloud or your subscription).
+• With a local AI nothing leaves your computer; keys are stored in the Windows Credential Manager.
 
 ---
 
@@ -40,25 +55,25 @@ v0.4.0 and v0.5.0: semantic autocomplete, live diagnostics, and one-click format
 *(up to 20, short summaries — shown as a bulleted list)*
 
 1. Native Typst editor with real-time PDF preview
-2. 100% local: no accounts, no telemetry, no ads
-3. Semantic autocomplete and live diagnostics with the official Typst Language Server (tinymist)
-4. One-click code formatting (Typstyle)
-5. 8 academic templates: bachelor thesis, master thesis, doctoral thesis, paper, technical report, presentation, CV, blank project
-6. Visual template gallery with full-size rendered previews
-7. Built-in Typst Universe: browse, preview, and use community templates and packages
-8. Project creation assistant with a data form (title, author, institution...)
-9. Insertion toolbar: formatting, structure, tables, equations, and math symbols
-10. CeTZ diagram assistant: flowcharts, block diagrams, math plots, and canvases
-11. Built-in Python runner for dynamic figures and data (Matplotlib, NumPy, pandas)
-12. Git integration: status, commit, push, and pull without leaving the editor
-13. Conflict resolution with a side-by-side diff viewer
-14. Citation assistant with autocomplete from your own .bib file
-15. Drag-and-drop image management, with no duplicate copies
-16. Outline panel with direct navigation to the preview
-17. Two-way editor↔preview sync with double-click
-18. A pin to keep the window always on top
-19. Export to PDF and PNG, and packing the project into a single file (.dbvt)
-20. Three themes (Light, Dark, Sepia) and an English/Spanish interface
+2. 100% local by default: no accounts, no telemetry, no ads (AI is optional)
+3. Semantic autocomplete, live diagnostics (tinymist) and one-click formatting (Typstyle)
+4. 8 academic templates: bachelor thesis, master thesis, doctoral thesis, paper, technical report, presentation, CV, blank project
+5. Visual template gallery with full-size rendered previews
+6. Built-in Typst Universe: browse, preview, and use community templates and packages
+7. Project creation assistant with a data form (title, author, institution...)
+8. Insertion toolbar: formatting, structure, tables, equations, and math symbols
+9. CeTZ diagram assistant: flowcharts, block diagrams, math plots, and canvases
+10. Built-in Python runner for dynamic figures and data (Matplotlib, NumPy, pandas)
+11. Git integration: status, commit, push, pull and conflict resolution with a side-by-side diff viewer
+12. Citation assistant with autocomplete from your own .bib file, and drag-and-drop image management
+13. Outline and Problems panels with direct navigation to the preview and to the error
+14. Two-way editor↔preview sync, and a pin to keep the window always on top
+15. Export to PDF and PNG, and packing the project into a single file (.dbvt)
+16. Three themes (Light, Dark, Sepia) and an English/Spanish interface
+17. Optional AI: local (Ollama, LM Studio), cloud with your API key, or your subscription through an agent (Claude Code, Codex, Gemini CLI, Copilot)
+18. The AI proposes, the app checks it compiles, and you decide hunk by hunk, with Undo
+19. AI on the selection (Ctrl+Shift+I) and "Explain and fix" on every error
+20. Official Typst documentation offline and a CSV/TSV data viewer
 
 ---
 
@@ -72,7 +87,7 @@ DBV Typst Editor
 ### Short description
 *(recommended max. 270 characters)*
 
-Native desktop editor for Typst: fast, lightweight, and 100% local. Create projects from academic templates, write with a real-time PDF preview, insert citations/tables/equations from the toolbar, and compile offline. Light/Dark/Sepia themes. No telemetry.
+Native desktop editor for Typst: fast, lightweight, and local by default. Academic templates, real-time PDF preview, insertion toolbar and offline compiling. Optional AI assistant (local, cloud or your subscription). Light/Dark/Sepia themes. No telemetry.
 
 ---
 

@@ -22,6 +22,7 @@ import { createAcpSession, insideProject } from './acpSession.js';
 import { createChangesCard, createPermissionCard } from './acpView.js';
 import { buildContext, estimateTokens, RESPONSE_RESERVE, systemPrompt } from './context.js';
 import { describeAdvice } from './modelAdvice.js';
+import { detectStyleFiles, importedFiles } from './styleFiles.js';
 import { CONTEXT_FILL_RATIO, modelAdvice, TOOL_SPEC_TOKENS } from './modelFit.js';
 import { computeSpeed, formatSpeed, shouldHintSlow } from './speed.js';
 import { createModelClient } from './modelClient.js';
@@ -345,12 +346,23 @@ export function createAiApp(deps) {
     return { path: relative, content, cursor: view?.state.selection.main.head ?? 0, selection };
   }
 
+  /** Ficheros de estilo del proyecto (RF-105.2); `undefined` en un documento suelto, que no tiene más ficheros. */
+  function styleFilesOf() {
+    if (singleFile || !projectRoot) return undefined;
+    const entry = workspace.state.project?.entrypoint;
+    const entrypointText = entry ? workspace.getTabContent(joinPath(projectRoot, entry)) : null;
+    const texts = {};
+    for (const relative of importedFiles(entrypointText)) texts[relative] = workspace.getTabContent(joinPath(projectRoot, relative));
+    return detectStyleFiles({ files, entrypointText, texts });
+  }
+
   function contextSource(extraAttachments = [], docs = []) {
     const project = workspace.state.project;
     return {
       projectName: project?.name ?? '',
       entrypoint: project?.entrypoint ?? null,
       singleFile: Boolean(singleFile),
+      styleFiles: styleFilesOf(),
       files,
       active: activeSource(),
       diagnostics: deps.getProblems(),

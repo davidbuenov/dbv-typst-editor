@@ -180,6 +180,35 @@ describe('contexto con presupuesto (RF-94.5)', () => {
     expect(buildContext({ ...source, files: ['a.typ', 'b.typ'] }, 100000).text).toContain('a.typ\nb.typ');
   });
 
+  it('las instrucciones piden separar presentación y contenido, en los dos idiomas y con o sin herramientas (RF-105.1)', () => {
+    for (const lang of ['es', 'en']) {
+      for (const tools of [true, false]) {
+        const prompt = systemPrompt({ lang, tools });
+        expect(prompt, `${lang}/${tools}`).toContain('Keep presentation separate from content');
+        expect(prompt).toContain('change the style file, not the main document');
+        expect(prompt).toContain('Do not move formatting that already exists unless you are asked to');
+      }
+    }
+    expect(systemPrompt({ lang: 'es' })).toContain('#import "estilos.typ": estilo');
+    expect(systemPrompt({ lang: 'en' })).toContain('#import "style.typ": style');
+  });
+
+  it('el contexto dice qué ficheros de estilo hay, o que no hay ninguno (RF-105.2-.3)', () => {
+    const base = { projectName: 'p', entrypoint: 'main.typ', files: ['main.typ', 'estilos.typ', 'cap1.typ'] };
+    const withStyle = buildContext({ ...base, styleFiles: ['estilos.typ'] }, 100000);
+    expect(withStyle.text).toContain('Style files (put presentation here, not in content files): estilos.typ');
+    expect(withStyle.items.find((i) => i.id === 'styles')).toMatchObject({ label: 'ficheros de estilo', included: true });
+    const none = buildContext({ ...base, files: ['main.typ'], styleFiles: [] }, 100000);
+    expect(none.text).toContain('Style files: none yet');
+  });
+
+  it('sin saber los ficheros de estilo, o en un documento suelto, no se dice nada', () => {
+    const base = { projectName: 'p', entrypoint: 'main.typ', files: ['main.typ'] };
+    expect(buildContext(base, 100000).text).not.toContain('Style files');
+    expect(buildContext({ ...base, singleFile: true, styleFiles: [] }, 100000).text).not.toContain('Style files');
+    expect(buildContext({ ...base, files: [], styleFiles: [] }, 100000).text).not.toContain('Style files');
+  });
+
   it('windowAround corta en límites de línea', () => {
     const view = windowAround('a\nbb\nccc\ndddd\neeeee', 9, 8);
     expect(view.trimmed).toBe(true);

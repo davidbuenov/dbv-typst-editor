@@ -11,7 +11,7 @@
 // empaquetada. El juez es el compilador real (el sidecar vendorizado): una
 // propuesta vale si compila sin errores y cumple lo que pide la tarea.
 //
-//   npm run eval:ai -- --model llama3 [--tasks fix-,docs-] [--ctx 8192]
+//   npm run eval:ai -- --model llama3 [--tasks fix-,docs-] [--ctx 8192] [--think on|off] [--label texto]
 //
 // No corre en la CI (necesita un modelo); deja el resultado con fecha y modelo
 // en `testfiles/ai-evals/results/`.
@@ -24,6 +24,7 @@ import { gunzipSync } from 'node:zlib';
 import { proposeNudge, runAgent } from '../src/ai/agentLoop.js';
 import { buildContext, systemPrompt } from '../src/ai/context.js';
 import { applyChange, createProposal, parseChangeBlocks, resultText } from '../src/ai/proposal.js';
+import { separationChecks } from '../src/ai/styleFiles.js';
 import { createTools, describeCheck } from '../src/ai/tools.js';
 
 const ROOT = new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
@@ -35,6 +36,10 @@ const MODEL = arg('model', 'llama3');
 const HOST = arg('host', 'http://127.0.0.1:11434');
 const CONTEXT = Number(arg('ctx', '8192'));
 const FILTER = arg('tasks', '').split(',').filter(Boolean);
+// Razonamiento del modelo (RF-101, RF-104.3): `off` por defecto, como la aplicación. Con `on` un modelo que no razona falla.
+const THINK = arg('think', 'off');
+// Para no pisar resultados del mismo día y modelo (p. ej. antes y después de cambiar el prompt).
+const LABEL = arg('label', '');
 const TYPST = ['typst-x86_64-pc-windows-msvc.exe', 'typst-x86_64-unknown-linux-gnu', 'typst-aarch64-apple-darwin', 'typst-x86_64-apple-darwin']
   .map((name) => join(ROOT, 'src-tauri', 'binaries', name))
   .find((path) => existsSync(path));
@@ -109,6 +114,7 @@ async function callModel({ messages, tools }) {
   const body = {
     model: MODEL,
     stream: false,
+    think: THINK === 'on',
     options: { num_ctx: CONTEXT, temperature: 0.2 },
     messages: messages.map((m) => ({
       role: m.role,
@@ -131,6 +137,14 @@ async function callModel({ messages, tools }) {
 
 function matches(haystack, alternatives) {
   return alternatives.split('|').some((needle) => haystack.includes(needle));
+}
+
+/** `expect.separate`: `true` (el estilo se gana fuera del contenido) o `'contentOnly'` (el contenido no gana reglas). */
+function separated(expect, task, finalDir) {
+  if (!expect.separate) return null;
+  const after = Object.fromEntries(listFiles(finalDir).filter((path) => path.endsWith('.typ')).map((path) => [path, readFileSync(join(finalDir, path), 'utf8')]));
+  const result = separationChecks({ before: task.files, after, contentFiles: expect.contentFiles });
+  return expect.separate === 'contentOnly' ? result.contentKept : result.contentKept && result.styleChanged;
 }
 
 async function runTask(task, withDocs) {
@@ -190,6 +204,8 @@ async function runTask(task, withDocs) {
     files: (expect.files ?? []).every((path) => existsSync(join(finalDir, path))),
     changed: expect.answerOnly ? null : proposal.files.size > 0,
     confined: !steps.some((step) => /outside the project/.test(step.result)),
+    // RF-105.7: el cambio de aspecto va a un fichero de estilo y el de contenido no gana reglas.
+    separated: separated(expect, task, finalDir),
   };
   const pass = Object.values(checks).every((value) => value !== false);
   return {
@@ -224,10 +240,10 @@ async function main() {
     const subset = results.filter((r) => r.withDocs === docs);
     return { passed: subset.filter((r) => r.pass).length, total: subset.length, compiled: subset.filter((r) => r.checks?.compiles === true).length, compileTasks: subset.filter((r) => r.checks?.compiles !== null && r.checks?.compiles !== undefined).length };
   };
-  const summary = { model: MODEL, context: CONTEXT, tools: toolsSupported, date: new Date().toISOString(), withoutDocs: rate(false), withDocs: rate(true) };
+  const summary = { model: MODEL, context: CONTEXT, think: THINK, tools: toolsSupported, date: new Date().toISOString(), withoutDocs: rate(false), withDocs: rate(true) };
   const dir = join(ROOT, 'testfiles', 'ai-evals', 'results');
   mkdirSync(dir, { recursive: true });
-  const file = join(dir, `${summary.date.slice(0, 10)}-${MODEL.replace(/[^\w.-]/g, '_')}.json`);
+  const file = join(dir, `${summary.date.slice(0, 10)}-${MODEL.replace(/[^\w.-]/g, '_')}${THINK === 'on' ? '-think' : ''}${LABEL ? `-${LABEL}` : ''}.json`);
   writeFileSync(file, JSON.stringify({ summary, results }, null, 2));
   console.log(`\n${JSON.stringify(summary, null, 2)}\n→ ${file}`);
 }

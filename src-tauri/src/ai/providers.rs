@@ -630,6 +630,54 @@ pub fn stream_chat(
     Ok(())
 }
 
+/// Lo que Ollama cuenta de un modelo (`/api/show`): tamaño, contexto máximo y
+/// capacidades (RF-101, RF-103). Solo informa; nada se decide aquí.
+#[derive(Debug, Clone, Serialize, Default, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ModelInfo {
+    /// Tamaño tal cual lo da Ollama («8.2B», «494M»); `None` si no lo dice.
+    pub parameter_size: Option<String>,
+    /// Contexto máximo del modelo en tokens.
+    pub context_length: Option<u64>,
+    /// `completion`, `tools`, `thinking`, `vision`…
+    pub capabilities: Vec<String>,
+}
+
+/// Interpreta la respuesta de `/api/show`.
+pub fn parse_model_info(value: &Value) -> ModelInfo {
+    let context_length = value["model_info"]
+        .as_object()
+        .and_then(|info| info.iter().find(|(key, _)| key.ends_with(".context_length")).and_then(|(_, number)| number.as_u64()));
+    ModelInfo {
+        parameter_size: value["details"]["parameter_size"].as_str().filter(|text| !text.is_empty()).map(String::from),
+        context_length,
+        capabilities: value["capabilities"].as_array().into_iter().flatten().filter_map(|c| c.as_str().map(String::from)).collect(),
+    }
+}
+
+/// Información del modelo de una conexión. Solo Ollama la da (`None` para el
+/// resto de proveedores y si el modelo no existe); un fallo de red es un error.
+pub fn model_info(connection: &Connection) -> Result<Option<ModelInfo>, AiError> {
+    if connection.provider != ProviderKind::Ollama {
+        return Ok(None);
+    }
+    let base = connection.base_url.trim_end_matches('/');
+    let response = agent()
+        .post(&format!("{}/api/show", ollama_host(base)))
+        .send_json(json!({ "model": connection.model }))
+        .map_err(|error| AiError::Network(format!("no se pudo conectar con {base}: {error}")))?;
+    let status = response.status().as_u16();
+    let text = response.into_body().read_to_string().unwrap_or_default();
+    if status == 404 {
+        return Ok(None);
+    }
+    if status >= 400 {
+        return Err(classify_status(status, &text));
+    }
+    let value: Value = serde_json::from_str(&text).map_err(|error| AiError::BadRequest(format!("respuesta inesperada de {base}: {error}")))?;
+    Ok(Some(parse_model_info(&value)))
+}
+
 /// Modelos que ofrece el proveedor (también sirve de «Probar conexión»).
 pub fn list_models(connection: &Connection, key: Option<&str>) -> Result<Vec<String>, AiError> {
     let base = connection.base_url.trim_end_matches('/');
@@ -1055,6 +1103,33 @@ event: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason
         let result = stream_chat(&conn, None, &request(), &AtomicBool::new(false), &mut |_| {});
         assert_eq!(server.join().unwrap().len(), 1);
         assert!(matches!(result, Err(AiError::BadRequest(_))));
+    }
+
+    #[test]
+    fn lee_tamano_contexto_y_capacidades_de_api_show() {
+        let real = json!({
+            "details": { "parameter_size": "8.2B", "quantization_level": "Q4_K_M" },
+            "model_info": { "general.architecture": "qwen3", "qwen3.context_length": 40960, "qwen3.block_count": 36 },
+            "capabilities": ["completion", "tools", "thinking"],
+        });
+        assert_eq!(
+            parse_model_info(&real),
+            ModelInfo { parameter_size: Some("8.2B".into()), context_length: Some(40960), capabilities: vec!["completion".into(), "tools".into(), "thinking".into()] }
+        );
+        assert_eq!(parse_model_info(&json!({})), ModelInfo::default());
+    }
+
+    #[test]
+    fn model_info_solo_consulta_a_ollama() {
+        // Sin servidor: un proveedor que no es Ollama no hace ninguna petición.
+        assert_eq!(model_info(&connection("http://127.0.0.1:1", ProviderKind::OpenAi)).unwrap(), None);
+        let body = r#"{"details":{"parameter_size":"3.1B"},"model_info":{"qwen2.context_length":32768},"capabilities":["completion","tools"]}"#;
+        let (address, server) = serve(format!("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len()));
+        let info = model_info(&connection(&format!("{address}/v1"), ProviderKind::Ollama)).unwrap().unwrap();
+        let received = server.join().unwrap();
+        assert!(received.starts_with("POST /api/show"));
+        assert_eq!(info.parameter_size.as_deref(), Some("3.1B"));
+        assert_eq!(info.context_length, Some(32768));
     }
 
     #[test]

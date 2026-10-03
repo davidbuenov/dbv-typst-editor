@@ -649,7 +649,7 @@
   - [x] **Slice 137** — confinar la IA a un documento suelto: lista, lectura, búsqueda y propuesta solo del fichero; aviso en el indicador (RF-106.7, R-B1).
   - [x] **Slice 138** — «Nuevo .typ vacío…» (RF-106; el nombre cambió porque «Nuevo documento» ya es el botón de plantillas): `create_empty_document`, `save_file_dialog` con carpeta, `lastDocumentDir`, menú + macOS + inicio + atajo, ES/EN, tests.
   - [x] **Slice 139** — backend del razonamiento (RF-100.1, 101.2, 102.1): `StreamEvent::Thinking`, `think`, `enable_thinking`, `eval_ms`, `Connection.reasoning`; tests con servidor simulado.
-  - [ ] **Slice 140** — conocer el modelo (RF-103): `ai_model_info` (`/api/show`), `modelFit.js` puro, presupuesto que descuenta las herramientas.
+  - [x] **Slice 140** — conocer el modelo (RF-103): `ai_model_info` (`/api/show`), `modelFit.js` puro, presupuesto que descuenta las herramientas.
   - [ ] **Slice 141** — panel (RF-100.2-.4/.6, RF-102): bloque `<details>`, indicador de actividad, tokens/s y sugerencia de GPU.
   - [ ] **Slice 142** — formulario (RF-101, RF-103): interruptor «Razonamiento», aviso de modelo pequeño y de contexto corto.
   - [ ] **Slice 143** — separar presentación de contenido (RF-105): tareas y métrica + línea base con `qwen3:8b`, luego prompt y ficheros de estilo en el contexto.

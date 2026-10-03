@@ -388,6 +388,8 @@ export const aiSetPreferences = ({ active, showAi } = {}) =>
 export const aiProviders = () => call('ai_providers');
 export const aiDetect = () => call('ai_detect');
 export const aiListModels = (connection, apiKey) => call('ai_list_models', { connection, apiKey: apiKey ?? null });
+/** Tamaño, contexto máximo y capacidades del modelo (solo Ollama; `null` en el resto), RF-101 y RF-103. */
+export const aiModelInfo = (connection) => call('ai_model_info', { connection });
 /** Lanza una petición; la respuesta llega por el evento `ai-stream` con este `requestId`. */
 export const aiChat = (requestId, connectionId, request) => call('ai_chat', { requestId, connectionId, request });
 export const aiCancel = (requestId) => call('ai_cancel', { requestId });

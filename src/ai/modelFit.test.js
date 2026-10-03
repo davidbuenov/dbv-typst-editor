@@ -1,0 +1,72 @@
+// =============================================================================
+// DBV Typst Editor — Tests de modelFit (RF-103)
+// Copyright (c) 2026 David Bueno Vallejo
+// Licensed under the MIT License. See LICENSE for details.
+// Built with dbv-specs-ops · https://github.com/davidbuenov/dbv-specs-ops
+// =============================================================================
+
+import { describe, expect, it } from 'vitest';
+import { estimateTokens, systemPrompt } from './context.js';
+import {
+  contextRequirements,
+  contextShortfall,
+  isSmallModel,
+  parseParameterSize,
+  RECOMMENDED_CONTEXT,
+  SMALL_MODEL_BILLIONS,
+} from './modelFit.js';
+
+describe('tamaño del modelo', () => {
+  it('lee el tamaño que da Ollama en miles de millones', () => {
+    expect(parseParameterSize('8.2B')).toBeCloseTo(8.2);
+    expect(parseParameterSize('494M')).toBeCloseTo(0.494);
+    expect(parseParameterSize('1.5T')).toBeCloseTo(1500);
+    expect(parseParameterSize(' 14b ')).toBe(14);
+  });
+
+  it('lo que no se entiende da null, nunca un número inventado', () => {
+    for (const bad of ['', null, undefined, 'grande', '8', 'B8', '8.2.1B', '-3B']) expect(parseParameterSize(bad)).toBeNull();
+  });
+
+  it('un modelo es pequeño por debajo de 7B, y si no se conoce el tamaño no se avisa', () => {
+    expect(SMALL_MODEL_BILLIONS).toBe(7);
+    expect(isSmallModel({ parameterSize: '3.1B' })).toBe(true);
+    expect(isSmallModel({ parameterSize: '494M' })).toBe(true);
+    expect(isSmallModel({ parameterSize: '6.9B' })).toBe(true);
+    expect(isSmallModel({ parameterSize: '7B' })).toBe(false);
+    expect(isSmallModel({ parameterSize: '8.2B' })).toBe(false);
+    expect(isSmallModel({ parameterSize: '14.8B' })).toBe(false);
+    expect(isSmallModel({ parameterSize: null })).toBe(false);
+    expect(isSmallModel(null)).toBe(false);
+  });
+});
+
+describe('contexto mínimo', () => {
+  const systemTokens = estimateTokens(systemPrompt({ lang: 'es', tools: true }));
+
+  it('con las instrucciones reales el mínimo es 8 192 y el recomendado 16 384', () => {
+    expect(contextRequirements({ systemTokens })).toEqual({ minimum: 8192, recommended: RECOMMENDED_CONTEXT });
+    expect(RECOMMENDED_CONTEXT).toBe(16384);
+  });
+
+  it('el razonamiento sube el mínimo, y sin herramientas hace falta menos', () => {
+    const base = contextRequirements({ systemTokens }).minimum;
+    expect(contextRequirements({ systemTokens, reasoning: true }).minimum).toBeGreaterThan(base);
+    expect(contextRequirements({ systemTokens, tools: false }).minimum).toBeLessThan(base);
+  });
+
+  it('el mínimo es múltiplo de 1 024 y el recomendado nunca queda por debajo de él', () => {
+    for (const reasoning of [false, true]) {
+      const { minimum, recommended } = contextRequirements({ systemTokens: 5000, reasoning });
+      expect(minimum % 1024).toBe(0);
+      expect(recommended).toBeGreaterThanOrEqual(minimum);
+    }
+  });
+
+  it('avisa con los números cuando la ventana no llega (Ollama arranca con 4 096)', () => {
+    const requirements = contextRequirements({ systemTokens });
+    expect(contextShortfall({ contextTokens: 4096, requirements })).toEqual({ have: 4096, minimum: 8192, recommended: 16384 });
+    expect(contextShortfall({ contextTokens: 8192, requirements })).toBeNull();
+    expect(contextShortfall({ contextTokens: 32768, requirements })).toBeNull();
+  });
+});

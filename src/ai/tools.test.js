@@ -8,6 +8,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { runAgent } from './agentLoop.js';
 import { createProposal, resultText } from './proposal.js';
+import { estimateTokens } from './context.js';
+import { TOOL_SPEC_TOKENS } from './modelFit.js';
 import { createTools, describeCheck, MAX_FIX_ATTEMPTS, newErrors } from './tools.js';
 
 const err = (file, message) => ({ level: 'error', file, line: 1, message });
@@ -42,6 +44,15 @@ describe('herramientas', () => {
     expect(await tools.get_diagnostics.run({})).toContain('unknown variable');
     expect(await tools.search_typst_docs.run({ query: 'table header' })).toContain('reference/model/table#parameters');
     expect(await tools.read_typst_docs.run({ path: 'reference/model/table#x' })).toBe('# table');
+  });
+
+  it('TOOL_SPEC_TOKENS cubre lo que ocupan las definiciones de las herramientas (RF-103)', () => {
+    const { deps } = setup();
+    const specs = createTools(deps).map(({ name, description, parameters }) => ({ name, description, parameters }));
+    const real = estimateTokens(JSON.stringify(specs));
+    // Si las herramientas crecen, hay que subir la constante: el presupuesto de contexto depende de ella.
+    expect(real).toBeLessThanOrEqual(TOOL_SPEC_TOKENS);
+    expect(real).toBeGreaterThan(TOOL_SPEC_TOKENS * 0.8);
   });
 
   it('rechazan rutas fuera del proyecto (RNF-IA.3)', async () => {

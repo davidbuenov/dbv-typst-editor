@@ -21,6 +21,7 @@ import { createInlineAi } from './inline.js';
 import { createAcpSession, insideProject } from './acpSession.js';
 import { createChangesCard, createPermissionCard } from './acpView.js';
 import { buildContext, estimateTokens, RESPONSE_RESERVE, systemPrompt } from './context.js';
+import { CONTEXT_FILL_RATIO, TOOL_SPEC_TOKENS } from './modelFit.js';
 import { createModelClient } from './modelClient.js';
 import { applyChange, createProposal, normalizePath, overrides, parseChangeBlocks } from './proposal.js';
 import { createReviewCard } from './reviewView.js';
@@ -330,7 +331,9 @@ export function createAiApp(deps) {
 
   function contextBudget(connection) {
     const total = connection?.contextTokens ?? providerInfo.find((p) => p.provider === connection?.provider)?.contextTokens ?? 8192;
-    return Math.floor(total * 0.8) - RESPONSE_RESERVE;
+    // Las definiciones de las herramientas viajan en cada petición y ocupan ventana (≈631 tokens).
+    const toolSpecs = connection?.supportsTools === false ? 0 : TOOL_SPEC_TOKENS;
+    return Math.floor(total * CONTEXT_FILL_RATIO) - RESPONSE_RESERVE - toolSpecs;
   }
 
   function renderContextPreview(items) {

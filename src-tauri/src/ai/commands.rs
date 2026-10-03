@@ -191,6 +191,15 @@ pub enum StreamOrError {
 
 /// Lanza una petición de chat con la conexión `connection_id`. Vuelve en
 /// seguida; la respuesta llega por `ai-stream` y termina con `done` o `error`.
+/// Tamaño, contexto máximo y capacidades del modelo de una conexión (solo Ollama; RF-101, RF-103).
+#[tauri::command]
+pub async fn ai_model_info(connection: Connection) -> Result<Option<providers::ModelInfo>, AiError> {
+    connection.validate()?;
+    tauri::async_runtime::spawn_blocking(move || providers::model_info(&connection))
+        .await
+        .map_err(|error| AiError::Server(error.to_string()))?
+}
+
 #[tauri::command]
 pub fn ai_chat(app: AppHandle, state: State<'_, AiState>, request_id: String, connection_id: String, request: ChatRequest) -> Result<(), AiError> {
     let file = connections::load(&config_dir(&app)?)?;

@@ -120,6 +120,7 @@ pub fn run() {
             ai::commands::ai_providers,
             ai::commands::ai_detect,
             ai::commands::ai_list_models,
+            ai::commands::ai_model_info,
             ai::commands::ai_chat,
             ai::commands::ai_cancel,
             ai::commands::ai_check_proposal,

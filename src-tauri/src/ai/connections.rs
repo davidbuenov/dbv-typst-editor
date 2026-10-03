@@ -93,6 +93,10 @@ pub struct Connection {
     pub supports_tools: Option<bool>,
     #[serde(default)]
     pub supports_images: Option<bool>,
+    /// El modelo «piensa» antes de responder (RF-101). `None` = desactivado: más
+    /// rápido, y es lo que ya hacían las conexiones anteriores a la 0.13.1.
+    #[serde(default)]
+    pub reasoning: Option<bool>,
 }
 
 impl Connection {
@@ -182,6 +186,7 @@ mod tests {
             context_tokens: None,
             supports_tools: Some(true),
             supports_images: Some(true),
+            reasoning: None,
         }
     }
 

@@ -272,6 +272,7 @@ mod tests {
             context_tokens: None,
             supports_tools: None,
             supports_images: None,
+            reasoning: None,
         }
     }
 

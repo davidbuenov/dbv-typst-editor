@@ -26,7 +26,7 @@ use std::time::Duration;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
-use super::connections::{Connection, Protocol};
+use super::connections::{Connection, Protocol, ProviderKind};
 use super::AiError;
 
 /// Imagen adjunta (p. ej. una página de la vista previa, RF-92.3).
@@ -91,8 +91,16 @@ pub struct ChatRequest {
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum StreamEvent {
     Text { text: String },
+    /// Razonamiento del modelo (RF-100): solo se muestra, nunca vuelve al modelo.
+    Thinking { text: String },
     ToolCall { id: String, name: String, arguments: String },
-    Usage { input: u64, output: u64 },
+    Usage {
+        input: u64,
+        output: u64,
+        /// Milisegundos que el servidor dice haber tardado en generar (0 si no lo informa), RF-102.
+        #[serde(rename = "evalMs")]
+        eval_ms: u64,
+    },
     Done {
         #[serde(rename = "stopReason")]
         stop_reason: String,
@@ -281,10 +289,16 @@ impl OpenAiStream {
             emit(StreamEvent::Usage {
                 input: usage["prompt_tokens"].as_u64().unwrap_or(0),
                 output: usage["completion_tokens"].as_u64().unwrap_or(0),
+                eval_ms: 0,
             });
         }
         let Some(choice) = chunk["choices"].get(0) else { return };
         let delta = &choice["delta"];
+        // llama.cpp, LM Studio y vLLM usan `reasoning_content`; OpenRouter, `reasoning`.
+        let thinking = delta["reasoning_content"].as_str().filter(|t| !t.is_empty()).or_else(|| delta["reasoning"].as_str().filter(|t| !t.is_empty()));
+        if let Some(text) = thinking {
+            emit(StreamEvent::Thinking { text: text.to_string() });
+        }
         if let Some(text) = delta["content"].as_str().filter(|t| !t.is_empty()) {
             emit(StreamEvent::Text { text: text.to_string() });
         }
@@ -366,7 +380,7 @@ impl AnthropicStream {
         for (_, (id, name, arguments)) in self.blocks {
             emit(StreamEvent::ToolCall { id, name, arguments: if arguments.is_empty() { "{}".into() } else { arguments } });
         }
-        emit(StreamEvent::Usage { input: self.input, output: self.output });
+        emit(StreamEvent::Usage { input: self.input, output: self.output, eval_ms: 0 });
         emit(StreamEvent::Done { stop_reason: normalize_stop(&self.stop.unwrap_or_else(|| "end_turn".into())) });
     }
 }
@@ -377,6 +391,7 @@ pub struct OllamaStream {
     calls: Vec<(String, String)>,
     input: u64,
     output: u64,
+    eval_ms: u64,
     stop: Option<String>,
 }
 
@@ -384,6 +399,9 @@ impl OllamaStream {
     pub fn feed(&mut self, line: &str, emit: &mut dyn FnMut(StreamEvent)) {
         let Ok(chunk) = serde_json::from_str::<Value>(line) else { return };
         let message = &chunk["message"];
+        if let Some(text) = message["thinking"].as_str().filter(|t| !t.is_empty()) {
+            emit(StreamEvent::Thinking { text: text.to_string() });
+        }
         if let Some(text) = message["content"].as_str().filter(|t| !t.is_empty()) {
             emit(StreamEvent::Text { text: text.to_string() });
         }
@@ -398,6 +416,7 @@ impl OllamaStream {
         if chunk["done"].as_bool() == Some(true) {
             self.input = chunk["prompt_eval_count"].as_u64().unwrap_or(0);
             self.output = chunk["eval_count"].as_u64().unwrap_or(0);
+            self.eval_ms = chunk["eval_duration"].as_u64().unwrap_or(0) / 1_000_000;
             self.stop = Some(chunk["done_reason"].as_str().unwrap_or("stop").to_string());
         }
     }
@@ -407,7 +426,7 @@ impl OllamaStream {
         for (index, (name, arguments)) in self.calls.into_iter().enumerate() {
             emit(StreamEvent::ToolCall { id: format!("call_{index}"), name, arguments: if arguments.is_empty() { "{}".into() } else { arguments } });
         }
-        emit(StreamEvent::Usage { input: self.input, output: self.output });
+        emit(StreamEvent::Usage { input: self.input, output: self.output, eval_ms: self.eval_ms });
         let stop = if has_calls { "tool_calls".to_string() } else { self.stop.unwrap_or_else(|| "stop".into()) };
         emit(StreamEvent::Done { stop_reason: normalize_stop(&stop) });
     }
@@ -527,6 +546,39 @@ fn with_headers<B>(request: ureq::RequestBuilder<B>, connection: &Connection, ke
     request
 }
 
+fn post(connection: &Connection, key: Option<&str>, url: &str, body: &Value) -> Result<ureq::http::Response<ureq::Body>, AiError> {
+    with_headers(agent().post(url), connection, key)
+        .send_json(body)
+        .map_err(|error| AiError::Network(format!("no se pudo conectar con {}: {error}", connection.base_url.trim_end_matches('/'))))
+}
+
+/// Fija el razonamiento del modelo (RF-101) donde el protocolo lo permite, y
+/// siempre explícito (desactivado por defecto): Ollama con `think`; un servidor
+/// compatible genérico (llama.cpp, vLLM, Jan…) con `enable_thinking` de la
+/// plantilla. Los demás proveedores (OpenAI, Gemini, OpenRouter, LM Studio,
+/// Anthropic) no reciben nada: podrían rechazar un campo desconocido.
+pub fn apply_reasoning(connection: &Connection, body: &mut Value) {
+    let enabled = connection.reasoning.unwrap_or(false);
+    match (connection.protocol(), connection.provider) {
+        (Protocol::Ollama, _) => body["think"] = json!(enabled),
+        (Protocol::OpenAi, ProviderKind::OpenAiCompatible) => body["chat_template_kwargs"] = json!({ "enable_thinking": enabled }),
+        _ => {}
+    }
+}
+
+/// Quita del cuerpo los campos de razonamiento; `true` si había alguno.
+pub fn strip_reasoning(body: &mut Value) -> bool {
+    let Some(object) = body.as_object_mut() else { return false };
+    let removed = [object.remove("think"), object.remove("chat_template_kwargs")];
+    removed.iter().any(Option::is_some)
+}
+
+/// ¿El error de un 400 habla del razonamiento? (`"x" does not support thinking`, …)
+pub fn mentions_reasoning(text: &str) -> bool {
+    let lower = text.to_lowercase();
+    ["think", "chat_template_kwargs", "enable_thinking"].iter().any(|word| lower.contains(word))
+}
+
 /// Hace la petición de chat y va emitiendo eventos hasta el final.
 pub fn stream_chat(
     connection: &Connection,
@@ -536,14 +588,22 @@ pub fn stream_chat(
     emit: &mut dyn FnMut(StreamEvent),
 ) -> Result<(), AiError> {
     let base = connection.base_url.trim_end_matches('/');
-    let (url, body) = match connection.protocol() {
+    let (url, mut body) = match connection.protocol() {
         Protocol::Anthropic => (format!("{base}/messages"), anthropic_body(request, &connection.model)),
         Protocol::OpenAi => (format!("{base}/chat/completions"), openai_body(request, &connection.model)),
         Protocol::Ollama => (format!("{}/api/chat", ollama_host(base)), ollama_body(request, &connection.model, connection.context())),
     };
-    let response = with_headers(agent().post(&url), connection, key)
-        .send_json(&body)
-        .map_err(|error| AiError::Network(format!("no se pudo conectar con {base}: {error}")))?;
+    apply_reasoning(connection, &mut body);
+    let mut response = post(connection, key, &url, &body)?;
+    if response.status().as_u16() == 400 {
+        // Un modelo que no razona rechaza `think`, y un servidor ajeno el campo de la plantilla: se reintenta una vez sin ellos.
+        let text = response.body_mut().read_to_string().unwrap_or_default();
+        if mentions_reasoning(&text) && strip_reasoning(&mut body) {
+            response = post(connection, key, &url, &body)?;
+        } else {
+            return Err(classify_status(400, &text));
+        }
+    }
     let status = response.status().as_u16();
     let mut body = response.into_body();
     if status >= 400 {
@@ -698,7 +758,7 @@ data: [DONE]\n\n";
             vec![
                 StreamEvent::Text { text: "Ho".into() },
                 StreamEvent::Text { text: "la".into() },
-                StreamEvent::Usage { input: 12, output: 5 },
+                StreamEvent::Usage { input: 12, output: 5, eval_ms: 0 },
                 StreamEvent::ToolCall { id: "call_1".into(), name: "read_file".into(), arguments: r#"{"path":"a.typ"}"#.into() },
                 StreamEvent::Done { stop_reason: "toolCalls".into() },
             ]
@@ -718,7 +778,7 @@ event: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason
             vec![
                 StreamEvent::Text { text: "Vale".into() },
                 StreamEvent::ToolCall { id: "tu_1".into(), name: "search_docs".into(), arguments: r#"{"query":"table"}"#.into() },
-                StreamEvent::Usage { input: 30, output: 9 },
+                StreamEvent::Usage { input: 30, output: 9, eval_ms: 0 },
                 StreamEvent::Done { stop_reason: "toolCalls".into() },
             ]
         );
@@ -742,7 +802,7 @@ event: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason
         let ndjson = concat!(
             r#"{"message":{"role":"assistant","content":"Ho"},"done":false}"#, "\n",
             r#"{"message":{"role":"assistant","content":"","tool_calls":[{"function":{"name":"read_file","arguments":{"path":"a.typ"}}}]},"done":false}"#, "\n",
-            r#"{"message":{"role":"assistant","content":""},"done":true,"done_reason":"stop","prompt_eval_count":40,"eval_count":7}"#, "\n",
+            r#"{"message":{"role":"assistant","content":""},"done":true,"done_reason":"stop","prompt_eval_count":40,"eval_count":7,"eval_duration":2500000000}"#, "\n",
         );
         let mut events = Vec::new();
         let mut stream = OllamaStream::default();
@@ -753,7 +813,7 @@ event: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason
             vec![
                 StreamEvent::Text { text: "Ho".into() },
                 StreamEvent::ToolCall { id: "call_0".into(), name: "read_file".into(), arguments: r#"{"path":"a.typ"}"#.into() },
-                StreamEvent::Usage { input: 40, output: 7 },
+                StreamEvent::Usage { input: 40, output: 7, eval_ms: 2500 },
                 StreamEvent::Done { stop_reason: "toolCalls".into() },
             ]
         );
@@ -843,6 +903,7 @@ event: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason
             context_tokens: None,
             supports_tools: None,
             supports_images: None,
+            reasoning: None,
         }
     }
 
@@ -868,6 +929,132 @@ event: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason
         assert!(received.contains("x-api-key: mala"));
         assert!(received.contains("anthropic-version"));
         assert!(matches!(result, Err(AiError::Auth(m)) if m == "invalid x-api-key"));
+    }
+
+    /// Como `serve`, pero atiende varias conexiones seguidas (una respuesta por cada una) y devuelve las peticiones.
+    fn serve_many(responses: Vec<String>) -> (String, std::thread::JoinHandle<Vec<String>>) {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = format!("http://{}", listener.local_addr().unwrap());
+        let handle = std::thread::spawn(move || {
+            let mut requests = Vec::new();
+            for response in responses {
+                let (mut socket, _) = listener.accept().unwrap();
+                let mut received = Vec::new();
+                let mut buffer = [0u8; 8192];
+                loop {
+                    let read = socket.read(&mut buffer).unwrap();
+                    received.extend_from_slice(&buffer[..read]);
+                    let text = String::from_utf8_lossy(&received).to_string();
+                    if let Some(head_end) = text.find("\r\n\r\n") {
+                        let length = text[..head_end]
+                            .lines()
+                            .find_map(|line| line.to_lowercase().strip_prefix("content-length:").map(|v| v.trim().parse::<usize>().unwrap_or(0)))
+                            .unwrap_or(0);
+                        if received.len() >= head_end + 4 + length {
+                            break;
+                        }
+                    }
+                    if read == 0 {
+                        break;
+                    }
+                }
+                // El cuerpo puede llegar troceado o sin Content-Length: se espera un momento a lo que falte.
+                socket.set_read_timeout(Some(std::time::Duration::from_millis(200))).unwrap();
+                while let Ok(read) = socket.read(&mut buffer) {
+                    if read == 0 {
+                        break;
+                    }
+                    received.extend_from_slice(&buffer[..read]);
+                }
+                socket.write_all(response.as_bytes()).unwrap();
+                requests.push(String::from_utf8_lossy(&received).to_string());
+            }
+            requests
+        });
+        (address, handle)
+    }
+
+    #[test]
+    fn el_razonamiento_de_openai_y_de_ollama_sale_como_evento_aparte_y_antes_del_texto() {
+        let sse = concat!(
+            "data: {\"choices\":[{\"delta\":{\"reasoning_content\":\"Pienso\"}}]}\n\n",
+            "data: {\"choices\":[{\"delta\":{\"reasoning\":\" más\"}}]}\n\n",
+            "data: {\"choices\":[{\"delta\":{\"content\":\"Hola\"},\"finish_reason\":\"stop\"}]}\n\n",
+            "data: [DONE]\n\n",
+        );
+        let events = collect(Protocol::OpenAi, sse);
+        assert_eq!(events[0], StreamEvent::Thinking { text: "Pienso".into() });
+        assert_eq!(events[1], StreamEvent::Thinking { text: " más".into() });
+        assert_eq!(events[2], StreamEvent::Text { text: "Hola".into() });
+
+        let mut ollama = Vec::new();
+        let mut stream = OllamaStream::default();
+        stream.feed(r#"{"message":{"role":"assistant","content":"","thinking":"Okay"},"done":false}"#, &mut |e| ollama.push(e));
+        stream.feed(r#"{"message":{"role":"assistant","content":"Hola"},"done":false}"#, &mut |e| ollama.push(e));
+        assert_eq!(ollama, vec![StreamEvent::Thinking { text: "Okay".into() }, StreamEvent::Text { text: "Hola".into() }]);
+    }
+
+    #[test]
+    fn el_razonamiento_viaja_en_camel_case_y_el_uso_lleva_la_duracion() {
+        assert_eq!(serde_json::to_value(StreamEvent::Thinking { text: "x".into() }).unwrap(), json!({ "type": "thinking", "text": "x" }));
+        assert_eq!(
+            serde_json::to_value(StreamEvent::Usage { input: 1, output: 2, eval_ms: 300 }).unwrap(),
+            json!({ "type": "usage", "input": 1, "output": 2, "evalMs": 300 })
+        );
+    }
+
+    #[test]
+    fn el_razonamiento_va_desactivado_por_defecto_y_solo_donde_se_puede_fijar() {
+        let sets = |provider: ProviderKind, reasoning: Option<bool>| {
+            let mut conn = connection("http://x", provider);
+            conn.reasoning = reasoning;
+            let mut body = json!({ "model": "m" });
+            apply_reasoning(&conn, &mut body);
+            body
+        };
+        assert_eq!(sets(ProviderKind::Ollama, None)["think"], false);
+        assert_eq!(sets(ProviderKind::Ollama, Some(true))["think"], true);
+        assert_eq!(sets(ProviderKind::OpenAiCompatible, None)["chat_template_kwargs"]["enable_thinking"], false);
+        assert_eq!(sets(ProviderKind::OpenAiCompatible, Some(true))["chat_template_kwargs"]["enable_thinking"], true);
+        // Nunca un campo desconocido a quien podría rechazarlo.
+        for provider in [ProviderKind::OpenAi, ProviderKind::Gemini, ProviderKind::OpenRouter, ProviderKind::LmStudio, ProviderKind::Anthropic] {
+            assert_eq!(sets(provider, Some(true)), json!({ "model": "m" }), "{provider:?}");
+        }
+        let mut body = sets(ProviderKind::Ollama, Some(true));
+        assert!(strip_reasoning(&mut body));
+        assert_eq!(body, json!({ "model": "m" }));
+        assert!(!strip_reasoning(&mut body));
+        assert!(mentions_reasoning(r#"{"error":"\"qwen2.5:3b\" does not support thinking"}"#));
+        assert!(!mentions_reasoning(r#"{"error":"model not found"}"#));
+    }
+
+    #[test]
+    fn si_el_modelo_no_admite_think_se_reintenta_una_vez_sin_el_campo() {
+        let rejected = r#"{"error":"\"qwen2.5:3b\" does not support thinking"}"#;
+        let ndjson = "{\"message\":{\"role\":\"assistant\",\"content\":\"Hola\"},\"done\":true,\"done_reason\":\"stop\",\"eval_count\":1,\"eval_duration\":1000000}\n";
+        let (address, server) = serve_many(vec![
+            format!("HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{rejected}", rejected.len()),
+            format!("HTTP/1.1 200 OK\r\nContent-Type: application/x-ndjson\r\nConnection: close\r\n\r\n{ndjson}"),
+        ]);
+        let mut conn = connection(&format!("{address}/v1"), ProviderKind::Ollama);
+        conn.reasoning = Some(true);
+        let mut events = Vec::new();
+        stream_chat(&conn, None, &request(), &AtomicBool::new(false), &mut |e| events.push(e)).unwrap();
+        let requests = server.join().unwrap();
+        let body_of = |request: &str| serde_json::from_str::<Value>(request.split("\r\n\r\n").nth(1).unwrap()).unwrap();
+        assert_eq!(body_of(&requests[0])["think"], true, "la primera petición lleva think");
+        assert!(body_of(&requests[1]).get("think").is_none(), "la segunda ya no");
+        assert!(events.contains(&StreamEvent::Text { text: "Hola".into() }));
+    }
+
+    #[test]
+    fn un_400_que_no_habla_del_razonamiento_no_se_reintenta() {
+        let body = r#"{"error":"model not found"}"#;
+        let (address, server) = serve_many(vec![format!("HTTP/1.1 400 Bad Request\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len())]);
+        let conn = connection(&format!("{address}/v1"), ProviderKind::Ollama);
+        let result = stream_chat(&conn, None, &request(), &AtomicBool::new(false), &mut |_| {});
+        assert_eq!(server.join().unwrap().len(), 1);
+        assert!(matches!(result, Err(AiError::BadRequest(_))));
     }
 
     #[test]

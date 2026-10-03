@@ -59,11 +59,27 @@ impl Secrets {
 
     pub fn delete(&self, connection_id: &str) -> Result<(), AiError> {
         lock(&self.session).remove(connection_id);
-        match keyring::Entry::new(SERVICE, connection_id).and_then(|entry| entry.delete_credential()) {
-            Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
-            Err(error) => Err(AiError::SecretStore(error.to_string())),
-        }
+        let result = keyring::Entry::new(SERVICE, connection_id).and_then(|entry| entry.delete_credential());
+        delete_outcome(result, || in_system_store(connection_id))
     }
+}
+
+/// Qué hacer con el resultado de borrar la clave del almacén del sistema.
+///
+/// Sin almacén del sistema (Linux sin Secret Service) no hay clave que borrar allí:
+/// solo es un error si la clave sigue en él tras fallar el borrado. Antes fallaba
+/// siempre, y en esas máquinas no se podía eliminar ninguna conexión.
+fn delete_outcome(result: Result<(), keyring::Error>, still_stored: impl FnOnce() -> bool) -> Result<(), AiError> {
+    match result {
+        Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
+        Err(error) if still_stored() => Err(AiError::SecretStore(error.to_string())),
+        Err(_) => Ok(()),
+    }
+}
+
+/// ¿Sigue la clave de esta conexión en el almacén del sistema?
+fn in_system_store(connection_id: &str) -> bool {
+    keyring::Entry::new(SERVICE, connection_id).and_then(|entry| entry.get_password()).is_ok()
 }
 
 #[cfg(test)]
@@ -81,5 +97,24 @@ mod tests {
         assert_eq!(secrets.get(&id).as_deref(), Some("sk-prueba"));
         secrets.delete(&id).unwrap();
         assert_eq!(secrets.get(&id), None);
+    }
+
+    #[test]
+    fn borrar_sin_almacen_del_sistema_no_es_un_error() {
+        // Regresión (CI de Linux, v0.13.0): sin Secret Service, borrar fallaba y no se
+        // podía eliminar ninguna conexión, tuviera o no clave.
+        assert!(delete_outcome(Err(keyring::Error::NoDefaultStore), || false).is_ok());
+    }
+
+    #[test]
+    fn borrar_una_clave_que_no_existe_es_correcto() {
+        assert!(delete_outcome(Err(keyring::Error::NoEntry), || panic!("no debe consultarse")).is_ok());
+        assert!(delete_outcome(Ok(()), || panic!("no debe consultarse")).is_ok());
+    }
+
+    #[test]
+    fn borrar_falla_si_la_clave_sigue_en_el_almacen() {
+        // Almacén accesible pero el borrado falló: la clave seguiría allí, y eso sí se avisa.
+        assert!(matches!(delete_outcome(Err(keyring::Error::NoDefaultStore), || true), Err(AiError::SecretStore(_))));
     }
 }

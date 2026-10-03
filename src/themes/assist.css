@@ -289,6 +289,10 @@
 .ai-msg--assistant { background: var(--bg-secondary); white-space: pre-wrap; }
 .ai-msg--assistant.md { white-space: normal; }
 .ai-step { font-size: 11px; color: var(--text-muted); font-style: italic; }
+.ai-form__advice { display: grid; gap: 6px; margin: 4px 0; }
+.ai-form__advice:empty, .ai-panel__warning:empty { display: none; }
+.ai-advice { font-size: 12px; padding: 6px 8px; border-radius: var(--radius); background: var(--bg-tertiary); color: var(--text-secondary); border-left: 3px solid var(--status-warning, #b8860b); }
+.ai-panel__warning { display: grid; gap: 4px; padding: 0 10px; }
 .ai-activity { font-size: 11px; color: var(--text-muted); font-style: italic; display: flex; align-items: center; gap: 6px; }
 .ai-activity::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--accent, currentColor); opacity: 0.8; }
 @media (prefers-reduced-motion: no-preference) {

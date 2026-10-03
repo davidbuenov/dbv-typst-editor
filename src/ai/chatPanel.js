@@ -76,6 +76,7 @@ export function createChatPanel({ host, callbacks }) {
   header.append(headerRow, selectorsRow);
 
   const destination = el('div', 'ai-panel__destination');
+  const warning = el('div', 'ai-panel__warning');
   const contextBar = el('div', 'ai-panel__context');
   contextBar.setAttribute('aria-label', t('ai.contextTitle'));
   const messages = el('div', 'ai-panel__messages');
@@ -98,7 +99,7 @@ export function createChatPanel({ host, callbacks }) {
   const sendButton = button(t('ai.send'), () => send(), 'button button--primary button--compact');
   composerActions.append(attachPage, attachments, speed, usage, stopButton, sendButton);
   composer.append(mentionList, input, composerActions);
-  host.append(header, destination, contextBar, messages, composer);
+  host.append(header, destination, warning, contextBar, messages, composer);
 
   let files = [];
   let mentionIndex = 0;
@@ -193,6 +194,10 @@ export function createChatPanel({ host, callbacks }) {
     },
     setConversations(list, activeId) {
       conversations.replaceChildren(...list.map((c) => new Option(c.title || t('ai.untitled'), c.id, false, c.id === activeId)));
+    },
+    /** Avisos del modelo activo (RF-103.1): pequeño, contexto corto. Lista vacía = sin avisos. */
+    setWarnings(list) {
+      warning.replaceChildren(...list.map((text) => el('p', 'ai-advice', text)));
     },
     setDestination(text, cloud) {
       destination.textContent = text;

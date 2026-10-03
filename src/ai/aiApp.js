@@ -21,7 +21,8 @@ import { createInlineAi } from './inline.js';
 import { createAcpSession, insideProject } from './acpSession.js';
 import { createChangesCard, createPermissionCard } from './acpView.js';
 import { buildContext, estimateTokens, RESPONSE_RESERVE, systemPrompt } from './context.js';
-import { CONTEXT_FILL_RATIO, TOOL_SPEC_TOKENS } from './modelFit.js';
+import { describeAdvice } from './modelAdvice.js';
+import { CONTEXT_FILL_RATIO, modelAdvice, TOOL_SPEC_TOKENS } from './modelFit.js';
 import { computeSpeed, formatSpeed, shouldHintSlow } from './speed.js';
 import { createModelClient } from './modelClient.js';
 import { applyChange, createProposal, normalizePath, overrides, parseChangeBlocks } from './proposal.js';
@@ -97,7 +98,10 @@ export function createAiApp(deps) {
   /** Contexto prudente por proveedor, del backend (`ai_providers`). */
   let providerInfo = [];
   backend.aiProviders().then((result) => {
-    if (result.ok) providerInfo = result.value;
+    if (!result.ok) return;
+    providerInfo = result.value;
+    // Los avisos de contexto dependen del que trae cada proveedor: se recalculan al llegar.
+    refreshModelWarnings();
   });
 
   const connectPanel = deps.registerPanel(elements.connectPanel, { toggle: false });
@@ -202,6 +206,31 @@ export function createAiApp(deps) {
   function renderConnections() {
     panel.setConnections(file.connections, activeConnection()?.id);
     renderDestination();
+    refreshModelWarnings();
+  }
+
+  /** Avisos del modelo activo (RF-103.1): con Ollama, tamaño pequeño y contexto corto; con el resto no hay datos del modelo. */
+  const modelInfoCache = new Map();
+  async function refreshModelWarnings() {
+    const connection = activeConnection();
+    let warnings = [];
+    if (connection?.provider === 'ollama' && connection.model) {
+      const key = `${connection.id}|${connection.baseUrl}|${connection.model}`;
+      if (!modelInfoCache.has(key)) {
+        const result = await backend.aiModelInfo(connection);
+        modelInfoCache.set(key, result.ok ? result.value : null);
+      }
+      if (activeConnection()?.id !== connection.id) return;
+      const advised = modelAdvice({
+        info: modelInfoCache.get(key),
+        contextTokens: connection.contextTokens ?? providerInfo.find((p) => p.provider === connection.provider)?.contextTokens ?? 8192,
+        tools: connection.supportsTools !== false,
+        reasoning: connection.reasoning === true,
+        systemTokens: estimateTokens(systemPrompt({ lang: getLanguage(), tools: true })),
+      });
+      warnings = describeAdvice(advised, t);
+    }
+    panel.setWarnings(warnings);
   }
 
   function renderDestination() {

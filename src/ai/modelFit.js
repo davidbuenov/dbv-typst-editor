@@ -72,6 +72,36 @@ export function contextRequirements({ systemTokens, tools = true, reasoning = fa
 }
 
 /**
+ * ¿Se puede fijar el razonamiento desde DBV con este proveedor y modelo? (RF-101)
+ *  · `available`: Ollama (`think`) y un servidor compatible genérico (`enable_thinking`);
+ *  · `unsupported`: Ollama dice que el modelo no razona;
+ *  · `unavailable`: el resto de proveedores, donde DBV no puede fijarlo.
+ * @param {{provider: string, info?: {capabilities?: string[]}|null}} options
+ * @returns {'available'|'unsupported'|'unavailable'}
+ */
+export function reasoningControl({ provider, info }) {
+  let control = 'unavailable';
+  if (provider === 'ollama') control = info?.capabilities && !info.capabilities.includes('thinking') ? 'unsupported' : 'available';
+  else if (provider === 'openAiCompatible') control = 'available';
+  return control;
+}
+
+/**
+ * Todo lo que merece un aviso de este modelo y esta conexión (RF-103).
+ * @param {{info?: object|null, contextTokens: number, tools?: boolean, reasoning?: boolean, systemTokens: number}} options
+ * @returns {{small: string|null, shortfall: ReturnType<typeof contextShortfall>, exceedsMax: number|null}}
+ */
+export function modelAdvice({ info, contextTokens, tools = true, reasoning = false, systemTokens }) {
+  const requirements = contextRequirements({ systemTokens, tools, reasoning });
+  const max = info?.contextLength ?? null;
+  return {
+    small: isSmallModel(info) ? info.parameterSize : null,
+    shortfall: contextShortfall({ contextTokens, requirements }),
+    exceedsMax: max && contextTokens > max ? max : null,
+  };
+}
+
+/**
  * Si la ventana de la conexión es menor que el mínimo, los números para avisar; si no, `null`.
  * @param {{contextTokens: number, requirements: {minimum: number, recommended: number}}} options
  * @returns {{have: number, minimum: number, recommended: number}|null}

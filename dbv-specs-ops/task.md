@@ -651,7 +651,7 @@
   - [x] **Slice 139** — backend del razonamiento (RF-100.1, 101.2, 102.1): `StreamEvent::Thinking`, `think`, `enable_thinking`, `eval_ms`, `Connection.reasoning`; tests con servidor simulado.
   - [x] **Slice 140** — conocer el modelo (RF-103): `ai_model_info` (`/api/show`), `modelFit.js` puro, presupuesto que descuenta las herramientas.
   - [x] **Slice 141** — panel (RF-100.2-.4/.6, RF-102): bloque `<details>`, indicador de actividad, tokens/s y sugerencia de GPU.
-  - [ ] **Slice 142** — formulario (RF-101, RF-103): interruptor «Razonamiento», aviso de modelo pequeño y de contexto corto.
+  - [x] **Slice 142** — formulario (RF-101, RF-103): interruptor «Razonamiento», aviso de modelo pequeño y de contexto corto.
   - [ ] **Slice 143** — separar presentación de contenido (RF-105): tareas y métrica + línea base con `qwen3:8b`, luego prompt y ficheros de estilo en el contexto.
   - [ ] **Slice 144** — medir y recomendar (RF-104, RF-103.4): `eval:ai` con `qwen3:8b`/`14b`, tabla en la guía ES/EN y Ayuda sin `qwen2.5:3b`.
   - Después: `/test`, `/code-simplify`, `/ship` 0.13.1 (`.msixbundle` y `notasActualizacionStore_v0.13.1.md`). **Siguiente: aprobación del plan y `/build`.**

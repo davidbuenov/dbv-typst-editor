@@ -51,6 +51,7 @@ function setup({ connections, script = [], agent = null } = {}) {
       saved.push(JSON.parse(JSON.stringify(value)));
       return ok(null);
     }),
+    aiModelInfo: vi.fn(async () => ok(null)),
     aiProviders: vi.fn(async () => ok([{ provider: 'ollama', contextTokens: 4096, cloud: false, baseUrl: 'http://localhost:11434/v1' }])),
     aiRelease: vi.fn(async () => ok(null)),
     aiSaveConnection: vi.fn(async (connection) => {
@@ -239,6 +240,31 @@ describe('modelo directo con herramientas (RF-92, RF-93, RF-94)', () => {
     await app.onProjectOpened({ root: 'D:/p' });
     await app.ask('primero');
     expect(document.getElementById('panel').textContent).not.toContain('GPU');
+  });
+
+  it('avisa en el panel de un modelo local pequeño con el contexto corto, y no de uno grande (RF-103.1)', async () => {
+    const small = setup({ connections: [ollama] });
+    small.backend.aiModelInfo.mockResolvedValue(ok({ parameterSize: '3.1B', contextLength: 32768, capabilities: ['completion', 'tools'] }));
+    await small.app.onProjectOpened({ root: 'D:/p' });
+    const warnings = () => [...document.querySelectorAll('#panel .ai-advice')].map((node) => node.textContent);
+    await vi.waitFor(() => expect(warnings()).toHaveLength(2));
+    expect(warnings()[0]).toContain('modelo pequeño (3.1B)');
+    expect(warnings()[1]).toMatch(/4[. ]?096 tokens/);
+
+    const big = setup({ connections: [{ ...ollama, contextTokens: 16384 }] });
+    big.backend.aiModelInfo.mockResolvedValue(ok({ parameterSize: '14.8B', contextLength: 40960, capabilities: ['completion', 'tools', 'thinking'] }));
+    await big.app.onProjectOpened({ root: 'D:/p' });
+    await vi.waitFor(() => expect(big.backend.aiModelInfo).toHaveBeenCalled());
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(warnings()).toEqual([]);
+  });
+
+  it('con una IA en la nube no se pregunta por el modelo ni se avisa de tamaño (RF-103.1)', async () => {
+    const { app, backend } = setup({ connections: [claudeApi] });
+    await app.onProjectOpened({ root: 'D:/p' });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(backend.aiModelInfo).not.toHaveBeenCalled();
+    expect(document.querySelectorAll('#panel .ai-advice')).toHaveLength(0);
   });
 
   it('si el modelo no admite herramientas, repite en modo conversación y lo recuerda (RF-94.4)', async () => {

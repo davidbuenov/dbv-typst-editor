@@ -12,7 +12,10 @@
 // de credenciales del sistema y nunca vuelve al frontend: al editar una
 // conexión, el campo queda vacío y «sin cambios» conserva la guardada.
 
-import { t } from '../i18n/i18n.js';
+import { getLanguage, t } from '../i18n/i18n.js';
+import { estimateTokens, systemPrompt } from './context.js';
+import { describeAdvice } from './modelAdvice.js';
+import { modelAdvice, reasoningControl } from './modelFit.js';
 
 /** Enlaces de instalación de lo que no se encuentra (RF-90.1). */
 export const INSTALL_LINKS = {
@@ -198,6 +201,11 @@ export function createConnectWizard({ host, backend, onChanged, onAgent, notify 
     context.min = '1024';
     const tools = el('select', 'form-row__input');
     tools.append(new Option(t('ai.toolsAuto'), ''), new Option(t('ai.yes'), 'true'), new Option(t('ai.no'), 'false'));
+    const reasoning = el('select', 'form-row__input');
+    reasoning.append(new Option(t('ai.reasoningOff'), 'false'), new Option(t('ai.reasoningOn'), 'true'));
+    const reasoningRow = field(t('ai.reasoning'), reasoning, t('ai.reasoningHint'));
+    const advice = el('div', 'ai-form__advice');
+    advice.setAttribute('aria-live', 'polite');
     const status = el('p', 'ai-form__status');
     status.setAttribute('aria-live', 'polite');
     const keyRow = field(t('ai.apiKey'), key, editing?.hasKey ? t('ai.keyStored') : t('ai.keyHint'));
@@ -218,6 +226,7 @@ export function createConnectWizard({ host, backend, onChanged, onAgent, notify 
     model.value = editing?.model ?? initial.model ?? '';
     context.value = editing?.contextTokens ? String(editing.contextTokens) : '';
     tools.value = editing?.supportsTools === undefined || editing?.supportsTools === null ? '' : String(editing.supportsTools);
+    reasoning.value = editing?.reasoning === true ? 'true' : 'false';
 
     const draft = () => ({
       id: editing?.id ?? newConnectionId(providerSelect.value),
@@ -229,7 +238,41 @@ export function createConnectWizard({ host, backend, onChanged, onAgent, notify 
       contextTokens: context.value ? Number(context.value) : null,
       supportsTools: tools.value === '' ? null : tools.value === 'true',
       supportsImages: editing?.supportsImages ?? null,
+      // `null` donde DBV no puede fijarlo (RF-101.2); si no, desactivado salvo que se active.
+      reasoning: reasoning.disabled ? null : reasoning.value === 'true',
     });
+
+    // Avisos del modelo (RF-103) y control del razonamiento (RF-101): con Ollama se pregunta
+    // a `/api/show`; con el resto no hay datos y solo se avisa del contexto.
+    const infoCache = new Map();
+    let adviceRun = 0;
+    const refreshAdvice = async () => {
+      const run = (adviceRun += 1);
+      const connection = draft();
+      const cacheKey = `${connection.provider}|${connection.baseUrl}|${connection.model}`;
+      if (connection.provider === 'ollama' && connection.model && !infoCache.has(cacheKey)) {
+        const result = await backend.aiModelInfo(connection);
+        infoCache.set(cacheKey, result.ok ? result.value : null);
+      }
+      if (run !== adviceRun) return;
+      const info = infoCache.get(cacheKey) ?? null;
+      const control = reasoningControl({ provider: connection.provider, info });
+      reasoning.disabled = control !== 'available';
+      if (reasoning.disabled) reasoning.value = 'false';
+      const hints = { available: 'ai.reasoningHint', unsupported: 'ai.reasoningUnsupported', unavailable: 'ai.reasoningUnavailable' };
+      reasoningRow.querySelector('.ai-form__hint').textContent = t(hints[control]);
+      const providerInfo = providers.find((p) => p.provider === connection.provider);
+      const advised = modelAdvice({
+        info,
+        contextTokens: connection.contextTokens ?? providerInfo?.contextTokens ?? 8192,
+        tools: connection.supportsTools !== false,
+        reasoning: reasoning.value === 'true',
+        systemTokens: estimateTokens(systemPrompt({ lang: getLanguage(), tools: true })),
+      });
+      advice.replaceChildren(...describeAdvice(advised, t).map((text) => el('p', 'ai-advice', text)));
+    };
+    for (const control of [model, context, tools, reasoning]) control.addEventListener('change', refreshAdvice);
+    providerSelect.addEventListener('change', refreshAdvice);
 
     const test = button(t('ai.test'), async () => {
       status.className = 'ai-form__status';
@@ -240,6 +283,7 @@ export function createConnectWizard({ host, backend, onChanged, onAgent, notify 
         if (!model.value && result.value[0]) model.value = result.value[0];
         status.classList.add('is-ok');
         status.textContent = t('ai.testOk').replace('{n}', String(result.value.length));
+        refreshAdvice();
       } else {
         status.classList.add('is-error');
         status.textContent = `${t(`ai.error.${result.error.kind}`)} ${result.error.message}`;
@@ -283,8 +327,10 @@ export function createConnectWizard({ host, backend, onChanged, onAgent, notify 
       keyRow,
       field(t('ai.model'), model),
       datalist,
+      advice,
       field(t('ai.contextTokens'), context, t('ai.contextHint')),
       field(t('ai.supportsTools'), tools, t('ai.toolsHint')),
+      reasoningRow,
       status,
     );
     const row = el('div', 'ai-form__actions');
@@ -292,6 +338,7 @@ export function createConnectWizard({ host, backend, onChanged, onAgent, notify 
     if (forget) row.append(forget);
     section.append(row);
     name.placeholder = defaultName(providerSelect.value, model.value);
+    refreshAdvice();
     section.scrollIntoView?.({ block: 'nearest' });
   }
 

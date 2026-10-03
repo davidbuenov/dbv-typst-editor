@@ -11,7 +11,9 @@ import {
   contextRequirements,
   contextShortfall,
   isSmallModel,
+  modelAdvice,
   parseParameterSize,
+  reasoningControl,
   RECOMMENDED_CONTEXT,
   SMALL_MODEL_BILLIONS,
 } from './modelFit.js';
@@ -38,6 +40,41 @@ describe('tamaño del modelo', () => {
     expect(isSmallModel({ parameterSize: '14.8B' })).toBe(false);
     expect(isSmallModel({ parameterSize: null })).toBe(false);
     expect(isSmallModel(null)).toBe(false);
+  });
+});
+
+describe('razonamiento por proveedor (RF-101)', () => {
+  it('se puede fijar en Ollama y en los compatibles genéricos, y no en el resto', () => {
+    expect(reasoningControl({ provider: 'ollama', info: null })).toBe('available');
+    expect(reasoningControl({ provider: 'ollama', info: { capabilities: ['completion', 'thinking'] } })).toBe('available');
+    expect(reasoningControl({ provider: 'openAiCompatible', info: null })).toBe('available');
+    for (const provider of ['openAi', 'anthropic', 'gemini', 'openRouter', 'lmStudio']) expect(reasoningControl({ provider, info: null })).toBe('unavailable');
+  });
+
+  it('si Ollama dice que el modelo no razona, el interruptor no aplica', () => {
+    expect(reasoningControl({ provider: 'ollama', info: { capabilities: ['completion', 'tools'] } })).toBe('unsupported');
+  });
+});
+
+describe('avisos de un modelo (RF-103)', () => {
+  const systemTokens = 313;
+
+  it('junta tamaño pequeño, contexto corto y contexto por encima del máximo', () => {
+    const advice = modelAdvice({ info: { parameterSize: '3.1B', contextLength: 32768 }, contextTokens: 4096, systemTokens });
+    expect(advice).toEqual({ small: '3.1B', shortfall: { have: 4096, minimum: 8192, recommended: 16384 }, exceedsMax: null });
+    expect(modelAdvice({ info: { contextLength: 8192 }, contextTokens: 16384, systemTokens }).exceedsMax).toBe(8192);
+  });
+
+  it('un modelo grande con contexto de sobra no da ningún aviso, y sin información no se inventa nada', () => {
+    expect(modelAdvice({ info: { parameterSize: '14.8B', contextLength: 40960 }, contextTokens: 16384, systemTokens })).toEqual({ small: null, shortfall: null, exceedsMax: null });
+    expect(modelAdvice({ info: null, contextTokens: 32768, systemTokens })).toEqual({ small: null, shortfall: null, exceedsMax: null });
+  });
+
+  it('con el razonamiento activado el mínimo sube y puede avisar donde antes no', () => {
+    const base = modelAdvice({ info: null, contextTokens: 8192, systemTokens });
+    const thinking = modelAdvice({ info: null, contextTokens: 8192, reasoning: true, systemTokens });
+    expect(base.shortfall).toBeNull();
+    expect(thinking.shortfall).toMatchObject({ have: 8192 });
   });
 });
 

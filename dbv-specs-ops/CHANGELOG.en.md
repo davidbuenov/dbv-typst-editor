@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **"New empty .typ…": create a loose document without creating a project (RF-106).** New entry in File (right after "New blank project"), a card on the start screen, the native macOS menu (Cmd+Option+N) and the Ctrl+Alt+N shortcut. It opens the system save dialog in **the last folder used** ("Open .typ document" and "Save as" remember it too; if it no longer exists, it falls back to Documents), creates the file **empty** —no template— and opens it as a loose document. It creates nothing else on disk, adds `.typ` if missing and **never overwrites content**: an existing file is only accepted if it is empty; otherwise it warns and asks for another name. New `create_empty_document` command and an optional `directory` on the open and save dialogs. 7 new tests (4 in Rust).
+
 ### Fixed
 
 - **The AI no longer says "proposed" when it proposed nothing.** If the model called `propose_changes` with an empty, missing or non-list `changes`, the tool returned an empty string: no review card appeared and the model, with no error to read, claimed it had proposed (or even applied) the change. The tool now returns an explicit error ("NOTHING was proposed…") when no change arrives or when none modifies a file (an edit identical to the current text, or one that failed), so the model retries or tells the user; and a single change sent as an object is accepted as a one-item list. 3 new tests in `tools.test.js`.

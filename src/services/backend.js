@@ -150,10 +150,13 @@ export const revealInFileManager = (path) => call('reveal_in_file_manager', { pa
 
 // ─── Diálogos nativos ────────────────────────────────────────────────────────
 
-export const pickTypstFile = () => call('open_file_dialog');
+/** `directory`: carpeta inicial del diálogo (se ignora si ya no existe, RF-106.3). */
+export const pickTypstFile = (directory = null) => call('open_file_dialog', { directory });
 export const pickProjectFolder = () => call('open_folder_dialog');
-export const pickSaveTarget = (defaultName, filterName, extensions) =>
-  call('save_file_dialog', { defaultName, filterName, extensions });
+export const pickSaveTarget = (defaultName, filterName, extensions, directory = null) =>
+  call('save_file_dialog', { defaultName, filterName, extensions, directory });
+/** Crea un `.typ` vacío y suelto (RF-106); devuelve la ruta final. No pisa contenido. */
+export const createEmptyDocument = (path) => call('create_empty_document', { path });
 export const pickArchiveFile = () => call('pick_archive_dialog');
 
 // ─── Proyecto ────────────────────────────────────────────────────────────────

@@ -647,7 +647,7 @@
 - [x] **Fase 66: `/plan` de v0.13.1 — 2026-10-03 (`implementation_plan.md`, `ADR-V0130-006`). APROBACIÓN DEL USUARIO PENDIENTE.** Modo Orquestador, nueve slices, un commit por slice con changelog ES+EN. Hallazgo crítico: un `.typ` suelto deja a la IA ver su carpeta entera (R-B1).
   - [x] **Slice 136** (`6a4b72e`) — commitear RF-99 (ya construido) tras verificar `vitest` y changelog.
   - [x] **Slice 137** — confinar la IA a un documento suelto: lista, lectura, búsqueda y propuesta solo del fichero; aviso en el indicador (RF-106.7, R-B1).
-  - [ ] **Slice 138** — «Nuevo documento…» (RF-106): `create_empty_document`, `save_file_dialog` con carpeta, `lastDocumentDir`, menú + macOS + inicio + atajo, ES/EN, tests.
+  - [x] **Slice 138** — «Nuevo .typ vacío…» (RF-106; el nombre cambió porque «Nuevo documento» ya es el botón de plantillas): `create_empty_document`, `save_file_dialog` con carpeta, `lastDocumentDir`, menú + macOS + inicio + atajo, ES/EN, tests.
   - [ ] **Slice 139** — backend del razonamiento (RF-100.1, 101.2, 102.1): `StreamEvent::Thinking`, `think`, `enable_thinking`, `eval_ms`, `Connection.reasoning`; tests con servidor simulado.
   - [ ] **Slice 140** — conocer el modelo (RF-103): `ai_model_info` (`/api/show`), `modelFit.js` puro, presupuesto que descuenta las herramientas.
   - [ ] **Slice 141** — panel (RF-100.2-.4/.6, RF-102): bloque `<details>`, indicador de actividad, tokens/s y sugerencia de GPU.

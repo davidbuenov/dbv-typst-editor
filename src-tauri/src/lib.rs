@@ -170,6 +170,7 @@ pub fn run() {
             engine::commands::engine_search,
             engine::commands::engine_page_text,
             commands::app_info::open_document_link,
+            commands::file_io::create_empty_document,
             commands::file_io::list_directory,
             commands::file_io::open_file_dialog,
             commands::file_io::open_folder_dialog,

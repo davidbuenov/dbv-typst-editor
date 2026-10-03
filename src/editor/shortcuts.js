@@ -154,6 +154,9 @@ export const APP_SHORTCUTS = [
   // Ventana.
   { id: 'closePanel', scope: 'app', key: 'Escape', label: { es: 'Cerrar el panel abierto', en: 'Close the open panel' } },
 
+  // Documento suelto (RF-106). En macOS lo atiende el menú nativo.
+  { id: 'newDocument', scope: 'app', key: 'Mod-Alt-n', label: { es: 'Nuevo .typ vacío (documento suelto)', en: 'New empty .typ (loose document)' } },
+
   // Buscar en el proyecto (RF-78).
   { id: 'searchProject', scope: 'app', key: 'Mod-Shift-f', label: { es: 'Buscar y reemplazar en todo el proyecto', en: 'Find and replace across the project' } },
 

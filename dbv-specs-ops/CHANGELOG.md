@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Sin publicar] / [Unreleased]
 
+### Added
+
+- **«Nuevo .typ vacío…»: crear un documento suelto sin crear un proyecto (RF-106).** Nueva entrada en Archivo (justo tras «Nuevo proyecto en blanco»), tarjeta en el inicio, menú nativo de macOS (Cmd+Opción+N) y atajo Ctrl+Alt+N. Abre el diálogo de guardar del sistema en **la última carpeta usada** (la recuerdan también «Abrir documento .typ» y «Guardar como»; si ya no existe, se cae a Documentos), crea el fichero **vacío** —sin plantilla— y lo abre como documento suelto. No crea nada más en disco, añade `.typ` si falta y **nunca pisa contenido**: un fichero existente solo se acepta si está vacío; si no, avisa y pide otro nombre. Nuevo comando `create_empty_document` y `directory` opcional en los diálogos de abrir y guardar. 7 tests nuevos (4 de Rust).
+
 ### Fixed
 
 - **La IA ya no dice «propuesto» cuando no ha propuesto nada.** Si el modelo llamaba a `propose_changes` con `changes` vacío, ausente o que no era una lista, la herramienta devolvía una cadena vacía: no aparecía tarjeta de revisión y el modelo, sin error que leer, afirmaba haber propuesto (o incluso aplicado) el cambio. Ahora la herramienta devuelve un error explícito («NOTHING was proposed…») cuando no llega ningún cambio o cuando ninguno modifica un fichero (edición idéntica al texto actual o que falló), de modo que el modelo reintenta o se lo dice al usuario; y un único cambio enviado como objeto se acepta como lista de uno. 3 tests nuevos en `tools.test.js`.

@@ -78,6 +78,7 @@ import {
   previewUniverseTemplate,
   pickArchiveFile,
   pickProjectFolder,
+  createEmptyDocument,
   pickSaveTarget,
   pickTypstFile,
   docsInfo,
@@ -106,6 +107,8 @@ import { createChangeTracker } from './preview/changeTracker.js';
 import { createSplitter } from './ui/splitter.js';
 import { createToast } from './ui/toast.js';
 import { cycleTheme, getTheme, initTheme, setTheme } from './themes/theme.js';
+import { getLastDocumentDir, rememberDocumentPath } from './app/lastDocumentDir.js';
+import { isNewDocumentShortcut } from './app/newDocument.js';
 import { getPref, onPrefsChanged, togglePref } from './app/prefs.js';
 import { getCurrentWebview } from '@tauri-apps/api/webview';
 import { getCurrentWindow } from '@tauri-apps/api/window';
@@ -1245,8 +1248,26 @@ async function bootstrap() {
   };
 
   const openFile = async () => {
-    const picked = await pickTypstFile();
-    if (picked.ok && picked.value) await openPath(picked.value);
+    const picked = await pickTypstFile(getLastDocumentDir());
+    if (picked.ok && picked.value) {
+      rememberDocumentPath(picked.value);
+      await openPath(picked.value);
+    }
+  };
+
+  // «Nuevo .typ vacío…» (RF-106): se elige dónde guardarlo, se crea VACÍO y se
+  // abre como documento suelto, igual que con «Abrir documento .typ».
+  const newDocument = async () => {
+    const picked = await pickSaveTarget('documento.typ', 'Typst', ['typ'], getLastDocumentDir());
+    if (!picked.ok || !picked.value) return;
+    const created = await createEmptyDocument(picked.value);
+    if (!created.ok) {
+      const exists = created.error.kind === 'denied';
+      toast.show(exists ? t('action.newDocumentExists') : `${t('action.newDocumentError')} — ${created.error.message}`, 'error');
+      return;
+    }
+    rememberDocumentPath(created.value);
+    await openPath(created.value);
   };
 
   // Importar Project Archive (RF-11, v0.2): elegir el .dbvt, elegir dónde
@@ -1508,6 +1529,13 @@ async function bootstrap() {
 
   el('btn-open-folder').addEventListener('click', openFolder);
   el('btn-empty-open-folder').addEventListener('click', openFolder);
+  el('btn-new-document').addEventListener('click', newDocument);
+  document.addEventListener('keydown', (event) => {
+    if (!isNewDocumentShortcut(event)) return;
+    event.preventDefault();
+    newDocument();
+  });
+  el('btn-empty-new-document').addEventListener('click', newDocument);
   el('btn-open-file').addEventListener('click', openFile);
   el('btn-empty-open-file').addEventListener('click', openFile);
   el('btn-import-archive').addEventListener('click', importArchive);
@@ -2130,6 +2158,7 @@ async function bootstrap() {
   on('menu-close-project', closeProject);
   on('menu-close-tab', () => workspace.closeDocument());
   on('menu-open-folder', openFolder);
+  on('menu-new-document', newDocument);
   on('menu-open-file', openFile);
   on('menu-save', () => el('btn-save').click());
   on('menu-save-as', () => el('btn-save-as').click());

@@ -64,6 +64,7 @@ import {
 import { changedOnDiskBeforeSave, decideExternalChange, isWithinAny } from './externalChange.js';
 import { shortPathLabel } from './pathLabel.js';
 import { createTabBar } from './tabBar.js';
+import { getLastDocumentDir, rememberDocumentPath } from './lastDocumentDir.js';
 import { getPref, onPrefsChanged } from './prefs.js';
 import {
   PROJECT_CHANGE_EVENT,
@@ -1593,8 +1594,9 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
   async function saveAs() {
     if (!state.document) return false;
 
-    const picked = await pickSaveTarget(state.document.fileName, 'Typst', ['typ']);
+    const picked = await pickSaveTarget(state.document.fileName, 'Typst', ['typ'], getLastDocumentDir());
     if (!picked.ok || !picked.value) return false;
+    rememberDocumentPath(picked.value);
 
     const result = await writeFile(picked.value, editor.getContent());
     if (!result.ok) {

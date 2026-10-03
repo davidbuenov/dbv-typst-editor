@@ -82,6 +82,14 @@ pub fn setup<R: Runtime>(app: &App<R>) -> tauri::Result<()> {
             .accelerator("Cmd+N")
             .build(app)?,
         )
+        .item(
+            &MenuItemBuilder::with_id(
+                "menu-new-document",
+                if es { "Nuevo .typ vacío…" } else { "New Empty .typ…" },
+            )
+            .accelerator("Cmd+Alt+N")
+            .build(app)?,
+        )
         .separator()
         .item(
             &MenuItemBuilder::with_id(
@@ -194,6 +202,7 @@ pub fn setup<R: Runtime>(app: &App<R>) -> tauri::Result<()> {
         let id = event.id().0.as_str();
         match id {
             "menu-new-project" => forward(app, "menu-new-project"),
+            "menu-new-document" => forward(app, "menu-new-document"),
             "menu-open-folder" => forward(app, "menu-open-folder"),
             "menu-open-file" => forward(app, "menu-open-file"),
             "menu-save" => forward(app, "menu-save"),

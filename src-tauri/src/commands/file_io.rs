@@ -440,12 +440,18 @@ pub fn list_directory(path: String) -> Result<Vec<DirEntryInfo>, AppError> {
 /// Selector nativo de fichero `.typ` (RF-02b: un `.typ` suelto es un proyecto
 /// de un solo fichero).
 #[tauri::command]
-pub async fn open_file_dialog(app: tauri::AppHandle) -> Option<String> {
-    app.dialog()
-        .file()
-        .add_filter("Typst", &TYPST_EXTENSIONS)
-        .blocking_pick_file()
-        .map(|file| file.to_string())
+pub async fn open_file_dialog(app: tauri::AppHandle, directory: Option<String>) -> Option<String> {
+    let mut dialog = app.dialog().file().add_filter("Typst", &TYPST_EXTENSIONS);
+    if let Some(dir) = start_directory(directory) {
+        dialog = dialog.set_directory(dir);
+    }
+    dialog.blocking_pick_file().map(|file| file.to_string())
+}
+
+/// Carpeta inicial de un diálogo (RF-106.3): la que pide el frontend si existe;
+/// si no, `None` y el sistema elige (Documentos), sin error.
+fn start_directory(directory: Option<String>) -> Option<PathBuf> {
+    directory.map(PathBuf::from).filter(|dir| dir.is_dir())
 }
 
 /// Selector nativo de un fichero de datos para el visor CSV/TSV (RF-98.6).
@@ -474,14 +480,43 @@ pub async fn save_file_dialog(
     default_name: String,
     filter_name: String,
     extensions: Vec<String>,
+    directory: Option<String>,
 ) -> Option<String> {
     let extension_refs: Vec<&str> = extensions.iter().map(String::as_str).collect();
-    app.dialog()
-        .file()
-        .set_file_name(&default_name)
-        .add_filter(&filter_name, &extension_refs)
-        .blocking_save_file()
-        .map(|file| file.to_string())
+    let mut dialog = app.dialog().file().set_file_name(&default_name).add_filter(&filter_name, &extension_refs);
+    if let Some(dir) = start_directory(directory) {
+        dialog = dialog.set_directory(dir);
+    }
+    dialog.blocking_save_file().map(|file| file.to_string())
+}
+
+/// Crea un documento `.typ` VACÍO y suelto, sin proyecto (RF-106). Añade la
+/// extensión si falta. Nunca pisa contenido: un fichero que ya existe solo se
+/// acepta si está vacío; si no, se rechaza y el frontend pide otro nombre.
+/// Devuelve la ruta final.
+#[tauri::command]
+pub fn create_empty_document(path: String) -> Result<String, AppError> {
+    let mut target = PathBuf::from(&path);
+    if !has_extension(&path, &TYPST_EXTENSIONS) {
+        let mut name = target.file_name().map(|n| n.to_os_string()).ok_or_else(|| AppError::InvalidPath(path.clone()))?;
+        name.push(".typ");
+        target.set_file_name(name);
+    }
+    let parent_ok = target.parent().is_some_and(|parent| parent.as_os_str().is_empty() || parent.is_dir());
+    if !parent_ok {
+        return Err(AppError::InvalidPath(path));
+    }
+    match fs::OpenOptions::new().write(true).create_new(true).open(&target) {
+        Ok(_) => Ok(path_to_string(&target)),
+        Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
+            if fs::metadata(&target).is_ok_and(|meta| meta.is_file() && meta.len() == 0) {
+                Ok(path_to_string(&target))
+            } else {
+                Err(AppError::Denied(path_to_string(&target)))
+            }
+        }
+        Err(error) => Err(AppError::Io(error.to_string())),
+    }
 }
 
 /// "Mostrar en el explorador del SO" (RF-02c). Sin plugin ni shell intermedio:
@@ -511,6 +546,50 @@ mod tests {
         }
         fs::write(&path, contents).unwrap();
         path
+    }
+
+    #[test]
+    fn nuevo_documento_crea_un_typ_vacio_y_anade_la_extension() {
+        let dir = tempfile::tempdir().unwrap();
+        let created = create_empty_document(dir.path().join("carta").to_string_lossy().to_string()).unwrap();
+        assert!(created.ends_with("carta.typ"));
+        assert_eq!(fs::read(&created).unwrap().len(), 0);
+        let again = create_empty_document(dir.path().join("otro.typ").to_string_lossy().to_string()).unwrap();
+        assert!(again.ends_with("otro.typ"));
+        assert_eq!(fs::read_dir(dir.path()).unwrap().count(), 2, "no crea nada más que los dos ficheros");
+    }
+
+    #[test]
+    fn nuevo_documento_no_pisa_contenido_ajeno() {
+        let dir = tempfile::tempdir().unwrap();
+        let existing = write_temp(dir.path(), "tesis.typ", "= Mi tesis
+");
+        let result = create_empty_document(existing.to_string_lossy().to_string());
+        assert!(matches!(result, Err(AppError::Denied(_))));
+        assert_eq!(fs::read_to_string(&existing).unwrap(), "= Mi tesis
+");
+        // El nombre sin extensión que acaba apuntando a uno existente tampoco se toca.
+        let without_extension = dir.path().join("tesis").to_string_lossy().to_string();
+        assert!(matches!(create_empty_document(without_extension), Err(AppError::Denied(_))));
+        assert_eq!(fs::read_to_string(&existing).unwrap(), "= Mi tesis
+");
+    }
+
+    #[test]
+    fn nuevo_documento_acepta_un_fichero_vacio_que_ya_existe_y_rechaza_carpetas_inexistentes() {
+        let dir = tempfile::tempdir().unwrap();
+        let empty = write_temp(dir.path(), "vacio.typ", "");
+        assert!(create_empty_document(empty.to_string_lossy().to_string()).is_ok());
+        let missing = dir.path().join("no-existe").join("x.typ").to_string_lossy().to_string();
+        assert!(matches!(create_empty_document(missing), Err(AppError::InvalidPath(_))));
+    }
+
+    #[test]
+    fn la_carpeta_inicial_del_dialogo_se_ignora_si_ya_no_existe() {
+        let dir = tempfile::tempdir().unwrap();
+        assert_eq!(start_directory(Some(dir.path().to_string_lossy().to_string())), Some(dir.path().to_path_buf()));
+        assert_eq!(start_directory(Some(dir.path().join("borrada").to_string_lossy().to_string())), None);
+        assert_eq!(start_directory(None), None);
     }
 
     #[test]

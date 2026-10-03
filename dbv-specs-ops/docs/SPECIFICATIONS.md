@@ -1518,7 +1518,7 @@ Se mantienen todos los principios de RNF-IA. Esta versión **no añade proveedor
 
 ### RF-106 — Nuevo documento suelto, sin crear un proyecto
 *Petición recurrente de usuarios: escribir un único `.typ` sin pasar por el asistente de proyecto. Hoy «Abrir archivo» ya abre un `.typ` suelto (RF-16, criterio c), pero no hay forma de **crear** uno sin crear una carpeta de proyecto.*
-1. **Entrada «Nuevo documento…»** en el menú de nuevo/archivo (junto a «Proyecto en blanco»), con su atajo y también en la pantalla de inicio y en la vista sin documento abierto. Se maneja con teclado y tiene su texto en ES y EN.
+1. **Entrada «Nuevo .typ vacío…»** *(el nombre «Nuevo documento» ya es el del botón de plantillas del lanzador; se cambió en `/build`)* en el menú de nuevo/archivo (junto a «Proyecto en blanco»), con su atajo y también en la pantalla de inicio y en la vista sin documento abierto. Se maneja con teclado y tiene su texto en ES y EN.
 2. **Se guarda primero, se abre después** (opción A de este `/spec`). Abre el diálogo de guardar del sistema, filtrado a `.typ`; al aceptar, DBV crea el fichero y lo abre **como documento suelto**, exactamente igual que uno abierto con «Abrir archivo». No hay documento «sin título» en memoria.
 3. **Carpeta por defecto: la última usada** para abrir o guardar un documento, recordada entre sesiones. Si no existe o no hay ninguna, la carpeta de documentos del usuario. Si la carpeta recordada ya no existe, se cae a la de documentos sin dar error.
 4. **Plantilla vacía:** el fichero se crea **vacío** (0 bytes), sin `#set`, sin título ni texto de ejemplo. Coherente con RF-105: nada de formato que el usuario no pidió.

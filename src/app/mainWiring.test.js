@@ -32,6 +32,15 @@ describe('main.js ↔ index.html', () => {
     expect(missing).toEqual([]);
   });
 
+  it('«Nuevo .typ vacío…» (RF-106) está en el menú Archivo, en el inicio, en el menú de macOS y cableado', () => {
+    expect(idsInHtml.has('btn-new-document')).toBe(true);
+    expect(idsInHtml.has('btn-empty-new-document')).toBe(true);
+    expect(main).toContain("el('btn-new-document').addEventListener");
+    expect(main).toContain("el('btn-empty-new-document').addEventListener");
+    expect(main).toContain("on('menu-new-document', newDocument)");
+    expect(read('src-tauri/src/macos_menu.rs')).toContain('"menu-new-document" => forward');
+  });
+
   it('el menú de documento principal está en el HTML y cableado', () => {
     expect(idsInHtml.has('btn-set-entrypoint')).toBe(true);
     expect(main).toContain("el('btn-set-entrypoint').addEventListener");

@@ -13,6 +13,14 @@
 //
 //   npm run eval:ai -- --model llama3 [--tasks fix-,docs-] [--ctx 8192] [--think on|off] [--label texto]
 //
+// En la nube (RF-104): `--provider anthropic|openai|gemini|openrouter --model <modelo>`
+// (o `--provider compatible --base-url http://127.0.0.1:8080/v1` para un servidor propio),
+// con la clave en una variable de entorno (ANTHROPIC_API_KEY, OPENAI_API_KEY,
+// GEMINI_API_KEY u OPENROUTER_API_KEY), NUNCA como argumento: así no queda en el
+// historial de la terminal. Cuesta dinero (tokens de tu cuenta): al acabar se
+// imprimen los tokens gastados. La clave solo viaja en la cabecera de la petición
+// y no se guarda en ningún resultado.
+//
 // No corre en la CI (necesita un modelo); deja el resultado con fecha y modelo
 // en `testfiles/ai-evals/results/`.
 
@@ -25,6 +33,7 @@ import { proposeNudge, runAgent } from '../src/ai/agentLoop.js';
 import { buildContext, systemPrompt } from '../src/ai/context.js';
 import { applyChange, createProposal, parseChangeBlocks, resultText } from '../src/ai/proposal.js';
 import { separationChecks } from '../src/ai/styleFiles.js';
+import { CLOUD, headersFor, parseResponse, requestFor, sumUsage } from './evalProviders.mjs';
 import { createTools, describeCheck } from '../src/ai/tools.js';
 
 const ROOT = new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
@@ -32,7 +41,14 @@ const arg = (name, fallback) => {
   const index = process.argv.indexOf(`--${name}`);
   return index > 0 ? process.argv[index + 1] : fallback;
 };
-const MODEL = arg('model', 'llama3');
+const PROVIDER = arg('provider', 'ollama');
+if (PROVIDER !== 'ollama' && !CLOUD[PROVIDER]) throw new Error(`proveedor desconocido: ${PROVIDER} (ollama, ${Object.keys(CLOUD).join(', ')})`);
+const MODEL = arg('model', PROVIDER === 'ollama' ? 'llama3' : '');
+if (!MODEL) throw new Error('con un proveedor en la nube hay que indicar --model');
+const BASE_URL = arg('base-url', '');
+if (PROVIDER === 'compatible' && !BASE_URL) throw new Error('con --provider compatible hay que indicar --base-url (por ejemplo http://127.0.0.1:8080/v1)');
+const API_KEY = PROVIDER === 'ollama' ? null : process.env[CLOUD[PROVIDER].keyEnv];
+if (PROVIDER !== 'ollama' && !API_KEY && !CLOUD[PROVIDER].keyOptional) throw new Error(`falta la clave: define la variable de entorno ${CLOUD[PROVIDER].keyEnv} (no la pases como argumento)`);
 const HOST = arg('host', 'http://127.0.0.1:11434');
 const CONTEXT = Number(arg('ctx', '8192'));
 const FILTER = arg('tasks', '').split(',').filter(Boolean);
@@ -110,7 +126,31 @@ function materialize(base, proposal) {
 // ─── Modelo (Ollama nativo, como la aplicación) ─────────────────────────────
 
 let toolsSupported = true;
-async function callModel({ messages, tools }) {
+
+/** Una llamada a un proveedor en la nube, con reintentos ante límite de uso (429) o saturación (529, 5xx). */
+async function callCloud({ messages, tools }) {
+  const { url, body } = requestFor(PROVIDER, { messages, tools, model: MODEL, baseUrl: BASE_URL });
+  for (let attempt = 1; ; attempt += 1) {
+    const response = await fetch(url, { method: 'POST', headers: headersFor(PROVIDER, API_KEY), body: JSON.stringify(body) });
+    const retryable = response.status === 429 || response.status === 529 || response.status >= 500;
+    if (retryable && attempt < 4) {
+      await new Promise((resolve) => setTimeout(resolve, attempt * 4000));
+      continue;
+    }
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const message = data.error?.message ?? data.error ?? `HTTP ${response.status}`;
+      throw Object.assign(new Error(String(message)), { kind: response.status === 400 ? 'badRequest' : 'server' });
+    }
+    return parseResponse(PROVIDER, data);
+  }
+}
+
+async function callModel(request) {
+  return PROVIDER === 'ollama' ? callOllama(request) : callCloud(request);
+}
+
+async function callOllama({ messages, tools }) {
   const body = {
     model: MODEL,
     stream: false,
@@ -220,6 +260,7 @@ async function runTask(task, withDocs) {
     formatErrors,
     errorsAfter: finalErrors.map((d) => d.message),
     seconds: Math.round((Date.now() - started) / 100) / 10,
+    tokens: result.usage,
     answer: answer.slice(0, 600),
   };
 }
@@ -240,10 +281,10 @@ async function main() {
     const subset = results.filter((r) => r.withDocs === docs);
     return { passed: subset.filter((r) => r.pass).length, total: subset.length, compiled: subset.filter((r) => r.checks?.compiles === true).length, compileTasks: subset.filter((r) => r.checks?.compiles !== null && r.checks?.compiles !== undefined).length };
   };
-  const summary = { model: MODEL, context: CONTEXT, think: THINK, tools: toolsSupported, date: new Date().toISOString(), withoutDocs: rate(false), withDocs: rate(true) };
+  const summary = { provider: PROVIDER, model: MODEL, context: PROVIDER === 'ollama' ? CONTEXT : null, think: PROVIDER === 'ollama' ? THINK : null, tokens: sumUsage(results.map((r) => r.tokens)), tools: toolsSupported, date: new Date().toISOString(), withoutDocs: rate(false), withDocs: rate(true) };
   const dir = join(ROOT, 'testfiles', 'ai-evals', 'results');
   mkdirSync(dir, { recursive: true });
-  const file = join(dir, `${summary.date.slice(0, 10)}-${MODEL.replace(/[^\w.-]/g, '_')}${THINK === 'on' ? '-think' : ''}${LABEL ? `-${LABEL}` : ''}.json`);
+  const file = join(dir, `${summary.date.slice(0, 10)}-${PROVIDER === 'ollama' ? '' : `${PROVIDER}-`}${MODEL.replace(/[^\w.-]/g, '_')}${THINK === 'on' ? '-think' : ''}${LABEL ? `-${LABEL}` : ''}.json`);
   writeFileSync(file, JSON.stringify({ summary, results }, null, 2));
   console.log(`\n${JSON.stringify(summary, null, 2)}\n→ ${file}`);
 }

@@ -73,6 +73,9 @@ flate2 = "1"
 # v0.14.0 (RF-108.3): leer el README y la plantilla de un paquete de Universe sin instalarlo.
 # Ya estaba en `Cargo.lock` (la usa `typst-kit`): pasa a directa sin descarga.
 tar = "0.4"
+# v0.14.0 (RF-113): el modo `--mcp` no tiene `AppHandle`, así que calcula él mismo la carpeta de datos.
+# Ya estaba en `Cargo.lock` (la usa `typst-kit`): pasa a directa sin descarga.
+dirs = "6"
 
 # v0.9.0 (ADR-MOTOR-001): motor de vista previa EN PROCESO. Typst como librería, con
 # versiones EXACTAS iguales a las del sidecar vendorizado (`scripts/vendor-typst.mjs`):

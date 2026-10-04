@@ -379,6 +379,13 @@ pub fn package_docs(base: &str, packages: &SystemPackages, id: &str, allow_downl
     Ok(docs_to_text(&docs))
 }
 
+/// Documentación de un paquete que YA está instalado en la caché o en el directorio de datos del compilador.
+/// Nunca abre una conexión: la usa el servidor MCP (RF-113, RNF-IA.9.3).
+pub fn installed_package_docs(id: &str) -> Result<String, AiError> {
+    let packages = packages_for(OFFICIAL_REGISTRY, FsPackages::system_cache(), FsPackages::system_data());
+    package_docs(OFFICIAL_REGISTRY, &packages, id, false)
+}
+
 /// Lee la documentación de un paquete de Universe (RF-108.3). Con `allow_download` falso (conexión
 /// local) solo lee un paquete que el compilador ya tiene.
 #[tauri::command]

@@ -1170,6 +1170,7 @@ name = "dbv-typst-editor"
 version = "0.13.1"
 dependencies = [
  "base64 0.22.1",
+ "dirs",
  "dunce",
  "flate2",
  "hayagriva",

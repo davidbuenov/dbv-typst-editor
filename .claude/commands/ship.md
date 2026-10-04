@@ -25,6 +25,22 @@ antes `npm run vendor:typst` y `npm run vendor:tinymist`. Al terminar, pasa y re
 (~75-80 MB), no ~30 MB. Deja la ruta del `.msixbundle` en `task.md`. Instalarlo con el certificado de
 pruebas y subirlo a Partner Center siguen siendo acciones del usuario.
 
+**Publicación en GitHub (cuando el usuario pide push, y siempre en este orden).** Los workflows de release crean
+un **borrador** (`releaseDraft: true`): publicarlo y documentarlo es parte de `/ship`, no un paso que se quede
+para después.
+1. **Primero empuja solo `master`** y espera a que la **CI** (`gh run list --workflow CI`) termine en verde. Un test
+   que mata o cuelga el job en Linux no se ve en Windows (la 0.14.0 salió con un `kill` que cancelaba la CI).
+2. **Solo entonces crea y empuja el tag** `vX.Y.Z`. **Un tag ya empujado no se mueve ni se borra** (hacerlo exige
+   permiso explícito del usuario): si algo falla tras el tag, se corrige en `master` y, si hace falta, sale una
+   versión Patch nueva.
+3. Espera a que terminen **Release Linux y Release macOS** (la de macOS tarda ~35 min) y comprueba que el
+   borrador lleva sus artefactos.
+4. **Publica la Release con sus notas**: `gh release edit vX.Y.Z --draft=false --latest --notes-file <fichero>`, con el
+   cuerpo en **inglés y español** (misma plantilla que `gh release view v0.13.1`: resumen, viñetas con lo que
+   importa al usuario, enlace al `CHANGELOG` y a la guía de IA, y el aviso de Windows solo por la Store y de
+   `.dmg` sin firmar). Redáctalo a partir de la sección de la versión del `CHANGELOG`, no de la memoria.
+5. Comprueba que `gh release view vX.Y.Z` ya no es borrador y que el workflow del Cask de Homebrew terminó bien.
+
 **Y revisa SIEMPRE la documentación, en el repositorio y en la web** (antes del bump de versión; no es
 opcional ni se reduce a «añadir una línea al README»). Lo que se añadió en la versión tiene que estar
 explicado donde el usuario lo busca, y lo que ya estaba tiene que seguir siendo verdad:

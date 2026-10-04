@@ -1,7 +1,8 @@
 # 📋 Especificaciones: DBV Typst Editor
 
-> **Fase:** `/spec` (Especificación) → **v0.13.1 especificada**
-> **Estado:** 🔒 **CONGELADO v1.18 — 2026-10-03.** v1.18 abre v0.13.1 (§5o: **RF-99 a RF-106**) tras la prueba real de la IA con modelos locales (Gemma 4, `qwen2.5:3b`, `qwen3:8b`) y con Claude: una propuesta que no existe no se anuncia como hecha (RF-99, ya construido), el razonamiento del modelo se ve en un bloque plegable con indicador de actividad (RF-100), interruptor «Razonamiento» por conexión desactivado por defecto (RF-101), velocidad y tiempo en el panel (RF-102), aviso de modelo pequeño y de contexto insuficiente con el mínimo recomendable (RF-103) evaluación con recomendación de modelos con datos (RF-104) y que la IA separe presentación de contenido, con el estilo en ficheros de estilo (RF-105), y crear un documento `.typ` suelto sin crear un proyecto (RF-106). La 0.13.0 no se publica en la Store; recibirá la 0.13.1 (`ADR-V0130-005`).
+> **Fase:** `/spec` (Especificación) → **v0.14.0 especificada**
+> **Estado:** 🔒 **CONGELADO v1.19 — 2026-10-04** *(ampliado el mismo día, antes del `/plan`, con RF-113 a RF-115: servidor MCP de solo lectura para agentes externos, renderizado de páginas para que la IA vea el resultado, y referencias y bibliografía como herramienta)*. v1.19 abre v0.14.0 «AI Native» (§5p: **RF-107 a RF-117**): que las IAs locales no se queden mudas ni desbocadas (tope de salida, progreso y reintento, RF-107); que la IA conozca Typst Universe sin inventar paquetes ni versiones (RF-108); que la comprobación de propuestas entienda los paquetes aún no instalados (RF-109); aplicar una plantilla a un documento existente, p. ej. «adapta esto al IEEE» (RF-110); fuentes que la IA añade **al proyecto** con permiso (RF-111); e importar snippets de Sublime (RF-112). Modifica RNF-IA.3 y RNF-IA.7 con un régimen declarado para el acceso a Universe y a fuentes (RNF-IA.9). Nace de la prueba real del 2026-10-04 con `qwen3:8b` y de la observación de Gemini recomendando una versión obsoleta de CeTZ (`ADR-V0140-001`).
+> **v1.18 (2026-10-03):** v1.18 abre v0.13.1 (§5o: **RF-99 a RF-106**) tras la prueba real de la IA con modelos locales (Gemma 4, `qwen2.5:3b`, `qwen3:8b`) y con Claude: una propuesta que no existe no se anuncia como hecha (RF-99, ya construido), el razonamiento del modelo se ve en un bloque plegable con indicador de actividad (RF-100), interruptor «Razonamiento» por conexión desactivado por defecto (RF-101), velocidad y tiempo en el panel (RF-102), aviso de modelo pequeño y de contexto insuficiente con el mínimo recomendable (RF-103) evaluación con recomendación de modelos con datos (RF-104) y que la IA separe presentación de contenido, con el estilo en ficheros de estilo (RF-105), y crear un documento `.typ` suelto sin crear un proyecto (RF-106). La 0.13.0 no se publica en la Store; recibirá la 0.13.1 (`ADR-V0130-005`).
 > **v1.17 (2026-10-02):** v1.17 abre v0.13.0 (§5n: **RNF-IA, RF-90 a RF-98 y RNF-IA-EVAL**): IA integrada y opcional, con conexiones directas (locales o con clave de API) y agentes instalados por ACP (Claude Code, Gemini CLI, Codex, Copilot); panel de conversación con el proyecto como contexto y cambios en varios ficheros que se revisan y se comprueban compilando antes de aplicarse; IA en línea sobre la selección; documentación de Typst generada para la versión vendorizada, offline, para la IA y para el usuario; panel de Problemas con «Explicar y arreglar»; y visor de datos CSV/TSV. Adelanta la IA, que §6 y §11 tenían como «Futuro post-1.0», y matiza el riesgo de privacidad de §8. Decisiones en `ADR-V0130-001` (`memory.md`).
 > **v1.16 (2026-09-29):** v1.16 abre v0.12.1 (§5m: **RF-86 a RF-89**): la vista previa estrecha no se sale del panel, se retira el conmutador de motor (modifica RF-56.6) y los sidecars van intactos en el AppImage con la insignia de Tinymist traducida (RF-86 a RF-88, ya construidos fuera de ciclo); y el esquema sale del motor en proceso y dice por qué no lo hay (RF-89, recupera RF-56.7). Decisiones en `ADR-V0121-001` (`memory.md`).
 > **v1.15 (2026-09-28):** *(Precisado en `/plan` el mismo día con lo comprobado contra los binarios reales: RF-77.1, .4, .5 y .9, RF-79.6, RF-81.4 y RF-84.3, y **RF-85** nuevo, la corrección de un fallo publicado. Ver `ADR-V0120-001`.)* v1.15 abre v0.12.0 (§5l: **RF-74 a RF-84**): autocompletado completo y ayuda de firma, zoom que conserva la página y «Proyecto en blanco» más a mano (RF-74 a RF-76, ya construidos fuera de ciclo); navegar y refactorizar con Tinymist; buscar y reemplazar en el proyecto; pestañas; atajos documentados; snippets de usuario; buscar y copiar en la vista previa; el documento principal en el manifiesto (modifica RF-53.4); y actualizaciones incrementales del AppImage. Cierra RF-67: el motor clásico se queda como está. Decisiones en `ADR-V0120-001` (`memory.md`).
@@ -15,7 +16,7 @@
 > **v1.5:** v1.4 consolidó el lanzador (§5d, RF-25 a RF-27, con la precisión de RF-26 criterio 10 añadida el mismo día). **v1.5 añade §5e** —RF-28 (chincheta de ventana encima, portada de DBV Markdown Reader) y RF-29 (ver la previsualización de plantilla a tamaño grande)— tras probar el usuario la aplicación construida, más **§5e.1, que documenta el alcance real de la integración con Git** y por qué NO es integración con GitHub. Ver `ADR-VENTANA-001` en `memory.md`. (baseline de especificación v0.5.0, ampliada). v1.3 especificó el salto a productividad profesional y robustez (v0.5.0): Integración con Git y resolución visual de conflictos (RF-19), Galería visual de plantillas con previsualización (RF-20), Inteligencia de código con Tinymist LSP vendorizado (RF-21), Figuras y datos dinámicos con Python (RF-22), Asistente visual de diagramas CeTZ (RF-23), y Robustez de entorno y guardado atómico (RF-24). **v1.4 reabre ese `/spec`, a decisión del usuario y antes de entregar la versión, para consolidar el lanzador** (§5d): Lanzador de una sola vía (RF-25), Galería unificada de creación de documentos (RF-26) y Tokens semánticos de estado (RF-27). El motivo es que `/build` de v0.5.0 dejó **tres** superficies distintas para elegir plantilla; ver `ADR-LANZADOR-001` en `memory.md`.
 > **Regla de congelación:** a partir de aquí, cualquier cambio de alcance o de requisito exige (1) registrarlo como ADR en `memory.md`, (2) actualizar este documento con nueva versión, y (3) revisar el impacto en `implementation_plan.md`. No se modifican requisitos "al vuelo" durante `/build`.
 > **Documento de diseño:** el sistema visual que rige §5d está en [`DESIGN.md`](./DESIGN.md), escrito el 2026-09-09 (deuda documental abierta desde el `/spec` original, saldada al abordar este rediseño).
-> **Última Revisión:** 2026-10-02
+> **Última Revisión:** 2026-10-04
 
 ---
 
@@ -1549,6 +1550,245 @@ Se mantienen todos los principios de RNF-IA. Esta versión **no añade proveedor
 - **Separación de estilo (RF-105):** cómo se detecta un fichero de estilo (por nombre, por lo que importa el principal o por su contenido de solo reglas), el nombre por defecto al crearlo y cuántos tokens añade al contexto listar los ficheros de estilo; qué hacer con proyectos que ya mezclan formato y contenido.
 - **Nuevo documento (RF-106):** dónde se guarda «la última carpeta usada» (¿la misma preferencia que ya usa «Abrir archivo»?), atajo de teclado libre, y si el diálogo de guardar de Tauri permite fijar el nombre propuesto y el filtro `.typ` en las tres plataformas.
 - **Guion del vídeo de demostración** (pospuesto por el usuario hasta tener esto): no es un requisito de producto.
+
+---
+
+## [Detectado automáticamente] 2026-10-04 — Un modelo local desbocado deja el panel mudo minutos
+
+> **Origen:** prueba real de la 0.13.1 por el usuario (2026-10-04) con `qwen3:8b` en Ollama (razonamiento desactivado, RTX 4070 Ti). Invocado a mano con `/maintain`; **`project.config.md` no declara el bloque «Maintain (Fase 7)»**, así que no hay detector automático: lo ha disparado una persona y la decisión de construirlo sigue siendo suya.
+> **Banda:** 2 (diagnóstico en solo lectura; no se ha tocado código).
+> **Absorbido por RF-107 (§5p, `/spec` de la v0.14.0, 2026-10-04):** esta entrada se conserva como evidencia; los requisitos vigentes son los de §5p.
+
+### Problema (con evidencia)
+En una conversación de cuatro mensajes, el último («adelante», tras «ya tenemos el archivo main.typ úsalo») dejó el panel sin ninguna respuesta. El log de Ollama (`%LOCALAPPDATA%\Ollama\server.log`) muestra para esa petición `POST /api/chat 200` en **4 min 17 s** y `n_tokens = 9033` (`truncated = 0`), cuando la petición anterior de la misma conversación estaba en ~2 100: el modelo generó **~7 000 tokens en una sola respuesta** (los 29 tokens/s y 257 s de la captura cuadran con ello) y ninguno llegó al panel. *Hipótesis, sin confirmar el contenido:* una llamada a `propose_changes` desbocada (argumentos que se repiten). Un intento de reproducirlo con un prompt mínimo dio una llamada normal (326 tokens), así que el fallo depende del prompt real de la app. Tres defectos de DBV lo permiten:
+
+1. **Sin tope de salida.** `maxTokens` viaja como `null` (`modelClient.js:94`) y `ollama_body` solo pone `num_predict` si llega un valor (`providers.rs:271`): un bucle genera hasta llenar el contexto.
+2. **Silencio durante una llamada a herramienta.** Ollama entrega `tool_calls` ya completas (`OllamaStream::feed` las acumula hasta el final), y el panel solo reacciona a `onText` y `onThinking` (`aiApp.js:389-399`): mientras el modelo escribe una propuesta larga, el indicador se queda en «Esperando al modelo…» (RF-100.3 solo cubre razonamiento y texto).
+3. **Respuesta vacía o rota sin aviso.** Si el modelo termina sin texto ni llamadas válidas, `runAgent` sale con `done` (`agentLoop.js:121-125`) y el panel no dice nada; solo reintenta (`followUp`) cuando el texto *anuncia* una propuesta.
+
+**Hallazgo secundario (contexto).** DBV **siempre** envía `num_ctx` en `/api/chat` (`providers.rs:267`), con el valor de la conexión o, si el campo está vacío, `default_context()` = **4096 para Ollama** (`connections.rs:69-75`). El ajuste «Context length» de la aplicación de Ollama (32k en este equipo) **no influye en DBV**. El log confirma que esta conversación corrió con `n_ctx = 32768` (el campo de la conexión estaba relleno); una petición con otro `num_ctx` obliga a Ollama a **recargar el modelo** (visto a las 10:53 al probar con 8192). Un usuario que deje el campo vacío cree tener lo que puso en Ollama y recibe 4096, justo por debajo del mínimo recomendable de RF-103.2.
+
+### Objetivo
+Que un modelo local que se desboca o responde vacío **nunca deje al usuario sin saber qué pasa ni sin poder reaccionar**, sin recortar las propuestas legítimas largas (un documento entero puede pasar de 4 000 tokens: **no** se fija un tope bajo).
+
+### Requisitos propuestos (para `/plan`; numeración tentativa RF-107)
+1. **Tope de salida generoso y configurable por conexión.** Nuevo campo opcional «Máximo de tokens por respuesta» junto al de contexto, con **16 000 por defecto** en conexiones locales (Ollama, LM Studio, compatibles con OpenAI) y **sin tope** en las de nube (que ya tienen el suyo). Se envía como `num_predict` (Ollama) o `max_tokens` (compatibles). Nunca mayor que el contexto menos el prompt. Las conexiones existentes lo reciben sin cambiar de comportamiento salvo por el tope.
+2. **Progreso mientras se escribe una llamada a herramienta.** Si el proveedor no la emite por trozos (Ollama nativo), el panel pasa de «Esperando…» a un estado que dice que el modelo **sigue generando** («Preparando una propuesta…») con **tiempo transcurrido** y, cuando se pueda, tokens generados; con el **botón Detener visible y operativo** (ya existe `cancel`). Respeta `prefers-reduced-motion` y no usa `aria-live` para el contador.
+3. **Una respuesta vacía, truncada o con la llamada rota se avisa y se reintenta una vez.** Casos: sin texto ni llamadas; cortada por el tope (`done_reason = length`); argumentos que no son JSON válido. Se añade una nota en el panel con la causa, y **un solo reintento** con un recordatorio (mismo mecanismo y límite que `followUp`/RF-99.2); si vuelve a fallar, la nota lo dice y sugiere un modelo mayor o el modo conversación. No se repite en bucle.
+4. **El campo de contexto vacío deja de engañar.** En Ollama, con el campo vacío, el formulario muestra el valor real que usará DBV (4096) y avisa si es menor que el mínimo de RF-103.2; el texto de ayuda aclara que el «Context length» de la app de Ollama no se aplica a DBV. *Decisión abierta:* si se prefiere **no enviar `num_ctx`** cuando el campo está vacío y heredar el de Ollama (a costa de que DBV no sepa cuánto contexto tiene para su presupuesto de RF-94.5).
+5. **Se mide.** Un caso de `eval:ai` o un test con servidor simulado que emita una llamada interminable demuestra que se corta en el tope, se avisa y no bloquea el panel.
+
+### Criterios de aceptación
+- Test de `ollama_body`/`openai_body`: con tope, `num_predict`/`max_tokens` va en la petición; sin él, no; en nube no se envía por defecto.
+- Test del bucle con un modelo simulado que devuelve **(a)** respuesta vacía, **(b)** `length` y **(c)** argumentos rotos: nota en el panel + **un** reintento, y ninguna de las tres acaba en silencio.
+- Test del panel: el estado «Preparando una propuesta…» aparece con el tiempo corriendo cuando no llega texto ni razonamiento, y desaparece al llegar la llamada; el botón Detener corta la petición.
+- Test del formulario: el campo de contexto vacío en Ollama muestra 4096 y el aviso de RF-103.2; el campo del tope se guarda y se aplica; textos en ES y EN.
+- Prueba manual: repetir la conversación de este hallazgo con `qwen3:8b` (con y sin el tope) y comprobar el tiempo hasta el aviso.
+
+### Preguntas abiertas para `/plan`
+- ¿16 000 es el valor adecuado por defecto? Medir en `qwen3:8b` cuánto ocupa la propuesta legítima más larga del corpus de `eval:ai`.
+- ¿Detectar repetición en los argumentos de la llamada (no se puede en Ollama nativo, que no los emite por trozos) o basta con el tope y el botón Detener?
+- ¿Activar `stream` de llamadas a herramienta en Ollama (si la versión instalada lo admite) para poder mostrar progreso real?
+- Dónde se avisa al usuario de que el bloque «Maintain (Fase 7)» no existe en `project.config.md`: este hallazgo se redactó sin él.
+
+---
+
+## ✨ 5p. Funcionalidades — v0.14.0 («AI Native»: la IA conoce Typst Universe, aplica plantillas, añade fuentes al proyecto y las IAs locales dejan de quedarse mudas)
+
+> **Origen (2026-10-04):**
+> - **Prueba real de `qwen3:8b` (Ollama).** La petición «adelante» tardó 4 min 17 s y generó ~7 000 tokens sin que el panel mostrase nada (log de Ollama; ver la entrada «[Detectado automáticamente] 2026-10-04» de §5o). Las IAs grandes funcionan «de maravilla»; **el reto es que las locales dejen de ser inservibles.**
+> - **La IA no ve Typst Universe.** Sus herramientas (RF-94) son el proyecto y la documentación del compilador (RF-96); ni las herramientas ni las instrucciones del sistema mencionan `@preview`. Gemini recomendó una **versión obsoleta de CeTZ** e intentó **descargar un `.tar`**. El índice de Universe lista **todas las versiones** de cada paquete (4 876 entradas para 1 651 paquetes, 2026-10-04; CeTZ llega a 0.5.2): una búsqueda ingenua devuelve versiones viejas mezcladas.
+> - **La comprobación por compilación no entiende paquetes sin instalar.** `ai/check.rs` usa el motor en proceso, cuyo descargador es `Offline` (`engine/world.rs`): un `#import "@preview/…"` no instalado da un error que no es culpa del modelo. El respaldo al compilador clásico, que sí descarga, solo existe en la vista previa (`engine/session.rs`).
+> - **Caso de uso que guía la versión:** *«estoy trabajando en un documento y quiero que adapte el formato al IEEE»*. Hoy no existe «aplicar una plantilla a un documento existente»: las plantillas de DBV solo crean proyectos nuevos.
+> - **Petición de un colaborador que usa Sublime Text:** importar sus snippets, como ya se hace con los de VS Code (que DBV no importa: **lee su formato directamente**, `snippets/model.js`).
+>
+> **Tema de la versión:** que DBV pueda considerarse **AI Native**: la IA tiene acceso a todo lo que se pueda (Universe, paquetes, plantillas, fuentes) y actúa con permiso. **Las IAs locales se mantienen sin red** (RNF-IA.4): lo nuevo que sale a Internet solo está disponible con conexiones en la nube.
+>
+> **Decisiones de este `/spec`** (tomadas por criterio propio a petición del usuario, «haz lo que consideres mejor»; **revisables en `/plan`**, `ADR-V0140-001`): tope de salida 16 000 tokens por defecto en locales; la IA nunca recibe una URL libre; el índice de Universe lo descarga DBV, no el modelo; fuentes solo para conexiones en la nube y desde orígenes de una lista cerrada; el motor en proceso sigue sin descargar nada por su cuenta.
+
+### RNF-IA.9 — Acceso a Universe y a fuentes *(modifica RNF-IA.3 y RNF-IA.7)*
+1. **El modelo nunca toca la red.** Las herramientas nuevas reciben **identificadores** (`@preview/nombre:versión`, nombre de familia de fuente), nunca URLs. Los valida DBV con `parse_universe_spec` (estricto, ya existente) y una lista cerrada de orígenes; **las peticiones salen de Rust**, como las del proveedor (RNF-IA.5).
+2. **Nada del proyecto sale** en esas peticiones: solo el nombre del paquete o de la fuente que se pide. El panel muestra el paso («Consultando el catálogo de Universe…», «Descargando `@preview/x:1.2.3`…»).
+3. **Conexiones locales: sin red.** Con una conexión local, las herramientas de Universe **solo leen lo que ya está en disco** (catálogo y paquetes cacheados) y nunca lo descargan; el rótulo «Local: nada sale de tu equipo» sigue siendo cierto. Si falta algo, la herramienta lo dice y sugiere abrir la galería de Universe (que sí actualiza el catálogo, a petición del usuario).
+4. **Instalar es siempre una acción del usuario.** Descargar un paquete a la caché del compilador o añadir una fuente al proyecto **pide confirmación** (RF-109, RF-111), con nombre, versión, licencia, tamaño y enlace a su ficha. Es código y ficheros de terceros (`ADR-UNIVERSE-001`): nunca se instala solo, ni «para esta sesión».
+5. **Confinamiento:** lo que se descarga va a la caché de paquetes del compilador (la misma que usa `typst`) o a `fonts/` del proyecto; nunca en otra ruta (RNF-IA.3 sigue valiendo para todo lo que se escribe en el proyecto).
+
+### RF-107 — Las IAs locales no se quedan mudas ni desbocadas *(absorbe el hallazgo «[Detectado automáticamente] 2026-10-04»)*
+1. **Tope de salida generoso y configurable por conexión.** Campo opcional «Máximo de tokens por respuesta» junto al de contexto. **Por defecto 16 000 en conexiones locales** (Ollama, LM Studio, compatibles con OpenAI) y **sin tope** en las de nube. Se envía como `num_predict` (Ollama) o `max_tokens` (compatibles) y nunca supera el contexto menos el prompt. **No se fija un tope bajo (4 096):** una propuesta legítima puede ser un documento entero. Las conexiones existentes lo reciben sin otro cambio de comportamiento.
+2. **Progreso mientras se escribe una llamada a herramienta.** Ollama entrega las llamadas ya completas, así que el panel pasa de «Esperando al modelo…» a **«Preparando una propuesta…»** con el **tiempo transcurrido** y, si el proveedor lo informa por el camino, los tokens generados; con **Detener** visible. Respeta `prefers-reduced-motion`; el contador no va en una región `aria-live`.
+3. **Una respuesta vacía, cortada por el tope o con la llamada rota se avisa y se reintenta una vez.** Casos: sin texto ni llamadas; `done_reason = length`; argumentos que no son JSON válido. Nota en el panel con la causa y **un solo reintento** con un recordatorio (mismo mecanismo y límite que `followUp`, RF-99.2). Si falla otra vez, lo dice y sugiere un modelo mayor o el modo conversación. Nunca en bucle.
+4. **El contexto vacío deja de engañar.** DBV **siempre** envía `num_ctx`: el de la conexión o, vacío, `default_context()` (4 096 en Ollama), e **ignora el «Context length» de la aplicación de Ollama**. El formulario muestra el valor real que se usará y avisa si es menor que el mínimo de RF-103.2; el texto de ayuda aclara que el ajuste de la aplicación de Ollama no se aplica a DBV. *Decisión abierta para `/plan`:* no enviar `num_ctx` con el campo vacío y heredar el de Ollama (DBV perdería saber cuánto contexto tiene para su presupuesto, RF-94.5).
+5. **Herramientas con respuestas cortas para modelos pequeños:** las herramientas nuevas de RF-108 limitan resultados (orientativo: 8) y longitud, para no gastar el contexto de un modelo local.
+6. **Criterios de aceptación:**
+   - Test de `ollama_body`/`openai_body`: con tope se envía `num_predict`/`max_tokens`; sin él, no; en nube no va por defecto.
+   - Test del bucle con un modelo simulado que devuelve **(a)** respuesta vacía, **(b)** `length` y **(c)** argumentos rotos: nota + **un** reintento; ninguna acaba en silencio.
+   - Test del panel: «Preparando una propuesta…» con el tiempo corriendo cuando no llega texto ni razonamiento; desaparece al llegar la llamada; Detener corta la petición.
+   - Test del formulario: contexto vacío en Ollama muestra 4 096 y el aviso; el campo del tope se guarda y se aplica; ES y EN.
+   - Prueba manual: repetir la conversación del hallazgo con `qwen3:8b`.
+
+### RF-108 — La IA conoce Typst Universe: buscar y leer paquetes y plantillas
+1. **El catálogo, de una versión por paquete.** DBV construye, a partir del índice cacheado (`fetch_universe_index`), una vista con **la última versión compatible con el compilador vendorizado (hoy 0.15.1)** de cada paquete. Para eso la entrada conserva ahora `compiler` (versión mínima), `updatedAt`, `repository`, `disciplines` y, en las plantillas, `template.path`/`entrypoint`; **hoy se descartan** (`UniverseIndexEntry`). Una versión que pide un compilador más nuevo no se ofrece, y se dice por qué si es la única.
+2. **Herramienta `search_universe`** (consulta, `kind`: paquete/plantilla/ambos, categoría opcional). Devuelve pocos resultados con **identificador completo** (`@preview/cetz:0.5.2`), descripción corta, categorías, si es **plantilla** (se crea) o **paquete** (se importa), licencia y fecha. Búsqueda léxica local, con el glosario bilingüe de RF-96.3 donde aplique («tesis», «artículo IEEE»).
+3. **Herramienta `read_package_docs`** (identificador). Devuelve el **README**, los **ejemplos** y, en una plantilla, su fichero de entrada (`template.entrypoint`) y los parámetros de su función principal, troceado como RF-96 y con la fuente citada. Lee de la caché local; si el paquete no está, **pide la descarga con confirmación** (RF-109.3) y solo con conexiones en la nube (RNF-IA.9.3).
+4. **Instrucciones del sistema** (ES/EN, RF-94.6): preferir un paquete del catálogo a reinventarlo; **usar solo identificadores devueltos por `search_universe`** y nunca escribir una versión de memoria; distinguir plantilla de paquete; consultar `read_package_docs` antes de usar un paquete que no conozca; **no intentar descargar nada por su cuenta**.
+5. **Con y sin herramientas.** En modo conversación (RF-94.4) se inyectan por adelantado los resultados de `search_universe` más relevantes para la petición, con el mismo formato corto.
+6. **Catálogo sin conexión:** se persiste en disco (hoy solo en memoria por sesión) con su fecha, para que lo lean las conexiones locales; se refresca desde la galería, a petición del usuario, y por la herramienta solo con conexiones en la nube.
+7. **Criterios de aceptación:**
+   - Test de la vista: de `cetz` con varias versiones se devuelve **una**, la más reciente compatible; una cuya `compiler` supera el 0.15.1 se omite.
+   - Test de `search_universe`: «ieee» devuelve plantillas con su identificador completo; una plantilla no se presenta como paquete a importar.
+   - Test de que un identificador mal formado o con separadores de ruta se rechaza antes de cualquier petición (precedente: `parse_universe_spec`).
+   - Test de que, con una conexión local y sin red, las herramientas leen la caché y **no abren ninguna conexión**.
+   - Test con un modelo simulado: pedido «dibuja con CeTZ», la trayectoria llama a `search_universe` y escribe el `@preview/cetz:` que esta devolvió.
+   - Tareas nuevas de `eval:ai` que exigen un paquete real y su versión vigente (RNF-IA-EVAL).
+
+### RF-109 — Comprobar propuestas con paquetes aún no instalados *(modifica RF-93.3)*
+1. **Se distingue «falta un paquete» de «error del modelo».** Si la propuesta importa `@preview/…` que no está en la caché del compilador, la comprobación **no la da por fallida**: informa **«no se pudo comprobar: falta `@preview/x:1.2.3`»** y devuelve al modelo un mensaje que dice que el paquete no está instalado y que **no debe quitar el import**.
+2. **Bloque «Paquetes que se descargarán»** en la revisión (RF-93.2): identificador, versión, licencia, tamaño y enlace a su ficha (`open_universe_package_page`), con **Descargar y comprobar** o **Rechazar**. Aceptar descarga a la caché del compilador y **repite la comprobación** automáticamente; rechazar deja el import marcado.
+3. **Quién descarga:** DBV, desde Rust y desde el origen oficial de Universe, nunca el modelo ni una URL suya. El motor en proceso **sigue sin descargar por su cuenta** (`Offline`): se descarga con el mismo mecanismo que usa el compilador clásico (`universe.rs`) y la caché compartida deja el paquete disponible para ambos motores.
+4. **Mismo permiso para `read_package_docs`** (RF-108.3): una confirmación por paquete y versión.
+5. **Criterios de aceptación:**
+   - Test de `check` con un `@preview` ausente: mensaje específico, no «errores nuevos»; el mensaje al modelo contiene la instrucción de no quitar el import.
+   - Test de aceptar (paquete simulado en la caché → se repite la comprobación y compila) y de rechazar (nada se descarga).
+   - Test de que **nada se descarga** sin confirmación y de que un identificador no válido no llega a la red.
+
+### RF-110 — Aplicar una plantilla a un documento existente
+*Caso estrella: «adapta el formato al IEEE».*
+1. **Flujo de la IA, con las herramientas de RF-108:** busca plantillas que encajan (en Universe hay, p. ej., `charged-ieee`, `wired-ieee`, `ieee-monolith`, `bamdone-ieeeconf`, `tatras-ieee`, `ieee-vgtc`, según el índice del 2026-10-04) y **propone una**, explicando en una frase por qué (idioma, columnas, congreso o revista); lee su README y su fichero de entrada; y **propone un cambio único y revisable** (RF-93) que:
+   - añade el `#import` con el identificador y la versión exactos y el `#show: plantilla.with(…)`;
+   - **mueve título, autores, resumen y palabras clave** del documento a los parámetros de la plantilla;
+   - **conserva el contenido** (texto, figuras, tablas, referencias) sin reescribirlo;
+   - **retira o desactiva los `#set`/`#show` propios que chocan** con la plantilla y lo dice; si el proyecto tenía un fichero de estilo (RF-105), explica qué parte pasa a ser redundante en vez de borrarla en silencio;
+   - ajusta la **bibliografía** al estilo pedido con el `style:` de `bibliography` cuando existe un estilo CSL incluido en Typst (p. ej. `"ieee"`; **se verifica contra la documentación offline en `/plan`**, no de memoria).
+2. **Si la plantilla no encaja** (le falta algo que el documento tiene, o pide otro compilador), lo dice y propone la mejor alternativa en vez de forzarla.
+3. **El usuario elige.** Ante varias plantillas razonables, la IA presenta 2 o 3 con una frase cada una y el identificador, y espera la elección antes de tocar nada; si el usuario ya nombró una, la usa.
+4. **Se comprueba compilando** (RF-93.3, RF-109): el documento adaptado compila o dice qué falta; la plantilla se descarga con confirmación (RF-109.2). **«Ver en la vista previa»** muestra el resultado antes de aceptar.
+5. **Si la plantilla pide una fuente concreta** que no está, se encadena con RF-111 (propuesta de fuente, con su confirmación).
+6. **Se resuelve con instrucciones y herramientas**; la interfaz tiene además la acción «Aplicar plantilla…» (**RF-116**), que genera la misma propuesta.
+7. **Criterios de aceptación:**
+   - Test con un modelo simulado con guion: de un `main.typ` con título, autor, resumen y `#set page`, la propuesta importa la plantilla con el identificador de `search_universe`, mueve los metadatos, quita el `#set` en conflicto y compila (con un paquete simulado en la caché).
+   - Test de que el contenido (cuerpo, figuras, citas) es **idéntico** antes y después salvo lo movido.
+   - Tareas de `eval:ai` «adapta al IEEE» y «adapta a una tesis» con la compilación como juez, contra un modelo en la nube (si el usuario aporta una clave) y con `qwen3:8b` para medir hasta dónde llega un modelo local (sin red: solo plantillas ya cacheadas).
+   - Prueba manual con un documento real del usuario.
+
+### RF-111 — Fuentes que la IA añade al proyecto *(solo conexiones en la nube)*
+1. **Las fuentes viven en el proyecto**, en `fonts/` (el motor en proceso y el clásico ya lo leen: `engine/world.rs` `project_font_paths`, `font_path_args`), así el documento es **portable** y no se toca el sistema.
+2. **La IA sabe qué fuentes hay.** Herramienta `list_fonts` (sistema, incluidas con DBV y del proyecto) y, para una familia que falta, el aviso del compilador (`unknown font family`) le sirve de pista. *Decisión de `/plan`:* si el aviso llega ya a la IA por los diagnósticos.
+3. **Propuesta de fuente, revisable como un cambio más** (RF-93): una entrada «**Añadir la fuente X** — origen, licencia, tamaño, ficheros» junto a los cambios de texto. **Aceptar** la descarga a `fonts/`; **Deshacer** la borra. Es un recurso, no un fichero de texto: no entra por `propose_changes` (que es de texto, RF-93.1) sino por una acción propia con su confirmación.
+4. **Orígenes de una lista cerrada** (RNF-IA.9.1), con URL estable y licencia comprobadas en `/plan` (candidatos: el repositorio `google/fonts` de GitHub y los lanzamientos oficiales de familias libres como Libertinus, STIX o Inter). **Solo licencias libres de redistribución** (OFL, Apache 2.0, UFL); una fuente sin licencia clara no se ofrece. **Tamaño máximo** por fuente (fijado en `/plan`, orientativo 20 MB) y solo `.ttf`/`.otf`/`.ttc` (las extensiones que reconoce Typst, `assets.rs`; no `.woff`).
+5. **Solo conexiones en la nube** (los modelos locales no necesitan red, RNF-IA.9.3) y **agentes por ACP excluidos**: no usan estas herramientas (RF-91).
+6. **Cuidado con `fonts/`:** `project_font_paths` devuelve `<proyecto>/fonts` **si existe** y, entonces, **ignora `TYPST_FONT_PATHS`**. Crearla en un proyecto que dependía de esa variable le cambia las fuentes: DBV lo comprueba y avisa antes de crearla (decisión de `/plan`: avisar o copiar las rutas de la variable).
+7. **Peso del repositorio:** se muestra el tamaño y se avisa de que las fuentes irán a git; el usuario decide.
+8. **Criterios de aceptación:**
+   - Tests con un origen simulado: se descarga solo con confirmación, queda en `fonts/` y compila con ella (`verify:typst`); **Deshacer** la borra.
+   - Test de rechazo: una URL fuera de la lista, una licencia no admitida, una extensión no admitida o un tamaño excedido **no llegan a la red** o no se instalan.
+   - Test de que con una conexión local la herramienta de descarga no se ofrece.
+   - Test del caso `TYPST_FONT_PATHS` con y sin `fonts/` previa.
+   - Prueba manual: pedir a Claude un documento con una fuente que no está instalada y comprobar el flujo completo.
+
+### RF-112 — Importar snippets de Sublime Text
+1. **Entrada «Importar snippets de Sublime…»** en Herramientas, junto a «Editar snippets del proyecto». Abre el diálogo del sistema para elegir **uno o varios `.sublime-snippet` sueltos** o una **carpeta** (Sublime los guarda en `Packages/User`). **Alcance de esta versión:** ficheros sueltos y carpetas; `.sublime-package` (ZIP) y `.sublime-completions` quedan fuera.
+2. **Conversión** de cada fichero (XML) al formato que DBV ya lee (`.code-snippets`, RF-81):
+
+   | Sublime | DBV |
+   | --- | --- |
+   | `<tabTrigger>` | `prefix` |
+   | `<content>` (CDATA) | `body` |
+   | `<description>` | `description` (si falta, el nombre del fichero) |
+   | `<scope>` | `scope`: se importa si no hay ámbito o es de Typst; **los demás se omiten y se listan** |
+   | `$SELECTION` | `$TM_SELECTED_TEXT` (DBV ya lo admite: `snippets/model.js`) |
+
+   Los marcadores `$1`, `${1:texto}` y `$0` y los escapes pasan igual. Un snippet **sin `tabTrigger`** o con una variable que DBV no admite se **omite con aviso por snippet** y no rompe el resto.
+3. **Resumen antes de escribir:** «N convertidos, M omitidos» con el motivo de cada omisión; el usuario confirma.
+4. **Destino:** el **proyecto por defecto** (`.vscode/sublime-importados.code-snippets`, para compartirlo con quien trabaje en él) o el **global**, a elegir. Si el fichero ya existe, se pregunta si **añadir** o **reemplazar**; **nunca se sobrescribe sin confirmar**. Un prefijo repetido se avisa. Los snippets importados se recargan con el cargador existente (RF-81.5), sin reiniciar.
+5. **Seguridad:** el XML se lee **sin resolver entidades externas**; límites de tamaño por fichero y de número de ficheros (fijados en `/plan`); el contenido es un dato y nunca se ejecuta.
+6. **Texto en ES y EN;** se maneja con teclado.
+7. **Criterios de aceptación:**
+   - Tests del conversor puro con ficheros de muestra reales de Sublime: con y sin ámbito, con CDATA, sin `tabTrigger`, con `$SELECTION`, con `${1:texto}` anidados y con escapes.
+   - Test de que un `.sublime-snippet` con una entidad externa **no** la resuelve.
+   - Test de que no se sobrescribe un fichero existente sin confirmación y de que el resultado lo lee `parseSnippetFile` sin avisos.
+   - Prueba manual con los snippets del colaborador.
+
+### RF-113 — Servidor MCP de DBV para agentes externos
+*Reabre lo que la 0.13.0 descartó (RF-91.9, `ADR-V0130-002`: «sin servidor MCP, que sería superficie nueva»). Lo que cambia ahora: hay herramientas que un agente de fuera **no tiene por sí solo** (RF-108, RF-114, RF-115) y un motivo de producto (AI Native).*
+1. **Qué aporta a un agente externo** (Claude Desktop, Claude Code en una terminal, Cursor, Gemini CLI…), que ya puede leer y escribir ficheros del proyecto pero **no** tiene:
+   - **el compilador exacto de DBV** (Typst 0.15.1 vendorizado) para compilar el proyecto y recibir diagnósticos con fichero y línea, sin depender de que el usuario tenga `typst` instalado ni de su versión;
+   - **la documentación de Typst de esa versión**, offline (RF-96);
+   - **el catálogo de Universe** con una versión por paquete (RF-108), contra el que no inventa paquetes ni versiones;
+   - **el renderizado**: ver las páginas como imágenes (RF-114);
+   - **las fuentes** disponibles (`list_fonts`) y la **bibliografía** del proyecto (RF-115).
+2. **Herramientas de solo lectura, sin escritura.** `compile_project` (diagnósticos), `render_page` (RF-114), `search_typst_docs`, `read_typst_docs`, `search_universe`, `read_package_docs` (solo caché), `list_fonts` y las de RF-115. **Escribir los ficheros lo hace el propio agente** (tiene su sistema de ficheros) y DBV recoge el cambio por el observador de ficheros y las reglas de conflicto de RF-68; no hay herramienta de escritura que se salte la revisión de RF-93.
+3. **Confinado al proyecto** (RNF-IA.3): el servidor se lanza **con una carpeta de proyecto** y solo ve esa; rutas fuera de ella, `..` y `.git` se rechazan.
+4. **Sin puerto de red.** Transporte **stdio**: lo lanza el agente como proceso hijo (`DBV Typst Editor --mcp --project <carpeta>` o un ejecutable aparte, a decidir en `/plan`); no hay servidor escuchando en `localhost`, así que ningún otro proceso puede conectarse. **Sin red:** lee la caché y nunca descarga (RNF-IA.9.3); sin telemetría (RNF-IA.6). **No lanza programas** ni da terminal (RF-91.8).
+5. **Sin la aplicación abierta, sin estado de la interfaz:** el servidor trabaja sobre lo que hay en disco. Con ella abierta puede ver pestañas, texto sin guardar y selección, solo lectura y con consentimiento aparte (**RF-117**).
+6. **Activación explícita y opcional** (RNF-IA.1): desactivado y sin ningún proceso por defecto. En Ajustes, «Servidor MCP» muestra, **listo para copiar**, el comando o el JSON de configuración de cada agente, con la ruta real del ejecutable. Si el ajuste «Mostrar las funciones de IA» está desactivado, no se ofrece.
+7. **Criterios de aceptación:**
+   - Test del protocolo con un **cliente MCP simulado** por stdio: `initialize`, lista de herramientas, una llamada de cada una y un error de ruta fuera del proyecto.
+   - Test de que **no abre ningún puerto** ni conexión de red, y de que no escribe en el proyecto.
+   - Test de que `compile_project` da los mismos diagnósticos que la aplicación para el mismo proyecto.
+   - Prueba manual: conectar Claude Code y Claude Desktop a un proyecto real y pedir «adapta el formato al IEEE» (RF-110) usando solo estas herramientas.
+
+### RF-114 — La IA ve el resultado: renderizado de páginas
+1. **Herramienta `render_page`** (página o rango corto, zoom): devuelve **imágenes PNG** de lo que produce el compilador, para que la IA **juzgue el formato** («¿es de dos columnas?», «¿la tabla se sale del margen?», «¿se parece a lo que me pidió?») en vez de adivinarlo del código. Sustituye al paso manual de «Adjuntar la página visible» (RF-92.3), que se conserva.
+2. **Ver una propuesta antes de aceptarla.** La herramienta puede renderizar **el proyecto con la propuesta aplicada en memoria** (el mundo de comprobación de RF-93.3), de modo que la IA compruebe su propio cambio (p. ej. tras aplicar una plantilla, RF-110) y lo corrija **dentro del límite de pasos** (RF-94.2/94.3).
+3. **Solo con modelos que admiten imágenes** (capacidad de RF-90.5). Sin ella, la herramienta no se ofrece y la IA usa los diagnósticos y la estructura (esquema, número de páginas) como hasta ahora; un modelo local sin visión no se queda peor.
+4. **Presupuesto.** Una imagen cuesta contexto: tope de páginas por llamada y de resolución (fijados en `/plan`, orientativo: 3 páginas, ~1 200 px de lado mayor) y el indicador de RF-92.2 dice cuántas se enviaron. Con un proveedor en la nube, **las imágenes del documento salen** igual que su texto: vale el aviso de RNF-IA.4 y se marca en el panel («página 2 enviada»).
+5. **También por MCP** (RF-113) para los agentes externos.
+6. **Criterios de aceptación:**
+   - Test: `render_page` devuelve un PNG con las dimensiones esperadas; el de una propuesta difiere del del proyecto sin ella.
+   - Test del tope de páginas y resolución, y de que sin capacidad de imágenes la herramienta no se ofrece.
+   - Test con un modelo simulado: pide la página, «ve» un desbordamiento (imagen de muestra) y corrige la propuesta una vez.
+   - Eval de `eval:ai` con un modelo en la nube que mide si el bucle con renderizado mejora el cumplimiento de formato frente al mismo sin él.
+
+### RF-115 — Referencias y bibliografía para la IA
+1. **`list_bibliography`**: devuelve las **claves**, título, autores y año de las fuentes del proyecto (`.bib` y `.yml` de Hayagriva), para que la IA cite **solo claves que existen** y no invente referencias.
+2. **`citation_styles`**: lista los estilos CSL que **incluye Typst** (p. ej. `ieee`, `apa`) leída de la documentación vendorizada (RF-96), no de memoria, para que `bibliography(style: …)` lleve un nombre válido.
+3. **Instrucciones del sistema:** citar con las claves devueltas; si la referencia no existe, **decirlo** y proponer añadir la entrada al `.bib` (revisable, RF-93) en vez de inventarla.
+4. **Criterios de aceptación:** test de la lectura de un `.bib` y un `.yml` (claves, campos ausentes, entradas rotas sin tumbar la lectura); test de que la lista de estilos coincide con la documentación de la versión vendorizada; test con un modelo simulado que pide una cita inexistente y la IA propone la entrada en vez de usarla.
+
+### RF-116 — «Aplicar plantilla…» en la interfaz *(modifica RF-110.6)*
+1. **Acción «Aplicar plantilla…»** en Herramientas y en el menú contextual del documento principal, con la misma galería de plantillas de RF-26 (pestañas Locales y Typst Universe, buscador y vista previa), pero en modo **«aplicar a este documento»** y no «crear proyecto». Se maneja con teclado y tiene texto en ES y EN.
+2. **Dos caminos, un mismo resultado.** Elegir una plantilla **no la aplica**: DBV genera la misma **propuesta revisable** que RF-110 (RF-93: diferencias por trozo, comprobación por compilación, «Ver en la vista previa», Deshacer). Con una IA configurada, el trabajo de reestructurar lo hace la IA con las herramientas de RF-108; **sin IA**, DBV aplica solo lo mecánico y seguro (el `#import` y el `#show: plantilla.with(…)` con los metadatos que reconozca) y lo dice, en vez de fingir que lo reestructuró todo.
+3. **También desde la conversación:** «adapta esto al IEEE» sigue funcionando (RF-110) y, si la IA propone una plantilla, el panel ofrece abrir esta misma galería para elegir otra.
+4. **Descargar la plantilla** pide la confirmación de RF-109.2, igual que la del flujo por IA; **nada se aplica sin revisar** (RNF-IA.2).
+5. **Criterios de aceptación:**
+   - Test de que elegir una plantilla genera una propuesta (no escribe en disco) y de que, sin IA, se limita al `#import` y al `#show`.
+   - Test de que el resultado por este camino y por la IA es una propuesta del mismo tipo (RF-93).
+   - Test de teclado de la acción y de que sin proyecto abierto aparece deshabilitada y explica por qué (RF-26.10).
+   - Prueba manual con un documento real y una plantilla de Universe.
+
+### RF-117 — El servidor MCP ve el estado de la interfaz *(modifica RF-113.5)*
+1. **Qué ve de más** cuando DBV está abierto con ese proyecto: las **pestañas abiertas con su contenido sin guardar**, el **documento activo**, la **posición del cursor y la selección**, el **esquema** y los **problemas actuales**. Es lo mismo que el contexto automático de RF-92.2, ahora para un agente de fuera.
+2. **Cómo llega:** el servidor de RF-113 (stdio) se comunica con la **aplicación en marcha** por un canal local (tubería con nombre en Windows y socket de Unix en macOS y Linux), **nunca un puerto de red**, accesible solo por el usuario que la ejecuta y con un **testigo aleatorio** que la aplicación entrega al servidor al lanzarlo. Si la aplicación no está abierta con ese proyecto, el servidor **sigue funcionando sin estado** (RF-113) y lo dice.
+3. **Solo lectura.** No hay herramienta de escritura de estado: el agente no mueve el cursor, no edita pestañas ni guarda. Los cambios los hace escribiendo ficheros (RF-113.2) y se recogen por el observador, con las reglas de conflicto de RF-68 si hay texto sin guardar.
+4. **Consentimiento y visibilidad.** Compartir el estado es un **ajuste aparte**, desactivado por defecto; lo que está sin guardar puede ser lo más privado del proyecto. Mientras hay un agente conectado, la barra de estado lo indica («Agente conectado: …») con un botón para cortarlo, y se puede desactivar sin cerrar el agente.
+5. **Confinamiento:** solo el proyecto abierto; un fichero fuera de la carpeta del proyecto (documento suelto abierto en otra carpeta) no se expone (RNF-IA.3, R-B1 de RF-106.7).
+6. **Criterios de aceptación:**
+   - Test con un cliente MCP simulado: con la aplicación simulada devuelve pestañas con texto sin guardar, activo, cursor y selección; sin ella, responde sin estado y lo dice.
+   - Test de que el canal **no es un puerto TCP**, rechaza un testigo erróneo y no acepta a otro usuario.
+   - Test de que no existe ninguna operación de escritura de estado y de que, con el ajuste desactivado, no se expone nada.
+   - Prueba manual con Claude Code: «explica lo que estoy escribiendo» con texto sin guardar.
+
+### Ideas recogidas y **no** especificadas aquí
+- **Importar `.sublime-package` y `.sublime-completions`** (RF-112.1): por ahora basta con los `.sublime-snippet` sueltos (decisión del usuario, 2026-10-04).
+
+### Fuera de alcance de la 0.14.0
+- Descargas por parte de **modelos locales** (RNF-IA.9.3) y por agentes ACP.
+- Un registro propio de paquetes o plantillas: el índice es el oficial (`ADR-UNIVERSE-001`).
+- Instalar paquetes o fuentes **sin confirmación**, o «para toda la sesión».
+- Descargar de cualquier URL que proponga el modelo.
+
+### Preguntas abiertas para `/plan` (no se resuelven aquí a propósito)
+- **Tope (RF-107):** ¿16 000 es el valor adecuado? Medir en `qwen3:8b` la propuesta legítima más larga del corpus de `eval:ai`; ¿sirve de algo detectar repetición, o basta el tope y Detener?; si la versión de Ollama instalada puede emitir las llamadas a herramienta por trozos para mostrar progreso real; `num_ctx` vacío: heredar o enviar.
+- **Universe (RF-108):** cómo se persiste el catálogo (carpeta de datos de la app, formato y frescura); cómo se leen README y ejemplos de un paquete (el `.tar.gz` de `packages.typst.org/preview/…`, ya en la caché si el compilador lo bajó); tamaño de la salida de cada herramienta para un modelo de 8 000 tokens.
+- **Comprobación (RF-109):** descargar con la CLI vendorizada (`typst` sin compilar) o desde Rust; qué pasa con paquetes que dependen de otros (`#import` anidados) y con plugins WASM; si la confirmación es por paquete o por «árbol» de dependencias.
+- **Plantillas (RF-110):** cómo se detecta el nombre de la función principal y sus parámetros (`template.entrypoint` o lectura del `lib.typ`); qué hacer si el documento ya usa otra plantilla.
+- **Fuentes (RF-111):** orígenes y URL concretos y su licencia; si el aviso `unknown font family` llega a la IA; si el `.dbvt` y el empaquetado (`archive.rs`) ya incluyen `fonts/` (el código lo menciona, comprobarlo).
+- **Sublime (RF-112):** si el XML se lee con `DOMParser` del navegador o en Rust y cómo se prueba en Vitest; límites de tamaño; nombre del fichero de destino.
+- **MCP (RF-113):** SDK de Rust para MCP (candidato: el crate oficial `rmcp`; **a verificar en `/plan`**, no de memoria) frente a un protocolo mínimo propio; el comando exacto de alta en cada agente (Claude Code, Claude Desktop, Cursor, Gemini CLI); **cómo se lanza el ejecutable desde el paquete de la Store (MSIX)**, donde los ejecutables de la aplicación no se invocan desde fuera sin un alias de ejecución (precedente: lanzar Python desde el paquete); ejecutable aparte (más ligero, solo compilador y documentación) frente a un modo `--mcp` de la propia aplicación; versionado de las herramientas.
+- **Renderizado (RF-114):** si el motor en proceso ya genera PNG sin el compilador clásico (la exportación a PNG existe) y cuánto tarda por página; cómo se renderiza el mundo con la propuesta en memoria sin perder la generación de la vista previa; tope de resolución y de páginas según el proveedor.
+- **Referencias (RF-115):** cómo se leen los `.bib` y los `.yml` (ya hay lectura para la bibliografía visual, RF-37) y si la lista de estilos CSL sale de la documentación o del propio compilador.
+- **Privacidad de la Store:** descargar paquetes y fuentes a petición del usuario no envía datos del proyecto, pero hay que revisar el texto de la ficha.
+- **Principio nuevo en `ARCHITECTURE.md`:** qué se amplía (§7.20) para el acceso a Universe y a fuentes.
 
 ---
 

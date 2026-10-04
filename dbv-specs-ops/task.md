@@ -659,9 +659,62 @@
   - [x] **`/ship` de v0.13.1 — 2026-10-04, versión Patch (0.13.0 → 0.13.1), SIN push** (decidido en el plan: la 0.13.0 ya está en GitHub, no va a la Store y la Store recibe la 0.13.1). Versión en los cuatro sitios (`package.json`, `package-lock.json` —que llevaba dos versiones en 0.12.1—, `tauri.conf.json`, `Cargo.toml` y `Cargo.lock`), CHANGELOG ES + EN versionado, README ES/EN, `walkthrough.md`, `notasActualizacionStore_v0.13.1.md` (con «Novedades» que cubren la 0.13.0 y la 0.13.1 juntas, ES 1.082 · EN 1.067 caracteres) y `descripcionStore_es/en.md`. **`.msixbundle` generado y verificado:** `src-tauri/target/msix/dbv-typst-editor_0.13.1.0.msixbundle` (**77,61 MB**; la 0.13.0 pesó 77,56 y la 0.12.1, 76,95; `typst.exe`, `tinymist.exe`, `templates\local` con 53 ficheros, `resources	ypst-docs.json.gz`, `AppxManifest.xml` `Version="0.13.1.0"`). **Pendiente del usuario:** instalar el paquete con el certificado de pruebas y seguir la guía de 2 minutos de las notas; decidir cuándo empujar a GitHub y subirlo a Partner Center.
   - Después: `/test`, `/code-simplify`, `/ship` 0.13.1 (`.msixbundle` y `notasActualizacionStore_v0.13.1.md`). **Siguiente: aprobación del plan y `/build`.**
 
+- [x] **Fase 67: `/spec` de v0.14.0 «AI Native» — cerrado el 2026-10-04 (`SPECIFICATIONS.md` v1.19, §5p, RF-107 a RF-112 y RNF-IA.9; `ADR-V0140-001`).** Nace de la prueba real de `qwen3:8b` (4 min 17 s sin mostrar nada) y de ver a Gemini recomendar una versión obsoleta de CeTZ. Las IAs grandes ya funcionan; el reto es que las locales dejen de ser inservibles. Alcance fijado conversando con el usuario; las decisiones de diseño las tomó la IA a petición suya y se revisan en `/plan`.
+  - [ ] **RF-107** locales: tope de salida (16 000 por defecto, configurable, no 4 096), «Preparando una propuesta…» con tiempo y Detener, aviso + un reintento si la respuesta llega vacía/cortada/rota, y `num_ctx` vacío que no engañe (absorbe la entrada «[Detectado automáticamente] 2026-10-04» de `/maintain`).
+  - [ ] **RF-108** `search_universe` (una versión por paquete, la última compatible con 0.15.1) y `read_package_docs`; catálogo persistido en disco; instrucciones del sistema; la entrada del índice conserva `compiler`, `template.*` y `updatedAt`.
+  - [ ] **RF-109** la comprobación distingue «falta `@preview/x`» de error del modelo; bloque «Paquetes que se descargarán» con confirmación; el motor en proceso sigue sin descargar.
+  - [ ] **RF-110** aplicar una plantilla a un documento existente («adapta al IEEE»): por instrucciones y herramientas, conserva el contenido, mueve metadatos, retira lo que choca y ajusta la bibliografía.
+  - [ ] **RF-111** fuentes en `fonts/` del proyecto, solo conexiones en la nube, lista cerrada de orígenes, licencias libres, con confirmación; cuidado con `TYPST_FONT_PATHS`.
+  - [ ] **RF-112** importar snippets de Sublime (`.sublime-snippet` sueltos y carpetas) a `.code-snippets`, proyecto por defecto.
+  - [ ] **RF-113** servidor MCP de solo lectura para agentes externos (stdio, sin puerto, sin red, confinado al proyecto): `compile_project`, `render_page`, documentación, `search_universe`, `list_fonts`, bibliografía; el agente escribe sus ficheros y DBV los recoge. Ajuste «Servidor MCP» con la configuración lista para copiar. Añadido el 2026-10-04 (reabre `ADR-V0130-002`).
+  - [ ] **RF-114** `render_page`: la IA ve páginas como PNG, también el proyecto con una propuesta en memoria (solo modelos con imágenes; tope de páginas y resolución).
+  - [ ] **RF-115** `list_bibliography` y `citation_styles`: citar solo claves que existen y estilos CSL reales.
+  - [ ] **RF-116** acción «Aplicar plantilla…» en la interfaz (galería de RF-26 en modo «aplicar a este documento»): genera la misma propuesta revisable que RF-110; sin IA solo hace lo mecánico (`#import` y `#show`). Añadido el 2026-10-04 a petición del usuario.
+  - [ ] **RF-117** el servidor MCP ve el estado de la interfaz (pestañas, texto sin guardar, cursor, selección, esquema, problemas) por un canal local (tubería/socket + testigo, nunca un puerto), solo lectura, con ajuste aparte desactivado por defecto e indicador «Agente conectado». Añadido el 2026-10-04.
+  - [ ] **RNF-IA.9** el modelo nunca toca la red; locales sin red; instalar siempre con confirmación (modifica RNF-IA.3 y .7).
+  - **Maintain (Fase 7): se queda en manual** (`project.config.md` → «Habilitado: no, solo bajo demanda»); ver `ADR-V0140-001`.
+  - Decisiones abiertas para `/plan`: valor del tope, `num_ctx` vacío (heredar o enviar), origen y licencias de las fuentes, descarga de paquetes (CLI o Rust, dependencias, plugins WASM), lectura de README/ejemplos, y ideas recogidas sin especificar (servidor MCP, que la IA vea el PDF, CSL, botón «Aplicar plantilla…»). **Siguiente: `/plan`.**
+
+- [x] **Fase 68: `/plan` de v0.14.0 — 2026-10-04 (`implementation_plan.md`, `ADR-V0140-002`). APROBADO por el usuario el 2026-10-04 (la prueba del `.msixbundle`, criterio (c) del spike, la hará al final de la 0.14.0).** Modo Orquestador, dieciséis slices en seis bloques, un commit por slice con changelog ES+EN. Preguntas abiertas resueltas **midiendo**: una propuesta legítima de ~1 200 palabras con `qwen3:8b` son **1 409 tokens (33 s)** y el corpus de `eval:ai` no sirve para calibrar el tope; renderizado PNG con el sidecar 0,7–0,9 s por llamada; `rmcp` 3.5.0 (Apache-2.0, MSRV 1.88); un paquete de Universe son 6–213 KB con `README.md` y `typst.toml`; `google/fonts` sirve licencia (`METADATA.pb`) y ficheros por `raw.githubusercontent.com` (la API limita a 60/h); Typst 0.15.1 maneja fuentes variables y el aviso `unknown font family` ya llega por `get_diagnostics`; `.dbvt` ya incluye `fonts/`.
+  - **Decisiones que cambian el spec (revisar):** D1 tope **8 192** (no 16 000: 16 000 tarda ≈9 min en cortar un bucle a 29 tok/s); D3 **leer** el README de un paquete sin confirmación (en memoria, solo nube), instalar sí la pide; D2 DBV sigue enviando `num_ctx` y el de Ollama sube de 4 096 a 8 192.
+  - **Bloque A (locales, RF-107):** [ ] S145 tope de salida y contexto honesto · [ ] S146 progreso «Preparando una propuesta…» y reintento.
+  - **Bloque B (Universe, RF-108/109):** [ ] S147 catálogo de una versión por paquete y persistido · [ ] S148 `search_universe` e instrucciones · [ ] S149 descarga de paquetes (`UreqDownloader`, `read_package_docs`, `install_package`) · [ ] S150 comprobar con paquetes sin instalar y bloque «Paquetes que se descargarán».
+  - **Bloque C (RF-114/115/111):** [ ] S151 bibliografía para la IA · [ ] S152 renderizado de páginas · [ ] S153 fuentes en el proyecto.
+  - **Bloque D (plantillas):** [ ] S154 aplicar plantilla por la IA (RF-110) · [ ] S155 «Aplicar plantilla…» en la interfaz (RF-116).
+  - **Bloque E (Sublime):** [ ] S156 importar `.sublime-snippet` (RF-112).
+  - **Bloque F (MCP, independiente; sale a la 0.14.1 si el spike falla):** [ ] S157 spike de empaquetado (criterio: cliente real lista la herramienta, <8 MB, el alias lanza el exe desde fuera, `tauri build` no falla por `externalBin`) · [ ] S158 herramientas del servidor (RF-113) · [ ] S159 estado de la interfaz por canal local con testigo (RF-117) · [ ] S160 distribución y ajuste «Servidor MCP» por plataforma.
+  - Después: `/test` (con evals nuevas), `/code-simplify`, `/ship` 0.14.0 (`.msixbundle` y notas de la Store siempre). **Siguiente: aprobación del plan y `/build`.**
+
 ## 🔄 Context Snapshot / Snapshot de Contexto
 
-> ### 👉 RETOMAR AQUÍ (2026-10-04): v0.13.1 PUBLICADA en GitHub (Latest); falta solo la Store
+> ### 👉 RETOMAR AQUÍ (2026-10-04, tarde): v0.14.0 `/spec` y `/plan` HECHOS y APROBADOS — siguiente: `/build` desde el slice S145
+>
+> **Pasos exactos para retomar:**
+> 1. Comprobar que `GEMINI_API_KEY` ya llega al proceso (el usuario la añadió a su perfil y reinició; sin mostrar el valor:
+>    `[bool]$env:GEMINI_API_KEY`). La necesitan las evals con Gemini, la primera hacia S148; **S145 y S146 no la necesitan**.
+> 2. Lanzar `/build` y empezar por **S145** (tope de salida y contexto honesto: `Connection.max_output_tokens`, 8 192 local, `num_predict`/`max_tokens`,
+>    Ollama 4 096→8 192, campo en `connectWizard`). Un commit por slice con changelog ES + EN.
+> 3. Ollama sigue con `qwen3:8b` cargado en `localhost:11434` (ojo: una petición con otro `num_ctx` recarga el modelo).
+>
+> **Estado del repositorio:** nada de la 0.14.0 está commiteado. Modificados sin commit: `SPECIFICATIONS.md` (v1.19, §5p),
+> `memory.md`, `task.md` y `project.config.md` (Maintain «no, solo bajo demanda»). `implementation_plan.md` es local (ignorado por git).
+> Hay además `memory.md` y `task.md` sin seguimiento en la RAÍZ del repo, anteriores a esta sesión y ajenos a ella.
+> La prueba del `.msixbundle` (alias del MCP) la hará el usuario al final de la 0.14.0.
+>
+> ### (anterior) `/plan` de v0.14.0 hecho, pendiente de aprobación
+>
+> Plan en `implementation_plan.md` (local, ignorado por git; el de la 0.13.1 está copiado en el directorio temporal de
+> la sesión). Fase 68 de este fichero y `ADR-V0140-002`. Dieciséis slices; el MCP (S157–S160) va el último con puerta de
+> salida. Para construir hace falta: aprobar D1–D11, una clave de API para las evals y probar el `.msixbundle` del spike.
+>
+> ### (anterior) `/spec` de v0.14.0 «AI Native» CERRADO
+>
+> `SPECIFICATIONS.md` v1.19, §5p (RF-107 a RF-117, RNF-IA.9), `ADR-V0140-001` en `memory.md`, Fase 67 de este fichero.
+> Solo documentación: no hay código nuevo ni commit (`SPECIFICATIONS.md`, `memory.md` y `task.md` modificados, y
+> `memory.md`/`task.md` siguen sin seguimiento de git, como antes). El `/plan` debe resolver las preguntas abiertas
+> del final de §5p y mide primero el tope de salida con `qwen3:8b`.
+>
+> ### (anterior) 2026-10-04: v0.13.1 PUBLICADA en GitHub (Latest); falta solo la Store
 >
 > Release publicada: https://github.com/davidbuenov/dbv-typst-editor/releases/tag/v0.13.1 (notas ES + EN;
 > `.AppImage`, `.zsync`, `.deb`, `.dmg` y `.app.tar.gz`, las cinco descargas con 200). Push de `master` y del tag

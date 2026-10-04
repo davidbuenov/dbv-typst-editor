@@ -19,6 +19,16 @@
 
 ---
 
+## Maintain (Fase 7)
+- Habilitado: no (solo bajo demanda)
+- CLI no interactivo: ninguno configurado
+- Métrica vigilada: ninguna — la aplicación no tiene telemetría ni servidor (RNF-IA.6), así que no hay señal de producción que vigilar
+- Ventana de referencia: n/a
+- Umbral banda 3: n/a
+- Uso manual: `/maintain` diagnostica en solo lectura un fallo reportado por una persona y lo redacta como entrada `[Detectado automáticamente]` en `SPECIFICATIONS.md`. Decisión del 2026-10-04 tras leer el playbook de Anthropic (etapa 6): el detector automático por bandas σ exige monitorización de producción, línea base estable y CI no interactiva, que este proyecto no tiene.
+
+---
+
 ## Model Routing Guidelines
 
 To optimize OpEx (Token Burn) and latency, refer to this routing strategy when executing project development tasks:

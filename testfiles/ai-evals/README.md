@@ -11,6 +11,8 @@ npm run eval:ai -- --model llama3 --ctx 8192 --host http://127.0.0.1:11434
 npm run eval:ai -- --model qwen3:8b --think on --label con-razonamiento   # con el razonamiento activado
 ```
 
+> ⚠️ **No olvides el `--`** después de `npm run eval:ai`: sin él, npm se queda con las opciones y el script recibiría solo los valores sueltos (el script se niega y lo explica).
+
 Opciones: `--think on|off` (razonamiento del modelo; `off` por defecto, como la aplicación) y `--label texto` (se añade al nombre del resultado, para no pisar el de otra ejecución del mismo día y modelo).
 
 Necesita Ollama con el modelo descargado y el sidecar de Typst (`npm run vendor:typst`). No corre en la CI.

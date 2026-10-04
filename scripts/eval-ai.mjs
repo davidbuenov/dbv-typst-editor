@@ -12,6 +12,7 @@
 // propuesta vale si compila sin errores y cumple lo que pide la tarea.
 //
 //   npm run eval:ai -- --model llama3 [--tasks fix-,docs-] [--ctx 8192] [--think on|off] [--label texto]
+//                      [--docs on|off|both] [--timeout segundos]
 //
 // En la nube (RF-104): `--provider anthropic|openai|gemini|openrouter --model <modelo>`
 // (o `--provider compatible --base-url http://127.0.0.1:8080/v1` para un servidor propio),
@@ -41,6 +42,12 @@ const arg = (name, fallback) => {
   const index = process.argv.indexOf(`--${name}`);
   return index > 0 ? process.argv[index + 1] : fallback;
 };
+// Sin `--` tras `npm run eval:ai`, npm se come las opciones y el script recibe solo los valores sueltos: caería en
+// los valores por defecto (llama3, todo el corpus) sin avisar. Mejor negarse.
+const stray = process.argv.slice(2).filter((token, index, all) => !token.startsWith('--') && !all[index - 1]?.startsWith('--'));
+if (stray.length) {
+  throw new Error(`argumentos sueltos (${stray.join(' ')}): falta el «--» después de «npm run eval:ai». Escríbelo así: npm run eval:ai -- --provider gemini --model <modelo> --tasks style-`);
+}
 const PROVIDER = arg('provider', 'ollama');
 if (PROVIDER !== 'ollama' && !CLOUD[PROVIDER]) throw new Error(`proveedor desconocido: ${PROVIDER} (ollama, ${Object.keys(CLOUD).join(', ')})`);
 const MODEL = arg('model', PROVIDER === 'ollama' ? 'llama3' : '');
@@ -56,6 +63,10 @@ const FILTER = arg('tasks', '').split(',').filter(Boolean);
 const THINK = arg('think', 'off');
 // Para no pisar resultados del mismo día y modelo (p. ej. antes y después de cambiar el prompt).
 const LABEL = arg('label', '');
+// Qué modos medir: con la documentación (`on`), sin ella (`off`) o los dos (por defecto).
+const DOCS = arg('docs', 'both');
+// Tiempo máximo por petición al modelo, en segundos: un modelo que razona sin parar no debe bloquear la evaluación.
+const TIMEOUT_MS = Number(arg('timeout', '300')) * 1000;
 const TYPST = ['typst-x86_64-pc-windows-msvc.exe', 'typst-x86_64-unknown-linux-gnu', 'typst-aarch64-apple-darwin', 'typst-x86_64-apple-darwin']
   .map((name) => join(ROOT, 'src-tauri', 'binaries', name))
   .find((path) => existsSync(path));
@@ -131,7 +142,7 @@ let toolsSupported = true;
 async function callCloud({ messages, tools }) {
   const { url, body } = requestFor(PROVIDER, { messages, tools, model: MODEL, baseUrl: BASE_URL });
   for (let attempt = 1; ; attempt += 1) {
-    const response = await fetch(url, { method: 'POST', headers: headersFor(PROVIDER, API_KEY), body: JSON.stringify(body) });
+    const response = await fetch(url, { method: 'POST', headers: headersFor(PROVIDER, API_KEY), body: JSON.stringify(body), signal: AbortSignal.timeout(TIMEOUT_MS) });
     const retryable = response.status === 429 || response.status === 529 || response.status >= 500;
     if (retryable && attempt < 4) {
       await new Promise((resolve) => setTimeout(resolve, attempt * 4000));
@@ -163,7 +174,7 @@ async function callOllama({ messages, tools }) {
     })),
     ...(tools.length ? { tools: tools.map((tool) => ({ type: 'function', function: tool })) } : {}),
   };
-  const response = await fetch(`${HOST}/api/chat`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const response = await fetch(`${HOST}/api/chat`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(TIMEOUT_MS) });
   const data = await response.json();
   if (!response.ok) throw Object.assign(new Error(data.error ?? `HTTP ${response.status}`), { kind: response.status === 400 ? 'badRequest' : 'server' });
   return {
@@ -270,22 +281,28 @@ async function main() {
   const corpus = JSON.parse(readFileSync(join(ROOT, 'testfiles', 'ai-evals', 'tasks.json'), 'utf8')).tasks;
   const tasks = FILTER.length ? corpus.filter((task) => FILTER.some((prefix) => task.id.startsWith(prefix))) : corpus;
   const results = [];
-  for (const withDocs of [false, true]) {
-    for (const task of tasks) {
-      const outcome = await runTask(task, withDocs).catch((error) => ({ id: task.id, category: task.category, withDocs, pass: false, error: error.message }));
-      results.push(outcome);
-      console.log(`${outcome.pass ? 'PASA' : 'FALLA'}  ${withDocs ? 'con docs' : 'sin docs'}  ${task.id.padEnd(28)} ${outcome.error ?? JSON.stringify(outcome.checks)} ${outcome.seconds ?? ''}s`);
-    }
-  }
+  const modes = DOCS === 'on' ? [true] : DOCS === 'off' ? [false] : [false, true];
+  const dir = join(ROOT, 'testfiles', 'ai-evals', 'results');
+  mkdirSync(dir, { recursive: true });
+  const date = new Date().toISOString();
+  const file = join(dir, `${date.slice(0, 10)}-${PROVIDER === 'ollama' ? '' : `${PROVIDER}-`}${MODEL.replace(/[^\w.-]/g, '_')}${THINK === 'on' ? '-think' : ''}${LABEL ? `-${LABEL}` : ''}.json`);
   const rate = (docs) => {
     const subset = results.filter((r) => r.withDocs === docs);
     return { passed: subset.filter((r) => r.pass).length, total: subset.length, compiled: subset.filter((r) => r.checks?.compiles === true).length, compileTasks: subset.filter((r) => r.checks?.compiles !== null && r.checks?.compiles !== undefined).length };
   };
-  const summary = { provider: PROVIDER, model: MODEL, context: PROVIDER === 'ollama' ? CONTEXT : null, think: PROVIDER === 'ollama' ? THINK : null, tokens: sumUsage(results.map((r) => r.tokens)), tools: toolsSupported, date: new Date().toISOString(), withoutDocs: rate(false), withDocs: rate(true) };
-  const dir = join(ROOT, 'testfiles', 'ai-evals', 'results');
-  mkdirSync(dir, { recursive: true });
-  const file = join(dir, `${summary.date.slice(0, 10)}-${PROVIDER === 'ollama' ? '' : `${PROVIDER}-`}${MODEL.replace(/[^\w.-]/g, '_')}${THINK === 'on' ? '-think' : ''}${LABEL ? `-${LABEL}` : ''}.json`);
-  writeFileSync(file, JSON.stringify({ summary, results }, null, 2));
+  const summaryOf = (complete) => ({ provider: PROVIDER, model: MODEL, context: PROVIDER === 'ollama' ? CONTEXT : null, think: PROVIDER === 'ollama' ? THINK : null, tokens: sumUsage(results.map((r) => r.tokens)), tools: toolsSupported, date, complete, tasks: tasks.length, withoutDocs: rate(false), withDocs: rate(true) });
+  // Se guarda tras cada tarea: si algo se cuelga o se corta, no se pierde lo medido.
+  const save = (complete) => writeFileSync(file, JSON.stringify({ summary: summaryOf(complete), results }, null, 2));
+  for (const withDocs of modes) {
+    for (const task of tasks) {
+      const outcome = await runTask(task, withDocs).catch((error) => ({ id: task.id, category: task.category, withDocs, pass: false, error: error.message }));
+      results.push(outcome);
+      console.log(`${outcome.pass ? 'PASA' : 'FALLA'}  ${withDocs ? 'con docs' : 'sin docs'}  ${task.id.padEnd(28)} ${outcome.error ?? JSON.stringify(outcome.checks)} ${outcome.seconds ?? ''}s`);
+      save(false);
+    }
+  }
+  save(true);
+  const summary = summaryOf(true);
   console.log(`\n${JSON.stringify(summary, null, 2)}\n→ ${file}`);
 }
 

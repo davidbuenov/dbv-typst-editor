@@ -643,6 +643,14 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     return list;
   }
 
+  /** Como `openTexts`, con si cada pestaña tiene cambios sin guardar (RF-117: el estado que ve un agente MCP). */
+  function openTextsWithState() {
+    const dirty = new Map();
+    if (state.document) dirty.set(state.document.path, state.dirty);
+    for (const entry of background.values()) dirty.set(entry.document.path, Boolean(entry.dirty));
+    return openTexts().map((doc) => ({ ...doc, dirty: Boolean(dirty.get(doc.path)) }));
+  }
+
   /** Reordenar arrastrando (RF-79.3). */
   function moveTab(path, toIndex) {
     tabs = moveTabModel(tabs, path, toIndex);
@@ -1745,6 +1753,7 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
      * @returns {Array<{path: string, content: string}>}
      */
     getOpenTexts: () => openTexts(),
+    getOpenTextsWithState: () => openTextsWithState(),
     /** ¿La última compilación del motor tuvo errores? (R-L2: las etiquetas no se resuelven). */
     hasEngineErrors: () => engineDiagnostics.some((diagnostic) => diagnostic.level === 'error'),
     /** ¿Tiene cambios sin guardar alguna pestaña de `paths` o de dentro de esas carpetas? */

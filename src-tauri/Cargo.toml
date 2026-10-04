@@ -20,7 +20,7 @@ tauri-plugin-shell = "2"
 tauri-plugin-dialog = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-tokio = { version = "1", features = ["sync", "time"] }
+tokio = { version = "1", features = ["sync", "time", "net", "io-util", "rt", "macros"] }
 # Slice 3: observador de cambios en disco sobre la raíz del proyecto (watcher.rs).
 notify = "8"
 # Slice 3: manifiesto propio de proyecto `settings/dbv-project.toml` (project.rs).
@@ -76,6 +76,8 @@ tar = "0.4"
 # v0.14.0 (RF-113): el modo `--mcp` no tiene `AppHandle`, así que calcula él mismo la carpeta de datos.
 # Ya estaba en `Cargo.lock` (la usa `typst-kit`): pasa a directa sin descarga.
 dirs = "6"
+# RF-117: el testigo aleatorio del canal local entre la aplicación y el servidor MCP (ya en `Cargo.lock`).
+getrandom = "0.3"
 
 # v0.9.0 (ADR-MOTOR-001): motor de vista previa EN PROCESO. Typst como librería, con
 # versiones EXACTAS iguales a las del sidecar vendorizado (`scripts/vendor-typst.mjs`):

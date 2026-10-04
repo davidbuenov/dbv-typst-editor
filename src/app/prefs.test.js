@@ -25,6 +25,7 @@ describe('prefs', () => {
       showFullPath: false,
       askBeforeUpdatingRefs: false,
       localHistory: true,
+      mcpShareState: false,
     });
   });
 
@@ -62,6 +63,7 @@ describe('prefs', () => {
       showFullPath: false,
       askBeforeUpdatingRefs: false,
       localHistory: true,
+      mcpShareState: false,
     });
   });
 

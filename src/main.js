@@ -78,6 +78,8 @@ import {
   getTypstVersion,
   importProjectArchive,
   on,
+  mcpBridgeConfigure,
+  mcpStateReply,
   openUniversePackagePage,
   previewUniverseTemplate,
   pickArchiveFile,
@@ -113,7 +115,8 @@ import { createToast } from './ui/toast.js';
 import { cycleTheme, getTheme, initTheme, setTheme } from './themes/theme.js';
 import { getLastDocumentDir, rememberDocumentPath } from './app/lastDocumentDir.js';
 import { createNewDocumentFlow, isNewDocumentShortcut } from './app/newDocument.js';
-import { getPref, onPrefsChanged, togglePref } from './app/prefs.js';
+import { getPref, onPrefsChanged, setPref, togglePref } from './app/prefs.js';
+import { initMcpBridge } from './mcp/mcpBridge.js';
 import { getCurrentWebview } from '@tauri-apps/api/webview';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 
@@ -989,6 +992,8 @@ async function bootstrap() {
   });
   /** IA integrada (v0.13.0); se crea más abajo, cuando existen sus dependencias. */
   let ai = null;
+  /** RF-117: estado del editor para agentes MCP; se crea más abajo, con el resto de la IA. */
+  let mcpBridge = null;
   /** El backend completo para la IA: lo usa `ai/aiApp.js`, que se carga bajo demanda. */
   const aiBackend = backendModule;
   /** RF-98: último `.typ` abierto, destino de «Insertar como tabla». */
@@ -1036,12 +1041,16 @@ async function bootstrap() {
   window.addEventListener('focus', () => snippetLoader.loadGlobal());
   workspace.setListener('projectOpened', (project) => {
     ai?.onProjectOpened(project);
+    mcpBridge?.configure();
     snippetLoader.loadProject(project.isSingleFile ? null : project.root);
     // Cada proyecto empieza con el motor rápido, aunque el anterior lo desactivara.
     engineSetMode('inproc');
   });
 
-  workspace.setListener('projectClosed', () => ai?.onProjectClosed());
+  workspace.setListener('projectClosed', () => {
+    ai?.onProjectClosed();
+    mcpBridge?.configure();
+  });
 
   workspace.setListener('externalChange', (change) => {
     if (!change.isActiveDocument) preview.onExternalChange();
@@ -1365,6 +1374,7 @@ async function bootstrap() {
     showFullPath: el('pref-full-path'),
     askBeforeUpdatingRefs: el('pref-ask-refs'),
     localHistory: el('pref-local-history'),
+    mcpShareState: el('pref-mcp-share'),
   };
   const renderPrefCheckbox = (key) => {
     prefCheckboxes[key]?.setAttribute('aria-checked', String(getPref(key)));
@@ -1858,6 +1868,20 @@ async function bootstrap() {
     typstVersion: () => typstVersionText,
   });
   if (workspace.state.project) ai.onProjectOpened(workspace.state.project);
+  mcpBridge = initMcpBridge({
+    backend: { on, mcpBridgeConfigure, mcpStateReply },
+    workspace,
+    relativeToRoot,
+    getProblems: () => problemsPanel.getProblems(),
+    getOutline: () => lastOutline,
+    isShared: () => getPref('mcpShareState'),
+    stopSharing: () => setPref('mcpShareState', false),
+    badge: el('mcp-agent-badge'),
+  });
+  mcpBridge.configure();
+  onPrefsChanged(({ key }) => {
+    if (key === 'mcpShareState') mcpBridge.configure();
+  });
   createSplitter(el('splitter-ai'), {
     hostEl: document.querySelector('.app-body'),
     cssVariable: '--ai-width',

@@ -19,6 +19,7 @@ pub mod docs;
 pub mod error;
 pub mod history;
 pub mod mcp;
+pub mod mcp_bridge;
 pub mod engine;
 #[cfg(target_os = "macos")]
 pub mod macos_menu;
@@ -87,6 +88,7 @@ pub fn run() {
         .manage(commands::universe_index::UniverseIndexState::default())
         .manage(docs::DocsState::default())
         .manage(ai::AiState::default())
+        .manage(mcp_bridge::McpBridgeState::default())
         .manage(ai::acp::AcpState::default())
         .setup(|app| {
             // Historial local (RF-73): en la carpeta de datos de la aplicación,
@@ -103,6 +105,8 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            mcp_bridge::mcp_bridge_configure,
+            mcp_bridge::mcp_state_reply,
             archive::export_project_archive,
             archive::import_project_archive,
             archive::pick_archive_dialog,

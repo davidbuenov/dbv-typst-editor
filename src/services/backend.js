@@ -390,6 +390,9 @@ export const aiSaveConnection = (connection, apiKey, activate = false) =>
 export const aiDeleteConnection = (id) => call('ai_delete_connection', { id });
 export const aiSetPreferences = ({ active, showAi } = {}) =>
   call('ai_set_preferences', { active: active ?? null, showAi: showAi ?? null });
+/** RF-117: `root` = proyecto cuyo estado se comparte con los agentes MCP; `null` corta el acceso. */
+export const mcpBridgeConfigure = (root) => call('mcp_bridge_configure', { root: root ?? null });
+export const mcpStateReply = (id, snapshot) => call('mcp_state_reply', { id, snapshot });
 export const aiProviders = () => call('ai_providers');
 export const aiDetect = () => call('ai_detect');
 export const aiListModels = (connection, apiKey) => call('ai_list_models', { connection, apiKey: apiKey ?? null });

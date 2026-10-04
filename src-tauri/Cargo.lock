@@ -1173,6 +1173,7 @@ dependencies = [
  "dirs",
  "dunce",
  "flate2",
+ "getrandom 0.3.4",
  "hayagriva",
  "keyring",
  "notify",

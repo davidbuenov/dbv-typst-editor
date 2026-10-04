@@ -89,7 +89,7 @@ pub struct McpEnv {
     checks: Arc<CheckWorlds>,
 }
 
-fn app_data_dir() -> Option<PathBuf> {
+pub fn app_data_dir() -> Option<PathBuf> {
     dirs::data_dir().map(|dir| dir.join(IDENTIFIER))
 }
 
@@ -349,6 +349,14 @@ impl DbvMcp {
             "main": project.and_then(|p| p.main.as_ref()).map(|m| m.display().to_string()),
             "looseDocument": project.map(|p| p.single_file),
         }))
+    }
+
+    #[tool(description = "Read-only snapshot of the DBV editor if it is open with this project and the user enabled sharing: open tabs with their UNSAVED text, the active document, cursor, selection, outline and current problems. Otherwise says why it is not available; then work from the files on disk.")]
+    async fn editor_state(&self) -> Result<CallToolResult, McpError> {
+        let Some(project) = self.env.project.as_ref() else {
+            return tool_error("no project: launch the server with `--project <folder>`".into());
+        };
+        ok_json(crate::mcp_bridge::fetch_state(self.env.data_dir.as_deref(), &project.root).await)
     }
 
     #[tool(description = "Compile the project with DBV's exact Typst compiler and return its errors and warnings (file, line, message). A package that is not installed is reported separately as incomplete, not as an error.")]

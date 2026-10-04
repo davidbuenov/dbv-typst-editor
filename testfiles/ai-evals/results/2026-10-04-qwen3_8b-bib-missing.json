@@ -1,0 +1,57 @@
+{
+  "summary": {
+    "provider": "ollama",
+    "model": "qwen3:8b",
+    "context": 8192,
+    "think": "off",
+    "tokens": {
+      "input": 3883,
+      "output": 71
+    },
+    "tools": true,
+    "date": "2026-10-04T16:09:41.972Z",
+    "complete": true,
+    "tasks": 1,
+    "withoutDocs": {
+      "passed": 0,
+      "total": 0,
+      "compiled": 0,
+      "compileTasks": 0
+    },
+    "withDocs": {
+      "passed": 1,
+      "total": 1,
+      "compiled": 0,
+      "compileTasks": 0
+    }
+  },
+  "results": [
+    {
+      "id": "bib-missing",
+      "category": "bibliography",
+      "withDocs": true,
+      "tools": true,
+      "pass": true,
+      "checks": {
+        "compiles": null,
+        "mustContain": true,
+        "mustNotContain": true,
+        "files": true,
+        "changed": null,
+        "confined": true,
+        "separated": null,
+        "packagesValid": null
+      },
+      "steps": 1,
+      "outcome": "done",
+      "formatErrors": [],
+      "errorsAfter": [],
+      "seconds": 2.1,
+      "tokens": {
+        "input": 3883,
+        "output": 71
+      },
+      "answer": "\nEl libro de Dijkstra sobre programación estructurada no está en la bibliografía del proyecto. Si deseas incluirlo, puedes agregar su entrada al archivo `refs.bib` con los datos proporcionados por el usuario."
+    }
+  ]
+}

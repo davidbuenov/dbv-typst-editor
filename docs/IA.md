@@ -238,6 +238,8 @@ Con un modelo que admite **herramientas** (los de la nube y muchos locales; el c
 | **Ver las páginas** | Renderiza hasta 3 páginas y las recibe como imágenes | Solo con un modelo que admite imágenes |
 | **Ofrecer una tipografía** que falta | Te enseña licencia y tamaño; solo se copia a `fonts/` si pulsas **Añadir al proyecto** | Solo con una IA en la nube; se puede deshacer |
 
+**Medido:** con el catálogo real, ni `qwen3:8b` ni Gemini 3.8 Flash inventaron un paquete o una versión en 10 ejecuciones. Pero un modelo local pequeño **no suele terminar** estas tareas (0 de 5 con `qwen3:8b`; 3 de 5 con Gemini): ver [`testfiles/ai-evals/README.md`](../testfiles/ai-evals/README.md).
+
 **Por qué importa que «no invente»:** las versiones de los paquetes cambian y una antigua puede no compilar con tu compilador. Por eso la IA solo escribe los identificadores `@preview/nombre:versión` que le devolvió la búsqueda. Si necesita un paquete que **no está instalado**, lo pone en su propuesta y **tú decides** en la revisión si se descarga («Paquetes que se descargarán»: licencia, ficha y un botón; no se descarga nada sola).
 
 **Qué hace cada vía con la red:**

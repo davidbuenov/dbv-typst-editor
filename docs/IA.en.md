@@ -238,6 +238,8 @@ With a model that supports **tools** (cloud models and many local ones; the conn
 | **See the pages** | Renders up to 3 pages and receives them as images | Only with a model that accepts images |
 | **Offer a missing typeface** | Shows its licence and size; it is only copied into `fonts/` if you press **Add to project** | Cloud AI only; it can be undone |
 
+**Measured:** with the real catalog, neither `qwen3:8b` nor Gemini 3.8 Flash invented a package or a version in 10 runs. But a small local model **usually does not finish** these tasks (0 of 5 with `qwen3:8b`; 3 of 5 with Gemini): see [`testfiles/ai-evals/README.md`](../testfiles/ai-evals/README.md).
+
 **Why "it does not invent" matters:** package versions change and an old one may not compile with your compiler. So the AI only writes the `@preview/name:version` identifiers the search returned. If it needs a package that is **not installed**, it puts it in its proposal and **you decide** in the review whether it is downloaded ("Packages that will be downloaded": licence, card and a button; nothing is downloaded by itself).
 
 **What each route does with the network:**

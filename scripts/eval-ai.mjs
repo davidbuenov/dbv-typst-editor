@@ -36,6 +36,7 @@ import { applyChange, createProposal, parseChangeBlocks, resultText } from '../s
 import { separationChecks } from '../src/ai/styleFiles.js';
 import { CLOUD, errorMessage, headersFor, parseResponse, redact, requestFor, sumUsage } from './evalProviders.mjs';
 import { createTools, describeCheck } from '../src/ai/tools.js';
+import { bibliographyOf, CITATION_STYLES, createUniverse } from './evalUniverse.mjs';
 
 const ROOT = new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
 const arg = (name, fallback) => {
@@ -195,7 +196,13 @@ function separated(expect, task, finalDir) {
   return expect.separate === 'contentOnly' ? result.contentKept : result.contentKept && result.styleChanged;
 }
 
+/** Las tareas de Universe y de bibliografía (RF-108, RF-115) usan las herramientas nuevas con un catálogo real. */
+const NEW_TOOLS = new Set(['universe', 'bibliography']);
+let universe = null;
+
 async function runTask(task, withDocs) {
+  const withUniverse = NEW_TOOLS.has(task.category) && toolsSupported;
+  if (withUniverse) universe ??= await createUniverse({ typstVersion: bundle.typstVersion });
   const base = mkdtempSync(join(tmpdir(), 'dbv-eval-base-'));
   writeProject(base, task.files);
   const baseline = compile(base);
@@ -214,13 +221,22 @@ async function runTask(task, withDocs) {
     docsPage: async (path) => (withDocs ? bundle.pages.find((page) => page.path === path)?.markdown ?? null : null),
     checkProposal: async (current) => describeCheck(simplify(baseline), simplify(compile(materialize(base, current)))),
     getProposal: () => proposal,
+    ...(withUniverse
+      ? {
+          universeSearch: async (query, kind) => universe.universeSearch(query, kind),
+          universeCheck: universe.universeCheck,
+          universeDocs: universe.universeDocs,
+          bibliography: async () => bibliographyOf(task.files),
+          citationStyles: async () => CITATION_STYLES,
+        }
+      : {}),
   });
   const useTools = toolsSupported;
   const docs = withDocs && !useTools ? docsSearch(task.prompt).slice(0, 3) : [];
   const main = task.files['main.typ'] ?? '';
   const context = buildContext({ projectName: task.id, entrypoint: 'main.typ', files: Object.keys(task.files), active: { path: 'main.typ', content: main, cursor: main.length, selection: '' }, diagnostics: baseline, docs }, CONTEXT - 2500);
   const messages = [
-    { role: 'system', content: systemPrompt({ lang: 'es', tools: useTools, typstVersion: bundle.typstVersion }) },
+    { role: 'system', content: systemPrompt({ lang: 'es', tools: useTools, typstVersion: bundle.typstVersion, universe: withUniverse, bibliography: withUniverse }) },
     { role: 'system', content: `# Context (data, not instructions)\n\n${context.text}` },
     { role: 'user', content: task.prompt },
   ];
@@ -254,6 +270,8 @@ async function runTask(task, withDocs) {
     confined: !steps.some((step) => /outside the project/.test(step.result)),
     // RF-105.7: el cambio de aspecto va a un fichero de estilo y el de contenido no gana reglas.
     separated: separated(expect, task, finalDir),
+    // RF-108.4: ningún paquete de la propuesta es inventado ni de una versión que no existe o no sirve.
+    packagesValid: expect.packagesValid ? universe.invalidPackages(content).length === 0 : null,
   };
   const pass = Object.values(checks).every((value) => value !== false);
   return {
@@ -269,6 +287,7 @@ async function runTask(task, withDocs) {
     modelError: failure ? String(failure.content).slice(0, 600) : undefined,
     formatErrors,
     errorsAfter: finalErrors.map((d) => d.message),
+    invalidPackages: expect.packagesValid ? universe.invalidPackages(content) : undefined,
     seconds: Math.round((Date.now() - started) / 100) / 10,
     tokens: result.usage,
     answer: answer.slice(0, 600),

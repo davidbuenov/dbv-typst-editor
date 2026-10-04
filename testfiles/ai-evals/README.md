@@ -46,7 +46,7 @@ Cada tarea se ejecuta **sin** y **con** la documentación de Typst empaquetada. 
 
 ## Corpus
 
-38 tareas (`tasks.json`):
+46 tareas (`tasks.json`):
 
 | Categoría | Tareas | Ejemplos |
 | --- | --- | --- |
@@ -58,6 +58,26 @@ Cada tarea se ejecuta **sin** y **con** la documentación de Typst empaquetada. 
 | Preguntas de documentación | 5 | cabecera de tabla, márgenes, columnas, índice, idioma |
 | Redacción | 1 | añadir un resumen sin tocar lo demás |
 | Formato y estilo (RF-105) | 6 | tipografía, márgenes, numeración, color de encabezados, justificado; un cambio solo de contenido |
+| Typst Universe (RF-108, RF-110) | 5 | «pásalo al IEEE», plantilla de Springer, un diagrama, un glosario, un código de barras |
+| Bibliografía (RF-115) | 3 | citar una clave que existe, una referencia que NO está (no inventarla), el estilo IEEE |
+
+## Typst Universe y bibliografía (2026-10-04, `scripts/evalUniverse.mjs`)
+
+Las 8 tareas nuevas usan **las mismas herramientas de la aplicación** (`search_universe`, `read_package_docs`, `list_bibliography`, `citation_styles`) con el **catálogo real** de Typst Universe (el que dejó la aplicación en su carpeta de datos, o el público) y los paquetes reales (`.tar.gz` público, extraído con `tar`). La lógica de búsqueda y de comprobación es una réplica en JS de la de Rust: mide el **comportamiento del modelo**, no el código Rust (que tiene sus tests). Una tarea de Universe pasa además si **todo `@preview/nombre:versión` de la propuesta existe y es una versión que el compilador admite** (`packagesValid`). Se lanzan con `--tasks uni-,bib- --docs on`.
+
+| Modelo | Universe (5) | Bibliografía (3) | Paquetes inventados | Tokens (entrada / salida) |
+| --- | --- | --- | --- | --- |
+| `qwen3:8b` (Ollama, contexto 8 192) | **0 / 5** | 3 / 3 | **0** | 269 552 / 3 510 |
+| Gemini 3.8 Flash (nube) | **3 / 5** | 3 / 3 | **0** | 197 613 / 6 365 |
+
+**Cómo leerlo:**
+
+- **Ninguno inventó un paquete ni una versión** (0 de 10 ejecuciones de Universe): lo que se medía de RF-108. El coste es que un modelo local pequeño **no llega a terminar**: `qwen3:8b` agota los 15 pasos leyendo documentación (3 de 5) o propone código que no compila.
+- **Gemini 3.8 Flash:** pasa «pásalo al IEEE», el diagrama y el glosario; falla con Springer (mezcló `#import … : article` con `sn.article.with(…)`, y no compila) y con el código de barras (importó el paquete correcto y olvidó el número).
+- **Bibliografía:** los dos citan solo claves que existen y ninguno inventa la referencia que falta (la respuesta correcta a «cita el libro de Dijkstra» era decir que no está).
+- **No se midió** `render_page` ni las fuentes con modelos (necesitan el renderizado y la descarga de la aplicación), ni modelos locales de 14B o más. Son pocas tareas y una sola pasada: una diferencia de una tarea es ruido.
+
+Resultados: `results/2026-10-04-qwen3_8b-universe.json`, `…-qwen3_8b-bib-missing.json` y `…-gemini-gemini-3.8-flash-universe.json`.
 
 ## Resultados del 2026-10-03 y 04 (`qwen3:8b`, Ollama, RTX 4070 Ti 12 GB)
 

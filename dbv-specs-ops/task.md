@@ -677,29 +677,37 @@
 
 - [x] **Fase 68: `/plan` de v0.14.0 — 2026-10-04 (`implementation_plan.md`, `ADR-V0140-002`). APROBADO por el usuario el 2026-10-04 (la prueba del `.msixbundle`, criterio (c) del spike, la hará al final de la 0.14.0).** Modo Orquestador, dieciséis slices en seis bloques, un commit por slice con changelog ES+EN. Preguntas abiertas resueltas **midiendo**: una propuesta legítima de ~1 200 palabras con `qwen3:8b` son **1 409 tokens (33 s)** y el corpus de `eval:ai` no sirve para calibrar el tope; renderizado PNG con el sidecar 0,7–0,9 s por llamada; `rmcp` 3.5.0 (Apache-2.0, MSRV 1.88); un paquete de Universe son 6–213 KB con `README.md` y `typst.toml`; `google/fonts` sirve licencia (`METADATA.pb`) y ficheros por `raw.githubusercontent.com` (la API limita a 60/h); Typst 0.15.1 maneja fuentes variables y el aviso `unknown font family` ya llega por `get_diagnostics`; `.dbvt` ya incluye `fonts/`.
   - **Decisiones que cambian el spec (revisar):** D1 tope **8 192** (no 16 000: 16 000 tarda ≈9 min en cortar un bucle a 29 tok/s); D3 **leer** el README de un paquete sin confirmación (en memoria, solo nube), instalar sí la pide; D2 DBV sigue enviando `num_ctx` y el de Ollama sube de 4 096 a 8 192.
-  - **Bloque A (locales, RF-107):** [ ] S145 tope de salida y contexto honesto · [ ] S146 progreso «Preparando una propuesta…» y reintento.
-  - **Bloque B (Universe, RF-108/109):** [ ] S147 catálogo de una versión por paquete y persistido · [ ] S148 `search_universe` e instrucciones · [ ] S149 descarga de paquetes (`UreqDownloader`, `read_package_docs`, `install_package`) · [ ] S150 comprobar con paquetes sin instalar y bloque «Paquetes que se descargarán».
-  - **Bloque C (RF-114/115/111):** [ ] S151 bibliografía para la IA · [ ] S152 renderizado de páginas · [ ] S153 fuentes en el proyecto.
-  - **Bloque D (plantillas):** [ ] S154 aplicar plantilla por la IA (RF-110) · [ ] S155 «Aplicar plantilla…» en la interfaz (RF-116).
-  - **Bloque E (Sublime):** [ ] S156 importar `.sublime-snippet` (RF-112).
-  - **Bloque F (MCP, independiente; sale a la 0.14.1 si el spike falla):** [ ] S157 spike de empaquetado (criterio: cliente real lista la herramienta, <8 MB, el alias lanza el exe desde fuera, `tauri build` no falla por `externalBin`) · [ ] S158 herramientas del servidor (RF-113) · [ ] S159 estado de la interfaz por canal local con testigo (RF-117) · [ ] S160 distribución y ajuste «Servidor MCP» por plataforma.
-  - Después: `/test` (con evals nuevas), `/code-simplify`, `/ship` 0.14.0 (`.msixbundle` y notas de la Store siempre). **Siguiente: aprobación del plan y `/build`.**
+  - **Bloque A (locales, RF-107):** [x] S145 tope de salida y contexto honesto · [x] S146 progreso «Preparando una propuesta…» y reintento.
+  - **Bloque B (Universe, RF-108/109):** [x] S147 catálogo de una versión por paquete y persistido · [x] S148 `search_universe` e instrucciones · [x] S149 descarga de paquetes (`UreqDownloader`, `read_package_docs`, `install_package`) · [x] S150 comprobar con paquetes sin instalar y bloque «Paquetes que se descargarán».
+  - **Bloque C (RF-114/115/111):** [x] S151 bibliografía para la IA · [x] S152 renderizado de páginas · [x] S153 fuentes en el proyecto.
+  - **Bloque D (plantillas):** [x] S154 aplicar plantilla por la IA (RF-110) · [x] S155 «Aplicar plantilla…» en la interfaz (RF-116).
+  - **Bloque E (Sublime):** [x] S156 importar `.sublime-snippet` (RF-112).
+  - **Bloque F (MCP, independiente; sale a la 0.14.1 si el spike falla):** [x] S157 spike de empaquetado (criterio: cliente real lista la herramienta, <8 MB, el alias lanza el exe desde fuera, `tauri build` no falla por `externalBin`) · [x] S158 herramientas del servidor (RF-113) · [x] S159 estado de la interfaz por canal local con testigo (RF-117) · [x] S160 distribución y ajuste «Servidor MCP» por plataforma.
+  - Después: `/test` (con evals nuevas), `/code-simplify`, `/ship` 0.14.0 (`.msixbundle` y notas de la Store siempre). (hecho el `/build` y el `/test`: ver Fase 69).
+
+- [x] **Fase 69: `/build` de v0.14.0 CERRADO (S145–S160) y `/test` — 2026-10-04.** Además de lo planeado, el uso real del usuario añadió: el agente del panel recibe el servidor MCP (`mcpServers` de `session/new`), `install_package` con diálogo de confirmación (`ADR-V0140-004`), «Aplicar plantilla…» sobre la galería de «Nuevo documento», fuentes del proyecto que se recogen sin reiniciar, árbol de procesos del agente cerrado entero, `incremental = false` en `[profile.dev]` (LNK1120 por caché incremental en un disco sin enlaces duros) y la revisión de documentación (ayuda de cuatro paneles, guía de IA, README, web) con un paso nuevo en `/ship`.
+  - **Pruebas:** Rust **622** (`cargo test --lib`) y Vitest **1 523**; `verify:frontend` 12/12, `verify:layout` 20/20.
+  - **Mutación manual: 12/12 matadas** — 7 en Rust (testigo siempre válido, ruta fuera del proyecto, otro proyecto, instalar sin proyecto, paquete no válido, estado sin ajuste, `install_package` sin catálogo) y 5 en el frontend (instalar sin preguntar, estado sin compartir, pestañas fuera del proyecto, aplicar una plantilla local, no aplicar automáticamente).
+  - **Evals nuevas (`scripts/evalUniverse.mjs`, categorías `universe` y `bibliography`, 8 tareas, catálogo REAL de Universe):** `qwen3:8b` **universe 0/5, bibliografía 3/3**; Gemini 3.8 Flash **universe 3/5, bibliografía 3/3**. **Cero paquetes inventados en las 10 ejecuciones de Universe** (RF-108.4 medido). Fallos de Gemini: Springer (mezcló `import … : article` con `sn.article.with`) y código de barras (olvidó el número); los de `qwen3:8b`: se queda sin pasos (15) leyendo documentación o propone código que no compila. Resultados en `testfiles/ai-evals/results/2026-10-04-*-universe.json`.
+  - **No medido:** `render_page`/fuentes con modelos (necesitan el renderizado de la aplicación), modelos locales de 14B o más.
+  - **Paquete inicial del frontend: +34,8 KB (1 114,75 → 1 149,57 KB; gzip +11,6 KB)** frente a v0.13.1: la ayuda ampliada, las cadenas del MCP y la galería en modo «aplicar». El código de la IA sigue en su trozo aparte (`aiApp`, 141,9 KB).
+  - **Pendiente del usuario:** el alias de ejecución del MSIX (criterio (c) del spike, `dbv-typst-editor.exe --mcp` desde una terminal ajena).
+  - **Siguiente:** `/code-simplify` (clippy necesita la app de desarrollo cerrada: el script de `tauri-build` falla con «Acceso denegado» si `dbv-typst-editor.exe` está en marcha) y `/ship` 0.14.0 con push.
 
 ## 🔄 Context Snapshot / Snapshot de Contexto
 
-> ### 👉 RETOMAR AQUÍ (2026-10-04, tarde): v0.14.0 `/spec` y `/plan` HECHOS y APROBADOS — siguiente: `/build` desde el slice S145
+> ### 👉 RETOMAR AQUÍ (2026-10-04, noche): v0.14.0 `/build` y `/test` HECHOS — siguiente: `/code-simplify` y `/ship` (con push)
 >
 > **Pasos exactos para retomar:**
-> 1. Comprobar que `GEMINI_API_KEY` ya llega al proceso (el usuario la añadió a su perfil y reinició; sin mostrar el valor:
->    `[bool]$env:GEMINI_API_KEY`). La necesitan las evals con Gemini, la primera hacia S148; **S145 y S146 no la necesitan**.
-> 2. Lanzar `/build` y empezar por **S145** (tope de salida y contexto honesto: `Connection.max_output_tokens`, 8 192 local, `num_predict`/`max_tokens`,
->    Ollama 4 096→8 192, campo en `connectWizard`). Un commit por slice con changelog ES + EN.
-> 3. Ollama sigue con `qwen3:8b` cargado en `localhost:11434` (ojo: una petición con otro `num_ctx` recarga el modelo).
+> 1. `/code-simplify` en tres pasadas sobre lo de la 0.14.0 (`src-tauri/src/mcp.rs`, `mcp_bridge.rs`, `ai/*`, `src/mcp/`, `src/ai/`, galería en modo «aplicar»). Pendiente conocido: claves de traducción sin usar del buscador antiguo de «Aplicar plantilla…» (`ai.applyTemplatePlaceholder`, `ai.applyTemplateSearch`, `ai.applyTemplateEmpty`, `ai.applyTemplateResults`, `ai.applyTemplateNoCatalog`, `ai.applyTemplateDownloadCatalog`, `ai.applyTemplateCatalogFailed`, `ai.applyTemplateSearching`, `ai.applyTemplateFound`, `ai.applyTemplateNone`, `ai.applyTemplateApply`). Clippy: con la app de desarrollo cerrada (o con `CARGO_TARGET_DIR` aparte).
+> 2. `/ship` 0.14.0: la nueva regla revisa documentación (README, `docs/`, ayuda, ficha de la web en `D:\Programacion\github-davidbuenov\web\_projects\dbv-typst-editor.md`, SIN commit ni despliegue allí), `.msixbundle` y `notasActualizacionStore_v0.14.0.md` siempre, y el usuario pidió **push** al terminar.
+> 3. Ollama sigue con `qwen3:8b` en `localhost:11434`. `GEMINI_API_KEY` en el entorno (no se imprime ni se guarda).
 >
-> **Estado del repositorio:** nada de la 0.14.0 está commiteado. Modificados sin commit: `SPECIFICATIONS.md` (v1.19, §5p),
-> `memory.md`, `task.md` y `project.config.md` (Maintain «no, solo bajo demanda»). `implementation_plan.md` es local (ignorado por git).
-> Hay además `memory.md` y `task.md` sin seguimiento en la RAÍZ del repo, anteriores a esta sesión y ajenos a ella.
-> La prueba del `.msixbundle` (alias del MCP) la hará el usuario al final de la 0.14.0.
+> **Estado del repositorio:** todo lo de la 0.14.0 está commiteado en `master` salvo el trabajo de `/test` (harness `scripts/evalUniverse.mjs`, tareas y resultados de evals, este fichero). `memory.md` y `task.md` de la RAÍZ siguen sin seguimiento (ajenos). La web `davidbuenov.com` (repo `web`) tiene la ficha del proyecto actualizada a v0.13.1 SIN commit.
+>
+> ### (anterior) `/build` pendiente — 2026-10-04, tarde
+>
+> `/spec` y `/plan` hechos y aprobados; siguiente era `/build` desde S145.
 >
 > ### (anterior) `/plan` de v0.14.0 hecho, pendiente de aprobación
 >

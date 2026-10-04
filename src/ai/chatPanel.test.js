@@ -109,6 +109,22 @@ describe('bloque de razonamiento (RF-100.2)', () => {
     expect(host.querySelector('.ai-think__summary').textContent).toBe('Pensó durante 0 s');
   });
 
+  it('el contador se cierra de verdad (clearInterval) al terminar o al detener, no solo deja de verse', () => {
+    const started = vi.spyOn(globalThis, 'setInterval');
+    const stopped = vi.spyOn(globalThis, 'clearInterval');
+    const { panel } = setup();
+    const done = panel.addAssistant();
+    done.thinking('uno');
+    const first = started.mock.results.at(-1).value;
+    done.endThinking();
+    expect(stopped).toHaveBeenCalledWith(first);
+    const cut = panel.addAssistant();
+    cut.thinking('dos');
+    const second = started.mock.results.at(-1).value;
+    cut.finish('');
+    expect(stopped).toHaveBeenCalledWith(second);
+  });
+
   it('detener a mitad no deja el contador corriendo', () => {
     const { panel } = setup();
     const bubble = panel.addAssistant();

@@ -20,11 +20,11 @@ import { createConnectWizard } from './connectWizard.js';
 import { createInlineAi } from './inline.js';
 import { createAcpSession, insideProject } from './acpSession.js';
 import { createChangesCard, createPermissionCard } from './acpView.js';
-import { buildContext, estimateTokens, RESPONSE_RESERVE, systemPrompt } from './context.js';
+import { buildContext, estimateTokens, systemPrompt } from './context.js';
 import { describeAdvice } from './modelAdvice.js';
 import { looksLikeEdit } from './proposal.js';
 import { detectStyleFiles, importedFiles } from './styleFiles.js';
-import { CONTEXT_FILL_RATIO, modelAdvice, TOOL_SPEC_TOKENS } from './modelFit.js';
+import { contextBudget as contextBudgetFor, modelAdvice } from './modelFit.js';
 import { computeSpeed, formatSpeed, shouldHintSlow } from './speed.js';
 import { createModelClient } from './modelClient.js';
 import { applyChange, createProposal, normalizePath, overrides, parseChangeBlocks } from './proposal.js';
@@ -397,9 +397,7 @@ export function createAiApp(deps) {
 
   function contextBudget(connection) {
     const total = connection?.contextTokens ?? providerInfo.find((p) => p.provider === connection?.provider)?.contextTokens ?? 8192;
-    // Las definiciones de las herramientas viajan en cada petición y ocupan ventana (≈631 tokens).
-    const toolSpecs = connection?.supportsTools === false ? 0 : TOOL_SPEC_TOKENS;
-    return Math.floor(total * CONTEXT_FILL_RATIO) - RESPONSE_RESERVE - toolSpecs;
+    return contextBudgetFor({ contextTokens: total, tools: connection?.supportsTools !== false });
   }
 
   function renderContextPreview(items) {

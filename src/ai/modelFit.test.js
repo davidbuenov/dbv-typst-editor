@@ -8,6 +8,7 @@
 import { describe, expect, it } from 'vitest';
 import { estimateTokens, systemPrompt } from './context.js';
 import {
+  contextBudget,
   contextRequirements,
   contextShortfall,
   isSmallModel,
@@ -16,6 +17,7 @@ import {
   reasoningControl,
   RECOMMENDED_CONTEXT,
   SMALL_MODEL_BILLIONS,
+  TOOL_SPEC_TOKENS,
 } from './modelFit.js';
 
 describe('tamaño del modelo', () => {
@@ -75,6 +77,22 @@ describe('avisos de un modelo (RF-103)', () => {
     const thinking = modelAdvice({ info: null, contextTokens: 8192, reasoning: true, systemTokens });
     expect(base.shortfall).toBeNull();
     expect(thinking.shortfall).toMatchObject({ have: 8192 });
+  });
+});
+
+describe('presupuesto de contexto (RF-103)', () => {
+  it('es la fracción que se llena menos la reserva de respuesta y las herramientas', () => {
+    // 8 192 × 0,8 = 6 553; − 1 024 de respuesta; − 650 de herramientas.
+    expect(contextBudget({ contextTokens: 8192 })).toBe(4879);
+    expect(contextBudget({ contextTokens: 8192, tools: false })).toBe(5529);
+  });
+
+  it('las herramientas cuestan lo que dice TOOL_SPEC_TOKENS y solo si se usan', () => {
+    expect(contextBudget({ contextTokens: 16384, tools: false }) - contextBudget({ contextTokens: 16384, tools: true })).toBe(TOOL_SPEC_TOKENS);
+  });
+
+  it('con los 4 096 de Ollama por defecto queda un margen real de ≈1 600 tokens', () => {
+    expect(contextBudget({ contextTokens: 4096 })).toBe(1602);
   });
 });
 

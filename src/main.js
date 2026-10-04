@@ -108,7 +108,7 @@ import { createSplitter } from './ui/splitter.js';
 import { createToast } from './ui/toast.js';
 import { cycleTheme, getTheme, initTheme, setTheme } from './themes/theme.js';
 import { getLastDocumentDir, rememberDocumentPath } from './app/lastDocumentDir.js';
-import { isNewDocumentShortcut } from './app/newDocument.js';
+import { createNewDocumentFlow, isNewDocumentShortcut } from './app/newDocument.js';
 import { getPref, onPrefsChanged, togglePref } from './app/prefs.js';
 import { getCurrentWebview } from '@tauri-apps/api/webview';
 import { getCurrentWindow } from '@tauri-apps/api/window';
@@ -1255,20 +1255,8 @@ async function bootstrap() {
     }
   };
 
-  // «Nuevo .typ vacío…» (RF-106): se elige dónde guardarlo, se crea VACÍO y se
-  // abre como documento suelto, igual que con «Abrir documento .typ».
-  const newDocument = async () => {
-    const picked = await pickSaveTarget('documento.typ', 'Typst', ['typ'], getLastDocumentDir());
-    if (!picked.ok || !picked.value) return;
-    const created = await createEmptyDocument(picked.value);
-    if (!created.ok) {
-      const exists = created.error.kind === 'denied';
-      toast.show(exists ? t('action.newDocumentExists') : `${t('action.newDocumentError')} — ${created.error.message}`, 'error');
-      return;
-    }
-    rememberDocumentPath(created.value);
-    await openPath(created.value);
-  };
+  // «Nuevo .typ vacío…» (RF-106): el flujo vive en `app/newDocument.js` para poder probarlo.
+  const newDocument = createNewDocumentFlow({ pickSaveTarget, createEmptyDocument, openPath, getLastDocumentDir, rememberDocumentPath, notify: toast.show, t });
 
   // Importar Project Archive (RF-11, v0.2): elegir el .dbvt, elegir dónde
   // desempaquetarlo, y abrir el proyecto resultante como si acabara de crearse.

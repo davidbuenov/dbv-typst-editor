@@ -8,6 +8,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { runAgent } from './agentLoop.js';
 import { createProposal, resultText } from './proposal.js';
+import { detectStyleFiles, importedFiles, separationChecks } from './styleFiles.js';
 import { estimateTokens } from './context.js';
 import { TOOL_SPEC_TOKENS } from './modelFit.js';
 import { createTools, describeCheck, MAX_FIX_ATTEMPTS, newErrors } from './tools.js';
@@ -83,7 +84,8 @@ describe('herramientas', () => {
   it('propose_changes sin cambios utilizables avisa de que NO se propuso nada', async () => {
     const { tools, proposal, deps } = setup();
     for (const changes of [undefined, [], null, 'cap.typ', 7]) {
-      expect(await tools.propose_changes.run({ changes })).toMatch(/NOTHING was proposed/);
+      // El aviso específico (nada recibido) es el que ve el modelo, no el genérico de «ningún cambio modificó un fichero».
+      expect(await tools.propose_changes.run({ changes })).toMatch(/no changes were received, so NOTHING was proposed/);
     }
     expect(proposal.files.size).toBe(0);
     expect(deps.readText).not.toHaveBeenCalled();
@@ -162,5 +164,58 @@ describe('extremo a extremo con un modelo simulado (RF-94.7)', () => {
     const toolResults = result.messages.filter((m) => m.role === 'tool').map((m) => m.content);
     expect(toolResults[1]).toMatch(/NEW error/);
     expect(toolResults[2]).toMatch(/without new errors/);
+  });
+});
+
+describe('separar presentación de contenido con un modelo simulado (RF-105.8)', () => {
+  const MAIN = '= Informe\n\nTexto del informe.\n';
+  const STYLE = '#let estilo(doc) = {\n  set page(margin: 2cm)\n  doc\n}\n';
+
+  /** Ejecuta el bucle real con un modelo con guion sobre un proyecto; devuelve el proyecto resultante. */
+  async function run(files, calls) {
+    const proposal = createProposal();
+    const deps = {
+      getRoot: () => 'D:/p',
+      join: (root, rel) => `${root}/${rel}`,
+      readText: async (path) => files[path] ?? null,
+      listFiles: async () => Object.keys(files),
+      search: async () => [],
+      diagnostics: async () => [],
+      outline: () => [],
+      docsSearch: async () => [],
+      docsPage: async () => null,
+      checkProposal: async () => ({ fresh: [], fixed: 0 }),
+      getProposal: () => proposal,
+    };
+    const tools = createTools(deps);
+    const script = [{ text: '', toolCalls: [{ id: '1', name: 'propose_changes', arguments: JSON.stringify({ changes: calls }) }] }, { text: 'Hecho.', toolCalls: [] }];
+    await runAgent({ callModel: async () => script.shift(), tools, messages: [{ role: 'user', content: 'cambia el aspecto' }] });
+    const after = { ...files };
+    for (const file of proposal.files.values()) after[file.path] = resultText(file);
+    return after;
+  }
+
+  it('sin fichero de estilo: lo crea y el principal solo lo importa y lo aplica', async () => {
+    const after = await run({ 'main.typ': MAIN }, [
+      { path: 'estilos.typ', action: 'create', content: STYLE.replace('2cm', '3cm') },
+      { path: 'main.typ', action: 'edit', search: '= Informe', replace: '#import "estilos.typ": estilo\n#show: estilo\n\n= Informe' },
+    ]);
+    expect(Object.keys(after).sort()).toEqual(['estilos.typ', 'main.typ']);
+    expect(separationChecks({ before: { 'main.typ': MAIN }, after })).toEqual({ contentKept: true, styleChanged: true });
+    expect(importedFiles(after['main.typ'])).toEqual(['estilos.typ']);
+  });
+
+  it('con fichero de estilo: el cambio de aspecto es una edición del fichero de estilo y el principal no se toca', async () => {
+    const before = { 'main.typ': `#import "estilos.typ": estilo\n#show: estilo\n\n${MAIN}`, 'estilos.typ': STYLE };
+    const after = await run(before, [{ path: 'estilos.typ', action: 'edit', search: '2cm', replace: '3cm' }]);
+    expect(after['main.typ']).toBe(before['main.typ']);
+    expect(after['estilos.typ']).toContain('3cm');
+    expect(separationChecks({ before, after })).toEqual({ contentKept: true, styleChanged: true });
+    expect(detectStyleFiles({ files: Object.keys(after) })).toEqual(['estilos.typ']);
+  });
+
+  it('la métrica detecta el caso malo: las reglas puestas en el principal', async () => {
+    const after = await run({ 'main.typ': MAIN }, [{ path: 'main.typ', action: 'edit', search: '= Informe', replace: '#set text(font: "Libertinus Serif", size: 12pt)\n= Informe' }]);
+    expect(separationChecks({ before: { 'main.typ': MAIN }, after })).toEqual({ contentKept: false, styleChanged: false });
   });
 });

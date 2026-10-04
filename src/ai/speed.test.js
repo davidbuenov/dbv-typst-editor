@@ -32,6 +32,9 @@ describe('velocidad', () => {
     expect(shouldHintSlow({ ...base, local: false })).toBe(false);
     expect(shouldHintSlow({ ...base, alreadyHinted: true })).toBe(false);
     expect(shouldHintSlow({ ...base, outputTokens: 5 })).toBe(false);
+    // El límite está incluido: con exactamente 20 tokens ya vale la medida.
+    expect(shouldHintSlow({ ...base, outputTokens: 20 })).toBe(true);
+    expect(shouldHintSlow({ ...base, outputTokens: 19 })).toBe(false);
     expect(shouldHintSlow({ ...base, speed: computeSpeed({ outputTokens: 100, evalMs: 2000 }) })).toBe(false);
     expect(shouldHintSlow({ ...base, speed: null })).toBe(false);
   });

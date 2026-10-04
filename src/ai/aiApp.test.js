@@ -477,3 +477,15 @@ describe('agente por ACP (RF-91)', () => {
     await vi.waitFor(() => expect(backend.writeFile).toHaveBeenCalledWith('D:/p/main.typ', '= Hola\n\nUno.\n', 'ai'));
   });
 });
+
+describe('avisos del modo conversación (RF-94.4)', () => {
+  it('una respuesta normal sin diff no genera el aviso de formato no entendido', async () => {
+    const script = [{ error: { kind: 'badRequest', message: 'qwen does not support tools' } }, { text: 'Para esto usa `#strong[texto]`, no hace falta cambiar nada más.', toolCalls: [] }];
+    const { app } = setup({ connections: [ollama], script });
+    await app.onProjectOpened({ root: 'D:/p' });
+    await app.ask('¿cómo pongo negrita?');
+    const panel = document.getElementById('panel');
+    expect(panel.textContent).toContain('#strong[texto]');
+    expect(panel.textContent).not.toContain('formato que DBV no entiende');
+  });
+});

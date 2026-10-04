@@ -35,6 +35,16 @@ export const REASONING_RESERVE_TOKENS = 2048;
 export const RECOMMENDED_CONTEXT = 16384;
 
 /**
+ * Tokens que el asistente puede gastar en contexto (instrucciones, fichero, historial…) con una ventana de
+ * `contextTokens`: la fracción que se llena, menos la reserva de respuesta y las definiciones de las herramientas,
+ * que viajan en cada petición (RF-103).
+ * @param {{contextTokens: number, tools?: boolean}} options
+ */
+export function contextBudget({ contextTokens, tools = true }) {
+  return Math.floor(contextTokens * CONTEXT_FILL_RATIO) - RESPONSE_RESERVE - (tools ? TOOL_SPEC_TOKENS : 0);
+}
+
+/**
  * Parámetros, en miles de millones, de un tamaño tal cual lo da Ollama
  * («8.2B», «494M», «1.5T»). `null` si no se entiende.
  * @param {string|null|undefined} text

@@ -94,8 +94,10 @@ We measured the models with the same loop the app uses over a **corpus of 32 rea
 
 - **None of the local models we measured reaches the 40%** we set as the minimum to recommend them for proposing changes unsupervised. They are fine for drafts and for asking for the next step, **but every proposal must be reviewed** (DBV shows it compiled and hunk by hunk precisely for that reason).
 - **The documentation helps:** with it, `qwen3:8b` goes from 10 to 12 and `llama3` from 1 to 5 out of 5 on the documentation questions.
-- **We have not yet measured** models of 14B or more, nor cloud AIs. The evaluation script can do it (`npm run eval:ai -- --provider …`): see [`testfiles/ai-evals/README.md`](../testfiles/ai-evals/README.md). Do not rely on this table for those AIs.
+- **We have not yet measured** local models of 14B or more. For the cloud there is only **one reference** (below). The evaluation script can measure more (`npm run eval:ai -- --provider …`): see [`testfiles/ai-evals/README.md`](../testfiles/ai-evals/README.md).
 - **It is few tasks and a single pass:** a difference of one or two passes is noise.
+
+**For reference, a cloud AI.** With **Gemini 3.8 Flash** (Google API key) and the same evaluation, **without** documentation: **31 of 32** original tasks passed (97%) and 4 of 6 on the style ones (35 of 38 in total); it used about 321,000 input tokens in 42 runs (about 7,600 per task, cents at a "flash" model's rate). With documentation only 4 tasks were measured, so there is no figure. For the same job, `qwen3:8b` on your machine passes 10 of 32: **a cloud AI is, today, clearly more reliable at proposing changes**, at the price of what you send leaving your computer. Gemini's only failures were one task where the Typst compiler itself hit an internal error (`equation-numbering`) and two where it put the look change in the main document instead of creating a style file; with an existing style file it got it right all three times. It is **a single model in a single pass**: do not take it as a ranking.
 
 **Is turning reasoning on worth it?** We measured `qwen3:8b` with and without it over 20 representative tasks, with documentation:
 

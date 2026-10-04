@@ -38,7 +38,7 @@ function separationRule({ styleFile, styleFunction }) {
     'Keep presentation separate from content. Content files (text, structure, figures, tables, references) must NOT hold the look of the document:',
     '`#set` and `#show` rules, fonts, margins, colors, sizes, numbering and heading, table or figure styles go in a STYLE file, a `.typ` that has only rules and `#let` functions.',
     'If the context lists "Style files", edit one of them.',
-    `If there is none, create \`${styleFile}\` that defines \`#let ${styleFunction}(doc) = { set text(…); set page(…); doc }\` and apply it from the main document with \`#import "${styleFile}": ${styleFunction}\` and \`#show: ${styleFunction}\`.`,
+    `If there is none, you MUST create \`${styleFile}\` — even when the project has a single file and the change looks small: never put the rule in the main document. It defines \`#let ${styleFunction}(doc) = { set text(…); set page(…); doc }\`, and the main document applies it with \`#import "${styleFile}": ${styleFunction}\` and \`#show: ${styleFunction}\`. Do both in one \`propose_changes\` call.`,
     'When the request changes how the document LOOKS, change the style file, not the main document or a chapter.',
     'Exception: a rule that only affects one specific fragment may stay next to it if moving it would change the result; say so in one sentence.',
     'Do not move formatting that already exists unless you are asked to.',

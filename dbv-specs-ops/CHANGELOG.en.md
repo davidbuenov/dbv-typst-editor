@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- **A first cloud AI reference, and a firmer style prompt (RF-104, RF-105).** Measured with **Gemini 3.8 Flash** (Google API key, without documentation, 38 tasks): **35 passed** (31/32 on the originals; 4/6 on style) using about 321,000 input tokens over 42 runs; the guide records it as a reference —a single model, a single pass— and says that a cloud AI is today clearly more reliable at proposing changes than an 8B local model. Its only failures: Typst's own compiler hit an internal error on `equation-numbering`, and on the two style tasks **with no prior style file** it put the look change in `main.typ`. That is why the instruction now says that, if there is none, **one must be created even when the project is a single file** and the rule must not go in the main document; `eval:ai` now saves the final files of failing tasks, so cases like this can be diagnosed.
+
 ### Added
 
 - **The guide and the Help say what to expect from a local model, with numbers (RF-103.4, RF-104).** `docs/IA.md` and `IA.en.md` gain "Which local model to choose": a table with what was measured over 32 real tasks (`qwen3:8b` 10/32 → 12/32 without → with the Typst documentation, `llama3` 5 → 6, `qwen2.5:3b` 2 → 1) and a plain reading: **no local model measured reaches the 40%** set as the minimum to recommend it for proposing changes unsupervised, so every proposal must be reviewed; models of 14B or more and the cloud **have not been measured yet**; and it is few tasks in a single pass. `qwen3:8b`'s reasoning was also measured over 20 tasks: 8/20 → 10/20 (within the noise) at the cost of 4.9 s → 82.7 s per task, which is why it ships off. The context minimum (8,192; 16,384 recommended) and the *Reasoning* switch are explained. They stop recommending `qwen2.5:3b` as the example —in the guide, in the sample commands and in the Help— and now use `qwen3:8b`. `eval:ai` also gains `--docs`, `--timeout` and saving after every task (a reasoning run had hung for over seven hours), and the corpus README records the new results.

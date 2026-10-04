@@ -94,8 +94,10 @@ Medimos los modelos con el mismo bucle que usa la aplicación sobre un **corpus 
 
 - **Ningún modelo local de los que hemos medido llega al 40 %** que nos pusimos como mínimo para recomendarlo para proponer cambios sin vigilancia. Sirven para borradores y para que les pidas el siguiente paso, **pero hay que revisar cada propuesta** (DBV te la enseña compilada y por trozos precisamente por eso).
 - **La documentación ayuda:** con ella, `qwen3:8b` pasa de 10 a 12 y `llama3` de 1 a 5 de 5 en las preguntas de documentación.
-- **No hemos medido todavía** modelos de 14B o más ni IAs en la nube. El script de evaluación puede hacerlo (`npm run eval:ai -- --provider …`): ver [`testfiles/ai-evals/README.md`](../testfiles/ai-evals/README.md). No te fíes de este cuadro para esas IAs.
+- **No hemos medido todavía** modelos locales de 14B o más. De la nube solo hay **una referencia** (abajo). El script de evaluación puede medir más (`npm run eval:ai -- --provider …`): ver [`testfiles/ai-evals/README.md`](../testfiles/ai-evals/README.md).
 - **Son pocas tareas y una sola pasada:** una diferencia de uno o dos aciertos es ruido.
+
+**Como referencia, una IA en la nube.** Con **Gemini 3.8 Flash** (clave de API de Google) y la misma evaluación, **sin** documentación: **31 de 32** tareas originales superadas (97 %) y 4 de 6 en las de estilo (35 de 38 en total); gastó unos 321 000 tokens de entrada en 42 ejecuciones (unos 7 600 por tarea, céntimos con la tarifa de un modelo «flash»). Con documentación solo se midieron 4 tareas, así que no hay dato. Para el mismo trabajo, `qwen3:8b` en tu equipo supera 10 de 32: **una IA en la nube es, hoy, claramente más fiable para proponer cambios**, a cambio de que lo que envías salga de tu equipo. Los únicos fallos de Gemini fueron una tarea en la que el propio compilador de Typst dio un error interno (`equation-numbering`) y dos en las que puso el cambio de aspecto en el documento principal en vez de crear un fichero de estilo; con un fichero de estilo ya existente lo hizo bien las tres veces. Es **un solo modelo en una sola pasada**: no lo tomes como un ranking.
 
 **¿Merece la pena activar el razonamiento?** Medimos `qwen3:8b` con y sin él sobre 20 tareas representativas, con documentación:
 

@@ -78,6 +78,10 @@ Dos aciertos más (dentro del ruido: hay tareas que pasan con una opción y fall
 
 **Estilo (RF-105), 6 tareas con `qwen3:8b` sin razonamiento:** el cambio de aspecto bien separado en un fichero de estilo pasó de 0/10 a 2/10 al añadir el principio al prompt (1/6 → 1/6 sin documentación y 1/6 → 2/6 con ella). Mejora pequeña, un solo modelo y una sola pasada: no concluyente (`2026-10-03-qwen3_8b-estilo-base.json` y `-estilo-prompt.json`).
 
+## Resultados del 2026-10-04 (Gemini 3.8 Flash, API de Google)
+
+`2026-10-04-gemini-gemini-3.8-flash.json`: **sin documentación**, las 38 tareas: **35 superadas** (31/32 en las originales; 4/6 en estilo), con 321 243 tokens de entrada y 10 322 de salida en 42 ejecuciones. Con documentación **solo se midieron 4 tareas** (se paró a mano: con el 92 % sin documentación, la segunda pasada aportaba poco), por eso el resumen dice `"complete": false` y no hay dato de ese modo. Fallos: `equation-numbering` (el compilador dio un pánico `panicked with: [Equation]` y el modelo agotó los 15 pasos) y `style-font-new` / `style-heading-color-new`, donde puso el aspecto en `main.typ` en vez de crear un fichero de estilo.
+
 ## Resultados del 2026-10-02 (máquina de desarrollo, Ollama 0.6.5)
 
 | Modelo | Herramientas | Sin documentación | Con documentación | Preguntas de documentación (sin → con) |

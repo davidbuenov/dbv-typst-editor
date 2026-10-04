@@ -272,6 +272,8 @@ async function runTask(task, withDocs) {
     seconds: Math.round((Date.now() - started) / 100) / 10,
     tokens: result.usage,
     answer: answer.slice(0, 600),
+    // Si la tarea falla, el proyecto tal como quedó (recortado): sin esto no se puede saber por qué, p. ej. un pánico del compilador.
+    finalFiles: pass ? undefined : Object.fromEntries(listFiles(finalDir).filter((path) => path.endsWith('.typ')).map((path) => [path, readFileSync(join(finalDir, path), 'utf8').slice(0, 1500)])),
   };
 }
 

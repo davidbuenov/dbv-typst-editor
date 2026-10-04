@@ -1891,6 +1891,17 @@ async function bootstrap() {
     isShared: () => getPref('mcpShareState'),
     stopSharing: () => setPref('mcpShareState', false),
     badge: el('mcp-agent-badge'),
+    confirmInstall: async (id) =>
+      (await dialog.ask({
+        titleKey: 'mcp.installTitle',
+        textKey: 'mcp.installText',
+        text: id,
+        choices: [
+          { key: 'deny', labelKey: 'mcp.installDeny' },
+          { key: 'allow', labelKey: 'mcp.installAllow', tone: 'primary' },
+        ],
+      })) === 'allow',
+    installPackage: (id) => backendModule.aiUniverseInstall(id),
   });
   mcpBridge.configure();
   onPrefsChanged(({ key }) => {

@@ -57,7 +57,7 @@ describe('buildEditorState', () => {
 });
 
 describe('initMcpBridge', () => {
-  function setup({ shared = true } = {}) {
+  function setup({ shared = true, allow = true, install = async () => ({ ok: true, value: {} }), root = '/p' } = {}) {
     const handlers = {};
     const backend = {
       on: vi.fn((name, fn) => {
@@ -69,20 +69,24 @@ describe('initMcpBridge', () => {
     const badge = document.createElement('button');
     badge.className = 'hidden';
     const flags = { shared };
+    const confirm = vi.fn(async () => allow);
+    const installPackage = vi.fn(install);
     const stopSharing = vi.fn(() => {
       flags.shared = false;
     });
     const bridge = initMcpBridge({
       backend,
-      workspace: workspaceWith(),
+      workspace: { ...workspaceWith(), state: { project: root ? { root } : null } },
       relativeToRoot,
       getProblems: parts.getProblems,
       getOutline: parts.getOutline,
       isShared: () => flags.shared,
       stopSharing,
       badge,
+      confirmInstall: confirm,
+      installPackage: installPackage,
     });
-    return { handlers, backend, badge, bridge, flags, stopSharing };
+    return { handlers, backend, badge, bridge, flags, stopSharing, confirm, installPackage };
   }
 
   it('contesta la petición del servidor con la foto', async () => {
@@ -100,10 +104,39 @@ describe('initMcpBridge', () => {
   it('configure comparte la raíz del proyecto solo con el ajuste activo', async () => {
     const on = setup();
     await on.bridge.configure();
-    expect(on.backend.mcpBridgeConfigure).toHaveBeenCalledWith('/p');
+    expect(on.backend.mcpBridgeConfigure).toHaveBeenCalledWith('/p', true);
     const off = setup({ shared: false });
     await off.bridge.configure();
-    expect(off.backend.mcpBridgeConfigure).toHaveBeenCalledWith(null);
+    // Con el estado sin compartir, el proyecto abierto sigue constando: un agente puede pedir instalar un paquete.
+    expect(off.backend.mcpBridgeConfigure).toHaveBeenCalledWith('/p', false);
+    const none = setup({ root: null });
+    await none.bridge.configure();
+    expect(none.backend.mcpBridgeConfigure).toHaveBeenCalledWith(null, false);
+  });
+
+  it('un agente que pide instalar un paquete: se pregunta al usuario y solo si acepta se descarga', async () => {
+    const yes = setup();
+    await yes.handlers['mcp-install-request']({ id: 3, package: '@preview/x:1.0.0' });
+    expect(yes.confirm).toHaveBeenCalledWith('@preview/x:1.0.0');
+    expect(yes.installPackage).toHaveBeenCalledWith('@preview/x:1.0.0');
+    expect(yes.backend.mcpStateReply).toHaveBeenCalledWith(3, { installed: true });
+
+    const no = setup({ allow: false });
+    await no.handlers['mcp-install-request']({ id: 4, package: '@preview/x:1.0.0' });
+    expect(no.installPackage).not.toHaveBeenCalled();
+    expect(no.backend.mcpStateReply).toHaveBeenCalledWith(4, { installed: false, reason: 'denied' });
+  });
+
+  it('si la descarga falla se lo dice al agente y sin proyecto abierto ni siquiera pregunta', async () => {
+    const failing = setup({ install: async () => ({ ok: false, error: { message: 'sin red' } }) });
+    await failing.handlers['mcp-install-request']({ id: 5, package: '@preview/x:1.0.0' });
+    expect(failing.backend.mcpStateReply).toHaveBeenCalledWith(5, { installed: false, reason: 'failed', message: 'sin red' });
+
+    const closed = setup({ root: null });
+    await closed.handlers['mcp-install-request']({ id: 6, package: '@preview/x:1.0.0' });
+    expect(closed.confirm).not.toHaveBeenCalled();
+    expect(closed.installPackage).not.toHaveBeenCalled();
+    expect(closed.backend.mcpStateReply).toHaveBeenCalledWith(6, { installed: false, reason: 'denied' });
   });
 
   it('la insignia aparece con un agente y su botón corta la compartición', () => {

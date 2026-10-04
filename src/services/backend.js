@@ -390,8 +390,8 @@ export const aiSaveConnection = (connection, apiKey, activate = false) =>
 export const aiDeleteConnection = (id) => call('ai_delete_connection', { id });
 export const aiSetPreferences = ({ active, showAi } = {}) =>
   call('ai_set_preferences', { active: active ?? null, showAi: showAi ?? null });
-/** RF-117: `root` = proyecto cuyo estado se comparte con los agentes MCP; `null` corta el acceso. */
-export const mcpBridgeConfigure = (root) => call('mcp_bridge_configure', { root: root ?? null });
+/** RF-117: `root` = proyecto abierto (`null` si no hay); `shareState` = el usuario deja que un agente MCP vea el estado del editor. */
+export const mcpBridgeConfigure = (root, shareState = false) => call('mcp_bridge_configure', { root: root ?? null, shareState: Boolean(shareState) });
 /** Cómo lanza un agente ACP el servidor MCP de DBV (formato `mcpServers` de `session/new`). */
 export const mcpServerSpec = (root) => call('mcp_server_spec', { root });
 export const mcpStateReply = (id, snapshot) => call('mcp_state_reply', { id, snapshot });

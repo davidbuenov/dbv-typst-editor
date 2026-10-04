@@ -40,11 +40,12 @@ use crate::ai::check::{check, CheckWorlds};
 use crate::ai::fonts::list_families;
 use crate::ai::render::{render_core, RenderSpec};
 use crate::ai::universe_packages::installed_package_docs;
-use crate::ai::universe_search::{search as universe_search, Kind, MAX_HITS};
+use crate::ai::universe_search::{check_id, search as universe_search, Kind, MAX_HITS};
 use crate::bibliography::collect_ai_bibliography;
 use crate::commands::universe_index::load_cache;
 use crate::docs::{citation_styles, DocsIndex};
 use crate::engine::diagnostics::Level;
+use crate::mcp_bridge::{request_install, InstallAnswer};
 use crate::project::describe;
 use crate::universe_catalog::{build_catalog, compiler_version};
 
@@ -216,7 +217,33 @@ impl McpEnv {
 
     /// README, manifiesto y plantilla de un paquete que YA está instalado (nunca descarga).
     pub fn read_package_docs(&self, id: &str) -> Result<String, String> {
-        installed_package_docs(id).map_err(|error| format!("{error}"))
+        installed_package_docs(id).map_err(|error| match error {
+            crate::ai::AiError::NotFound(_) => format!("{id} is not installed on this machine. Call `install_package` with the same identifier: DBV asks the user for permission in its window, downloads it and returns its documentation. If the user is not available, put `#import \"{id}\": *` at the top of the document and DBV downloads it when they approve."),
+            other => format!("{other}"),
+        })
+    }
+
+    /// Instala un paquete de Universe y devuelve su documentación. Nunca instala por sí mismo: pide a DBV que
+    /// pregunte al usuario en su ventana (RNF-IA.9.4), y solo acepta identificadores que el catálogo conoce.
+    pub async fn install_package(&self, id: &str) -> Result<String, String> {
+        let project = self.project()?;
+        let Some(cached) = self.data_dir.as_deref().and_then(load_cache) else {
+            return Err("The Typst Universe catalog has not been downloaded on this machine yet: open the Typst Universe gallery in DBV once. Do not guess package names or versions.".into());
+        };
+        let catalog = build_catalog(&cached.entries, compiler_version());
+        let verdict = check_id(&cached.entries, &catalog, id);
+        if verdict.status != "ok" {
+            let better = verdict.latest.map(|latest| format!(" Use {latest} instead.")).unwrap_or_default();
+            return Err(format!("{id} is not an installable package for this compiler ({}).{better} Find the exact identifier with `search_universe`.", verdict.status));
+        }
+        if let Ok(docs) = installed_package_docs(id) {
+            return Ok(docs);
+        }
+        match request_install(self.data_dir.as_deref(), &project.root, id).await {
+            InstallAnswer::Installed => installed_package_docs(id).map_err(|error| error.to_string()),
+            InstallAnswer::Denied => Err(format!("The user declined installing {id}. Do not insist: tell them what you needed it for and carry on without it.")),
+            InstallAnswer::Unavailable(note) => Err(note),
+        }
     }
 
     /// Familias de fuente que el compilador puede usar en este proyecto.
@@ -405,9 +432,17 @@ impl DbvMcp {
         }
     }
 
-    #[tool(description = "Read the README, manifest and template example of a Typst Universe package that is ALREADY installed on this machine (it never downloads).")]
+    #[tool(description = "Read the README, manifest and template example of a Typst Universe package that is ALREADY installed on this machine (it never downloads; for one that is not, use `install_package`).")]
     async fn read_package_docs(&self, Parameters(request): Parameters<PackageRequest>) -> Result<CallToolResult, McpError> {
         match self.blocking(move |env| env.read_package_docs(&request.id)).await? {
+            Ok(text) => Ok(CallToolResult::success(vec![ContentBlock::text(text)])),
+            Err(message) => tool_error(message),
+        }
+    }
+
+    #[tool(description = "Install a Typst Universe package on this machine and read its documentation. DBV ASKS THE USER for permission in its window first (it never installs by itself); this call waits for the answer. Use the exact identifier from `search_universe`.")]
+    async fn install_package(&self, Parameters(request): Parameters<PackageRequest>) -> Result<CallToolResult, McpError> {
+        match self.env.install_package(&request.id).await {
             Ok(text) => Ok(CallToolResult::success(vec![ContentBlock::text(text)])),
             Err(message) => tool_error(message),
         }
@@ -656,6 +691,38 @@ mod tests {
         }
         // La documentación y el catálogo no dependen del proyecto.
         assert!(env.search_typst_docs("table", 3).is_ok());
+    }
+
+    #[tokio::test]
+    async fn instalar_un_paquete_solo_acepta_lo_que_el_catalogo_conoce_y_sin_la_aplicacion_no_instala() {
+        let dir = project(&[("main.typ", "x")]);
+        let data = tempfile::tempdir().unwrap();
+        // Sin catálogo no se adivina nada.
+        let none = env_for(&dir, Some(data.path())).install_package("@preview/dbv-prueba-paquete:9.9.9").await;
+        assert!(none.unwrap_err().contains("catalog has not been downloaded"));
+
+        let index = r#"[{"name":"dbv-prueba-paquete","version":"9.9.9","compiler":"0.12.0","description":"x"}]"#;
+        crate::commands::universe_index::save_cache(data.path(), index.as_bytes()).unwrap();
+        let env = env_for(&dir, Some(data.path()));
+        let unknown = env.install_package("@preview/inventado-por-la-ia:1.0.0").await.unwrap_err();
+        assert!(unknown.contains("not an installable package"), "{unknown}");
+        let wrong_version = env.install_package("@preview/dbv-prueba-paquete:1.0.0").await.unwrap_err();
+        assert!(wrong_version.contains("9.9.9"), "sugiere la versión que sí existe: {wrong_version}");
+        // El paquete existe en el catálogo pero la aplicación no está abierta: no hay a quién preguntar, y no instala.
+        let offline = env.install_package("@preview/dbv-prueba-paquete:9.9.9").await.unwrap_err();
+        assert!(offline.contains("not open"), "{offline}");
+    }
+
+    #[tokio::test]
+    async fn la_lista_de_herramientas_es_cerrada_y_ninguna_escribe_en_el_proyecto() {
+        let names: Vec<String> = DbvMcp::new(McpEnv::from_system(None)).tool_router.list_all().into_iter().map(|tool| tool.name.to_string()).collect();
+        assert!(names.contains(&"install_package".to_string()));
+        // La lista es cerrada: añadir una herramienta que escriba en el proyecto obliga a cambiar este test a conciencia.
+        let mut expected = vec!["citation_styles", "compile_project", "dbv_info", "editor_state", "install_package", "list_bibliography", "list_fonts", "read_package_docs", "read_typst_docs", "render_page", "search_typst_docs", "search_universe"];
+        expected.sort_unstable();
+        let mut found: Vec<&str> = names.iter().map(String::as_str).collect();
+        found.sort_unstable();
+        assert_eq!(found, expected);
     }
 
     #[test]

@@ -40,6 +40,9 @@ use tokio::sync::oneshot;
 pub const ASK_TIMEOUT: Duration = Duration::from_secs(2);
 /// Lo que espera el servidor MCP a la aplicación entera (conectar + preguntar + responder).
 pub const CLIENT_TIMEOUT: Duration = Duration::from_secs(4);
+/// Instalar un paquete espera a que el USUARIO decida en la ventana y a la descarga: mucho más que preguntar un estado.
+pub const INSTALL_TIMEOUT: Duration = Duration::from_secs(120);
+pub const INSTALL_CLIENT_TIMEOUT: Duration = Duration::from_secs(130);
 /// La petición es una línea corta: más que esto no es nuestro cliente.
 const MAX_REQUEST_BYTES: u64 = 2048;
 const MAX_STATE_BYTES: usize = 4 * 1024 * 1024;
@@ -55,6 +58,8 @@ pub struct Hooks {
     pub ask: Box<dyn Fn() -> AskFuture + Send + Sync>,
     /// Un agente acaba de hacer una pregunta válida (la barra de estado lo indica).
     pub on_agent: Box<dyn Fn() + Send + Sync>,
+    /// Pide al usuario, en la ventana, permiso para instalar el paquete (RNF-IA.9.4) y lo instala si acepta.
+    pub install: Box<dyn Fn(String) -> AskFuture + Send + Sync>,
 }
 
 // ----------------------------------------------------------------------------------- estado compartido
@@ -64,6 +69,8 @@ pub struct Bridge {
     token: String,
     /// Raíz normalizada del proyecto cuyo estado se comparte; `None` = el ajuste está desactivado.
     shared_root: Mutex<Option<String>>,
+    /// Raíz del proyecto abierto, para el que un agente puede PEDIR instalar un paquete (siempre con confirmación).
+    install_root: Mutex<Option<String>>,
     pending: Mutex<HashMap<u64, oneshot::Sender<Value>>>,
     next: AtomicU64,
     listening: AtomicBool,
@@ -71,7 +78,7 @@ pub struct Bridge {
 
 impl Bridge {
     pub fn new(token: String) -> Self {
-        Self { token, shared_root: Mutex::new(None), pending: Mutex::new(HashMap::new()), next: AtomicU64::new(1), listening: AtomicBool::new(false) }
+        Self { token, shared_root: Mutex::new(None), install_root: Mutex::new(None), pending: Mutex::new(HashMap::new()), next: AtomicU64::new(1), listening: AtomicBool::new(false) }
     }
 
     /// Testigo aleatorio de 256 bits en hexadecimal.
@@ -88,6 +95,11 @@ impl Bridge {
     /// Activa (con la raíz del proyecto) o desactiva (`None`) la compartición del estado.
     pub fn set_share(&self, root: Option<&Path>) {
         *self.shared_root.lock().unwrap() = root.map(normalize_root);
+    }
+
+    /// Permite (con la raíz del proyecto abierto) o impide (`None`) que un agente pida instalar paquetes.
+    pub fn set_install(&self, root: Option<&Path>) {
+        *self.install_root.lock().unwrap() = root.map(normalize_root);
     }
 
     pub fn shared_root(&self) -> Option<String> {
@@ -206,6 +218,9 @@ struct Request {
     token: String,
     root: String,
     op: String,
+    /// Solo en `install`: el identificador `@preview/nombre:versión`.
+    #[serde(default)]
+    id: Option<String>,
 }
 
 fn reply(ok: bool, key: &str, value: Value) -> String {
@@ -243,8 +258,10 @@ async fn decide(line: &str, bridge: &Arc<Bridge>, hooks: &Hooks) -> String {
     if !constant_time_eq(&request.token, bridge.token()) {
         return refuse("bad-token");
     }
-    if request.op != "state" {
-        return refuse("unknown-op");
+    match request.op.as_str() {
+        "state" => {}
+        "install" => return decide_install(&request, bridge, hooks).await,
+        _ => return refuse("unknown-op"),
     }
     let Some(shared) = bridge.shared_root() else {
         return refuse("disabled");
@@ -258,6 +275,24 @@ async fn decide(line: &str, bridge: &Arc<Bridge>, hooks: &Hooks) -> String {
             Ok(state) => reply(true, "state", state),
             Err(reason) => refuse(&reason),
         },
+        _ => refuse("ui-timeout"),
+    }
+}
+
+/// Un agente pide instalar un paquete de Typst Universe (RNF-IA.9.4): la aplicación SIEMPRE pregunta al usuario.
+async fn decide_install(request: &Request, bridge: &Arc<Bridge>, hooks: &Hooks) -> String {
+    let Some(allowed) = bridge.install_root.lock().unwrap().clone() else {
+        return refuse("disabled");
+    };
+    if allowed != normalize_root(Path::new(&request.root)) {
+        return refuse("other-project");
+    }
+    let Some(id) = request.id.as_deref().filter(|id| crate::universe::parse_universe_spec(id).is_ok()) else {
+        return refuse("bad-package");
+    };
+    (hooks.on_agent)();
+    match tokio::time::timeout(INSTALL_TIMEOUT, (hooks.install)(id.to_string())).await {
+        Ok(Ok(result)) => reply(true, "result", result),
         _ => refuse("ui-timeout"),
     }
 }
@@ -363,11 +398,19 @@ impl Bridge {
 // ----------------------------------------------------------------------------------- el cliente (servidor MCP)
 
 /// Una línea de petición y una de respuesta sobre cualquier flujo.
-pub async fn exchange<S>(mut stream: S, token: &str, root: &Path) -> Result<Value, String>
+pub async fn exchange<S>(stream: S, token: &str, root: &Path) -> Result<Value, String>
 where
     S: AsyncRead + AsyncWrite + Unpin,
 {
-    let request = json!({ "token": token, "root": root.to_string_lossy(), "op": "state" });
+    exchange_op(stream, token, root, "state", None).await
+}
+
+/// Como `exchange`, con la operación (`state` o `install`) y, en `install`, el paquete.
+pub async fn exchange_op<S>(mut stream: S, token: &str, root: &Path, op: &str, id: Option<&str>) -> Result<Value, String>
+where
+    S: AsyncRead + AsyncWrite + Unpin,
+{
+    let request = json!({ "token": token, "root": root.to_string_lossy(), "op": op, "id": id });
     stream.write_all(format!("{request}\n").as_bytes()).await.map_err(|e| e.to_string())?;
     let mut answer = String::new();
     BufReader::new(stream.take(MAX_STATE_BYTES as u64 + 4096)).read_line(&mut answer).await.map_err(|e| e.to_string())?;
@@ -375,16 +418,16 @@ where
 }
 
 #[cfg(windows)]
-async fn connect_and_exchange(endpoint: &str, token: &str, root: &Path) -> Result<Value, String> {
+async fn connect_and_exchange(endpoint: &str, token: &str, root: &Path, op: &str, id: Option<&str>) -> Result<Value, String> {
     use tokio::net::windows::named_pipe::ClientOptions;
     let client = ClientOptions::new().open(endpoint).map_err(|e| e.to_string())?;
-    exchange(client, token, root).await
+    exchange_op(client, token, root, op, id).await
 }
 
 #[cfg(unix)]
-async fn connect_and_exchange(endpoint: &str, token: &str, root: &Path) -> Result<Value, String> {
+async fn connect_and_exchange(endpoint: &str, token: &str, root: &Path, op: &str, id: Option<&str>) -> Result<Value, String> {
     let stream = tokio::net::UnixStream::connect(endpoint).await.map_err(|e| e.to_string())?;
-    exchange(stream, token, root).await
+    exchange_op(stream, token, root, op, id).await
 }
 
 /// Lo que el servidor MCP cuenta al agente sobre el estado de la interfaz. SIEMPRE un JSON explicativo: nunca falla.
@@ -396,7 +439,7 @@ pub async fn fetch_state(data_dir: Option<&Path>, root: &Path) -> Value {
     if !is_local_endpoint(&discovery.endpoint) {
         return unavailable("app-not-running", "The application channel is not valid.");
     }
-    let outcome = tokio::time::timeout(CLIENT_TIMEOUT, connect_and_exchange(&discovery.endpoint, &discovery.token, root)).await;
+    let outcome = tokio::time::timeout(CLIENT_TIMEOUT, connect_and_exchange(&discovery.endpoint, &discovery.token, root, "state", None)).await;
     let Ok(Ok(answer)) = outcome else {
         return unavailable("app-not-running", "DBV Typst Editor is not open. Working from the files on disk only.");
     };
@@ -410,6 +453,44 @@ pub async fn fetch_state(data_dir: Option<&Path>, root: &Path) -> Value {
         "state-too-large" => unavailable("state-too-large", "The editor state is too large to share."),
         "bad-token" => unavailable("app-not-running", "The application channel was refused (stale token). Reopen DBV."),
         other => unavailable(other, "DBV could not provide the editor state."),
+    }
+}
+
+/// El resultado de pedir instalar un paquete a la aplicación.
+#[derive(Debug, PartialEq)]
+pub enum InstallAnswer {
+    /// El usuario aceptó y el paquete está instalado.
+    Installed,
+    /// El usuario no lo permitió.
+    Denied,
+    /// No se pudo preguntar o instalar: el motivo, para el agente.
+    Unavailable(String),
+}
+
+/// Pide a la aplicación que, con permiso del usuario, instale `id` (RNF-IA.9.4). Nunca instala por sí mismo.
+pub async fn request_install(data_dir: Option<&Path>, root: &Path, id: &str) -> InstallAnswer {
+    let unavailable = |note: &str| InstallAnswer::Unavailable(note.to_string());
+    let Some(discovery) = data_dir.and_then(read_discovery).filter(|d| is_local_endpoint(&d.endpoint)) else {
+        return unavailable("DBV Typst Editor is not open, so the user cannot be asked. Put the `#import` in the document instead; DBV downloads it when the user approves.");
+    };
+    let outcome = tokio::time::timeout(INSTALL_CLIENT_TIMEOUT, connect_and_exchange(&discovery.endpoint, &discovery.token, root, "install", Some(id))).await;
+    let Ok(Ok(answer)) = outcome else {
+        return unavailable("DBV Typst Editor is not open or did not answer. Put the `#import` in the document instead.");
+    };
+    if answer.get("ok").and_then(Value::as_bool) == Some(true) {
+        let result = answer.get("result");
+        return match result.and_then(|r| r.get("installed")).and_then(Value::as_bool) {
+            Some(true) => InstallAnswer::Installed,
+            _ if result.and_then(|r| r.get("reason")).and_then(Value::as_str) == Some("denied") => InstallAnswer::Denied,
+            _ => InstallAnswer::Unavailable(result.and_then(|r| r.get("message")).and_then(Value::as_str).unwrap_or("the installation failed").to_string()),
+        };
+    }
+    match answer.get("reason").and_then(Value::as_str).unwrap_or("unknown") {
+        "other-project" => unavailable("DBV is open with a different project than the one this server was launched with."),
+        "ui-timeout" => unavailable("The user did not answer in time."),
+        "bad-package" => unavailable("That is not a valid `@preview/name:version` identifier."),
+        "disabled" => unavailable("DBV has no project open."),
+        other => InstallAnswer::Unavailable(format!("DBV refused the request ({other}).")),
     }
 }
 
@@ -434,6 +515,8 @@ fn start_listener(app: &tauri::AppHandle, bridge: &Arc<Bridge>) -> Result<(), St
     let ask_app = app.clone();
     let ask_bridge = bridge.clone();
     let agent_app = app.clone();
+    let install_app = app.clone();
+    let install_bridge = bridge.clone();
     let hooks = Arc::new(Hooks {
         ask: Box::new(move || {
             let (id, rx, guard) = ask_bridge.register();
@@ -447,6 +530,15 @@ fn start_listener(app: &tauri::AppHandle, bridge: &Arc<Bridge>) -> Result<(), St
         on_agent: Box::new(move || {
             let _ = agent_app.emit("mcp-agent-connected", json!({}));
         }),
+        install: Box::new(move |package| {
+            let (id, rx, guard) = install_bridge.register();
+            let emitted = install_app.emit("mcp-install-request", json!({ "id": id, "package": package }));
+            Box::pin(async move {
+                let _guard = guard;
+                emitted.map_err(|e| e.to_string())?;
+                rx.await.map_err(|e| e.to_string())
+            })
+        }),
     });
     write_discovery(&data_dir, &Discovery { endpoint: endpoint.clone(), token: bridge.token().to_string() }).map_err(|e| e.to_string())?;
     let bridge = bridge.clone();
@@ -458,12 +550,15 @@ fn start_listener(app: &tauri::AppHandle, bridge: &Arc<Bridge>) -> Result<(), St
     Ok(())
 }
 
-/// Activa o desactiva compartir el estado del editor con los agentes MCP (RF-117.4). `root` es la raíz del proyecto
-/// abierto; `None` (ajuste desactivado o ningún proyecto) cierra el acceso. El canal solo se crea la primera vez
-/// que se activa: con el ajuste desactivado no hay ningún canal ni fichero.
+/// Dice al canal qué proyecto está abierto (`root`; `None` si no hay ninguno) y si el usuario permite compartir el estado
+/// del editor con los agentes MCP (`share_state`, RF-117.4, desactivado por defecto). Con proyecto abierto, un agente
+/// puede además PEDIR instalar un paquete, y la aplicación siempre pregunta al usuario. El canal se crea la primera vez
+/// que hay proyecto abierto.
 #[tauri::command]
-pub fn mcp_bridge_configure(app: tauri::AppHandle, state: tauri::State<'_, McpBridgeState>, root: Option<String>) -> Result<(), String> {
-    state.bridge.set_share(root.as_deref().map(Path::new));
+pub fn mcp_bridge_configure(app: tauri::AppHandle, state: tauri::State<'_, McpBridgeState>, root: Option<String>, share_state: bool) -> Result<(), String> {
+    let root_path = root.as_deref().map(Path::new);
+    state.bridge.set_install(root_path);
+    state.bridge.set_share(if share_state { root_path } else { None });
     if root.is_some() {
         let mut started = state.started.lock().unwrap();
         if !*started {
@@ -499,6 +594,7 @@ mod tests {
             on_agent: Box::new(move || {
                 agents.fetch_add(1, Ordering::Relaxed);
             }),
+            install: Box::new(|_| Box::pin(async { Ok(json!({ "installed": true })) })),
         }
     }
 
@@ -586,7 +682,7 @@ mod tests {
     #[tokio::test]
     async fn si_la_interfaz_no_contesta_se_dice_y_no_se_cuelga() {
         let dir = tempfile::tempdir().unwrap();
-        let hooks = Hooks { ask: Box::new(|| Box::pin(std::future::pending())), on_agent: Box::new(|| {}) };
+        let hooks = Hooks { ask: Box::new(|| Box::pin(std::future::pending())), on_agent: Box::new(|| {}), install: Box::new(|_| Box::pin(std::future::pending())) };
         let answer = ask_through_duplex(&bridge_for(Some(dir.path())), &hooks, "secreto", dir.path()).await;
         assert_eq!(answer["reason"], "ui-timeout");
     }
@@ -688,6 +784,78 @@ mod tests {
         // Se apaga el ajuste: el mismo canal ya no expone nada.
         bridge.set_share(None);
         assert_eq!(fetch_state(Some(data.path()), project.path()).await["reason"], "sharing-disabled");
+        // Instalar un paquete es otra cosa: no depende de compartir el estado, y la aplicación siempre pregunta.
+        bridge.set_install(Some(project.path()));
+        assert_eq!(request_install(Some(data.path()), project.path(), "@preview/charged-ieee:0.1.4").await, InstallAnswer::Installed);
         server.abort();
+    }
+
+    fn install_hooks(result: Value, asked: Arc<Mutex<Vec<String>>>) -> Hooks {
+        Hooks {
+            ask: Box::new(|| Box::pin(async { Ok(json!({})) })),
+            on_agent: Box::new(|| {}),
+            install: Box::new(move |package| {
+                asked.lock().unwrap().push(package);
+                let result = result.clone();
+                Box::pin(async move { Ok(result) })
+            }),
+        }
+    }
+
+    async fn install_through_duplex(bridge: &Arc<Bridge>, hooks: &Hooks, token: &str, root: &Path, id: &str) -> Value {
+        let (client, server) = tokio::io::duplex(1 << 16);
+        let (token, root, id) = (token.to_string(), root.to_path_buf(), id.to_string());
+        let task = async { exchange_op(client, &token, &root, "install", Some(&id)).await.unwrap() };
+        let (answer, ()) = tokio::join!(task, serve_connection(server, bridge, hooks));
+        answer
+    }
+
+    #[tokio::test]
+    async fn pedir_instalar_pregunta_a_la_aplicacion_y_devuelve_lo_que_el_usuario_decidio() {
+        let dir = tempfile::tempdir().unwrap();
+        let bridge = bridge_for(None);
+        bridge.set_install(Some(dir.path()));
+        let asked = Arc::new(Mutex::new(Vec::new()));
+        let hooks = install_hooks(json!({ "installed": true }), asked.clone());
+        let answer = install_through_duplex(&bridge, &hooks, "secreto", dir.path(), "@preview/charged-ieee:0.1.4").await;
+        assert_eq!(answer, json!({ "ok": true, "result": { "installed": true } }));
+        assert_eq!(*asked.lock().unwrap(), vec!["@preview/charged-ieee:0.1.4".to_string()]);
+    }
+
+    #[tokio::test]
+    async fn pedir_instalar_rechaza_testigo_erroneo_otro_proyecto_paquete_invalido_y_sin_proyecto() {
+        let (a, b) = (tempfile::tempdir().unwrap(), tempfile::tempdir().unwrap());
+        let asked = Arc::new(Mutex::new(Vec::new()));
+        let hooks = install_hooks(json!({ "installed": true }), asked.clone());
+        let bridge = bridge_for(None);
+        bridge.set_install(Some(a.path()));
+        let ok_id = "@preview/charged-ieee:0.1.4";
+        assert_eq!(install_through_duplex(&bridge, &hooks, "adivinado", a.path(), ok_id).await["reason"], "bad-token");
+        assert_eq!(install_through_duplex(&bridge, &hooks, "secreto", b.path(), ok_id).await["reason"], "other-project");
+        assert_eq!(install_through_duplex(&bridge, &hooks, "secreto", a.path(), "../../etc/passwd").await["reason"], "bad-package");
+        assert_eq!(install_through_duplex(&bridge, &hooks, "secreto", a.path(), "https://evil.example/x.tar.gz").await["reason"], "bad-package");
+        bridge.set_install(None);
+        assert_eq!(install_through_duplex(&bridge, &hooks, "secreto", a.path(), ok_id).await["reason"], "disabled");
+        assert!(asked.lock().unwrap().is_empty(), "ninguna de esas peticiones llegó a preguntar al usuario");
+    }
+
+    #[tokio::test]
+    async fn si_el_usuario_no_contesta_a_tiempo_se_dice() {
+        let dir = tempfile::tempdir().unwrap();
+        let bridge = bridge_for(None);
+        bridge.set_install(Some(dir.path()));
+        let hooks = Hooks { ask: Box::new(|| Box::pin(std::future::pending())), on_agent: Box::new(|| {}), install: Box::new(|_| Box::pin(async { Err("la interfaz se cerró".to_string()) })) };
+        let answer = install_through_duplex(&bridge, &hooks, "secreto", dir.path(), "@preview/charged-ieee:0.1.4").await;
+        assert_eq!(answer["reason"], "ui-timeout");
+    }
+
+    #[tokio::test]
+    async fn sin_la_aplicacion_pedir_instalar_lo_dice_y_no_instala() {
+        let data = tempfile::tempdir().unwrap();
+        let project = tempfile::tempdir().unwrap();
+        match request_install(Some(data.path()), project.path(), "@preview/charged-ieee:0.1.4").await {
+            InstallAnswer::Unavailable(note) => assert!(note.contains("not open")),
+            other => panic!("{other:?}"),
+        }
     }
 }

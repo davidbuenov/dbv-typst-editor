@@ -532,6 +532,14 @@
 - **Consecuencia para el empaquetado (D8).** Windows (Store): alias del manifiesto. macOS: `…/DBV Typst Editor.app/Contents/MacOS/dbv-typst-editor --mcp`. Linux: el AppImage admite argumentos (`./DBV…AppImage --mcp`) y el `.deb` instala el ejecutable en el PATH; la ruta del AppImage cambia en cada montaje, así que el ajuste ofrece la ruta del propio fichero (`$APPIMAGE`).
 - **Lección.** Un riesgo de empaquetado se comprueba con la cosa real antes de diseñar alrededor de él: la hipótesis «un ejecutable de ventanas no sirve stdio» era falsa en Windows con tuberías heredadas, y desmontó dos riesgos del plan.
 
+### ADR-V0140-004 — Los agentes piden instalar paquetes; el usuario decide en la ventana (2026-10-04)
+
+*Surge de la prueba real: un agente del panel se rindió ante `@preview/stellar-springer-nature` por no estar instalado.*
+
+- **Decisión.** Herramienta MCP `install_package`: el servidor MCP (otro proceso) **pide** a la aplicación, por el canal local de RF-117, que instale un paquete; la aplicación **siempre muestra un diálogo** («Un agente pide instalar un paquete…») y solo con «Permitir y descargar» ejecuta `ai_universe_install`. Devuelve al agente la documentación del paquete ya instalado. Solo acepta identificadores que el catálogo conoce (`check_id`) y que parsean como `@preview/nombre:versión`; sin la aplicación abierta no instala nada y dice cómo seguir (poner el `#import`). Cumple RNF-IA.9.4 (instalar exige confirmación).
+- **Contradice el plan en un punto.** El canal local nacía solo con «compartir el estado del editor» activado (RF-117.4). Para poder pedir instalaciones nace **con un proyecto abierto**, pero el estado sigue sin compartirse mientras el ajuste esté apagado, y la instalación nunca es silenciosa: la protección es el diálogo, no el ajuste. Coste: con un proyecto abierto existe el canal (tubería con nombre / socket 0600 + testigo de 256 bits), como el resto de la interfaz local.
+- **Además.** Las instrucciones de los agentes y de las conexiones directas dicen que, si un paquete no está instalado, no se paren: `install_package` o, si no se puede, el `#import` en la propuesta.
+
 ### Lección — los permisos ACL de Tauri no los ve ninguna herramienta de este repo (2026-09-22)
 
 `appWindow.destroy()` (RF-64.6) se escribió, se testeó con Vitest y pasó `verify:frontend`/`verify:layout` — y aun así fallaba en la ventana real: "Promesa rechazada: Command plugin:window|destroy not allowed by ACL". `src-tauri/capabilities/main.json` no declaraba `core:window:allow-destroy`. Ninguna comprobación sin Tauri real puede detectar esto: Vitest simula el DOM, no el puente de comandos de Tauri.

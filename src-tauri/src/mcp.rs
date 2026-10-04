@@ -448,6 +448,23 @@ impl ServerHandler for DbvMcp {
 
 // ----------------------------------------------------------------------------------- arranque
 
+/// Cómo lanza un agente ACP (el del panel de IA) este mismo servidor, en el formato `mcpServers` de `session/new`.
+/// En una instalación de la Store el ejecutable vive en `WindowsApps`, donde otro proceso no puede lanzarlo por su
+/// ruta: se usa el alias de ejecución del manifiesto (ADR-V0140-003).
+pub fn server_spec(exe: &Path, root: &str) -> Value {
+    let packaged = exe.to_string_lossy().to_lowercase().contains(r"\windowsapps\");
+    let command = if packaged { "dbv-typst-editor.exe".to_string() } else { exe.to_string_lossy().into_owned() };
+    json!({ "name": "dbv", "command": command, "args": ["--mcp", "--project", root], "env": [] })
+}
+
+/// El servidor de DBV para el agente del panel de IA: así ve el renderizado, compila con el compilador exacto y
+/// consulta Universe y la documentación (RF-113). Es el mismo ejecutable, en modo `--mcp`.
+#[tauri::command]
+pub fn mcp_server_spec(root: String) -> Result<Value, String> {
+    let exe = std::env::current_exe().map_err(|error| error.to_string())?;
+    Ok(server_spec(&exe, &root))
+}
+
 /// `--project <carpeta>` de los argumentos, si está.
 pub fn project_arg(args: &[String]) -> Option<PathBuf> {
     let at = args.iter().position(|arg| arg == "--project")?;
@@ -639,6 +656,16 @@ mod tests {
         }
         // La documentación y el catálogo no dependen del proyecto.
         assert!(env.search_typst_docs("table", 3).is_ok());
+    }
+
+    #[test]
+    fn el_agente_del_panel_lanza_el_servidor_con_la_ruta_o_con_el_alias_de_la_store() {
+        let normal = server_spec(Path::new("C:/apps/dbv/dbv-typst-editor.exe"), "D:/libro");
+        assert_eq!(normal["command"], "C:/apps/dbv/dbv-typst-editor.exe");
+        assert_eq!(normal["args"], json!(["--mcp", "--project", "D:/libro"]));
+        assert_eq!(normal["name"], "dbv");
+        let store = server_spec(Path::new(r"C:\Program Files\WindowsApps\DBV_0.14.0.0_x64__abc\dbv-typst-editor.exe"), "D:/libro");
+        assert_eq!(store["command"], "dbv-typst-editor.exe");
     }
 
     #[test]

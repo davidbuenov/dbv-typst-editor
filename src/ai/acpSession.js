@@ -124,7 +124,11 @@ export function createAcpSession({ backend, getRoot, readText, askPermission, st
       clientInfo: { name: 'dbv-typst-editor', title: 'DBV Typst Editor' },
     });
     if (!init.ok) throw Object.assign(new Error(init.error.message), { kind: 'network' });
-    const session = await backend.acpRequest('session/new', { cwd: currentRoot, mcpServers: [] });
+    // El servidor MCP de DBV (RF-113): con él el agente ve el renderizado, compila con el compilador exacto y consulta
+    // Universe. Si no se puede obtener, la sesión sigue sin él.
+    const mcp = backend.mcpServerSpec ? await backend.mcpServerSpec(currentRoot) : null;
+    const mcpServers = mcp?.ok ? [mcp.value] : [];
+    const session = await backend.acpRequest('session/new', { cwd: currentRoot, mcpServers });
     if (!session.ok) throw Object.assign(new Error(session.error.message), { kind: session.error.kind === 'badRequest' ? 'auth' : session.error.kind });
     spec = nextSpec;
     root = currentRoot;

@@ -84,6 +84,14 @@ describe('sesión con un agente simulado (RF-91.11)', () => {
     const init = backend.sent.find((m) => m.method === 'initialize');
     expect(init.params.clientCapabilities).toEqual({ fs: { readTextFile: true, writeTextFile: true }, terminal: false });
     expect(backend.sent.find((m) => m.method === 'session/new').params).toEqual({ cwd: 'D:/libro', mcpServers: [] });
+  });
+
+  it('ofrece al agente el servidor MCP de DBV para el proyecto abierto', async () => {
+    const { backend, session } = setup();
+    backend.mcpServerSpec = async (root) => ({ ok: true, value: { name: 'dbv', command: 'dbv.exe', args: ['--mcp', '--project', root], env: [] } });
+    await session.ensureSession({ id: 'claude' });
+    const params = backend.sent.find((m) => m.method === 'session/new').params;
+    expect(params.mcpServers).toEqual([{ name: 'dbv', command: 'dbv.exe', args: ['--mcp', '--project', 'D:/libro'], env: [] }]);
     expect((await session.ensureSession({ id: 'claude' })).fresh).toBe(false);
   });
 

@@ -111,6 +111,9 @@ tempfile = "3"
 # depurable, y no afecta a lo que se publica (perfil release).
 [profile.dev]
 opt-level = 1
+# Sin compilación incremental: en este disco (sin enlaces duros) la caché incremental se corrompía y el enlazado
+# fallaba con LNK1120 («unresolved external symbol anon.….llvm.…») cada pocas compilaciones.
+incremental = false
 
 [profile.dev.package."*"]
 opt-level = 2

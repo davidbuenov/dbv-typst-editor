@@ -128,3 +128,66 @@ describe('interruptor «Razonamiento» (RF-101)', () => {
     expect(context.backend.aiModelInfo).not.toHaveBeenCalled();
   });
 });
+
+describe('elegir el modelo de la lista del proveedor', () => {
+  const MODELS = ['antigravity-preview-05-2026', ...Array.from({ length: 59 }, (_, i) => `gemini-${i}-flash`), 'gemini-pro-latest'];
+
+  async function openCloudFormWithModels() {
+    const context = await setup();
+    context.backend.aiListModels.mockResolvedValue(ok(MODELS));
+    [...context.host.querySelectorAll('button')].find((b) => b.textContent.startsWith('Añadir una IA en la nube')).click();
+    await vi.waitFor(() => expect(context.host.querySelector('.ai-form__actions')).not.toBeNull());
+    const testButton = context.host.querySelector('.ai-form__actions button');
+    testButton.click();
+    await vi.waitFor(() => expect(context.backend.aiListModels).toHaveBeenCalled());
+    await settle();
+    return context;
+  }
+
+  const modelSelect = (host) => host.querySelector('.ai-form__model select');
+  const modelInput = (host) => host.querySelector('.ai-form__model input');
+
+  it('con 61 modelos disponibles el desplegable los ofrece todos (y «Otro»), no solo el que ya está escrito', async () => {
+    const { host } = await openCloudFormWithModels();
+    const select = modelSelect(host);
+    expect(select.classList.contains('hidden')).toBe(false);
+    expect([...select.options].map((o) => o.value).slice(0, 61)).toEqual(MODELS);
+    expect(select.options).toHaveLength(62);
+    expect(select.options[61].textContent).toBe('Otro (escribirlo)…');
+    // El primero queda elegido y el campo de texto oculto.
+    expect(select.value).toBe('antigravity-preview-05-2026');
+    expect(modelInput(host).classList.contains('hidden')).toBe(true);
+  });
+
+  it('elegir otro modelo de la lista lo guarda en la conexión', async () => {
+    const { host, backend } = await openCloudFormWithModels();
+    const select = modelSelect(host);
+    select.value = 'gemini-pro-latest';
+    select.dispatchEvent(new Event('change'));
+    saveButton(host).click();
+    await vi.waitFor(() => expect(backend.aiSaveConnection).toHaveBeenCalled());
+    expect(backend.aiSaveConnection.mock.calls[0][0].model).toBe('gemini-pro-latest');
+  });
+
+  it('«Otro» deja escribir un modelo que no está en la lista', async () => {
+    const { host, backend } = await openCloudFormWithModels();
+    const select = modelSelect(host);
+    select.value = '__other__';
+    select.dispatchEvent(new Event('change'));
+    const input = modelInput(host);
+    expect(input.classList.contains('hidden')).toBe(false);
+    input.value = 'modelo-recien-salido';
+    input.dispatchEvent(new Event('change'));
+    saveButton(host).click();
+    await vi.waitFor(() => expect(backend.aiSaveConnection).toHaveBeenCalled());
+    expect(backend.aiSaveConnection.mock.calls[0][0].model).toBe('modelo-recien-salido');
+  });
+
+  it('sin lista de modelos (aún sin probar la conexión) se escribe a mano, sin desplegable', async () => {
+    const context = await setup();
+    [...context.host.querySelectorAll('button')].find((b) => b.textContent.startsWith('Añadir una IA en la nube')).click();
+    await vi.waitFor(() => expect(modelSelect(context.host)).not.toBeNull());
+    expect(modelSelect(context.host).classList.contains('hidden')).toBe(true);
+    expect(modelInput(context.host).classList.contains('hidden')).toBe(false);
+  });
+});

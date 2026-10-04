@@ -193,9 +193,14 @@ export function createConnectWizard({ host, backend, onChanged, onAgent, notify 
     key.spellcheck = false;
     const model = el('input', 'form-row__input');
     model.spellcheck = false;
-    const datalist = el('datalist');
-    datalist.id = `ai-models-${Date.now()}`;
-    model.setAttribute('list', datalist.id);
+    // Con la lista de modelos del proveedor, un desplegable con TODOS (una `datalist` solo
+    // enseña los que coinciden con lo ya escrito) y «Otro…» para escribir uno a mano.
+    const modelSelect = el('select', 'form-row__input hidden');
+    modelSelect.setAttribute('aria-label', t('ai.model'));
+    const modelBox = el('div', 'ai-form__model');
+    modelBox.append(modelSelect, model);
+    const OTHER_MODEL = '__other__';
+    let modelList = [];
     const context = el('input', 'form-row__input');
     context.type = 'number';
     context.min = '1024';
@@ -210,7 +215,30 @@ export function createConnectWizard({ host, backend, onChanged, onAgent, notify 
     status.setAttribute('aria-live', 'polite');
     const keyRow = field(t('ai.apiKey'), key, editing?.hasKey ? t('ai.keyStored') : t('ai.keyHint'));
 
-    const setModels = (models) => datalist.replaceChildren(...models.map((m) => new Option(m, m)));
+    /** Pone al día el desplegable y el campo de texto según la lista y el valor actual. */
+    const syncModelControl = () => {
+      const hasList = modelList.length > 0;
+      modelSelect.classList.toggle('hidden', !hasList);
+      const known = modelList.includes(model.value);
+      model.classList.toggle('hidden', hasList && known);
+      if (hasList) modelSelect.value = known ? model.value : OTHER_MODEL;
+    };
+    const setModels = (models) => {
+      modelList = models;
+      modelSelect.replaceChildren(...models.map((m) => new Option(m, m)), new Option(t('ai.modelOther'), OTHER_MODEL));
+      syncModelControl();
+    };
+    modelSelect.addEventListener('change', () => {
+      if (modelSelect.value === OTHER_MODEL) {
+        model.value = '';
+        syncModelControl();
+        model.focus();
+        return;
+      }
+      model.value = modelSelect.value;
+      syncModelControl();
+      model.dispatchEvent(new Event('change'));
+    });
     setModels(knownModels);
     const sync = () => {
       const info = providers.find((p) => p.provider === providerSelect.value);
@@ -224,6 +252,7 @@ export function createConnectWizard({ host, backend, onChanged, onAgent, notify 
     });
     sync();
     model.value = editing?.model ?? initial.model ?? '';
+    syncModelControl();
     context.value = editing?.contextTokens ? String(editing.contextTokens) : '';
     tools.value = editing?.supportsTools === undefined || editing?.supportsTools === null ? '' : String(editing.supportsTools);
     reasoning.value = editing?.reasoning === true ? 'true' : 'false';
@@ -279,8 +308,8 @@ export function createConnectWizard({ host, backend, onChanged, onAgent, notify 
       status.textContent = t('ai.testing');
       const result = await backend.aiListModels(draft(), key.value || null);
       if (result.ok) {
-        setModels(result.value);
         if (!model.value && result.value[0]) model.value = result.value[0];
+        setModels(result.value);
         status.classList.add('is-ok');
         status.textContent = t('ai.testOk').replace('{n}', String(result.value.length));
         refreshAdvice();
@@ -325,8 +354,7 @@ export function createConnectWizard({ host, backend, onChanged, onAgent, notify 
       field(t('ai.name'), name),
       field(t('ai.url'), url, t('ai.urlHint')),
       keyRow,
-      field(t('ai.model'), model),
-      datalist,
+      field(t('ai.model'), modelBox),
       advice,
       field(t('ai.contextTokens'), context, t('ai.contextHint')),
       field(t('ai.supportsTools'), tools, t('ai.toolsHint')),

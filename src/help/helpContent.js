@@ -299,12 +299,12 @@ export const HELP_SECTIONS = [
       {
         list: {
           es: [
-            'IA local: instala Ollama (ollama.com) y descarga un modelo, por ejemplo «ollama pull qwen2.5:3b»; o LM Studio con su servidor local arrancado. Con «ollama list» ves lo que tienes instalado.',
+            'IA local: instala Ollama (ollama.com) y descarga un modelo, por ejemplo «ollama pull qwen3:8b»; o LM Studio con su servidor local arrancado. Con «ollama list» ves lo que tienes instalado. Un modelo local pequeño (menos de 7 000 millones de parámetros) suele fallar al proponer cambios: el mejor que hemos medido, qwen3:8b, resuelve algo más de 1 de cada 3 tareas de nuestra evaluación, así que revisa siempre lo que propone. La guía de uso lleva la tabla con los números.',
             'Nube: una clave de API del proveedor (se contrata aparte de cualquier suscripción) y conexión a Internet. Lo que envías sale de tu equipo; la primera vez por proyecto se pregunta.',
             'Suscripción: el agente instalado y con la sesión iniciada. Claude Code y Codex necesitan además Node.js (nodejs.org). Ábrelo una vez en una terminal para iniciar sesión; DBV nunca ve tus credenciales.',
           ],
           en: [
-            'Local AI: install Ollama (ollama.com) and download a model, for example "ollama pull qwen2.5:3b"; or LM Studio with its local server running. "ollama list" shows what you have installed.',
+            'Local AI: install Ollama (ollama.com) and download a model, for example "ollama pull qwen3:8b"; or LM Studio with its local server running. "ollama list" shows what you have installed. A small local model (under 7 billion parameters) often fails at proposing changes: the best one we measured, qwen3:8b, solves a little over 1 in 3 tasks of our evaluation, so always review what it proposes. The usage guide has the table with the numbers.',
             'Cloud: an API key from the provider (bought separately from any subscription) and an Internet connection. What you send leaves your computer; you are asked the first time per project.',
             'Subscription: the agent installed and signed in. Claude Code and Codex also need Node.js (nodejs.org). Open it once in a terminal to sign in; DBV never sees your credentials.',
           ],
@@ -325,14 +325,14 @@ export const HELP_SECTIONS = [
             'Modelo (LM Studio o llama.cpp): «curl http://localhost:1234/v1/models» (LM Studio) o «curl http://127.0.0.1:8080/v1/models» (llama-server); el «id» es el nombre del modelo. En PowerShell escribe «curl.exe».',
             'Contexto y herramientas (llama-server): «curl http://127.0.0.1:8080/props». «n_ctx» es el contexto total, y cada petición recibe n_ctx dividido entre «total_slots» (con «-np 1», todo). «supports_tools» dice si admite herramientas. No uses «n_ctx_train»: es el máximo del entrenamiento, no el del servidor.',
             'Dirección: termina siempre en /v1 (por ejemplo http://127.0.0.1:8080/v1). Con Ollama, el editor fija el contexto por su cuenta.',
-            'Si el modelo «piensa» antes de responder (Gemma 4) y no ves respuesta, arranca llama-server con «--reasoning-budget 0».',
+            'Si el modelo «piensa» antes de responder (Gemma 4, Qwen3), la espera es larga. El panel muestra «Pensando…» y un bloque plegable con su razonamiento. En Ollama y en los servidores compatibles genéricos, el interruptor «Razonamiento» de la conexión lo activa o desactiva (viene desactivado). En llama-server, arráncalo con «--reasoning-budget 0».',
           ],
           en: [
             'Model (Ollama): "ollama list", NAME column. "ollama show <model>" gives its details and "ollama ps" what is loaded.',
             'Model (LM Studio or llama.cpp): "curl http://localhost:1234/v1/models" (LM Studio) or "curl http://127.0.0.1:8080/v1/models" (llama-server); the "id" is the model name. In PowerShell type "curl.exe".',
             'Context and tools (llama-server): "curl http://127.0.0.1:8080/props". "n_ctx" is the total context, and each request gets n_ctx divided by "total_slots" (with "-np 1", all of it). "supports_tools" tells you whether it supports tools. Do not use "n_ctx_train": it is the training maximum, not the server\'s.',
             'Address: always ends in /v1 (for example http://127.0.0.1:8080/v1). With Ollama, the editor sets the context itself.',
-            'If the model "thinks" before answering (Gemma 4) and you see no reply, start llama-server with "--reasoning-budget 0".',
+            'If the model "thinks" before answering (Gemma 4, Qwen3), the wait is long. The panel shows "Thinking…" and a collapsible block with its reasoning. On Ollama and generic compatible servers, the connection\'s "Reasoning" switch turns it on or off (it is off by default). On llama-server, start it with "--reasoning-budget 0".',
           ],
         },
       },

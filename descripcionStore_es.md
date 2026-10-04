@@ -25,6 +25,8 @@ Características principales:
 • La IA propone cambios, también en varios ficheros; la aplicación comprueba que compilan antes de enseñártelos y los revisas trozo a trozo, con Deshacer
 • IA sobre la selección (Ctrl+Mayús+I) y «Explicar y arreglar» en cada error de compilación
 • Documentación oficial de Typst sin conexión, con buscador también en español
+• Aplicar plantilla…: pasa un documento que ya tienes al formato IEEE, Springer o el que elijas, desde la galería de plantillas
+• La IA busca plantillas y paquetes reales de Typst Universe, ve las páginas renderizadas y presta sus herramientas a otros agentes (servidor MCP, solo lectura)
 • Panel de Problemas con todos los errores del proyecto y visor de datos CSV/TSV con «Insertar como tabla»
 • Terminal avanzado opcional para quien prefiera el CLI de Typst directamente
 • Tres temas: Claro, Oscuro y Sepia
@@ -37,16 +39,15 @@ Sin conexión a internet requerida para compilar ni editar. Typst Universe, la c
 
 ## Novedades de esta versión
 
-Versión 0.13.1 — Asistente de IA opcional, ahora más claro y fiable con modelos locales:
+Versión 0.14.0 — «AI Native»: la IA conoce Typst Universe, ve tus páginas y se conecta con otros agentes.
 
-• Asistente de IA OPCIONAL: conecta una IA local (Ollama, LM Studio), en la nube con tu clave (Anthropic, OpenAI, Gemini, OpenRouter) o tu agente instalado (Claude Code, Gemini CLI, Codex, Copilot). Sin configurar nada, el editor funciona igual que siempre.
-• La IA propone cambios, también en varios ficheros; DBV comprueba que compilan antes de enseñártelos y los revisas trozo a trozo, con Deshacer.
-• Ves lo que piensa el modelo (bloque plegable), qué está haciendo y a qué velocidad, y te avisa si el modelo es demasiado pequeño o el contexto demasiado corto.
-• Al escribir, separa el aspecto del contenido: el estilo va en ficheros de estilo.
-• Nuevo «Nuevo .typ vacío…»: crea un documento suelto sin crear un proyecto.
-• IA sobre la selección (Ctrl+Mayús+I) y «Explicar y arreglar» en cada error.
-• Documentación oficial de Typst sin conexión, panel de Problemas y visor de datos CSV/TSV.
-• Con una IA local nada sale de tu equipo; las claves van al almacén de credenciales de Windows.
+• Aplicar plantilla…: pasa un documento que ya tienes al formato IEEE, Springer o el que elijas desde la galería de plantillas; revisas la propuesta antes de aplicar nada.
+• La IA usa Typst Universe de verdad: busca plantillas y paquetes reales con su versión exacta, sin inventar nombres. Si falta un paquete, te pregunta antes de descargarlo.
+• Ve el resultado: con un modelo que admite imágenes mira las páginas renderizadas; con la nube puede ofrecerte una tipografía que falte (tú confirmas).
+• Servidor MCP (Herramientas › Servidor MCP…): Claude Code, Cursor o Codex usan el compilador exacto de DBV, ven las páginas y consultan Universe. Solo lectura y sin red.
+• Modelos locales más útiles: tope de respuesta configurable, progreso visible y reintento cuando no contestan.
+• Importar snippets de Sublime Text; las fuentes que añades a fonts/ se recogen sin reiniciar.
+• Ayuda y guía de IA ampliadas.
 
 ---
 
@@ -71,8 +72,8 @@ Versión 0.13.1 — Asistente de IA opcional, ahora más claro y fiable con mode
 16. Tres temas (Claro, Oscuro, Sepia) e interfaz en español e inglés
 17. IA opcional: local (Ollama, LM Studio), en la nube con tu clave de API o con tu suscripción mediante un agente (Claude Code, Codex, Gemini CLI, Copilot)
 18. La IA propone, la aplicación comprueba que compila y tú decides trozo a trozo, con Deshacer
-19. IA sobre la selección (Ctrl+Mayús+I) y «Explicar y arreglar» en cada error
-20. Documentación oficial de Typst sin conexión y visor de datos CSV/TSV
+19. IA sobre la selección (Ctrl+Mayús+I), «Explicar y arreglar» en cada error, documentación de Typst sin conexión y visor CSV/TSV
+20. «Aplicar plantilla…» (IEEE, Springer…), IA que usa Typst Universe y ve las páginas, y servidor MCP para otros agentes
 
 ---
 

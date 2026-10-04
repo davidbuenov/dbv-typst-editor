@@ -42,15 +42,6 @@
         <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png" />
       </uap:VisualElements>
 
-      <!-- RF-113 / ADR-V0140-003: el servidor MCP es el modo `--mcp` de ESTE ejecutable. El alias lo hace invocable desde
-           fuera de la Store (`dbv-typst-editor.exe --mcp --project <carpeta>`), que es como lo lanza un agente por stdio. -->
-      <Extensions>
-        <uap3:Extension Category="windows.appExecutionAlias" Executable="{{EXECUTABLE}}" EntryPoint="Windows.FullTrustApplication">
-          <uap3:AppExecutionAlias>
-            <desktop:ExecutionAlias Alias="dbv-typst-editor.exe" />
-          </uap3:AppExecutionAlias>
-        </uap3:Extension>
-      </Extensions>
 {{EXTENSIONS}}
     </Application>
   </Applications>

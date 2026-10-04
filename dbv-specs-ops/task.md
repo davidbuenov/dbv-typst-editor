@@ -696,16 +696,18 @@
 
 - [x] **Fase 70: `/code-simplify` de v0.14.0 — 2026-10-04.** 0 críticos; importantes resueltos y registrados en el changelog: paquete inicial 1 114,75 → **1 086,91 KB** (ayuda cargada al abrirla), 22 cadenas de traducción sin uso, alias de la Store duplicado, 4 avisos de `clippy`. Tests: Rust 622, Vitest **1 524**, `verify:frontend` 12/12, `verify:layout` 20/20. Siguiente: `/ship` 0.14.0 con push.
 
+- [x] **Fase 71: `/ship` de v0.14.0 «AI Native» — 2026-10-04.** Minor sobre la 0.13.1. Versión 0.14.0 en `package.json`, `Cargo.toml`/`Cargo.lock` y `tauri.conf.json`; changelog publicado en ES y EN; documentación revisada (ayuda, guía de IA, README, `docs/`, fichas de la Store, `ARCHITECTURE.md` y la ficha de `davidbuenov.com` en el repo `web`, sin commit ni despliegue); `notasActualizacionStore_v0.14.0.md` y `walkthrough.md`. **`.msixbundle`: `src-tauri\target\msix\dbv-typst-editor_0.14.0.0.msixbundle` (78,68 MB, verificado).** Hallazgo del empaquetado: el alias del MCP rompía el manifiesto (comentario con `--` y segundo `<Extensions>`); ahora va en `bundle.config.json` con un test.
+  - **Pendiente del usuario:** instalar el `.msixbundle` y pasar la guía de 2 minutos y el criterio (c) del MCP (`dbv-typst-editor.exe --mcp` desde una terminal ajena); subirlo a Partner Center y repetir el copiado de descripción, novedades y características; **desplegar la web** con DBV Control Center (la ficha `web/_projects/dbv-typst-editor.md` está editada sin commit); decidir si la política de privacidad nombra el índice de Universe y Google Fonts; capturas nuevas (galería en modo aplicar, «Servidor MCP…»).
+
 ## 🔄 Context Snapshot / Snapshot de Contexto
 
-> ### 👉 RETOMAR AQUÍ (2026-10-04, noche): v0.14.0 `/build` y `/test` HECHOS — siguiente: `/code-simplify` y `/ship` (con push)
+> ### 👉 RETOMAR AQUÍ (2026-10-04, noche): v0.14.0 PUBLICADA en GitHub (tag `v0.14.0`) — falta lo del usuario
 >
-> **Pasos exactos para retomar:**
-> 1. `/code-simplify` en tres pasadas sobre lo de la 0.14.0 (`src-tauri/src/mcp.rs`, `mcp_bridge.rs`, `ai/*`, `src/mcp/`, `src/ai/`, galería en modo «aplicar»). Pendiente conocido: claves de traducción sin usar del buscador antiguo de «Aplicar plantilla…» (`ai.applyTemplatePlaceholder`, `ai.applyTemplateSearch`, `ai.applyTemplateEmpty`, `ai.applyTemplateResults`, `ai.applyTemplateNoCatalog`, `ai.applyTemplateDownloadCatalog`, `ai.applyTemplateCatalogFailed`, `ai.applyTemplateSearching`, `ai.applyTemplateFound`, `ai.applyTemplateNone`, `ai.applyTemplateApply`). Clippy: con la app de desarrollo cerrada (o con `CARGO_TARGET_DIR` aparte).
-> 2. `/ship` 0.14.0: la nueva regla revisa documentación (README, `docs/`, ayuda, ficha de la web en `D:\Programacion\github-davidbuenov\web\_projects\dbv-typst-editor.md`, SIN commit ni despliegue allí), `.msixbundle` y `notasActualizacionStore_v0.14.0.md` siempre, y el usuario pidió **push** al terminar.
-> 3. Ollama sigue con `qwen3:8b` en `localhost:11434`. `GEMINI_API_KEY` en el entorno (no se imprime ni se guarda).
+> **Para retomar:** el usuario instala el `.msixbundle` (`src-tauri\target\msix\dbv-typst-editor_0.14.0.0.msixbundle`), pasa la guía de
+> `notasActualizacionStore_v0.14.0.md` (incluido el criterio (c) del MCP: el alias desde una terminal ajena) y lo sube a Partner Center; despliega la web con DBV Control Center.
+> Si el alias falla, el MCP de Windows pasa a la 0.14.1 (`ADR-V0140-003`). Siguiente ciclo: lo que salga de la prueba real.
 >
-> **Estado del repositorio:** todo lo de la 0.14.0 está commiteado en `master` salvo el trabajo de `/test` (harness `scripts/evalUniverse.mjs`, tareas y resultados de evals, este fichero). `memory.md` y `task.md` de la RAÍZ siguen sin seguimiento (ajenos). La web `davidbuenov.com` (repo `web`) tiene la ficha del proyecto actualizada a v0.13.1 SIN commit.
+> **Estado del repositorio:** todo commiteado y empujado a `origin/master` con el tag `v0.14.0`. Sin seguimiento (ajenos): `memory.md` y `task.md` de la RAÍZ. El repo `web` tiene la ficha del proyecto editada sin commit.
 >
 > ### (anterior) `/build` pendiente — 2026-10-04, tarde
 >

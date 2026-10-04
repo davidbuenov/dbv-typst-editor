@@ -3,9 +3,9 @@
 **[🇪🇸 Español](./README.md) · 🇬🇧 English**
 
 [![Website](https://img.shields.io/badge/Website-davidbuenov.github.io%2Fdbv--typst--editor-2563eb?style=flat&logo=googlechrome&logoColor=white)](https://davidbuenov.github.io/dbv-typst-editor/en/)
-[![Releases](https://img.shields.io/badge/Releases-v0.13.1-brightgreen?logo=github)](https://github.com/davidbuenov/dbv-typst-editor/releases)
+[![Releases](https://img.shields.io/badge/Releases-v0.14.0-brightgreen?logo=github)](https://github.com/davidbuenov/dbv-typst-editor/releases)
 [![Microsoft Store](https://img.shields.io/badge/Microsoft%20Store-9PCPSVTNJMP0-0078D6?logo=microsoft&logoColor=white)](https://apps.microsoft.com/store/detail/9PCPSVTNJMP0?cid=DevShareMCLPCB)
-![Status](https://img.shields.io/badge/status-stable%20%7C%20v0.13.1-success)
+![Status](https://img.shields.io/badge/status-stable%20%7C%20v0.14.0-success)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
 ![Windows](https://img.shields.io/badge/Windows-10%20%2F%2011%20(Microsoft%20Store)-0078D6?logo=windows&logoColor=white)
 ![macOS](https://img.shields.io/badge/macOS-Universal%20(.dmg)-000000?logo=apple&logoColor=white)
@@ -60,7 +60,7 @@ It follows the same philosophy as its sibling project [DBV Markdown Reader](http
 
 ## 🚦 Current status
 
-**Current version:** `v0.13.1` · **Status:** 🟢 Stable and production ready
+**Current version:** `v0.14.0` · **Status:** 🟢 Stable and production ready
 
 - 🌐 **Official Website:** [https://davidbuenov.github.io/dbv-typst-editor/en/](https://davidbuenov.github.io/dbv-typst-editor/en/) (featuring full-resolution interactive screenshot gallery and bilingual ES/EN switch).
 - 📦 **Installers available on Releases:** [GitHub Releases](https://github.com/davidbuenov/dbv-typst-editor/releases):
@@ -68,8 +68,9 @@ It follows the same philosophy as its sibling project [DBV Markdown Reader](http
   - 🍎 **macOS**: Universal `.dmg` (compatible with Apple Silicon & Intel).
   - 🐧 **Linux**: `.AppImage` (portable) and `.deb` (Debian/Ubuntu/Mint) packages.
 - 🏬 **Microsoft Store:** published on the official store. [🛒 Get it from Microsoft Store (ID 9PCPSVTNJMP0)](https://apps.microsoft.com/store/detail/9PCPSVTNJMP0?cid=DevShareMCLPCB). If you installed an earlier Store package, make sure you get `v0.3.1` or later (see [`CHANGELOG.en.md`](./dbv-specs-ops/CHANGELOG.en.md)).
-- 🧪 **Quality & Stability:** 1,843 automated tests passing at 100% (1,339 frontend tests + 504 Rust backend tests), AI evaluation with real local models and layout verification in real rendering engines.
+- 🧪 **Quality & Stability:** 2,149 automated tests passing at 100% (1,527 frontend tests + 622 Rust backend tests), AI evaluation with real local models and layout verification in real rendering engines.
 - 🚀 **Key Highlights:**
+  - **AI Native: the AI knows Typst Universe, sees your pages and connects to other agents (v0.14.0):** "Apply template…" turns a document into IEEE or Springer from the same gallery as "New document"; the AI searches **real** templates and packages (it never invents a name or version), looks at the **rendered pages**, cites only references from your `.bib` and, with the cloud, offers a missing typeface (you confirm); an **MCP server** lends Claude Code, Cursor or Codex DBV's exact compiler (read-only, no network; installing a package asks you first); local models gain an output cap, visible progress and retry; and Sublime Text snippets can be imported. Fonts you add to `fonts/` are picked up without a restart.
   - **The AI with local models and with Gemini, more honest (v0.13.1):** the assistant no longer announces proposals that do not exist, shows **what the model is thinking** (collapsible block), **what it is doing and how fast**, and warns about a **model that is too small or a context that is too short**; reasoning ships **off** and is turned on per connection; when it writes it **separates presentation from content** (the look goes in style files); **Gemini 3 can use tools again**. New **"New empty .typ…"** to create a loose document without creating a project (the AI only sees its own file). The guide finally includes **measured numbers** for local models (`qwen3:8b` solves a little over 1 in 3 tasks: always review what it proposes) and a cloud reference, and `eval:ai` also measures cloud AIs.
   - **Built-in, optional AI assistant (v0.13.0):** connect a local AI (Ollama, LM Studio), a cloud one with your API key (Anthropic, OpenAI, Gemini, OpenRouter) or your installed agent with your subscription (Claude Code, Gemini CLI, Codex, Copilot). Chat with the project as context; it proposes multi-file changes that DBV **compiles in memory** before showing them and that you review hunk by hunk before applying (with Undo); inline AI on the selection (Ctrl+Shift+I) and "Explain and fix" on errors. With nothing configured, the editor works exactly as before; with a local AI nothing leaves your computer; keys go to the system credential store. **[📖 Guide: what you need to install to use each AI](./docs/IA.en.md).** Plus: **offline official Typst documentation** (for the exact compiler version, searchable), a **Problems panel** with the full error list and a **CSV/TSV data viewer** with "Insert as table".
   - **Outline from the preview, plus fixes (v0.12.1):** the Outline panel comes from the same compilation as the preview, instantly and without compiling twice; it lists the headings that would go in the table of contents and, when it cannot show them, says why (document with errors or tool failure) instead of "no headings". Fixes the Linux AppImage (Tinymist, export and the classic engine did not start), the preview spilling out of the window with a narrow panel, and word-level sync after falling back to the classic engine; if the preview is on the fallback engine, a notice lets you switch back to the fast one.
@@ -159,7 +160,6 @@ If the app is already running, `typs` reuses the same window. `brew uninstall --
 
 Grouped by what you want to do. Each version’s detail is in the [`CHANGELOG`](./dbv-specs-ops/CHANGELOG.en.md); the in-app help (the **?** button) walks through each topic step by step.
 
-> ℹ️ The following describes the development branch: **Apply template…**, the Typst Universe tools, the rendered pages and the fonts for the AI, and the **MCP server** arrive with **v0.14.0** (the latest published is v0.13.1).
 
 ### ✍️ Writing
 - **A real Typst editor** (CodeMirror 6): Typst 0.15 syntax highlighting, autocompletion of functions and symbols, folding, multiple cursors, find and replace, and **one tab per file** that keeps changes, cursor and undo history.

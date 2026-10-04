@@ -11,7 +11,12 @@
   "extensions": {
     "shareTarget": false,
     "fileAssociations": [],
-    "protocolHandlers": []
+    "protocolHandlers": [],
+    "appExecutionAliases": [
+      {
+        "alias": "dbv-typst-editor"
+      }
+    ]
   },
   "signing": {
     "pfx": null,

@@ -25,6 +25,8 @@ Key features:
 • The AI proposes changes, across several files too; the app checks they compile before showing them and you review them hunk by hunk, with Undo
 • AI on the selection (Ctrl+Shift+I) and "Explain and fix" on every compile error
 • Official Typst documentation offline, searchable (also in Spanish)
+• Apply template…: turn a document you already have into IEEE, Springer or any format you choose, from the template gallery
+• The AI searches real Typst Universe templates and packages, sees the rendered pages and lends its tools to other agents (MCP server, read-only)
 • Problems panel with every error in the project, and a CSV/TSV data viewer with "Insert as table"
 • Optional advanced terminal for anyone who prefers the Typst CLI directly
 • Three themes: Light, Dark, and Sepia
@@ -37,16 +39,15 @@ No internet connection required to compile or edit. Typst Universe, the manual u
 
 ## What's new in this version
 
-Version 0.13.1 — Optional AI assistant, now clearer and more reliable with local models:
+Version 0.14.0 — "AI Native": the AI knows Typst Universe, sees your pages and connects to other agents.
 
-• OPTIONAL AI assistant: connect a local AI (Ollama, LM Studio), a cloud one with your key (Anthropic, OpenAI, Gemini, OpenRouter) or your installed agent (Claude Code, Gemini CLI, Codex, Copilot). With nothing configured, the editor works exactly as before.
-• The AI proposes changes, across several files too; DBV checks they compile before showing them and you review them hunk by hunk, with Undo.
-• You see what the model is thinking (collapsible block), what it is doing and how fast, and you are warned if the model is too small or the context too short.
-• When it writes, it separates the look from the content: the style goes in style files.
-• New "New empty .typ…": creates a loose document without creating a project.
-• AI on the selection (Ctrl+Shift+I) and "Explain and fix" on every error.
-• Offline official Typst documentation, a Problems panel and a CSV/TSV data viewer.
-• With a local AI nothing leaves your computer; keys go to the Windows Credential Manager.
+• Apply template…: turn a document you already have into IEEE, Springer or any format you choose from the template gallery; you review the proposal before anything is applied.
+• The AI uses Typst Universe for real: it searches real templates and packages with their exact version, without inventing names. If a package is missing, it asks before downloading it.
+• It sees the result: with a model that accepts images it looks at the rendered pages; with the cloud it can offer a missing typeface (you confirm).
+• MCP server (Tools › MCP server…): Claude Code, Cursor or Codex use DBV's exact compiler, see the pages and query Universe. Read-only, no network.
+• More useful local models: configurable response cap, visible progress and retry when they do not answer.
+• Import Sublime Text snippets; fonts you add to fonts/ are picked up without a restart.
+• Expanded help and AI guide.
 
 ---
 
@@ -71,8 +72,8 @@ Version 0.13.1 — Optional AI assistant, now clearer and more reliable with loc
 16. Three themes (Light, Dark, Sepia) and an English/Spanish interface
 17. Optional AI: local (Ollama, LM Studio), cloud with your API key, or your subscription through an agent (Claude Code, Codex, Gemini CLI, Copilot)
 18. The AI proposes, the app checks it compiles, and you decide hunk by hunk, with Undo
-19. AI on the selection (Ctrl+Shift+I) and "Explain and fix" on every error
-20. Official Typst documentation offline and a CSV/TSV data viewer
+19. AI on the selection (Ctrl+Shift+I), "Explain and fix" on every error, offline Typst documentation and a CSV/TSV viewer
+20. "Apply template…" (IEEE, Springer…), an AI that uses Typst Universe and sees the pages, and an MCP server for other agents
 
 ---
 

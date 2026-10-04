@@ -778,6 +778,22 @@ Principio común: **una sola maquinaria de edición en varios ficheros** para re
 | Nuevo .typ vacío (RF-106) | `create_empty_document` y `directory` en los diálogos (`commands/file_io.rs`), `app/newDocument.js`, `app/lastDocumentDir.js` | `create_new` (nunca pisa contenido); la última carpeta es una preferencia de interfaz en `localStorage`. |
 | Evaluación en la nube (RF-104) | `scripts/eval-ai.mjs`, `scripts/evalProviders.mjs` (puro) | `--provider anthropic\|openai\|gemini\|openrouter\|compatible`; la clave se lee de una variable de entorno, viaja solo en la cabecera y se **redacta** de cualquier mensaje de error que se imprima o guarde. Guardado tras cada tarea, tiempo límite por petición y parada tras tres fallos de conexión seguidos. |
 
+**Lo que añadió v0.14.0 «AI Native» (slices 145 a 160; `SPECIFICATIONS.md` §5p, `ADR-V0140-001` a `-004`):**
+
+| Pieza | Dónde | Qué decide |
+| --- | --- | --- |
+| Modelos locales (RF-107) | `ai/connections.rs` (`default_context`, `max_output_tokens`), `ai/providers.rs` (`with_output_cap`), `ai/agentLoop.js`, `chatPanel.js` | Tope de salida por conexión, contador de espera y reintento una vez ante respuesta vacía o cortada |
+| Catálogo de Universe (RF-108) | `commands/universe_index.rs`, `universe_catalog.rs`, `ai/universe_search.rs`, `ai/universe_packages.rs` | Una versión por paquete (la última que el compilador admite), persistida en la carpeta de datos; búsqueda, comprobación de identificadores y documentación de paquetes leyendo el `.tar.gz` en memoria con límites; la IA nunca toca la red (RNF-IA.9) |
+| Paquetes sin instalar (RF-109) | `ai/check.rs` (`CheckOutcome.missing_packages`), `engine/world.rs` (`Offline`), `reviewView.js` | Una comprobación incompleta no es un error; el bloque «Paquetes que se descargarán» instala solo con el clic |
+| Plantillas (RF-110, RF-116) | `ai/templateApply.js` (puro), `applyTemplateView.js`, `launcher/templateGalleryModal.js` (`openForApply`) | Lo mecánico lo hace DBV; «Aplicar plantilla…» reutiliza la galería de «Nuevo documento» en modo aplicar |
+| Fuentes (RF-111) | `ai/fonts.rs`, `engine/world.rs` (`fonts_changed`) | Solo `google/fonts`, licencias OFL/Apache/UFL, ficheros con nombre seguro y tope de tamaño; el mundo se rehace si cambia `fonts/` |
+| Páginas y bibliografía (RF-114, RF-115) | `ai/render.rs`, `typst_engine/shadow.rs`, `bibliography.rs` (`collect_ai_bibliography`), `docs.rs` (`citation_styles`) | PNG con el sidecar sobre una réplica del proyecto; solo claves que existen |
+| Sublime (RF-112) | `snippets.rs`, `snippets/sublimeImport.js` | XML con `DOMParser`, rechazo de `DOCTYPE`/`ENTITY`, límites de tamaño y número |
+| Servidor MCP (RF-113) | `mcp.rs`, `main.rs`, `Cargo.toml` (`rmcp`), `AppxManifest.xml.template` | Es un **modo del propio ejecutable** (`--mcp --project`), no un crate ni un sidecar (`ADR-V0140-003`); herramientas de solo lectura, sin red y confinadas al proyecto; alias de ejecución en el MSIX |
+| Estado del editor e instalación (RF-117, `ADR-V0140-004`) | `mcp_bridge.rs`, `src/mcp/mcpBridge.js`, `mcpDialog.js` | Canal local (tubería con nombre / socket 0600) con testigo de 256 bits; `editor_state` solo con el ajuste activado; `install_package` siempre con diálogo |
+| Agente del panel | `ai/acpSession.js` (`mcpServers`), `ai/acp.rs` (`kill_tree`) | El agente recibe el servidor de DBV al abrir la sesión; cerrar el agente cierra todo su árbol de procesos |
+| Evaluación | `scripts/evalUniverse.mjs`, `testfiles/ai-evals/tasks.json` | 46 tareas; Universe y bibliografía con el catálogo real y `packagesValid` |
+
 ## 🔑 Decisiones Técnicas Clave (resumen)
 
 ### Seguridad

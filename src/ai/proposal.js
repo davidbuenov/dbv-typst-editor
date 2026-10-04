@@ -199,6 +199,11 @@ export function overrides(proposal, root, join) {
  *     ```
  * @returns {Array<{path: string, action: string, search?: string, replace?: string, content?: string}>}
  */
+/** ¿Parece un bloque de edición (marcas `<<<`/`>>>` de conflicto o diff) aunque no esté en el formato de DBV? */
+export function looksLikeEdit(text) {
+  return /^[ \t]*(?:<{3,}|>{3,})/m.test(String(text ?? ''));
+}
+
 export function parseChangeBlocks(text) {
   const changes = [];
   const pattern = /```dbv-(edit|file|delete)\s+path="([^"]+)"[^\n]*\n([\s\S]*?)```/g;

@@ -22,6 +22,7 @@ import { createAcpSession, insideProject } from './acpSession.js';
 import { createChangesCard, createPermissionCard } from './acpView.js';
 import { buildContext, estimateTokens, RESPONSE_RESERVE, systemPrompt } from './context.js';
 import { describeAdvice } from './modelAdvice.js';
+import { looksLikeEdit } from './proposal.js';
 import { detectStyleFiles, importedFiles } from './styleFiles.js';
 import { CONTEXT_FILL_RATIO, modelAdvice, TOOL_SPEC_TOKENS } from './modelFit.js';
 import { computeSpeed, formatSpeed, shouldHintSlow } from './speed.js';
@@ -70,10 +71,18 @@ export function historyMessages(entries, budget) {
   return result;
 }
 
+/**
+ * Frases con las que un proveedor dice que el modelo NO admite herramientas («"llama3:latest" does not
+ * support tools» en Ollama, «tool use is not supported»…). Tiene que decir las dos cosas —no admitir y
+ * herramientas—: un 400 que solo nombra las herramientas («required for tools to work correctly», el de
+ * Gemini 3 sin su firma de pensamiento) NO es esto, y marcar mal una conexión la deja sin herramientas para siempre.
+ */
+const TOOLS_UNSUPPORTED = /(?:does(?:n'?t| not) support|not support(?:ed)?|unsupported|no support for)[^.\n]{0,40}\b(?:tools?|tool[ _-]?use|function[ _-]?calling)\b|\b(?:tools?|tool[ _-]?use|function[ _-]?calling)\b[^.\n]{0,40}\b(?:not (?:supported|available|enabled)|unsupported)\b/i;
+
 /** ¿El error del proveedor dice que el modelo no admite herramientas? */
 export function isToolsUnsupported(error) {
   // El bucle guarda el error como mensaje `{role: 'error', content, kind}`.
-  return error?.kind === 'badRequest' && /tool|function/i.test(error?.message ?? error?.content ?? '');
+  return error?.kind === 'badRequest' && TOOLS_UNSUPPORTED.test(error?.message ?? error?.content ?? '');
 }
 
 /**
@@ -642,7 +651,9 @@ export function createAiApp(deps) {
     try {
       let { result, proposal, check } = await run(useTools);
       const failure = result.messages.find((m) => m.role === 'error');
-      if (failure && useTools && isToolsUnsupported(failure)) {
+      // Solo si falla la PRIMERA petición: un error con herramientas ya en marcha es otra cosa, y no debe dejar la conexión sin ellas.
+      const toolsAlreadyRan = result.messages.some((m) => m.role === 'tool');
+      if (failure && useTools && !toolsAlreadyRan && isToolsUnsupported(failure)) {
         // El modelo no admite herramientas: se repite en modo conversación (RF-94.4).
         useTools = false;
         panel.addNote(t('ai.noToolsFallback'));
@@ -652,10 +663,13 @@ export function createAiApp(deps) {
       }
       const finalText = result.messages.filter((m) => m.role === 'assistant').map((m) => m.content).filter(Boolean).join('\n\n');
       if (!useTools) {
-        for (const change of parseChangeBlocks(finalText)) {
+        const blocks = parseChangeBlocks(finalText);
+        for (const change of blocks) {
           const applied = inScope(change.path) ? await applyChange(proposal, change, readText) : { ok: false, message: t('ai.singleFileOnly') };
           if (!applied.ok) panel.addNote(`${change.path}: ${applied.message}`, 'error');
         }
+        // Un diff escrito en un formato que DBV no entiende: no hay nada que revisar, y mejor decirlo que dejarlo como un bloque de código más.
+        if (!blocks.length && looksLikeEdit(finalText)) panel.addNote(t('ai.unparsedEdit'), 'error');
       }
       if (finalText) current.entries.push({ role: 'assistant', content: finalText });
       const error = result.messages.find((m) => m.role === 'error' && m.kind !== 'cancelled');

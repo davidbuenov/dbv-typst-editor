@@ -10,7 +10,7 @@
 // externo simulado: backend de Tauri, workspace, `multiFileEdit` y el modelo.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createAiApp } from './aiApp.js';
+import { createAiApp, isToolsUnsupported } from './aiApp.js';
 import { setLanguage } from '../i18n/i18n.js';
 
 const ok = (value) => ({ ok: true, value });
@@ -132,6 +132,40 @@ beforeEach(() => {
 });
 afterEach(() => {
   vi.restoreAllMocks();
+});
+
+describe('¿el modelo no admite herramientas? (RF-94.4)', () => {
+  const bad = (message) => ({ kind: 'badRequest', message });
+
+  it('lo dice cuando el proveedor afirma que no las admite', () => {
+    for (const message of [
+      '"llama3:latest" does not support tools',
+      'registry.ollama.ai/library/llama3:latest does not support tools',
+      'qwen does not support tools',
+      'Tool use is not supported for this model',
+      'This model does not support function calling',
+      'function calling is not supported',
+      'tools are not available for this model',
+      'Unsupported parameter: tools',
+    ]) expect(isToolsUnsupported(bad(message)), message).toBe(true);
+  });
+
+  it('NO lo dice cuando el error solo nombra las herramientas por otra razón (el 400 de Gemini 3 sin su firma)', () => {
+    for (const message of [
+      'Function call is missing a thought_signature in functionCall parts. This is required for tools to work correctly, and missing thought_signature may lead to degraded model performance.',
+      'Invalid JSON payload: tools[0].function.parameters is not valid',
+      'model not found',
+      'context length exceeded',
+      'The function name is invalid',
+      '',
+    ]) expect(isToolsUnsupported(bad(message)), message).toBe(false);
+  });
+
+  it('solo si es un error de petición, y también con el formato del mensaje del bucle', () => {
+    expect(isToolsUnsupported({ kind: 'server', message: 'does not support tools' })).toBe(false);
+    expect(isToolsUnsupported({ role: 'error', kind: 'badRequest', content: 'x does not support tools' })).toBe(true);
+    expect(isToolsUnsupported(null)).toBe(false);
+  });
 });
 
 describe('sin IA configurada (RNF-IA.1)', () => {
@@ -279,6 +313,42 @@ describe('modelo directo con herramientas (RF-92, RF-93, RF-94)', () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(backend.aiModelInfo).not.toHaveBeenCalled();
     expect(document.querySelectorAll('#panel .ai-advice')).toHaveLength(0);
+  });
+
+  it('un 400 que nombra las herramientas por otra razón NO deja la conexión sin herramientas (el de Gemini 3)', async () => {
+    const message = 'Function call is missing a thought_signature in functionCall parts. This is required for tools to work correctly.';
+    const { app, backend } = setup({ connections: [ollama], script: [{ error: { kind: 'badRequest', message } }] });
+    await app.onProjectOpened({ root: 'D:/p' });
+    await app.ask('mira');
+    expect(backend.aiChat).toHaveBeenCalledTimes(1);
+    expect(backend.aiSaveConnection).not.toHaveBeenCalled();
+    expect(document.getElementById('panel').textContent).toContain('thought_signature');
+  });
+
+  it('un error de «no admite herramientas» con las herramientas ya en marcha no cambia la conexión', async () => {
+    const script = [
+      { toolCalls: [{ id: 't1', name: 'read_file', arguments: '{"path":"main.typ"}' }] },
+      { error: { kind: 'badRequest', message: 'this model does not support tools' } },
+    ];
+    const { app, backend } = setup({ connections: [ollama], script });
+    await app.onProjectOpened({ root: 'D:/p' });
+    await app.ask('mira');
+    expect(backend.aiChat).toHaveBeenCalledTimes(2);
+    expect(backend.aiSaveConnection).not.toHaveBeenCalled();
+  });
+
+  it('en modo conversación, un diff en un formato que DBV no entiende se avisa y no ofrece insertarlo (RF-94.4)', async () => {
+    const diff = '```\n<<< main.typ\n#box(width: 100pt, body: "x")\n===\n#box(width: 100pt)[x]\n>>>\n```';
+    const script = [{ error: { kind: 'badRequest', message: 'qwen does not support tools' } }, { text: `Lo he corregido:\n${diff}`, toolCalls: [] }];
+    const { app } = setup({ connections: [ollama], script });
+    await app.onProjectOpened({ root: 'D:/p' });
+    await app.ask('arregla');
+    const panel = document.getElementById('panel');
+    expect(panel.textContent).toContain('formato que DBV no entiende');
+    expect(panel.querySelector('.ai-review')).toBeNull();
+    const buttons = [...panel.querySelectorAll('.md button')].map((b) => b.textContent);
+    expect(buttons).toContain('Copiar');
+    expect(buttons).not.toContain('Insertar en el cursor');
   });
 
   it('si el modelo no admite herramientas, repite en modo conversación y lo recuerda (RF-94.4)', async () => {

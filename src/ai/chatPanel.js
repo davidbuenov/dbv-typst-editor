@@ -14,6 +14,7 @@
 
 import { t } from '../i18n/i18n.js';
 import { renderMarkdown } from '../ui/markdown.js';
+import { looksLikeEdit } from './proposal.js';
 
 /** Cada cuántos ms se pinta el razonamiento acumulado (agrupa los trozos que llegan muy seguidos). */
 const THOUGHT_PAINT_MS = 40;
@@ -168,10 +169,10 @@ export function createChatPanel({ host, callbacks }) {
   }
 
   function codeActions(code) {
-    return [
-      button(t('ai.copy'), () => callbacks.onCopy(code), 'button button--compact button--ghost'),
-      button(t('ai.insert'), () => callbacks.onInsert(code), 'button button--compact button--ghost'),
-    ];
+    const actions = [button(t('ai.copy'), () => callbacks.onCopy(code), 'button button--compact button--ghost')];
+    // Insertar un diff entero en el documento nunca es lo que se quiere: solo se puede copiar.
+    if (!looksLikeEdit(code)) actions.push(button(t('ai.insert'), () => callbacks.onInsert(code), 'button button--compact button--ghost'));
+    return actions;
   }
 
   function renderInto(node, markdown) {

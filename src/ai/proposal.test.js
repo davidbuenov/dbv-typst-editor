@@ -6,7 +6,7 @@
 // =============================================================================
 
 import { describe, expect, it } from 'vitest';
-import { applyChange, createProposal, editProposed, looseMatch, overrides, parseChangeBlocks, resultText } from './proposal.js';
+import { applyChange, createProposal, editProposed, looksLikeEdit, looseMatch, overrides, parseChangeBlocks, resultText } from './proposal.js';
 
 const disk = { 'main.typ': '= Hola\n#include "cap.typ"\n', 'cap.typ': 'Uno.\nDos.\n' };
 const readBase = async (path) => disk[path] ?? null;
@@ -105,5 +105,21 @@ describe('parseChangeBlocks (modelos sin herramientas)', () => {
 
   it('un bloque de código normal no es un cambio', () => {
     expect(parseChangeBlocks('```typst\n#table()\n```')).toEqual([]);
+  });
+});
+
+describe('looksLikeEdit', () => {
+  it('reconoce un diff o unas marcas de conflicto, aunque no sean el formato de DBV', () => {
+    expect(looksLikeEdit('<<< main.typ\nviejo\n===\nnuevo\n>>>')).toBe(true);
+    expect(looksLikeEdit('texto\n<<<<<<< SEARCH\nx\n=======\ny\n>>>>>>> END')).toBe(true);
+    expect(looksLikeEdit('  >>> 3')).toBe(true);
+  });
+
+  it('un código normal, una comparación o un `<<<` en mitad de una línea no lo son', () => {
+    expect(looksLikeEdit('#let a = 1\n#box[hola]')).toBe(false);
+    expect(looksLikeEdit('si a <<< b entonces')).toBe(false);
+    expect(looksLikeEdit('$a << b$')).toBe(false);
+    expect(looksLikeEdit('')).toBe(false);
+    expect(looksLikeEdit(null)).toBe(false);
   });
 });

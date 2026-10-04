@@ -92,13 +92,19 @@ pub struct EngineWorld {
 impl EngineWorld {
     /// Monta el mundo de `root` con `main` (ruta absoluta) como documento raíz.
     pub fn new(root: &Path, main: &Path) -> Result<Arc<Self>, EngineError> {
+        Self::new_with_cache(root, main, None)
+    }
+
+    /// Como `new`, pero con la caché de paquetes en `cache` (y sin el directorio de datos del
+    /// sistema): lo usan las pruebas para no leer ni escribir en la caché real del usuario.
+    pub fn new_with_cache(root: &Path, main: &Path, cache: Option<&Path>) -> Result<Arc<Self>, EngineError> {
         let vpath = VirtualPath::virtualize(root, main)
             .map_err(|_| EngineError::MainOutsideRoot(main.display().to_string()))?;
-        let packages = SystemPackages::from_parts(
-            FsPackages::system_data(),
-            FsPackages::system_cache(),
-            UniversePackages::new(Offline),
-        );
+        let (data, cache) = match cache {
+            Some(dir) => (None, Some(FsPackages::new(dir))),
+            None => (FsPackages::system_data(), FsPackages::system_cache()),
+        };
+        let packages = SystemPackages::from_parts(data, cache, UniversePackages::new(Offline));
         Ok(Arc::new(Self {
             root: root.to_path_buf(),
             library: LazyHash::new(Library::builder().build()),

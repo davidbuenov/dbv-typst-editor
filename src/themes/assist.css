@@ -350,6 +350,13 @@
 .ai-review__status { margin: 0; color: var(--text-secondary); }
 .ai-review__status--ok { color: var(--status-ok); }
 .ai-review__status--error { color: var(--status-error); }
+.ai-review__status--warn { color: var(--status-warning, var(--text-secondary)); }
+.ai-review__packages { display: grid; gap: 6px; padding: 8px; border-radius: var(--radius); background: var(--bg-tertiary); border: 1px solid var(--border); }
+.ai-review__packages-note { margin: 0; font-size: 12px; color: var(--text-muted); }
+.ai-review__packages-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.ai-package { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12px; }
+.ai-package__id { font-family: var(--font-mono, monospace); }
+.ai-package__meta { color: var(--text-muted); flex: 1 1 12em; }
 .ai-review__errors { margin: 4px 0 0; padding-left: 18px; }
 .ai-review__actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .ai-review__report { flex: 1 1 100%; }

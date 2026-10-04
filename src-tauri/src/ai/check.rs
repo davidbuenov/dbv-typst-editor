@@ -18,7 +18,7 @@ use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use typst::World;
 use typst_layout::PagedDocument;
 
@@ -34,10 +34,54 @@ pub struct FileContent {
     pub content: String,
 }
 
+/// Lo que el motor en proceso dice de un paquete que no tiene en la caché (`Offline`, `engine/world.rs`).
+const MISSING_PACKAGE_MARKER: &str = "el motor en proceso no descarga paquetes";
+
+/// El resultado de comprobar una propuesta (RF-93.3, RF-109.1).
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CheckOutcome {
+    /// Errores y avisos del compilador, SIN los de «falta un paquete».
+    pub diagnostics: Vec<Diagnostic>,
+    /// Paquetes `@preview/nombre:versión` que la propuesta importa y que no están instalados. No es un error
+    /// del modelo: el usuario decide si se descargan (RNF-IA.9.4) y entonces se repite la comprobación.
+    pub missing_packages: Vec<String>,
+}
+
+/// `@preview/nombre:versión` de un mensaje de «paquete sin descargar»: la URL que intentó el descargador
+/// (`…/preview/nombre-versión.tar.gz`). `None` si el mensaje es otro.
+fn missing_package(message: &str) -> Option<String> {
+    let after = message.split(MISSING_PACKAGE_MARKER).nth(1)?;
+    let archive = after.split("/preview/").nth(1)?.split(".tar.gz").next()?;
+    let (name, version) = archive.rsplit_once('-')?;
+    let version_ok = version.split('.').count() == 3 && version.split('.').all(|part| !part.is_empty() && part.chars().all(|c| c.is_ascii_digit()));
+    let name_ok = !name.is_empty() && name.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_');
+    (version_ok && name_ok).then(|| format!("@preview/{name}:{version}"))
+}
+
+/// Separa los diagnósticos «falta un paquete» del resto, sin repetir paquetes.
+fn split_missing(all: Vec<Diagnostic>) -> CheckOutcome {
+    let mut diagnostics = Vec::new();
+    let mut missing_packages: Vec<String> = Vec::new();
+    for diagnostic in all {
+        match missing_package(&diagnostic.message) {
+            Some(id) => {
+                if !missing_packages.contains(&id) {
+                    missing_packages.push(id);
+                }
+            }
+            None => diagnostics.push(diagnostic),
+        }
+    }
+    CheckOutcome { diagnostics, missing_packages }
+}
+
 /// Mundo de comprobación, reutilizado mientras no cambien raíz y principal.
 #[derive(Default)]
 pub struct CheckWorlds {
     current: Mutex<Option<(PathBuf, PathBuf, Arc<EngineWorld>)>>,
+    /// Caché de paquetes propia (pruebas); `None` = la del sistema, que comparte con el compilador.
+    cache: Option<PathBuf>,
     /// Una comprobación a la vez: dos en paralelo sobre el mismo mundo se
     /// pisarían las sustituciones a mitad de compilación (hallado en
     /// `/code-simplify`: el veredicto podía ser el de la otra comprobación).
@@ -45,6 +89,12 @@ pub struct CheckWorlds {
 }
 
 impl CheckWorlds {
+    /// Mundos de comprobación con la caché de paquetes en `dir` (pruebas).
+    #[cfg(test)]
+    pub fn with_cache(dir: PathBuf) -> Self {
+        Self { cache: Some(dir), ..Self::default() }
+    }
+
     fn world(&self, root: &PathBuf, main: &PathBuf) -> Result<Arc<EngineWorld>, AiError> {
         let mut current = self.current.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
         if let Some((known_root, known_main, world)) = current.as_ref() {
@@ -52,7 +102,7 @@ impl CheckWorlds {
                 return Ok(world.clone());
             }
         }
-        let world = EngineWorld::new(root, main).map_err(|error| AiError::Config(error.to_string()))?;
+        let world = EngineWorld::new_with_cache(root, main, self.cache.as_deref()).map_err(|error| AiError::Config(error.to_string()))?;
         *current = Some((root.clone(), main.clone(), world.clone()));
         Ok(world)
     }
@@ -65,7 +115,7 @@ impl CheckWorlds {
 
 /// Compila `main` dentro de `root` con `files` sustituidos y devuelve sus
 /// errores y avisos. Un pánico de Typst se devuelve como error, no tumba nada.
-pub fn check(worlds: &CheckWorlds, root: &str, main: &str, files: &[FileContent]) -> Result<Vec<Diagnostic>, AiError> {
+pub fn check(worlds: &CheckWorlds, root: &str, main: &str, files: &[FileContent]) -> Result<CheckOutcome, AiError> {
     let root = PathBuf::from(root);
     let main = PathBuf::from(main);
     let _turn = worlds.exclusive.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
@@ -89,7 +139,7 @@ pub fn check(worlds: &CheckWorlds, root: &str, main: &str, files: &[FileContent]
     // Sin `comemo::evict` aquí: la caché es global y envejecería la de la
     // vista previa; el motor de la vista previa ya la poda tras cada edición.
     world.clear_overrides();
-    Ok(result)
+    Ok(split_missing(result))
 }
 
 #[cfg(test)]
@@ -118,11 +168,11 @@ mod tests {
         let main = dir.path().join("main.typ").to_string_lossy().to_string();
         let root = dir.path().to_string_lossy().to_string();
 
-        let errors = check(&worlds, &root, &main, &[file(&dir, "cap.typ", "#no-existe")]).unwrap();
+        let errors = check(&worlds, &root, &main, &[file(&dir, "cap.typ", "#no-existe")]).unwrap().diagnostics;
         assert!(errors.iter().any(|d| d.level == Level::Error && d.file.as_deref() == Some("cap.typ")), "{errors:?}");
         assert_eq!(std::fs::read_to_string(dir.path().join("cap.typ")).unwrap(), "Hola.");
 
-        let fine = check(&worlds, &root, &main, &[file(&dir, "cap.typ", "= Capítulo\nTexto.")]).unwrap();
+        let fine = check(&worlds, &root, &main, &[file(&dir, "cap.typ", "= Capítulo\nTexto.")]).unwrap().diagnostics;
         assert!(fine.iter().all(|d| d.level != Level::Error), "{fine:?}");
     }
 
@@ -133,7 +183,7 @@ mod tests {
         let main = dir.path().join("main.typ").to_string_lossy().to_string();
         let root = dir.path().to_string_lossy().to_string();
         let proposal = [file(&dir, "main.typ", "#include \"caps/nuevo.typ\""), file(&dir, "caps/nuevo.typ", "= Nuevo")];
-        let result = check(&worlds, &root, &main, &proposal).unwrap();
+        let result = check(&worlds, &root, &main, &proposal).unwrap().diagnostics;
         assert!(result.iter().all(|d| d.level != Level::Error), "{result:?}");
         assert!(!dir.path().join("caps").exists(), "no se crea nada en disco");
     }
@@ -149,7 +199,7 @@ mod tests {
                 let (worlds, root, main) = (worlds.clone(), root.clone(), main.clone());
                 let content = if i % 2 == 0 { "#roto(".to_string() } else { "Bien.".to_string() };
                 let file = FileContent { path: main.clone(), content };
-                std::thread::spawn(move || (i, check(&worlds, &root, &main, &[file]).unwrap()))
+                std::thread::spawn(move || (i, check(&worlds, &root, &main, &[file]).unwrap().diagnostics))
             })
             .collect();
         for handle in handles {
@@ -166,7 +216,97 @@ mod tests {
         let main = dir.path().join("main.typ").to_string_lossy().to_string();
         let root = dir.path().to_string_lossy().to_string();
         check(&worlds, &root, &main, &[file(&dir, "main.typ", "#roto(")]).unwrap();
-        let after = check(&worlds, &root, &main, &[]).unwrap();
+        let after = check(&worlds, &root, &main, &[]).unwrap().diagnostics;
         assert!(after.iter().all(|d| d.level != Level::Error), "{after:?}");
+    }
+
+    const IMPORT_FALTA: &str = "#import \"@preview/paquete-que-no-existe-dbv:0.0.1\": f\nHola #f()";
+
+    /// Un paquete «instalado» a mano en una caché de prueba (lo que deja `install_with`).
+    fn install_by_hand(cache: &std::path::Path, name: &str, version: &str, lib: &str) {
+        let dir = cache.join(format!("preview/{name}/{version}"));
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("typst.toml"), format!("[package]\nname = \"{name}\"\nversion = \"{version}\"\nentrypoint = \"lib.typ\"\n")).unwrap();
+        std::fs::write(dir.join("lib.typ"), lib).unwrap();
+    }
+
+    #[test]
+    fn el_mensaje_de_paquete_sin_descargar_se_reconoce_y_da_el_identificador() {
+        // Texto real del motor en proceso, capturado el 2026-10-04.
+        let real = "failed to download package (el motor en proceso no descarga paquetes (https://packages.typst.org/preview/paquete-que-no-existe-dbv-0.0.1.tar.gz))";
+        assert_eq!(missing_package(real).as_deref(), Some("@preview/paquete-que-no-existe-dbv:0.0.1"));
+        assert_eq!(missing_package("unknown variable: x"), None);
+        assert_eq!(missing_package("el motor en proceso no descarga paquetes (https://evil.example/x.tar.gz)"), None);
+        assert_eq!(missing_package("el motor en proceso no descarga paquetes (https://packages.typst.org/preview/x-1.0.tar.gz)"), None, "versión sin tres partes");
+    }
+
+    #[test]
+    fn un_paquete_sin_instalar_no_es_un_error_del_modelo() {
+        let dir = project(&[("main.typ", "Inicio.")]);
+        let cache = tempfile::tempdir().unwrap();
+        let worlds = CheckWorlds::with_cache(cache.path().to_path_buf());
+        let main = dir.path().join("main.typ").to_string_lossy().to_string();
+        let root = dir.path().to_string_lossy().to_string();
+
+        let outcome = check(&worlds, &root, &main, &[file(&dir, "main.typ", IMPORT_FALTA)]).unwrap();
+
+        assert_eq!(outcome.missing_packages, vec!["@preview/paquete-que-no-existe-dbv:0.0.1".to_string()]);
+        assert!(outcome.diagnostics.iter().all(|d| !d.message.contains("no descarga paquetes")), "{:?}", outcome.diagnostics);
+        assert!(!cache.path().join("preview").exists(), "comprobar no instala ni crea nada");
+    }
+
+    #[test]
+    fn tras_instalar_y_liberar_el_mundo_la_misma_propuesta_compila() {
+        let dir = project(&[("main.typ", "Inicio.")]);
+        let cache = tempfile::tempdir().unwrap();
+        let worlds = CheckWorlds::with_cache(cache.path().to_path_buf());
+        let main = dir.path().join("main.typ").to_string_lossy().to_string();
+        let root = dir.path().to_string_lossy().to_string();
+        let proposal = [file(&dir, "main.typ", IMPORT_FALTA)];
+        assert_eq!(check(&worlds, &root, &main, &proposal).unwrap().missing_packages.len(), 1);
+
+        install_by_hand(cache.path(), "paquete-que-no-existe-dbv", "0.0.1", "#let f() = [Hecho]");
+        worlds.release();
+        let after = check(&worlds, &root, &main, &proposal).unwrap();
+
+        assert!(after.missing_packages.is_empty(), "{after:?}");
+        assert!(after.diagnostics.iter().all(|d| d.level != Level::Error), "{:?}", after.diagnostics);
+    }
+
+    #[test]
+    fn instalar_sin_liberar_el_mundo_tambien_se_ve_en_la_siguiente_comprobacion() {
+        // Si `comemo` o el almacén de ficheros recordaran el fallo, `release` sería imprescindible: se comprueba que no hace falta.
+        let dir = project(&[("main.typ", "Inicio.")]);
+        let cache = tempfile::tempdir().unwrap();
+        let worlds = CheckWorlds::with_cache(cache.path().to_path_buf());
+        let main = dir.path().join("main.typ").to_string_lossy().to_string();
+        let root = dir.path().to_string_lossy().to_string();
+        let proposal = [file(&dir, "main.typ", IMPORT_FALTA)];
+        assert_eq!(check(&worlds, &root, &main, &proposal).unwrap().missing_packages.len(), 1);
+        install_by_hand(cache.path(), "paquete-que-no-existe-dbv", "0.0.1", "#let f() = [Hecho]");
+        let after = check(&worlds, &root, &main, &proposal).unwrap();
+        assert!(after.missing_packages.is_empty(), "el mundo sigue recordando que faltaba: {after:?}");
+    }
+
+    #[test]
+    fn con_un_paquete_ausente_la_comprobacion_es_incompleta_y_el_error_real_sale_al_instalarlo() {
+        // El compilador se detiene en el `#import` que falla: un error real de un fichero posterior queda oculto
+        // hasta que el paquete está. Por eso el frontend dice «no se pudo comprobar del todo» y, tras instalar,
+        // repite la comprobación (RF-109.1, RF-109.2).
+        let dir = project(&[("main.typ", "Inicio."), ("cap.typ", "Hola.")]);
+        let cache = tempfile::tempdir().unwrap();
+        let worlds = CheckWorlds::with_cache(cache.path().to_path_buf());
+        let main = dir.path().join("main.typ").to_string_lossy().to_string();
+        let root = dir.path().to_string_lossy().to_string();
+        let proposal = [file(&dir, "main.typ", &format!("{IMPORT_FALTA}\n#include \"cap.typ\"")), file(&dir, "cap.typ", "#no-existe-de-verdad")];
+
+        let before = check(&worlds, &root, &main, &proposal).unwrap();
+        assert_eq!(before.missing_packages.len(), 1);
+        assert!(before.diagnostics.iter().all(|d| d.level != Level::Error), "{:?}", before.diagnostics);
+
+        install_by_hand(cache.path(), "paquete-que-no-existe-dbv", "0.0.1", "#let f() = [Hecho]");
+        let after = check(&worlds, &root, &main, &proposal).unwrap();
+        assert!(after.missing_packages.is_empty());
+        assert!(after.diagnostics.iter().any(|d| d.level == Level::Error && d.file.as_deref() == Some("cap.typ")), "{:?}", after.diagnostics);
     }
 }

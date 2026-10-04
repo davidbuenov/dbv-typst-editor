@@ -404,6 +404,8 @@ export const aiUniverseSearch = (query, kind = 'any', limit = 8) => call('ai_uni
 export const aiUniverseRefresh = () => call('ai_universe_refresh');
 /** Comprueba identificadores `@preview/nombre:versión` contra el catálogo descargado. */
 export const aiUniverseCheck = (ids) => call('ai_universe_check', { ids });
+/** Licencia y descripción de los paquetes que la revisión pide descargar (del catálogo ya guardado). */
+export const aiUniverseInfo = (ids) => call('ai_universe_info', { ids });
 /** README, manifiesto y plantilla de un paquete. `allowDownload` solo con una conexión en la nube (RNF-IA.9.3). */
 export const aiUniversePackageDocs = (id, allowDownload) => call('ai_universe_package_docs', { id, allowDownload });
 /** ¿Cuáles de estos paquetes ya están en la caché del compilador? → `[[id, instalado]]`. */

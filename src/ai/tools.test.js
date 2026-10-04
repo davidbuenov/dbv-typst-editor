@@ -388,3 +388,40 @@ describe('paquetes que la IA escribe en una propuesta (RF-108.4)', () => {
     expect(formatUniverseResult({ status: 'ok', hits: [] }, 'x')).toContain('no results');
   });
 });
+
+describe('comprobar con paquetes sin instalar (RF-109.1)', () => {
+  const missing = { fresh: [], fixed: 0, missing: ['@preview/charged-ieee:0.1.4'] };
+  const edit = { changes: [{ path: 'cap.typ', action: 'replace_all', content: '#import "@preview/charged-ieee:0.1.4": ieee\n' }] };
+
+  it('no lo da por fallido: dice que falta el paquete, que NO quite el import y que el usuario decidirá', async () => {
+    const { tools } = setup({ check: async () => missing });
+    const result = await tools.propose_changes.run(edit);
+    expect(result).toContain('could not be fully checked');
+    expect(result).toContain('@preview/charged-ieee:0.1.4 is not installed yet');
+    expect(result).toContain('Do NOT remove the import');
+    expect(result).toContain('The user will be asked to approve the download');
+    expect(result).not.toContain('NEW error');
+  });
+
+  it('no consume los reintentos de corrección: no es un fallo del modelo', async () => {
+    const { tools } = setup({ check: async () => missing });
+    for (let i = 0; i < MAX_FIX_ATTEMPTS + 2; i += 1) {
+      const result = await tools.propose_changes.run({ changes: [{ path: 'cap.typ', action: 'replace_all', content: `#import "@preview/charged-ieee:0.1.4": ieee\n// ${i}\n` }] });
+      expect(result).not.toContain('Do not try again');
+    }
+  });
+
+  it('con varios paquetes los nombra en plural y enseña los errores que ya se ven', async () => {
+    const check = async () => ({ fresh: [err('cap.typ', 'unknown variable: y')], fixed: 0, missing: ['@preview/a:1.0.0', '@preview/b:2.0.0'] });
+    const { tools } = setup({ check });
+    const result = await tools.propose_changes.run(edit);
+    expect(result).toContain('@preview/a:1.0.0, @preview/b:2.0.0 are not installed yet');
+    expect(result).toContain('Errors already visible');
+    expect(result).toContain('unknown variable: y');
+  });
+
+  it('sin paquetes que falten sigue diciendo lo de siempre', async () => {
+    const { tools } = setup({ check: async () => ({ fresh: [], fixed: 0, missing: [] }) });
+    expect(await tools.propose_changes.run(edit)).toContain('compiles without new errors');
+  });
+});

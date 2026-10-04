@@ -128,6 +128,7 @@ pub fn run() {
             ai::universe_search::ai_universe_search,
             ai::universe_search::ai_universe_refresh,
             ai::universe_search::ai_universe_check,
+            ai::universe_search::ai_universe_info,
             ai::universe_packages::ai_universe_package_docs,
             ai::universe_packages::ai_universe_installed,
             ai::universe_packages::ai_universe_install,

@@ -311,7 +311,14 @@ export function createTools(deps) {
         }
         report.push(...(await packageWarnings(proposal)));
         const checked = proposal.files.size ? await deps.checkProposal(proposal) : null;
-        if (checked) {
+        if (checked?.missing?.length) {
+          // No es un error del modelo: se le dice qué pasa y que NO quite el import (RF-109.1).
+          const list = checked.missing.join(', ');
+          report.push(
+            `The proposal could not be fully checked: ${list} ${checked.missing.length === 1 ? 'is' : 'are'} not installed yet. Do NOT remove the import and do not try to "fix" it: the compiler stops at the first missing package, so other errors may still be hidden. The user will be asked to approve the download when they review the proposal.`,
+          );
+          if (checked.fresh.length) report.push(`Errors already visible:\n${checked.fresh.slice(0, 10).map((d) => `- ${d.file ?? ''}:${d.line ?? ''}: ${d.message}`).join('\n')}`);
+        } else if (checked) {
           const { fresh, fixed } = checked;
           if (fresh.length) {
             fixAttempts += 1;

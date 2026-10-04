@@ -291,6 +291,35 @@ pub fn check_id(entries: &[UniverseIndexEntry], catalog: &Catalog, id: &str) -> 
     }
 }
 
+/// Lo que la revisión enseña de un paquete que se va a descargar (RF-109.2).
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PackageInfo {
+    pub id: String,
+    /// Está en el catálogo descargado (si no, solo se conoce el identificador).
+    pub known: bool,
+    pub license: String,
+    pub description: String,
+    pub repository: Option<String>,
+    pub is_template: bool,
+}
+
+/// Licencia, descripción y repositorio de la versión EXACTA de un identificador.
+pub fn info_for(entries: &[UniverseIndexEntry], id: &str) -> PackageInfo {
+    let found = parse_universe_spec(id).ok().and_then(|spec| entries.iter().find(|e| e.name == spec.name && e.version == spec.version));
+    match found {
+        Some(entry) => PackageInfo {
+            id: id.to_string(),
+            known: true,
+            license: entry.license.clone(),
+            description: shorten(&entry.description),
+            repository: entry.repository.clone(),
+            is_template: entry.is_template,
+        },
+        None => PackageInfo { id: id.to_string(), known: false, license: String::new(), description: String::new(), repository: None, is_template: false },
+    }
+}
+
 /// Resultado de `ai_universe_search`.
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -340,6 +369,14 @@ pub async fn ai_universe_refresh(app: AppHandle) -> Result<Option<u64>, AiError>
     })
     .await
     .map_err(|error| AiError::Server(error.to_string()))?
+}
+
+/// Datos de los paquetes que la revisión pide descargar (sin red: lee el catálogo ya guardado).
+#[tauri::command]
+pub fn ai_universe_info(app: AppHandle, state: State<'_, UniverseIndexState>, ids: Vec<String>) -> Vec<PackageInfo> {
+    let cached = cached_entries(data_dir(&app).as_deref(), &state);
+    let entries = cached.as_ref().map(|c| c.entries.as_slice()).unwrap_or(&[]);
+    ids.iter().take(20).map(|id| info_for(entries, id)).collect()
 }
 
 /// Comprueba identificadores contra el catálogo ya descargado (sin red).
@@ -446,6 +483,23 @@ mod tests {
         assert_eq!(days_to_date(0), "1970-01-01");
         assert_eq!(days_to_date(1_709_164_800), "2024-02-29");
         assert_eq!(days_to_date(1_760_000_000), "2025-10-09");
+    }
+
+    #[test]
+    fn la_informacion_de_un_paquete_es_la_de_su_version_exacta() {
+        let entries = vec![
+            entry(serde_json::json!({ "name": "cetz", "version": "0.4.2", "description": "Drawing" })),
+            entry(serde_json::json!({ "name": "cetz", "version": "0.5.2", "license": "LGPL-3.0-or-later", "repository": "https://github.com/cetz-package/cetz", "description": "A library for drawing" })),
+            entry(serde_json::json!({ "name": "charged-ieee", "version": "0.1.4", "template": { "path": "template", "entrypoint": "main.typ" } })),
+        ];
+        let info = info_for(&entries, "@preview/cetz:0.5.2");
+        assert_eq!((info.known, info.license.as_str(), info.is_template), (true, "LGPL-3.0-or-later", false));
+        assert_eq!(info.repository.as_deref(), Some("https://github.com/cetz-package/cetz"));
+        let old = info_for(&entries, "@preview/cetz:0.4.2");
+        assert!(old.known && old.license.is_empty(), "la 0.4.2 de la muestra no declara licencia: no se le atribuye la de otra versión");
+        assert!(info_for(&entries, "@preview/charged-ieee:0.1.4").is_template);
+        assert!(!info_for(&entries, "@preview/inventado:1.0.0").known);
+        assert!(!info_for(&entries, "no-es-un-id").known);
     }
 
     #[test]

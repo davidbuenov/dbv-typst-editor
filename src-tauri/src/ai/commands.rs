@@ -27,7 +27,6 @@ use super::providers::{self, ChatRequest, StreamEvent};
 use super::secrets::KeyStorage;
 use super::store;
 use super::{AiError, AiState};
-use crate::engine::diagnostics::Diagnostic;
 
 fn config_dir(app: &AppHandle) -> Result<PathBuf, AiError> {
     app.path().app_config_dir().map_err(|error| AiError::Config(error.to_string()))
@@ -248,7 +247,7 @@ pub fn ai_cancel(state: State<'_, AiState>, request_id: String) {
 
 /// Errores y avisos que tendría el proyecto con `files` sustituidos (RF-93.3).
 #[tauri::command]
-pub async fn ai_check_proposal(state: State<'_, AiState>, root: String, main: String, files: Vec<FileContent>) -> Result<Vec<Diagnostic>, AiError> {
+pub async fn ai_check_proposal(state: State<'_, AiState>, root: String, main: String, files: Vec<FileContent>) -> Result<check::CheckOutcome, AiError> {
     // La compilación es pesada: fuera del hilo de la interfaz, con el mundo de
     // comprobación compartido (`Arc`).
     let worlds = state.checks.clone();

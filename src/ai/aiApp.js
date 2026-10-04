@@ -503,7 +503,10 @@ export function createAiApp(deps) {
     cache.baseline ??= await backend.aiCheckProposal(projectRoot, target.document, unsaved);
     const merged = [...unsaved.filter((file) => !files.some((other) => other.path === file.path)), ...files];
     const checked = await backend.aiCheckProposal(projectRoot, target.document, merged);
-    return cache.baseline.ok && checked.ok ? describeCheck(toProblems(cache.baseline.value), toProblems(checked.value)) : null;
+    if (!cache.baseline.ok || !checked.ok) return null;
+    // `missingPackages`: imports de paquetes sin instalar. No son un error del modelo: el compilador se detiene en
+    // el primero, así que la comprobación es incompleta hasta que el usuario decida descargarlos (RF-109).
+    return { ...describeCheck(toProblems(cache.baseline.value.diagnostics), toProblems(checked.value.diagnostics)), missing: checked.value.missingPackages ?? [] };
   }
 
   /** Comprobador de una propuesta: la línea base se calcula una vez. */
@@ -544,6 +547,15 @@ export function createAiApp(deps) {
       },
       apply: () => applier.apply(proposal),
       openFile: (relative) => workspace.openDocument(joinPath(projectRoot, relative)),
+      packages: {
+        info: async (ids) => {
+          const found = await backend.aiUniverseInfo(ids);
+          return found.ok ? found.value : [];
+        },
+        // Instalar es lo que hace el compilador al importar un paquete que no tiene; aquí solo tras el clic del usuario (RNF-IA.9.4).
+        install: (id) => backend.aiUniverseInstall(id),
+        openPage: (id) => backend.openUniversePackagePage(id),
+      },
       onDone: (status, report) => {
         const current = conversation();
         const note = status === 'applied' ? t('ai.noteApplied').replace('{n}', String(report.modified.length + report.created.length + report.deleted.length + report.renamed.length)) : t('ai.rejected');

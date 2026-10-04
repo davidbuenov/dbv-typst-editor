@@ -37,9 +37,11 @@ function button(label, onClick, className = 'button button--compact') {
  * @param {() => Promise<{report: object, undo: () => Promise<boolean>}>} deps.apply
  * @param {() => void} deps.onDone Al aplicar o rechazar (la conversación guarda el resumen).
  * @param {(path: string) => void} deps.openFile
+ * @param {{info: (ids: string[]) => Promise<Array>, install: (id: string) => Promise<{ok: boolean, error?: object}>, openPage: (id: string) => void}} [deps.packages]
+ *   Paquetes de Universe que la propuesta importa y no están instalados (RF-109.2): datos, descarga con confirmación y ficha.
  * @returns {HTMLElement}
  */
-export function createReviewCard({ proposal, check, setPreview, apply, onDone, openFile }) {
+export function createReviewCard({ proposal, check, setPreview, apply, onDone, openFile, packages = null }) {
   const card = el('div', 'ai-review');
   card.setAttribute('role', 'group');
   card.setAttribute('aria-label', t('ai.reviewTitle'));
@@ -50,9 +52,71 @@ export function createReviewCard({ proposal, check, setPreview, apply, onDone, o
   status.setAttribute('aria-live', 'polite');
   const list = el('div', 'ai-review__files');
   const actions = el('div', 'ai-review__actions');
-  card.append(head, status, list, actions);
+  const packagesBox = el('div', 'ai-review__packages hidden');
+  packagesBox.setAttribute('role', 'group');
+  packagesBox.setAttribute('aria-label', t('ai.packagesTitle'));
+  card.append(head, status, packagesBox, list, actions);
   let previewing = false;
   let checkTimer = null;
+  /** Paquetes que el usuario decidió no descargar: se quedan sin comprobar. */
+  const declined = new Set();
+
+  /**
+   * «Paquetes que se descargarán» (RF-109.2): cada uno con su licencia, su ficha y, al pie, descargar o no.
+   * Nada se descarga sin este clic: es código de terceros (ADR-UNIVERSE-001, RNF-IA.9.4).
+   */
+  async function renderMissing(ids) {
+    packagesBox.replaceChildren();
+    packagesBox.classList.toggle('hidden', !ids.length || !packages);
+    if (!ids.length || !packages) return;
+    packagesBox.append(el('strong', '', t('ai.packagesTitle')), el('p', 'ai-review__packages-note', t('ai.packagesNote')));
+    const rows = new Map();
+    for (const id of ids) {
+      const row = el('div', 'ai-package');
+      const name = el('code', 'ai-package__id', id);
+      const meta = el('span', 'ai-package__meta', '');
+      row.append(name, meta, button(t('ai.packagesPage'), () => packages.openPage(id), 'button button--compact button--ghost'));
+      rows.set(id, meta);
+      packagesBox.append(row);
+    }
+    packages.info(ids).then((found) => {
+      for (const info of found) {
+        const text = [info.license && `${t('ai.packagesLicense')}: ${info.license}`, info.description].filter(Boolean).join(' · ');
+        if (rows.has(info.id)) rows.get(info.id).textContent = text || t('ai.packagesUnknown');
+      }
+    });
+    const pending = ids.filter((id) => !declined.has(id));
+    if (!pending.length) {
+      packagesBox.append(el('p', 'ai-review__done', t('ai.packagesDeclined')));
+      return;
+    }
+    const buttons = el('div', 'ai-review__packages-actions');
+    const download = button(t('ai.packagesDownload'), async () => {
+      download.disabled = true;
+      decline.disabled = true;
+      status.className = 'ai-review__status';
+      status.textContent = t('ai.packagesDownloading');
+      for (const id of pending) {
+        const installed = await packages.install(id);
+        if (!installed.ok) {
+          status.classList.add('ai-review__status--error');
+          status.textContent = t('ai.packagesFailed').replace('{id}', id).replace('{reason}', installed.error?.message ?? '');
+          download.disabled = false;
+          decline.disabled = false;
+          return;
+        }
+      }
+      // Instalados: se repite la comprobación, que ahora sí compila el proyecto entero.
+      await runCheck();
+      if (previewing) setPreview(true);
+    }, 'button button--primary button--compact');
+    const decline = button(t('ai.packagesDecline'), () => {
+      for (const id of pending) declined.add(id);
+      renderMissing(ids);
+    }, 'button button--compact');
+    buttons.append(download, decline);
+    packagesBox.append(buttons);
+  }
 
   async function runCheck() {
     status.className = 'ai-review__status';
@@ -62,13 +126,17 @@ export function createReviewCard({ proposal, check, setPreview, apply, onDone, o
       status.textContent = t('ai.checkUnavailable');
       return;
     }
-    const { fresh, fixed } = result;
-    status.classList.add(fresh.length ? 'ai-review__status--error' : 'ai-review__status--ok');
-    status.textContent = fresh.length
-      ? t('ai.checkErrors').replace('{n}', String(fresh.length))
-      : fixed
-        ? t('ai.checkFixes').replace('{n}', String(fixed))
-        : t('ai.checkOk');
+    const { fresh, fixed, missing = [] } = result;
+    renderMissing(missing);
+    // Con paquetes sin instalar la comprobación es INCOMPLETA: ni «compila» ni «introduce errores» sería honesto.
+    status.classList.add(missing.length ? 'ai-review__status--warn' : fresh.length ? 'ai-review__status--error' : 'ai-review__status--ok');
+    status.textContent = missing.length
+      ? t('ai.checkMissing').replace('{n}', String(missing.length))
+      : fresh.length
+        ? t('ai.checkErrors').replace('{n}', String(fresh.length))
+        : fixed
+          ? t('ai.checkFixes').replace('{n}', String(fixed))
+          : t('ai.checkOk');
     if (fresh.length) {
       const details = el('ul', 'ai-review__errors');
       for (const d of fresh.slice(0, 8)) details.append(el('li', '', `${d.file ?? ''}${d.line ? `:${d.line}` : ''} — ${d.message}`));

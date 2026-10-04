@@ -45,7 +45,10 @@ function setup({ connections, script = [], agent = null, modelInfo = null } = {}
       return ok(null);
     }),
     aiCancel: vi.fn(async () => ok(null)),
-    aiCheckProposal: vi.fn(async () => ok([])),
+    aiCheckProposal: vi.fn(async () => ok({ diagnostics: [], missingPackages: [] })),
+    aiUniverseInfo: vi.fn(async (ids) => ok(ids.map((id) => ({ id, known: true, license: 'MIT-0', description: 'Una plantilla', repository: null, isTemplate: true })))),
+    aiUniverseInstall: vi.fn(async (id) => ok({ id, alreadyInstalled: false })),
+    openUniversePackagePage: vi.fn(),
     aiProjectStateLoad: vi.fn(async () => ok(null)),
     aiProjectStateSave: vi.fn(async (root, value) => {
       saved.push(JSON.parse(JSON.stringify(value)));
@@ -711,5 +714,83 @@ describe('Typst Universe para la IA (RF-108, RNF-IA.9)', () => {
     expect(backend.aiUniverseCheck).toHaveBeenCalledWith(['@preview/inventado:1.0.0']);
     expect(toolMessages(backend)[0]).toContain('Never invent a package');
     expect(document.querySelector('.ai-review')).not.toBeNull();
+  });
+});
+
+describe('paquetes sin instalar en la revisión (RF-109.2)', () => {
+  const ID = '@preview/charged-ieee:0.1.4';
+  const propose = { toolCalls: [{ id: 'p1', name: 'propose_changes', arguments: JSON.stringify({ changes: [{ path: 'main.typ', action: 'edit', search: 'Uno.', replace: `#import "${ID}": ieee\nUno.` }] }) }] };
+  const buttonByText = (root, text) => [...root.querySelectorAll('button')].find((b) => b.textContent.includes(text));
+
+  /** La comprobación dice que falta el paquete hasta que el usuario lo instala. */
+  async function setupMissing() {
+    const context = setup({ connections: [ollama], script: [propose, { text: 'Hecha la propuesta.' }] });
+    const state = { installed: false };
+    context.state = state;
+    context.backend.aiCheckProposal.mockImplementation(async (root, main, files) => {
+      const proposed = files.some((f) => f.content.includes('@preview/charged-ieee'));
+      return ok({ diagnostics: [], missingPackages: proposed && !state.installed ? [ID] : [] });
+    });
+    await context.app.onProjectOpened({ root: 'D:/p' });
+    await context.app.ask('adapta al IEEE');
+    const card = document.querySelector('.ai-review');
+    await vi.waitFor(() => expect(card.querySelector('.ai-review__status').textContent).toMatch(/No se pudo comprobar del todo/));
+    return { ...context, card };
+  }
+
+  it('no se descarga nada por sí sola: enseña el paquete, su licencia y su ficha y espera el clic', async () => {
+    const { backend, card } = await setupMissing();
+    const box = card.querySelector('.ai-review__packages');
+    expect(box.classList.contains('hidden')).toBe(false);
+    expect(box.textContent).toContain('Paquetes que se descargarán');
+    expect(box.textContent).toContain(ID);
+    await vi.waitFor(() => expect(box.textContent).toContain('licencia: MIT-0'));
+    expect(box.textContent).toContain('código de terceros');
+    expect(card.querySelector('.ai-review__status').classList.contains('ai-review__status--warn')).toBe(true);
+    expect(card.querySelector('.ai-review__status').textContent).not.toMatch(/Compila|Introduce/);
+    expect(backend.aiUniverseInstall).not.toHaveBeenCalled();
+
+    buttonByText(box, 'Ficha').click();
+    expect(backend.openUniversePackagePage).toHaveBeenCalledWith(ID);
+    expect(backend.aiUniverseInstall).not.toHaveBeenCalled();
+  });
+
+  it('«Descargar y comprobar» instala solo ese paquete y repite la comprobación, que ahora compila', async () => {
+    const { backend, card, state } = await setupMissing();
+    backend.aiUniverseInstall.mockImplementation(async (id) => {
+      state.installed = true;
+      return ok({ id, alreadyInstalled: false });
+    });
+    buttonByText(card, 'Descargar y comprobar').click();
+    await vi.waitFor(() => expect(card.querySelector('.ai-review__status').textContent).toMatch(/Compila sin errores nuevos/));
+    expect(backend.aiUniverseInstall).toHaveBeenCalledTimes(1);
+    expect(backend.aiUniverseInstall).toHaveBeenCalledWith(ID);
+    expect(card.querySelector('.ai-review__packages').classList.contains('hidden')).toBe(true);
+  });
+
+  it('si la descarga falla lo dice, no da nada por comprobado y deja reintentar', async () => {
+    const { backend, card } = await setupMissing();
+    backend.aiUniverseInstall.mockResolvedValue({ ok: false, error: { kind: 'network', message: 'sin conexión' } });
+    buttonByText(card, 'Descargar y comprobar').click();
+    await vi.waitFor(() => expect(card.querySelector('.ai-review__status').textContent).toContain(`No se pudo descargar ${ID}: sin conexión`));
+    expect(buttonByText(card, 'Descargar y comprobar').disabled).toBe(false);
+    expect(card.querySelector('.ai-review__status').textContent).not.toMatch(/Compila/);
+  });
+
+  it('«No descargar» no descarga nada y la propuesta se puede revisar y aplicar igualmente, sabiendo que no está comprobada', async () => {
+    const { backend, card, multiFileEdit } = await setupMissing();
+    buttonByText(card, 'No descargar').click();
+    expect(card.querySelector('.ai-review__packages').textContent).toContain('No se descargará');
+    expect(buttonByText(card, 'Descargar y comprobar')).toBeUndefined();
+    expect(backend.aiUniverseInstall).not.toHaveBeenCalled();
+    buttonByText(card, 'Aplicar').click();
+    await vi.waitFor(() => expect(multiFileEdit.apply).toHaveBeenCalled());
+  });
+
+  it('el modelo recibe que NO debe quitar el import, y la comprobación sigue siendo la misma de siempre sin paquetes que falten', async () => {
+    const { backend } = await setupMissing();
+    const toolResult = backend.aiChat.mock.calls.at(-1)[2].messages.filter((m) => m.role === 'tool').map((m) => m.content)[0];
+    expect(toolResult).toContain('Do NOT remove the import');
+    expect(toolResult).toContain(ID);
   });
 });

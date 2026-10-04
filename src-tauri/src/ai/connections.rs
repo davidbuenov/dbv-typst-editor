@@ -65,12 +65,25 @@ impl ProviderKind {
     }
 
     /// Contexto prudente si el proveedor no lo informa (ADR-V0130-002). Ollama
-    /// trabaja con 4 096 por defecto aunque el modelo admita más.
+    /// arranca con 4 096, que deja un presupuesto útil de ≈1 600 tokens
+    /// (RF-103.2): DBV pide 8 192, el mínimo con el que el asistente funciona
+    /// (ADR-V0140-002, D2).
     pub fn default_context(self) -> u32 {
         match self {
-            Self::Ollama => 4096,
-            Self::LmStudio | Self::OpenAiCompatible => 8192,
+            Self::Ollama | Self::LmStudio | Self::OpenAiCompatible => 8192,
             _ => 32768,
+        }
+    }
+
+    /// Tope de tokens por respuesta si la conexión no fija uno (RF-107.1): un
+    /// modelo local que se desboca no debe generar hasta llenar el contexto
+    /// (la prueba de `qwen3:8b` del 2026-10-04 gastó ≈7 000 tokens en 4 min 17 s
+    /// sin mostrar nada). 8 192 cubre ≈14 páginas de una sola llamada y corta un
+    /// bucle a 29 tok/s en unos 4,7 min (D1). Las nubes ya tienen el suyo.
+    pub fn default_max_output(self) -> Option<u32> {
+        match self {
+            Self::Ollama | Self::LmStudio | Self::OpenAiCompatible => Some(8192),
+            _ => None,
         }
     }
 }
@@ -97,6 +110,10 @@ pub struct Connection {
     /// rápido, y es lo que ya hacían las conexiones anteriores a la 0.13.1.
     #[serde(default)]
     pub reasoning: Option<bool>,
+    /// Máximo de tokens que el modelo puede generar en una respuesta (RF-107.1).
+    /// `None` = el de su proveedor (`default_max_output`).
+    #[serde(default)]
+    pub max_output_tokens: Option<u32>,
 }
 
 impl Connection {
@@ -111,6 +128,12 @@ impl Connection {
     /// Contexto con el que se pide al modelo (el configurado o el prudente).
     pub fn context(&self) -> u32 {
         self.context_tokens.unwrap_or_else(|| self.provider.default_context())
+    }
+
+    /// Tope de tokens por respuesta (el configurado o el de su proveedor), nunca
+    /// mayor que el contexto: generar más no cabría (RF-107.1).
+    pub fn output_cap(&self) -> Option<u32> {
+        self.max_output_tokens.or_else(|| self.provider.default_max_output()).map(|cap| cap.min(self.context()))
     }
 
     /// Una URL que no sea `http(s)` no se acepta (ni `file:`, ni nada raro).
@@ -187,6 +210,7 @@ mod tests {
             supports_tools: Some(true),
             supports_images: Some(true),
             reasoning: None,
+            max_output_tokens: None,
         }
     }
 
@@ -211,6 +235,45 @@ mod tests {
         assert!(ProviderKind::Gemini.is_cloud());
         assert!(!ProviderKind::Ollama.is_cloud());
         assert_eq!(sample().protocol(), Protocol::Anthropic);
+    }
+
+    fn with(provider: ProviderKind, context: Option<u32>, max: Option<u32>) -> Connection {
+        Connection { provider, context_tokens: context, max_output_tokens: max, ..sample() }
+    }
+
+    #[test]
+    fn el_tope_de_salida_es_de_8192_en_locales_y_no_existe_en_la_nube() {
+        // RF-107.1 / D1: lo que se midió (una propuesta de ~1 200 palabras son 1 409 tokens) cabe de sobra.
+        for local in [ProviderKind::Ollama, ProviderKind::LmStudio, ProviderKind::OpenAiCompatible] {
+            assert_eq!(with(local, None, None).output_cap(), Some(8192), "{local:?}");
+        }
+        for cloud in [ProviderKind::Anthropic, ProviderKind::OpenAi, ProviderKind::Gemini, ProviderKind::OpenRouter, ProviderKind::Agent] {
+            assert_eq!(with(cloud, None, None).output_cap(), None, "{cloud:?}");
+        }
+    }
+
+    #[test]
+    fn el_tope_configurado_manda_y_nunca_supera_el_contexto() {
+        assert_eq!(with(ProviderKind::Ollama, None, Some(16000)).output_cap(), Some(8192), "el contexto por defecto de Ollama (8 192) es el techo");
+        assert_eq!(with(ProviderKind::Ollama, Some(32768), Some(16000)).output_cap(), Some(16000));
+        assert_eq!(with(ProviderKind::Ollama, Some(4096), None).output_cap(), Some(4096), "con 4 096 de contexto no se puede generar más");
+        // En la nube, un tope explícito se respeta.
+        assert_eq!(with(ProviderKind::Anthropic, None, Some(2000)).output_cap(), Some(2000));
+    }
+
+    #[test]
+    fn ollama_pide_8192_de_contexto_por_defecto() {
+        // ADR-V0140-002 D2: con 4 096 el presupuesto útil era de ≈1 600 tokens.
+        assert_eq!(with(ProviderKind::Ollama, None, None).context(), 8192);
+        assert_eq!(with(ProviderKind::Ollama, Some(32768), None).context(), 32768);
+    }
+
+    #[test]
+    fn una_conexion_guardada_antes_de_la_0_14_sigue_cargando_sin_el_campo() {
+        let old = r#"{"id":"c1","name":"Ollama","provider":"ollama","baseUrl":"http://localhost:11434/v1","model":"qwen3:8b","hasKey":false,"contextTokens":32768}"#;
+        let connection: Connection = serde_json::from_str(old).unwrap();
+        assert_eq!(connection.max_output_tokens, None);
+        assert_eq!(connection.output_cap(), Some(8192));
     }
 
     #[test]

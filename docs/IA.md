@@ -31,7 +31,7 @@ Es la opción más privada: los documentos no abandonan tu ordenador y no hay co
 3. Comprueba qué tienes instalado con `ollama list`.
 4. En el editor: **Herramientas → Conectar una IA**. Si Ollama está en marcha, aparece con ✓ y un botón **Usar**. Elige el modelo de la lista, pulsa **Probar conexión** y **Guardar**.
 
-Ollama escucha en `http://localhost:11434`. El editor habla con él por su **API nativa** (`/api/chat`) y le indica él mismo el tamaño de contexto, porque Ollama usa por defecto uno pequeño (2 048–4 096 tokens) y recorta en silencio lo que no cabe.
+Ollama escucha en `http://localhost:11434`. El editor habla con él por su **API nativa** (`/api/chat`) y le indica él mismo el tamaño de contexto, porque Ollama usa por defecto uno pequeño (2 048–4 096 tokens) y recorta en silencio lo que no cabe. El ajuste «Context length» de la aplicación de Ollama **no se aplica a DBV**.
 
 ### LM Studio
 
@@ -76,7 +76,7 @@ llama-server -m modelo.gguf -c 32768 -np 1 --reasoning-budget 0 --port 8080
 
 - **Herramientas.** Con un modelo que las admite, la IA lee el proyecto por su cuenta, consulta la documentación de Typst y propone cambios que DBV **compila en memoria** antes de enseñártelos. Sin herramientas, el asistente sigue sirviendo para conversar y para trabajar sobre el contexto que se le envía, pero hace menos por sí mismo. El campo *Herramientas* del formulario las detecta; si falla la detección, puedes forzarlas a *Sí* o *No*.
 - **Tamaño.** Los modelos de menos de 7 000 millones de parámetros (2–3 GB en disco) responden rápido en un portátil, pero **suelen fallar al proponer cambios** y al decidir cuándo consultar la documentación: el editor te avisa en el formulario y en el panel. Con los números de abajo, para editar con soltura conviene uno de 8B como mínimo, uno mayor o una IA en la nube.
-- **Contexto.** DBV calcula el **mínimo con el que el asistente funciona**: **8 192 tokens** con herramientas (más con el razonamiento activado) y **16 384 recomendados**. Ollama arranca con 4 096, que se queda corto: DBV te avisa con el número («con 4 096 tokens el asistente tiene que recortar casi todo lo que le envías») y puedes subirlo en el campo *Contexto* de la conexión.
+- **Contexto.** DBV calcula el **mínimo con el que el asistente funciona**: **8 192 tokens** con herramientas (más con el razonamiento activado) y **16 384 recomendados**. Ollama arranca con 4 096, que se queda corto: DBV pide **8 192** por defecto y, si escribes un valor menor, te avisa con el número («con 4 096 tokens el asistente tiene que recortar casi todo lo que le envías»); puedes subirlo en el campo *Contexto* de la conexión.
 - **Razonamiento.** Algunos modelos (Qwen3, Gemma 4…) «piensan» antes de responder. Tarda **mucho más** y se ve en el panel como «Pensando…», con un bloque plegable con lo que piensa. Cada conexión tiene un interruptor **Razonamiento**, desactivado por defecto: ver [Qué modelo local elegir](#qué-modelo-local-elegir-con-números).
 - **Memoria.** Un modelo más grande o un contexto mayor necesitan más RAM o VRAM. Con una GPU de 12 GB, un modelo de 8B (5 GB) cabe holgado; uno de 14B (9 GB) cabe justo y, si la GPU está ocupada, desborda a la RAM y va mucho más lento (en Ollama, `ollama ps` debe decir «100% GPU»).
 
@@ -128,7 +128,7 @@ Para conectar una IA local el formulario pide tres cosas: **modelo**, **contexto
 | Detalles de un modelo (arquitectura, parámetros, contexto máximo, cuantización) | `ollama show qwen3:8b` | **Contexto**: el máximo que muestra es el del modelo; elige un valor igual o menor que quepa en tu memoria |
 | Descargar un modelo nuevo | `ollama pull qwen3:8b` | — |
 
-El editor **fija el contexto por su cuenta** en Ollama, así que el campo *Contexto* es el que tú decides, no el que tenga Ollama configurado. Si lo dejas vacío, usa un valor prudente (4 096).
+El editor **fija el contexto por su cuenta** en Ollama, así que el campo *Contexto* es el que tú decides, no el que tenga Ollama configurado. Si lo dejas vacío, usa 8 192. El campo *Máximo por respuesta* (8 192 por defecto en modelos locales) corta a un modelo que se desboca antes de que llene el contexto: una propuesta larga de ~1 200 palabras ocupa unos 1 400 tokens.
 
 ### LM Studio (puerto 1234)
 

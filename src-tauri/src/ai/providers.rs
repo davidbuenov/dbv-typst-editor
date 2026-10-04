@@ -603,6 +603,12 @@ pub fn mentions_reasoning(text: &str) -> bool {
     ["think", "chat_template_kwargs", "enable_thinking"].iter().any(|word| lower.contains(word))
 }
 
+/// La petición con el tope de salida de la conexión (RF-107.1) si quien llama no
+/// pidió uno propio (la IA en línea y los reintentos sí lo hacen).
+pub fn with_output_cap(request: &ChatRequest, connection: &Connection) -> ChatRequest {
+    ChatRequest { max_tokens: request.max_tokens.or_else(|| connection.output_cap()), ..request.clone() }
+}
+
 /// Hace la petición de chat y va emitiendo eventos hasta el final.
 pub fn stream_chat(
     connection: &Connection,
@@ -612,6 +618,8 @@ pub fn stream_chat(
     emit: &mut dyn FnMut(StreamEvent),
 ) -> Result<(), AiError> {
     let base = connection.base_url.trim_end_matches('/');
+    let capped = with_output_cap(request, connection);
+    let request = &capped;
     let (url, mut body) = match connection.protocol() {
         Protocol::Anthropic => (format!("{base}/messages"), anthropic_body(request, &connection.model)),
         Protocol::OpenAi => (format!("{base}/chat/completions"), openai_body(request, &connection.model)),
@@ -1032,7 +1040,32 @@ event: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason
             supports_tools: None,
             supports_images: None,
             reasoning: None,
+            max_output_tokens: None,
         }
+    }
+
+    #[test]
+    fn el_tope_de_la_conexion_viaja_como_num_predict_o_max_tokens_y_no_pisa_el_de_quien_llama() {
+        let mut free = request();
+        free.max_tokens = None;
+        // Ollama nativo: `num_predict`.
+        let local = connection("http://localhost:11434/v1", ProviderKind::Ollama);
+        let body = ollama_body(&with_output_cap(&free, &local), "m", local.context());
+        assert_eq!(body["options"]["num_predict"], 8192);
+        // Compatible con OpenAI: `max_tokens`.
+        let compatible = connection("http://localhost:8080/v1", ProviderKind::OpenAiCompatible);
+        assert_eq!(openai_body(&with_output_cap(&free, &compatible), "m")["max_tokens"], 8192);
+        // Un tope propio de la petición (la IA en línea) manda sobre el de la conexión.
+        assert_eq!(with_output_cap(&request(), &local).max_tokens, Some(100));
+        // En la nube no se añade nada: OpenAI no recibe `max_tokens` y Anthropic conserva su 4 096.
+        let cloud = connection("https://api.openai.com/v1", ProviderKind::OpenAi);
+        assert!(openai_body(&with_output_cap(&free, &cloud), "m").get("max_tokens").is_none());
+        let claude = connection("https://api.anthropic.com/v1", ProviderKind::Anthropic);
+        assert_eq!(anthropic_body(&with_output_cap(&free, &claude), "m")["max_tokens"], 4096);
+        // Sin tope (conexión local con el tope a medida, mayor que el contexto) nunca excede el contexto.
+        let mut custom = connection("http://localhost:11434/v1", ProviderKind::Ollama);
+        custom.max_output_tokens = Some(50_000);
+        assert_eq!(with_output_cap(&free, &custom).max_tokens, Some(8192));
     }
 
     #[test]

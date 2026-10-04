@@ -144,6 +144,8 @@ pub struct ProviderInfo {
     pub base_url: &'static str,
     pub cloud: bool,
     pub context_tokens: u32,
+    /// Tope de tokens por respuesta por defecto (RF-107.1); `None` en las nubes.
+    pub max_output_tokens: Option<u32>,
 }
 
 #[tauri::command]
@@ -151,7 +153,13 @@ pub fn ai_providers() -> Vec<ProviderInfo> {
     use ProviderKind::*;
     [Ollama, LmStudio, OpenAiCompatible, Anthropic, OpenAi, Gemini, OpenRouter, Agent]
         .into_iter()
-        .map(|provider| ProviderInfo { provider, base_url: provider.default_base_url(), cloud: provider.is_cloud(), context_tokens: provider.default_context() })
+        .map(|provider| ProviderInfo {
+            provider,
+            base_url: provider.default_base_url(),
+            cloud: provider.is_cloud(),
+            context_tokens: provider.default_context(),
+            max_output_tokens: provider.default_max_output(),
+        })
         .collect()
 }
 
@@ -282,6 +290,7 @@ mod tests {
             supports_tools: None,
             supports_images: None,
             reasoning: None,
+            max_output_tokens: None,
         }
     }
 

@@ -13,6 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **Per-response token cap, configurable per connection (RF-107.1).** New "Maximum per response (tokens)" field in the connection form. With **Ollama, LM Studio and OpenAI-compatible servers** the default is **8,192** (`num_predict` on Ollama's native API, `max_tokens` on the compatible ones), never above the context; cloud AIs have no cap by default. It comes from the real `qwen3:8b` test (2026-10-04): one request generated about 7,000 tokens in 4 min 17 s without showing anything. It was calibrated by **measuring**: a legitimate ~1,200-word proposal with `qwen3:8b` is 1,409 tokens (33 s), so 8,192 covers about 14 pages in one call and cuts a loop at 29 tok/s in ≈4.7 min (16,000 would have taken ≈9). With the field empty it shows the real value that will apply. `Connection.max_output_tokens` (optional: connections saved earlier load unchanged) and `with_output_cap` in `providers.rs`; `ProviderInfo.max_output_tokens`.
+
+### Changed
+
+- **Ollama asks for 8,192 tokens of context by default, not 4,096 (RF-107.4, ADR-V0140-002 D2).** With 4,096 the assistant's useful budget was ≈1,600 tokens, below the minimum DBV itself recommends (RF-103.2). Connections with a hand-typed context do not change. The help text of the "Context" field now says that the "Context length" setting of the Ollama app **does not apply to DBV**, which sets its own `num_ctx` on every request.
+
 ## [0.13.1] - 2026-10-04
 
 The built-in AI, tested with real models and much more honest. After trying 0.13.0 with Gemma 4, Qwen, `llama3`, Claude Code and Gemini, this version fixes what failed and adds what was missing: the assistant **no longer announces proposals that do not exist**, shows **what the model is thinking** (collapsible block) and **what it is doing and how fast**, warns about a **model that is too small or a context that is too short**, ships with **reasoning off** (and you turn it on per connection), **separates presentation from content** when it writes (the look goes in style files) and **Gemini 3 can use tools again**. You can create a **loose `.typ` without creating a project** ("New empty .typ…"), and in a loose document the AI only sees its own file. The guide finally includes **measured numbers** for local models and a cloud reference, and `eval:ai` also measures cloud AIs. 0.13.0 was not published on the Microsoft Store: the Store goes from 0.12.1 to 0.13.1.

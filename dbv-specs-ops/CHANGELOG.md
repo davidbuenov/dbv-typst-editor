@@ -13,6 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Sin publicar] / [Unreleased]
 
+### Added
+
+- **Tope de tokens por respuesta, configurable por conexión (RF-107.1).** Nuevo campo «Máximo por respuesta (tokens)» en el formulario de conexión. Con **Ollama, LM Studio y servidores compatibles con OpenAI** el valor por defecto es **8 192** (`num_predict` en la API nativa de Ollama, `max_tokens` en las compatibles), siempre menor o igual que el contexto; las IAs en la nube no llevan tope por defecto. Nace de la prueba real de `qwen3:8b` (2026-10-04): una petición generó unos 7 000 tokens en 4 min 17 s sin mostrar nada. Se calibró **midiendo**: una propuesta legítima de ~1 200 palabras con `qwen3:8b` son 1 409 tokens (33 s), así que 8 192 cubre unas 14 páginas en una llamada y corta un bucle a 29 tok/s en ≈4,7 min (16 000 habrían tardado ≈9). El campo vacío muestra el valor real que se aplicará. `Connection.max_output_tokens` (opcional: las conexiones guardadas antes cargan igual) y `with_output_cap` en `providers.rs`; `ProviderInfo.max_output_tokens`.
+
+### Changed
+
+- **Ollama pide 8 192 tokens de contexto por defecto, no 4 096 (RF-107.4, ADR-V0140-002 D2).** Con 4 096 el presupuesto útil del asistente era de ≈1 600 tokens, por debajo del mínimo que DBV recomienda (RF-103.2). Las conexiones con un contexto escrito a mano no cambian. El texto de ayuda del campo «Contexto» aclara ahora que el ajuste «Context length» de la aplicación de Ollama **no se aplica a DBV**, que fija su propio `num_ctx` en cada petición.
+
 ## [0.13.1] - 2026-10-04
 
 La IA integrada, probada con modelos reales y mucho más honesta. Tras probar la 0.13.0 con Gemma 4, Qwen, `llama3`, Claude Code y Gemini, esta versión arregla lo que falló y añade lo que faltaba: el asistente **ya no anuncia propuestas que no existen**, enseña **lo que piensa el modelo** (bloque plegable) y **qué está haciendo y a qué velocidad**, avisa de un **modelo demasiado pequeño o de un contexto demasiado corto**, deja **desactivado el razonamiento** (y lo activas por conexión), **separa presentación de contenido** al escribir (el estilo, en ficheros de estilo) y **Gemini 3 vuelve a poder usar herramientas**. Se puede crear un **`.typ` suelto sin crear un proyecto** («Nuevo .typ vacío…»), y en un documento suelto la IA solo ve su fichero. La guía incluye por fin **números medidos** de los modelos locales y una referencia en la nube, y `eval:ai` mide también IAs en la nube. La 0.13.0 no se publicó en la Microsoft Store: la Store pasa de la 0.12.1 a la 0.13.1.

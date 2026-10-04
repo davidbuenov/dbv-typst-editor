@@ -14,8 +14,8 @@ registerTranslations(AI_TRANSLATIONS);
 
 const ok = (value) => ({ ok: true, value });
 const providers = [
-  { provider: 'ollama', baseUrl: 'http://localhost:11434/v1', contextTokens: 4096, cloud: false },
-  { provider: 'anthropic', baseUrl: 'https://api.anthropic.com/v1', contextTokens: 32768, cloud: true },
+  { provider: 'ollama', baseUrl: 'http://localhost:11434/v1', contextTokens: 8192, maxOutputTokens: 8192, cloud: false },
+  { provider: 'anthropic', baseUrl: 'https://api.anthropic.com/v1', contextTokens: 32768, maxOutputTokens: null, cloud: true },
 ];
 
 const SMALL = { parameterSize: '3.1B', contextLength: 32768, capabilities: ['completion', 'tools'] };
@@ -51,15 +51,20 @@ async function openOllamaForm(context) {
 
 const selectByLabel = (host, label) => [...host.querySelectorAll('.ai-form__row')].find((row) => row.textContent.startsWith(label))?.querySelector('select');
 const hintOf = (host, label) => [...host.querySelectorAll('.ai-form__row')].find((row) => row.textContent.startsWith(label))?.querySelector('.ai-form__hint').textContent;
+const inputByLabel = (host, label) => [...host.querySelectorAll('.ai-form__row')].find((row) => row.textContent.startsWith(label))?.querySelector('input');
 const advice = (host) => [...host.querySelectorAll('.ai-advice')].map((node) => node.textContent);
 const saveButton = (host) => [...host.querySelectorAll('.ai-form__actions button')].find((b) => b.classList.contains('button--primary'));
 
 beforeEach(() => setLanguage('es'));
 
 describe('avisos del modelo en el formulario (RF-103)', () => {
-  it('un modelo pequeño con el contexto por defecto de Ollama avisa de las dos cosas, con los números', async () => {
+  it('un modelo pequeño con un contexto de 4 096 avisa de las dos cosas, con los números', async () => {
     const context = await setup({ info: SMALL });
     await openOllamaForm(context);
+    const contextInput = inputByLabel(context.host, 'Contexto');
+    contextInput.value = '4096';
+    contextInput.dispatchEvent(new Event('change'));
+    await settle();
     const messages = advice(context.host);
     expect(messages).toHaveLength(2);
     expect(messages[0]).toContain('modelo pequeño (3.1B)');
@@ -81,6 +86,40 @@ describe('avisos del modelo en el formulario (RF-103)', () => {
     const context = await setup({ info: null });
     await openOllamaForm(context);
     expect(advice(context.host).every((text) => !text.includes('modelo pequeño'))).toBe(true);
+  });
+});
+
+describe('contexto y máximo por respuesta (RF-107.1, RF-107.4)', () => {
+  it('con los campos vacíos muestran el valor real que se usará, y en la nube no hay tope', async () => {
+    const context = await setup({ info: THINKER });
+    await openOllamaForm(context);
+    expect(inputByLabel(context.host, 'Contexto').placeholder).toBe('8192');
+    expect(inputByLabel(context.host, 'Máximo por respuesta').placeholder).toBe('8192');
+    expect(hintOf(context.host, 'Contexto')).toContain('Context length');
+
+    [...context.host.querySelectorAll('button')].find((b) => b.textContent.startsWith('Añadir una IA en la nube')).click();
+    await vi.waitFor(() => expect(context.host.querySelector('.ai-form__section:not(.hidden) input[type="number"]')).not.toBeNull());
+    const cloudForm = [...context.host.querySelectorAll('.ai-form__section')].find((s) => !s.classList.contains('hidden') && s.textContent.includes('Máximo por respuesta'));
+    expect(cloudForm.querySelectorAll('input[type="number"]')[1].placeholder).toBe('sin tope');
+  });
+
+  it('sin escribir nada se guarda «sin decidir» (null) y el backend aplica el suyo', async () => {
+    const context = await setup({ info: THINKER });
+    await openOllamaForm(context);
+    saveButton(context.host).click();
+    await vi.waitFor(() => expect(context.backend.aiSaveConnection).toHaveBeenCalled());
+    expect(context.backend.aiSaveConnection.mock.calls[0][0].maxOutputTokens).toBeNull();
+  });
+
+  it('un tope escrito a mano se guarda como número', async () => {
+    const context = await setup({ info: THINKER });
+    await openOllamaForm(context);
+    const maxOutput = inputByLabel(context.host, 'Máximo por respuesta');
+    maxOutput.value = '12000';
+    maxOutput.dispatchEvent(new Event('change'));
+    saveButton(context.host).click();
+    await vi.waitFor(() => expect(context.backend.aiSaveConnection).toHaveBeenCalled());
+    expect(context.backend.aiSaveConnection.mock.calls[0][0].maxOutputTokens).toBe(12000);
   });
 });
 

@@ -31,7 +31,7 @@ This is the most private option: your documents never leave your machine and the
 3. Check what you have installed with `ollama list`.
 4. In the editor: **Tools → Connect an AI**. If Ollama is running, it appears with ✓ and a **Use** button. Pick the model from the list, press **Test connection** and **Save**.
 
-Ollama listens on `http://localhost:11434`. The editor talks to it through its **native API** (`/api/chat`) and sets the context size itself, because Ollama defaults to a small one (2,048–4,096 tokens) and silently truncates whatever does not fit.
+Ollama listens on `http://localhost:11434`. The editor talks to it through its **native API** (`/api/chat`) and sets the context size itself, because Ollama defaults to a small one (2,048–4,096 tokens) and silently truncates whatever does not fit. The "Context length" setting of the Ollama app **does not apply to DBV**.
 
 ### LM Studio
 
@@ -76,7 +76,7 @@ llama-server -m model.gguf -c 32768 -np 1 --reasoning-budget 0 --port 8080
 
 - **Tools.** With a model that supports them, the AI reads the project on its own, looks things up in the Typst documentation and proposes changes that DBV **compiles in memory** before showing them to you. Without tools, the assistant is still useful for conversation and for working on the context it is sent, but it does less by itself. The form's *Tools* field detects them; if detection fails, you can force it to *Yes* or *No*.
 - **Size.** Models under 7 billion parameters (2–3 GB on disk) answer quickly on a laptop, but they **often fail at proposing changes** and at deciding when to check the documentation: the editor warns you in the form and in the panel. With the numbers below, an 8B model is the minimum for working comfortably; a larger one or a cloud AI is better.
-- **Context.** DBV computes the **minimum the assistant needs to work**: **8,192 tokens** with tools (more with reasoning on) and **16,384 recommended**. Ollama starts at 4,096, which falls short: DBV warns you with the number ("with 4,096 tokens the assistant has to trim almost everything you send it") and you can raise it in the connection's *Context* field.
+- **Context.** DBV computes the **minimum the assistant needs to work**: **8,192 tokens** with tools (more with reasoning on) and **16,384 recommended**. Ollama starts at 4,096, which falls short: DBV asks for **8,192** by default and, if you type a smaller value, warns you with the number ("with 4,096 tokens the assistant has to trim almost everything you send it"); you can raise it in the connection's *Context* field.
 - **Reasoning.** Some models (Qwen3, Gemma 4…) "think" before answering. It takes **much longer** and shows in the panel as "Thinking…", with a collapsible block of what it thinks. Every connection has a **Reasoning** switch, off by default: see [Which local model to choose](#which-local-model-to-choose-with-numbers).
 - **Memory.** A bigger model or a larger context needs more RAM or VRAM. With a 12 GB GPU, an 8B model (5 GB) fits comfortably; a 14B one (9 GB) fits tightly and, if the GPU is busy, spills into RAM and gets much slower (on Ollama, `ollama ps` should say "100% GPU").
 
@@ -128,7 +128,7 @@ To connect a local AI, the form asks for three things: **model**, **context** an
 | Details of a model (architecture, parameters, maximum context, quantization) | `ollama show qwen3:8b` | **Context**: the maximum shown is the model's; choose a value equal to or lower than what fits in your memory |
 | Download a new model | `ollama pull qwen3:8b` | — |
 
-The editor **sets the context itself** with Ollama, so the *Context* field is what you decide, not whatever Ollama has configured. If you leave it empty, it uses a safe default (4,096).
+The editor **sets the context itself** with Ollama, so the *Context* field is what you decide, not whatever Ollama has configured. If you leave it empty, it uses 8,192. The *Maximum per response* field (8,192 by default for local models) stops a runaway model before it fills the context: a long proposal of ~1,200 words takes about 1,400 tokens.
 
 ### LM Studio (port 1234)
 

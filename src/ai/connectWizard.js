@@ -203,6 +203,9 @@ export function createConnectWizard({ host, backend, onChanged, onAgent, notify 
     const context = el('input', 'form-row__input');
     context.type = 'number';
     context.min = '1024';
+    const maxOutput = el('input', 'form-row__input');
+    maxOutput.type = 'number';
+    maxOutput.min = '256';
     const tools = el('select', 'form-row__input');
     tools.append(new Option(t('ai.toolsAuto'), ''), new Option(t('ai.yes'), 'true'), new Option(t('ai.no'), 'false'));
     const reasoning = el('select', 'form-row__input');
@@ -243,6 +246,8 @@ export function createConnectWizard({ host, backend, onChanged, onAgent, notify 
       const info = providers.find((p) => p.provider === providerSelect.value);
       if (!editing || url.value === '') url.value = editing?.baseUrl ?? info?.baseUrl ?? '';
       context.placeholder = String(info?.contextTokens ?? DEFAULT_CONTEXT_TOKENS);
+      // El tope real que se aplicará con el campo vacío (RF-107.1): las nubes no tienen uno por defecto.
+      maxOutput.placeholder = info?.maxOutputTokens ? String(info.maxOutputTokens) : t('ai.maxOutputNone');
       keyRow.classList.toggle('hidden', !(info?.cloud || providerSelect.value === 'openAiCompatible'));
     };
     providerSelect.addEventListener('change', () => {
@@ -253,6 +258,7 @@ export function createConnectWizard({ host, backend, onChanged, onAgent, notify 
     model.value = editing?.model ?? initial.model ?? '';
     syncModelControl();
     context.value = editing?.contextTokens ? String(editing.contextTokens) : '';
+    maxOutput.value = editing?.maxOutputTokens ? String(editing.maxOutputTokens) : '';
     tools.value = editing?.supportsTools === undefined || editing?.supportsTools === null ? '' : String(editing.supportsTools);
     reasoning.value = editing?.reasoning === true ? 'true' : 'false';
 
@@ -264,6 +270,7 @@ export function createConnectWizard({ host, backend, onChanged, onAgent, notify 
       model: model.value.trim(),
       hasKey: Boolean(editing?.hasKey),
       contextTokens: context.value ? Number(context.value) : null,
+      maxOutputTokens: maxOutput.value ? Number(maxOutput.value) : null,
       supportsTools: tools.value === '' ? null : tools.value === 'true',
       supportsImages: editing?.supportsImages ?? null,
       // `null` donde DBV no puede fijarlo (RF-101.2); si no, desactivado salvo que se active.
@@ -346,6 +353,7 @@ export function createConnectWizard({ host, backend, onChanged, onAgent, notify 
       field(t('ai.model'), modelBox),
       advice,
       field(t('ai.contextTokens'), context, t('ai.contextHint')),
+      field(t('ai.maxOutput'), maxOutput, t('ai.maxOutputHint')),
       field(t('ai.supportsTools'), tools, t('ai.toolsHint')),
       reasoningRow,
       status,

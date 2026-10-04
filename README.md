@@ -3,9 +3,9 @@
 **🇪🇸 Español · [🇬🇧 English](./README.en.md)**
 
 [![Sitio Web](https://img.shields.io/badge/Sitio%20Web-davidbuenov.github.io%2Fdbv--typst--editor-2563eb?style=flat&logo=googlechrome&logoColor=white)](https://davidbuenov.github.io/dbv-typst-editor/)
-[![Releases](https://img.shields.io/badge/Releases-v0.13.0-brightgreen?logo=github)](https://github.com/davidbuenov/dbv-typst-editor/releases)
+[![Releases](https://img.shields.io/badge/Releases-v0.13.1-brightgreen?logo=github)](https://github.com/davidbuenov/dbv-typst-editor/releases)
 [![Microsoft Store](https://img.shields.io/badge/Microsoft%20Store-9PCPSVTNJMP0-0078D6?logo=microsoft&logoColor=white)](https://apps.microsoft.com/store/detail/9PCPSVTNJMP0?cid=DevShareMCLPCB)
-![Status](https://img.shields.io/badge/status-estable%20%7C%20v0.13.0-success)
+![Status](https://img.shields.io/badge/status-estable%20%7C%20v0.13.1-success)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
 ![Windows](https://img.shields.io/badge/Windows-10%20%2F%2011%20(Microsoft%20Store)-0078D6?logo=windows&logoColor=white)
 ![macOS](https://img.shields.io/badge/macOS-Universal%20(.dmg)-000000?logo=apple&logoColor=white)
@@ -62,7 +62,7 @@ Sigue la misma filosofía que su proyecto hermano [DBV Markdown Reader](https://
 
 ## 🚦 Estado actual
 
-**Versión actual:** `v0.13.0` · **Estado:** 🟢 Estable y listo para producción
+**Versión actual:** `v0.13.1` · **Estado:** 🟢 Estable y listo para producción
 
 - 🌐 **Sitio Web Oficial:** [https://davidbuenov.github.io/dbv-typst-editor/](https://davidbuenov.github.io/dbv-typst-editor/) (con galería interactiva de capturas en alta resolución y selector bilingüe ES/EN).
 - 📦 **Instaladores disponibles en Releases:** [GitHub Releases](https://github.com/davidbuenov/dbv-typst-editor/releases):
@@ -70,8 +70,9 @@ Sigue la misma filosofía que su proyecto hermano [DBV Markdown Reader](https://
   - 🍎 **macOS**: Archivo `.dmg` universal (compatible con Apple Silicon e Intel).
   - 🐧 **Linux**: Paquetes `.AppImage` (portable) y `.deb` (Debian/Ubuntu/Mint).
 - 🏬 **Microsoft Store:** disponible en la tienda oficial. [🛒 Consíguelo en Microsoft Store (ID 9PCPSVTNJMP0)](https://apps.microsoft.com/store/detail/9PCPSVTNJMP0?cid=DevShareMCLPCB). Si instalaste una versión previa desde la Store, asegúrate de contar con `v0.3.1` o superior (ver [`CHANGELOG.md`](./dbv-specs-ops/CHANGELOG.md)).
-- 🧪 **Calidad y estabilidad:** 1.689 pruebas automatizadas pasando al 100% (1.199 tests de frontend + 490 tests de backend en Rust), evaluación de la IA con modelos locales reales y validación de layout en motor Chromium/WebKit real.
+- 🧪 **Calidad y estabilidad:** 1.843 pruebas automatizadas pasando al 100% (1.339 tests de frontend + 504 tests de backend en Rust), evaluación de la IA con modelos locales reales y validación de layout en motor Chromium/WebKit real.
 - 🚀 **Funcionalidades destacadas incluidas:**
+  - **La IA con modelos locales y con Gemini, más honesta (v0.13.1):** el asistente ya no anuncia propuestas que no existen, enseña **lo que piensa el modelo** (bloque plegable), **qué está haciendo y a qué velocidad**, y avisa de un **modelo demasiado pequeño o un contexto demasiado corto**; el razonamiento viene **desactivado** y se activa por conexión; al escribir **separa presentación de contenido** (el estilo, en ficheros de estilo); **Gemini 3 vuelve a poder usar herramientas**. Nuevo **«Nuevo .typ vacío…»** para crear un documento suelto sin crear un proyecto (la IA solo ve su fichero). La guía incluye por fin **números medidos** de los modelos locales (`qwen3:8b` resuelve poco más de 1 de cada 3 tareas: revisa siempre lo que propone) y una referencia en la nube, y `eval:ai` mide también IAs en la nube.
   - **Asistente de IA integrado y opcional (v0.13.0):** conecta una IA local (Ollama, LM Studio), en la nube con tu clave (Anthropic, OpenAI, Gemini, OpenRouter) o tu agente instalado con tu suscripción (Claude Code, Gemini CLI, Codex, Copilot). Conversa con el proyecto como contexto, propone cambios en varios ficheros que DBV **compila en memoria** antes de enseñártelos y que revisas trozo a trozo antes de aplicar (con Deshacer); IA en línea sobre la selección (Ctrl+Mayús+I) y «Explicar y arreglar» en los errores. Sin configurar nada, el editor funciona igual que siempre; con una IA local, nada sale de tu equipo; las claves van al almacén de credenciales del sistema. **[📖 Guía: qué necesitas instalar para usar cada IA](./docs/IA.md).** Además: **documentación oficial de Typst sin conexión** (la de la versión exacta del compilador, con buscador también en español), **panel de Problemas** con la lista completa de errores y **visor de datos CSV/TSV** con «Insertar como tabla».
   - **Esquema desde la vista previa y arreglos (v0.12.1):** el panel Esquema sale del mismo compilado que la vista previa, al instante y sin compilar dos veces; lista los encabezados que irían en el índice y, si no puede mostrarlos, dice por qué (documento con errores o fallo de la herramienta) en vez de «no tiene encabezados». Corrige el AppImage de Linux (Tinymist, exportar y el motor clásico no arrancaban), la vista previa que se salía de la ventana con el panel estrecho y la sincronización por palabra tras caer al motor clásico; si la vista previa usa el motor de respaldo, un aviso permite volver al rápido.
   - **Pestañas, navegación y refactorización, búsqueda en todo el proyecto y snippets (v0.12.0):** cada fichero abierto tiene su pestaña (Ctrl+W, Ctrl+Tab, arrastrar para reordenar) y conserva cambios, cursor e historial de deshacer; las pestañas se restauran al reabrir el proyecto. Con Tinymist: ir a la definición (F12 o Ctrl+clic), buscar referencias (Mayús+F12), renombrar un símbolo en todos los ficheros (F2) y acciones de código (Ctrl+.). Buscar y reemplazar en todo el proyecto (Ctrl+Mayús+F) con expresiones regulares y filtros, y deshacer de un paso. Snippets de usuario en el formato de VS Code, globales o del proyecto. Buscar (Ctrl+F) y copiar texto directamente en la vista previa. Todos los atajos documentados en la Ayuda. El documento principal se guarda en `settings/dbv-project.toml` y viaja con el proyecto (git, `.dbvt`). Corrige el autocompletado de Tinymist dentro de las llamadas (ahora con ayuda de firma), los errores subrayados en el fichero equivocado y el salto de página al cambiar el zoom; el AppImage admite actualizaciones incrementales (`.zsync`).
@@ -212,7 +213,7 @@ npm run verify:typst
 # compilador real, sustituye datos de ejemplo y comprueba que compila a PDF
 npm run verify:templates
 
-# Tests: lógica del frontend (Vitest, 1196) + backend Rust (487)
+# Tests: lógica del frontend (Vitest, 1339) + backend Rust (504)
 npm test
 ```
 

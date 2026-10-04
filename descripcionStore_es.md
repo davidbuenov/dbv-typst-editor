@@ -37,17 +37,16 @@ Sin conexión a internet requerida para compilar ni editar. Typst Universe, la c
 
 ## Novedades de esta versión
 
-Versión 0.13.0 — Asistente de IA opcional, documentación sin conexión y más:
+Versión 0.13.1 — Asistente de IA opcional, ahora más claro y fiable con modelos locales:
 
 • Asistente de IA OPCIONAL: conecta una IA local (Ollama, LM Studio), en la nube con tu clave (Anthropic, OpenAI, Gemini, OpenRouter) o tu agente instalado (Claude Code, Gemini CLI, Codex, Copilot). Sin configurar nada, el editor funciona igual que siempre.
-• La IA propone cambios, también en varios ficheros; DBV comprueba que compilan antes de enseñártelos y los revisas trozo a trozo antes de aplicar, con Deshacer.
-• IA sobre la selección (Ctrl+Mayús+I): mejorar, corregir, traducir, convertir a tabla, explicar…
-• «Explicar y arreglar» en cada error de compilación.
-• Documentación oficial de Typst sin conexión, con buscador también en español.
-• Nuevo panel de Problemas con la lista completa de errores y avisos.
-• Visor de datos CSV/TSV con «Insertar como tabla».
-• Guía y ayuda para conectar cada IA (local, nube o tu suscripción).
-• Con una IA local nada sale de tu equipo; las claves se guardan en el almacén de credenciales de Windows.
+• La IA propone cambios, también en varios ficheros; DBV comprueba que compilan antes de enseñártelos y los revisas trozo a trozo, con Deshacer.
+• Ves lo que piensa el modelo (bloque plegable), qué está haciendo y a qué velocidad, y te avisa si el modelo es demasiado pequeño o el contexto demasiado corto.
+• Al escribir, separa el aspecto del contenido: el estilo va en ficheros de estilo.
+• Nuevo «Nuevo .typ vacío…»: crea un documento suelto sin crear un proyecto.
+• IA sobre la selección (Ctrl+Mayús+I) y «Explicar y arreglar» en cada error.
+• Documentación oficial de Typst sin conexión, panel de Problemas y visor de datos CSV/TSV.
+• Con una IA local nada sale de tu equipo; las claves van al almacén de credenciales de Windows.
 
 ---
 

@@ -89,6 +89,7 @@ We measured the models with the same loop the app uses over a **corpus of 32 rea
 | `qwen3:8b` | 5.2 GB | yes | 10 / 32 (31%) | **12 / 32 (38%)** | The best we measured. Even so it gets a little over 1 in 3 right: **always review what it proposes**. |
 | `llama3` (8B, 2024) | 4.7 GB | no (chat mode) | 5 / 32 | 6 / 32 | For chatting, not for proposing changes. |
 | `qwen2.5:3b` | 1.9 GB | yes | 2 / 32 | 1 / 32 | **Not recommended** for proposing changes. |
+| `gemma-4-E2B-it` (Q4_K_M, through `llama-server` with `--jinja`) | — | yes | 5 / 32 (16%) | 8 / 32 (25%) | **Not recommended** for proposing changes: in 2 out of 3 runs it does not even get to propose anything (it says "I will propose it again" without calling the tool). |
 
 **How to read it, plainly:**
 

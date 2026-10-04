@@ -89,6 +89,7 @@ Medimos los modelos con el mismo bucle que usa la aplicación sobre un **corpus 
 | `qwen3:8b` | 5,2 GB | sí | 10 / 32 (31 %) | **12 / 32 (38 %)** | El mejor que hemos medido. Aun así acierta poco más de 1 de cada 3: **revisa siempre lo que propone**. |
 | `llama3` (8B, 2024) | 4,7 GB | no (modo conversación) | 5 / 32 | 6 / 32 | Para conversar; no para proponer cambios. |
 | `qwen2.5:3b` | 1,9 GB | sí | 2 / 32 | 1 / 32 | **No recomendado** para proponer cambios. |
+| `gemma-4-E2B-it` (Q4_K_M, por `llama-server` con `--jinja`) | — | sí | 5 / 32 (16 %) | 8 / 32 (25 %) | **No recomendado** para proponer cambios: en 2 de cada 3 ejecuciones ni llega a proponer nada (dice «lo propondré otra vez» sin llamar a la herramienta). |
 
 **Cómo leerlo, sin adornos:**
 

@@ -656,19 +656,26 @@
   - [x] **Slice 144** — medir y recomendar (RF-104, RF-103.4): `eval:ai` con `qwen3:8b`/`14b`, tabla en la guía ES/EN y Ayuda sin `qwen2.5:3b`.
   - [x] **`/test` de v0.13.1 — 2026-10-04.** Suites: **1320 Vitest · 504 Rust · `verify:frontend` 12/12 · `verify:layout` 20/20**. Mutación manual **39/39** (al principio 34/39: los 5 supervivientes eran huecos reales —presupuesto de contexto sin test directo, caso límite de tokens, aviso de diff sin diff, aviso específico de `propose_changes` vacío redundante con el general, temporizador sin cerrar— y se cubrieron; el presupuesto pasó a la función pura `modelFit.contextBudget`). El flujo de «Nuevo .typ vacío» se extrajo de `main.js` a `app/newDocument.js` (`createNewDocumentFlow`) y gana 6 tests; test de integración de RF-105.8 con un modelo con guion (crear estilo + importarlo, editar el existente, y el caso malo que la métrica detecta). Paquete inicial: **+2,75 KB** (1 111,75 → 1 114,50 KB; gzip +0,94 KB, por «Nuevo .typ vacío» y su atajo); el código de la IA, que se carga aparte, +13,8 KB (88,6 → 102,4 KB). Evals reales: `qwen3:8b` (10/32 → 12/32), razonamiento (8/20 → 10/20 en 17× más tiempo), estilo (0/10 → 2/10) y Gemini 3.8 Flash (35/38 sin docs). Fallos corregidos durante las pruebas reales de la sesión (todos en `CHANGELOG`): firma de pensamiento de Gemini 3, detección de «no admite herramientas», selector de modelos, errores de Gemini ilegibles, `eval:ai` sin `--`. Lecciones en `memory.md`. **Siguiente: `/code-simplify`.**
   - [x] **`/code-simplify` de v0.13.1 — 2026-10-04.** Tres pases sobre `6a4b72e..HEAD` (45 ficheros, ≈2 900 líneas con tests). **Bugs:** 0 críticos, 2 importantes (la caché de la consulta al modelo recordaba los fallos y preguntaba dos veces; `reportSpeed` dentro del `try` podía convertir una respuesta correcta en error). **Seguridad:** 0 críticos, 3 importantes (el confinamiento de documento suelto fallaba abierto sin nombre de fichero; su búsqueda recorría toda la carpeta; la clave de API podía colarse en un mensaje de error guardado por el eval) y 1 nit (`$&` en un valor del proveedor). **Cumplimiento:** 1 importante (RF-105.6 estaba a medias: el principio no llegaba a los agentes ACP ni a la IA en línea) y la spec/`ARCHITECTURE.md` puestas al día (RF-102.2, RF-104.2, §7.20). **Simplificación:** el contexto efectivo y los avisos del modelo pasan de tres copias a `modelAdvice.js` (`effectiveContext`, `adviceMessages`, `createModelInfoLookup`), `callModel` sale de `ask` a `streamIntoBubble`, y un clon innecesario en Rust. Suites: **1339 Vitest · 504 Rust · `verify:frontend` 12/12 · `verify:layout` 20/20**; mutación 10/10 sobre lo añadido. **Siguiente: aprobación del usuario y `/ship` 0.13.1.**
+  - [x] **`/ship` de v0.13.1 — 2026-10-04, versión Patch (0.13.0 → 0.13.1), SIN push** (decidido en el plan: la 0.13.0 ya está en GitHub, no va a la Store y la Store recibe la 0.13.1). Versión en los cuatro sitios (`package.json`, `tauri.conf.json`, `Cargo.toml`, `Cargo.lock`; `package-lock.json` sigue en 0.12.1, desfasado desde antes), CHANGELOG ES + EN versionado, README ES/EN, `walkthrough.md`, `notasActualizacionStore_v0.13.1.md` (con «Novedades» que cubren la 0.13.0 y la 0.13.1 juntas, ES 1.082 · EN 1.067 caracteres) y `descripcionStore_es/en.md`. **`.msixbundle` generado y verificado:** `src-tauri/target/msix/dbv-typst-editor_0.13.1.0.msixbundle` (**77,61 MB**; la 0.13.0 pesó 77,56 y la 0.12.1, 76,95; `typst.exe`, `tinymist.exe`, `templates\local` con 53 ficheros, `resources	ypst-docs.json.gz`, `AppxManifest.xml` `Version="0.13.1.0"`). **Pendiente del usuario:** instalar el paquete con el certificado de pruebas y seguir la guía de 2 minutos de las notas; decidir cuándo empujar a GitHub y subirlo a Partner Center.
   - Después: `/test`, `/code-simplify`, `/ship` 0.13.1 (`.msixbundle` y `notasActualizacionStore_v0.13.1.md`). **Siguiente: aprobación del plan y `/build`.**
 
 ## 🔄 Context Snapshot / Snapshot de Contexto
 
-> ### 👉 RETOMAR AQUÍ (2026-10-03): v0.13.1 PLANIFICADA — falta la aprobación del usuario para `/build`
+> ### 👉 RETOMAR AQUÍ (2026-10-04): v0.13.1 LISTA EN LOCAL — `/ship` hecho, SIN push ni Store
 >
-> `/spec` de v0.13.1 hecho (`SPECIFICATIONS.md` v1.18, §5o, RF-99 a RF-106; `ADR-V0130-005`). RF-99 ya está
-> construido en el árbol de trabajo SIN commit (`src/ai/tools.js`, `agentLoop.js`, sus tests y el changelog ES+EN
-> en `[Sin publicar]`): hay que commitearlo. Los demás RF están por hacer. La 0.13.0 no va a la Store; la
-> Store recibirá la 0.13.1. Preguntas abiertas para `/plan` al final de §5o (`think` en Ollama, parámetro por
-> petición en llama.cpp, mínimo de contexto medido, umbral de recomendación). El vídeo de demostración queda
-> pospuesto hasta tener esto. Nota: hay `memory.md` y `task.md` sin seguimiento en la raíz del repositorio,
-> ajenos a `dbv-specs-ops/`: revisar si sobran.
+> Ciclo completo de la v0.13.1 (Spec → Plan → Build → Test → Simplify → Ship), todo commiteado en local
+> y con el tag `v0.13.1` local; **no se ha empujado nada a GitHub ni a la Store**. `SPECIFICATIONS.md` v1.18
+> (§5o, RF-99 a RF-106), `ADR-V0130-005` y `-006`. Suites: 1339 Vitest · 504 Rust · `verify:frontend` 12/12 ·
+> `verify:layout` 20/20; mutación 39/39 + 10/10. El `.msixbundle` está en
+> `src-tauri/target/msix/dbv-typst-editor_0.13.1.0.msixbundle` (77,61 MB, verificado).
+>
+> **Pendiente del usuario:** (1) instalar el paquete con el certificado de pruebas y seguir la guía de
+> 2 minutos de `notasActualizacionStore_v0.13.1.md`; (2) decidir cuándo `git push` (commits + tag) y la
+> Release de GitHub; (3) subir el `.msixbundle` a Partner Center con las notas y las «Novedades» (la Store
+> viene de la 0.12.1, así que el texto cubre la 0.13.0 y la 0.13.1); (4) probar Gemini y Claude Code en el
+> editor con el paquete. **No medido todavía:** modelos locales de 14B o más y la nube con documentación.
+> Hay un `memory.md` y un `task.md` sin seguimiento en la raíz del repositorio, ajenos a `dbv-specs-ops/`
+> (de otra conversación): no se han tocado.
 >
 > **Estado anterior (2026-10-03): v0.13.0 PUBLICADA**
 >

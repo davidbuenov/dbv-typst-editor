@@ -37,17 +37,16 @@ No internet connection required to compile or edit. Typst Universe, the manual u
 
 ## What's new in this version
 
-Version 0.13.0 — Optional AI assistant, offline documentation and more:
+Version 0.13.1 — Optional AI assistant, now clearer and more reliable with local models:
 
 • OPTIONAL AI assistant: connect a local AI (Ollama, LM Studio), a cloud one with your key (Anthropic, OpenAI, Gemini, OpenRouter) or your installed agent (Claude Code, Gemini CLI, Codex, Copilot). With nothing configured, the editor works exactly as before.
-• The AI proposes changes, across several files too; DBV checks they compile before showing them and you review them hunk by hunk before applying, with Undo.
-• AI on the selection (Ctrl+Shift+I): improve, fix, translate, convert to table, explain…
-• "Explain and fix" on every compile error.
-• Offline official Typst documentation, searchable (also in Spanish).
-• New Problems panel with the full list of errors and warnings.
-• CSV/TSV data viewer with "Insert as table".
-• Guide and help for connecting each AI (local, cloud or your subscription).
-• With a local AI nothing leaves your computer; keys are stored in the Windows Credential Manager.
+• The AI proposes changes, across several files too; DBV checks they compile before showing them and you review them hunk by hunk, with Undo.
+• You see what the model is thinking (collapsible block), what it is doing and how fast, and you are warned if the model is too small or the context too short.
+• When it writes, it separates the look from the content: the style goes in style files.
+• New "New empty .typ…": creates a loose document without creating a project.
+• AI on the selection (Ctrl+Shift+I) and "Explain and fix" on every error.
+• Offline official Typst documentation, a Problems panel and a CSV/TSV data viewer.
+• With a local AI nothing leaves your computer; keys go to the Windows Credential Manager.
 
 ---
 

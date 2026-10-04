@@ -27,7 +27,7 @@ Es la opción más privada: los documentos no abandonan tu ordenador y no hay co
 ### Ollama
 
 1. Instala [Ollama](https://ollama.com/download).
-2. Descarga un modelo, por ejemplo: `ollama pull qwen2.5:3b` (o `llama3`).
+2. Descarga un modelo, por ejemplo: `ollama pull qwen3:8b` (el mejor de los que hemos medido; ver [Qué modelo local elegir](#qué-modelo-local-elegir-con-números)).
 3. Comprueba qué tienes instalado con `ollama list`.
 4. En el editor: **Herramientas → Conectar una IA**. Si Ollama está en marcha, aparece con ✓ y un botón **Usar**. Elige el modelo de la lista, pulsa **Probar conexión** y **Guardar**.
 
@@ -64,7 +64,7 @@ Los datos del formulario (modelo, contexto, herramientas) se consultan con unos 
 
 - **El contexto no es `n_ctx_train`.** `/v1/models` muestra `n_ctx_train`, el máximo con el que se entrenó el modelo, no el que tiene tu servidor. El valor real es el flag `-c` con el que arrancaste.
 - **Los *slots* reparten el contexto.** Con varios slots (`-np`), el contexto se divide entre ellos; con `-np 4` y `-c 32768`, cada petición dispone de 8 192. Para dárselo entero a una conversación: `-np 1`.
-- **Los modelos que «piensan» pueden parecer mudos.** Algunos modelos (Gemma 4, por ejemplo) escriben primero su razonamiento en un campo aparte (`reasoning_content`) y dejan la respuesta (`content`) vacía hasta terminar. El editor muestra `content`, así que ves una respuesta vacía mientras el modelo consume cientos o miles de tokens. Arranca el servidor con `--reasoning-budget 0` para desactivar el razonamiento.
+- **Los modelos que «piensan» tardan mucho.** Algunos modelos (Gemma 4, Qwen3…) escriben primero su razonamiento (`reasoning_content`) y dejan la respuesta vacía hasta terminar, con cientos o miles de tokens por el camino. El panel lo enseña como «Pensando…» con un bloque plegable, pero la espera es larga. Arranca el servidor con `--reasoning-budget 0` para desactivarlo; DBV también manda `enable_thinking: false` a un servidor compatible genérico mientras el interruptor *Razonamiento* de la conexión esté desactivado (que es el valor por defecto).
 
 Ejemplo de arranque razonable:
 
@@ -75,9 +75,37 @@ llama-server -m modelo.gguf -c 32768 -np 1 --reasoning-budget 0 --port 8080
 ### Qué esperar de un modelo local
 
 - **Herramientas.** Con un modelo que las admite, la IA lee el proyecto por su cuenta, consulta la documentación de Typst y propone cambios que DBV **compila en memoria** antes de enseñártelos. Sin herramientas, el asistente sigue sirviendo para conversar y para trabajar sobre el contexto que se le envía, pero hace menos por sí mismo. El campo *Herramientas* del formulario las detecta; si falla la detección, puedes forzarlas a *Sí* o *No*.
-- **Tamaño.** Los modelos de 2–3 mil millones de parámetros (que ocupan unos 2–3 GB) responden rápido en un portátil, pero se quedan cortos en propuestas largas o complejas. Si las respuestas salen flojas, prueba antes con un modelo mayor que tocar la configuración.
-- **Contexto.** Un contexto de 4 096 tokens es el mínimo y se queda corto con documentos largos o imágenes. 8 192 es cómodo para trabajar; 32 768, holgado.
-- **Memoria.** Un modelo más grande o un contexto mayor necesitan más RAM o VRAM. Empieza pequeño y sube.
+- **Tamaño.** Los modelos de menos de 7 000 millones de parámetros (2–3 GB en disco) responden rápido en un portátil, pero **suelen fallar al proponer cambios** y al decidir cuándo consultar la documentación: el editor te avisa en el formulario y en el panel. Con los números de abajo, para editar con soltura conviene uno de 8B como mínimo, uno mayor o una IA en la nube.
+- **Contexto.** DBV calcula el **mínimo con el que el asistente funciona**: **8 192 tokens** con herramientas (más con el razonamiento activado) y **16 384 recomendados**. Ollama arranca con 4 096, que se queda corto: DBV te avisa con el número («con 4 096 tokens el asistente tiene que recortar casi todo lo que le envías») y puedes subirlo en el campo *Contexto* de la conexión.
+- **Razonamiento.** Algunos modelos (Qwen3, Gemma 4…) «piensan» antes de responder. Tarda **mucho más** y se ve en el panel como «Pensando…», con un bloque plegable con lo que piensa. Cada conexión tiene un interruptor **Razonamiento**, desactivado por defecto: ver [Qué modelo local elegir](#qué-modelo-local-elegir-con-números).
+- **Memoria.** Un modelo más grande o un contexto mayor necesitan más RAM o VRAM. Con una GPU de 12 GB, un modelo de 8B (5 GB) cabe holgado; uno de 14B (9 GB) cabe justo y, si la GPU está ocupada, desborda a la RAM y va mucho más lento (en Ollama, `ollama ps` debe decir «100% GPU»).
+
+### Qué modelo local elegir (con números)
+
+Medimos los modelos con el mismo bucle que usa la aplicación sobre un **corpus de 32 tareas reales de Typst** (arreglar errores del compilador, pasar de LaTeX, tablas, figuras, varios ficheros, preguntas de documentación…), con y sin la documentación de Typst que trae el editor. Una tarea se da por superada si la propuesta **compila sin errores**, hace lo que se pedía y no sale del proyecto. Equipo: RTX 4070 Ti de 12 GB, Ollama; 2–3 de octubre de 2026. Los resultados completos están en [`testfiles/ai-evals/results/`](../testfiles/ai-evals/results/).
+
+| Modelo | En disco | Herramientas | Sin documentación | Con documentación | Veredicto |
+| --- | --- | --- | --- | --- | --- |
+| `qwen3:8b` | 5,2 GB | sí | 10 / 32 (31 %) | **12 / 32 (38 %)** | El mejor que hemos medido. Aun así acierta poco más de 1 de cada 3: **revisa siempre lo que propone**. |
+| `llama3` (8B, 2024) | 4,7 GB | no (modo conversación) | 5 / 32 | 6 / 32 | Para conversar; no para proponer cambios. |
+| `qwen2.5:3b` | 1,9 GB | sí | 2 / 32 | 1 / 32 | **No recomendado** para proponer cambios. |
+
+**Cómo leerlo, sin adornos:**
+
+- **Ningún modelo local de los que hemos medido llega al 40 %** que nos pusimos como mínimo para recomendarlo para proponer cambios sin vigilancia. Sirven para borradores y para que les pidas el siguiente paso, **pero hay que revisar cada propuesta** (DBV te la enseña compilada y por trozos precisamente por eso).
+- **La documentación ayuda:** con ella, `qwen3:8b` pasa de 10 a 12 y `llama3` de 1 a 5 de 5 en las preguntas de documentación.
+- **No hemos medido todavía** modelos de 14B o más ni IAs en la nube. El script de evaluación puede hacerlo (`npm run eval:ai -- --provider …`): ver [`testfiles/ai-evals/README.md`](../testfiles/ai-evals/README.md). No te fíes de este cuadro para esas IAs.
+- **Son pocas tareas y una sola pasada:** una diferencia de uno o dos aciertos es ruido.
+
+**¿Merece la pena activar el razonamiento?** Medimos `qwen3:8b` con y sin él sobre 20 tareas representativas, con documentación:
+
+| | Sin razonamiento | Con razonamiento |
+| --- | --- | --- |
+| Tareas superadas | 8 / 20 | 10 / 20 |
+| Tiempo medio por tarea | 4,9 s | **82,7 s** |
+
+Dos aciertos más, que están dentro del ruido, a cambio de esperar **unas 17 veces más** (y tres tareas se pasaron del límite de 4 minutos). Por eso **viene desactivado**. Actívalo solo si no te importa esperar, con un contexto de 16 384 o más, y para tareas difíciles.
+
 
 ---
 
@@ -91,11 +119,11 @@ Para conectar una IA local el formulario pide tres cosas: **modelo**, **contexto
 
 | Quiero saber… | Comando | Campo del formulario |
 | --- | --- | --- |
-| Qué modelos tengo descargados | `ollama list` | **Modelo**: la columna `NAME`, completa (por ejemplo `qwen2.5:3b`; `llama3:latest` también vale como `llama3`) |
+| Qué modelos tengo descargados | `ollama list` | **Modelo**: la columna `NAME`, completa (por ejemplo `qwen3:8b`; `llama3:latest` también vale como `llama3`) |
 | Lo mismo, por la API | `curl http://localhost:11434/api/tags` | — |
 | Qué modelos están cargados en memoria ahora | `ollama ps` | — |
-| Detalles de un modelo (arquitectura, parámetros, contexto máximo, cuantización) | `ollama show qwen2.5:3b` | **Contexto**: el máximo que muestra es el del modelo; elige un valor igual o menor que quepa en tu memoria |
-| Descargar un modelo nuevo | `ollama pull qwen2.5:3b` | — |
+| Detalles de un modelo (arquitectura, parámetros, contexto máximo, cuantización) | `ollama show qwen3:8b` | **Contexto**: el máximo que muestra es el del modelo; elige un valor igual o menor que quepa en tu memoria |
+| Descargar un modelo nuevo | `ollama pull qwen3:8b` | — |
 
 El editor **fija el contexto por su cuenta** en Ollama, así que el campo *Contexto* es el que tú decides, no el que tenga Ollama configurado. Si lo dejas vacío, usa un valor prudente (4 096).
 

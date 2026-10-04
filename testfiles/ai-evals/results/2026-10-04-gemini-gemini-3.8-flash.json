@@ -1,0 +1,111 @@
+{
+  "summary": {
+    "provider": "gemini",
+    "model": "gemini-3.8-flash",
+    "context": null,
+    "think": null,
+    "tokens": {
+      "input": 2120,
+      "output": 130
+    },
+    "tools": true,
+    "date": "2026-10-04T04:59:32.644Z",
+    "complete": false,
+    "tasks": 6,
+    "withoutDocs": {
+      "passed": 0,
+      "total": 3,
+      "compiled": 3,
+      "compileTasks": 3
+    },
+    "withDocs": {
+      "passed": 0,
+      "total": 0,
+      "compiled": 0,
+      "compileTasks": 0
+    }
+  },
+  "results": [
+    {
+      "id": "style-font-new",
+      "category": "style",
+      "withDocs": false,
+      "tools": true,
+      "pass": false,
+      "checks": {
+        "compiles": true,
+        "mustContain": true,
+        "mustNotContain": true,
+        "files": true,
+        "changed": true,
+        "confined": true,
+        "separated": false
+      },
+      "steps": 1,
+      "outcome": "error",
+      "modelError": "HTTP 400",
+      "formatErrors": [],
+      "errorsAfter": [],
+      "seconds": 2.3,
+      "tokens": {
+        "input": 697,
+        "output": 92
+      },
+      "answer": ""
+    },
+    {
+      "id": "style-margins-existing",
+      "category": "style",
+      "withDocs": false,
+      "tools": true,
+      "pass": false,
+      "checks": {
+        "compiles": true,
+        "mustContain": false,
+        "mustNotContain": true,
+        "files": true,
+        "changed": false,
+        "confined": true,
+        "separated": false
+      },
+      "steps": 1,
+      "outcome": "error",
+      "modelError": "HTTP 400",
+      "formatErrors": [],
+      "errorsAfter": [],
+      "seconds": 1.5,
+      "tokens": {
+        "input": 709,
+        "output": 19
+      },
+      "answer": ""
+    },
+    {
+      "id": "style-numbering-existing",
+      "category": "style",
+      "withDocs": false,
+      "tools": true,
+      "pass": false,
+      "checks": {
+        "compiles": true,
+        "mustContain": false,
+        "mustNotContain": true,
+        "files": true,
+        "changed": false,
+        "confined": true,
+        "separated": false
+      },
+      "steps": 1,
+      "outcome": "error",
+      "modelError": "HTTP 400",
+      "formatErrors": [],
+      "errorsAfter": [],
+      "seconds": 1.6,
+      "tokens": {
+        "input": 714,
+        "output": 19
+      },
+      "answer": ""
+    }
+  ]
+}

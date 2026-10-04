@@ -6,7 +6,7 @@
 // =============================================================================
 
 import { describe, expect, it } from 'vitest';
-import { anthropicBody, CLOUD, headersFor, openAiBody, parseAnthropic, parseOpenAi, requestFor, sumUsage } from '../../scripts/evalProviders.mjs';
+import { anthropicBody, CLOUD, errorMessage, headersFor, openAiBody, parseAnthropic, parseOpenAi, requestFor, sumUsage } from '../../scripts/evalProviders.mjs';
 
 const TOOLS = [{ name: 'read_file', description: 'Lee', parameters: { type: 'object', properties: { path: { type: 'string' } } } }];
 const CONVERSATION = [
@@ -71,6 +71,21 @@ describe('respuestas', () => {
 
   it('suma el uso de varias respuestas', () => {
     expect(sumUsage([{ input: 1, output: 2 }, { input: 10, output: 20 }, null])).toEqual({ input: 11, output: 22 });
+  });
+});
+
+describe('motivo de un error HTTP', () => {
+  it('lee los tres formatos: objeto, texto y la lista que usa Gemini', () => {
+    expect(errorMessage('{"error":{"message":"clave no válida"}}', 401)).toBe('clave no válida');
+    expect(errorMessage('{"error":"modelo inexistente"}', 404)).toBe('modelo inexistente');
+    expect(errorMessage('[{"error":{"code":400,"message":"Function call is missing a thought_signature","status":"INVALID_ARGUMENT"}}]', 400)).toBe('Function call is missing a thought_signature');
+  });
+
+  it('si no se entiende, enseña el texto crudo en vez de perderlo, y sin cuerpo da el código', () => {
+    expect(errorMessage('<html>Bad gateway</html>', 502)).toBe('<html>Bad gateway</html>');
+    expect(errorMessage('x'.repeat(900), 500)).toHaveLength(500);
+    expect(errorMessage('', 400)).toBe('HTTP 400');
+    expect(errorMessage('[]', 400)).toBe('[]');
   });
 });
 

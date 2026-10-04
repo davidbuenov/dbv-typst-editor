@@ -119,6 +119,22 @@ export function parseResponse(provider, data) {
   return CLOUD[provider].protocol === 'anthropic' ? parseAnthropic(data) : parseOpenAi(data);
 }
 
+/**
+ * Motivo de un error HTTP. Los proveedores lo dan como `{"error": {"message"}}`, `{"error": "texto"}` o, Gemini,
+ * como una LISTA `[{"error": {"message"}}]`; si no se entiende, el texto crudo (recortado) en vez de perderlo.
+ */
+export function errorMessage(text, status) {
+  let parsed = null;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    // No era JSON: se usa el texto tal cual.
+  }
+  const first = Array.isArray(parsed) ? parsed[0] : parsed;
+  const detail = first?.error?.message ?? (typeof first?.error === 'string' ? first.error : null);
+  return detail ?? (String(text ?? '').trim().slice(0, 500) || `HTTP ${status}`);
+}
+
 /** Suma el uso de varias respuestas. */
 export function sumUsage(list) {
   return list.reduce((total, usage) => ({ input: total.input + (usage?.input ?? 0), output: total.output + (usage?.output ?? 0) }), { input: 0, output: 0 });

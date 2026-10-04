@@ -27,7 +27,7 @@ This is the most private option: your documents never leave your machine and the
 ### Ollama
 
 1. Install [Ollama](https://ollama.com/download).
-2. Download a model, for example: `ollama pull qwen2.5:3b` (or `llama3`).
+2. Download a model, for example: `ollama pull qwen3:8b` (the best one we measured; see [Which local model to choose](#which-local-model-to-choose-with-numbers)).
 3. Check what you have installed with `ollama list`.
 4. In the editor: **Tools → Connect an AI**. If Ollama is running, it appears with ✓ and a **Use** button. Pick the model from the list, press **Test connection** and **Save**.
 
@@ -64,7 +64,7 @@ The form values (model, context, tools) can be looked up with a few commands: se
 
 - **The context is not `n_ctx_train`.** `/v1/models` shows `n_ctx_train`, the maximum the model was trained with, not what your server has. The real value is the `-c` flag you started it with.
 - **Slots split the context.** With several slots (`-np`), the context is divided among them; with `-np 4` and `-c 32768`, each request gets 8,192. To give a single conversation all of it: `-np 1`.
-- **"Thinking" models can look mute.** Some models (Gemma 4, for example) first write their reasoning into a separate field (`reasoning_content`) and leave the answer (`content`) empty until they finish. The editor shows `content`, so you see an empty reply while the model burns hundreds or thousands of tokens. Start the server with `--reasoning-budget 0` to turn reasoning off.
+- **"Thinking" models take a long time.** Some models (Gemma 4, Qwen3…) first write their reasoning (`reasoning_content`) and leave the answer empty until they finish, with hundreds or thousands of tokens along the way. The panel shows it as "Thinking…" with a collapsible block, but the wait is long. Start the server with `--reasoning-budget 0` to turn it off; DBV also sends `enable_thinking: false` to a generic compatible server while the connection's *Reasoning* switch is off (the default).
 
 A reasonable launch example:
 
@@ -75,9 +75,37 @@ llama-server -m model.gguf -c 32768 -np 1 --reasoning-budget 0 --port 8080
 ### What to expect from a local model
 
 - **Tools.** With a model that supports them, the AI reads the project on its own, looks things up in the Typst documentation and proposes changes that DBV **compiles in memory** before showing them to you. Without tools, the assistant is still useful for conversation and for working on the context it is sent, but it does less by itself. The form's *Tools* field detects them; if detection fails, you can force it to *Yes* or *No*.
-- **Size.** Models of 2–3 billion parameters (around 2–3 GB) answer quickly on a laptop but fall short on long or complex proposals. If answers come out weak, try a larger model before touching the configuration.
-- **Context.** A 4,096-token context is the bare minimum and falls short with long documents or images. 8,192 is comfortable for working; 32,768, generous.
-- **Memory.** A bigger model or a larger context needs more RAM or VRAM. Start small and scale up.
+- **Size.** Models under 7 billion parameters (2–3 GB on disk) answer quickly on a laptop, but they **often fail at proposing changes** and at deciding when to check the documentation: the editor warns you in the form and in the panel. With the numbers below, an 8B model is the minimum for working comfortably; a larger one or a cloud AI is better.
+- **Context.** DBV computes the **minimum the assistant needs to work**: **8,192 tokens** with tools (more with reasoning on) and **16,384 recommended**. Ollama starts at 4,096, which falls short: DBV warns you with the number ("with 4,096 tokens the assistant has to trim almost everything you send it") and you can raise it in the connection's *Context* field.
+- **Reasoning.** Some models (Qwen3, Gemma 4…) "think" before answering. It takes **much longer** and shows in the panel as "Thinking…", with a collapsible block of what it thinks. Every connection has a **Reasoning** switch, off by default: see [Which local model to choose](#which-local-model-to-choose-with-numbers).
+- **Memory.** A bigger model or a larger context needs more RAM or VRAM. With a 12 GB GPU, an 8B model (5 GB) fits comfortably; a 14B one (9 GB) fits tightly and, if the GPU is busy, spills into RAM and gets much slower (on Ollama, `ollama ps` should say "100% GPU").
+
+### Which local model to choose (with numbers)
+
+We measured the models with the same loop the app uses over a **corpus of 32 real Typst tasks** (fixing compiler errors, converting from LaTeX, tables, figures, multi-file changes, documentation questions…), with and without the Typst documentation the editor ships. A task counts as passed if the proposal **compiles without errors**, does what was asked and stays inside the project. Machine: 12 GB RTX 4070 Ti, Ollama; 2–3 October 2026. The full results are in [`testfiles/ai-evals/results/`](../testfiles/ai-evals/results/).
+
+| Model | On disk | Tools | Without documentation | With documentation | Verdict |
+| --- | --- | --- | --- | --- | --- |
+| `qwen3:8b` | 5.2 GB | yes | 10 / 32 (31%) | **12 / 32 (38%)** | The best we measured. Even so it gets a little over 1 in 3 right: **always review what it proposes**. |
+| `llama3` (8B, 2024) | 4.7 GB | no (chat mode) | 5 / 32 | 6 / 32 | For chatting, not for proposing changes. |
+| `qwen2.5:3b` | 1.9 GB | yes | 2 / 32 | 1 / 32 | **Not recommended** for proposing changes. |
+
+**How to read it, plainly:**
+
+- **None of the local models we measured reaches the 40%** we set as the minimum to recommend them for proposing changes unsupervised. They are fine for drafts and for asking for the next step, **but every proposal must be reviewed** (DBV shows it compiled and hunk by hunk precisely for that reason).
+- **The documentation helps:** with it, `qwen3:8b` goes from 10 to 12 and `llama3` from 1 to 5 out of 5 on the documentation questions.
+- **We have not yet measured** models of 14B or more, nor cloud AIs. The evaluation script can do it (`npm run eval:ai -- --provider …`): see [`testfiles/ai-evals/README.md`](../testfiles/ai-evals/README.md). Do not rely on this table for those AIs.
+- **It is few tasks and a single pass:** a difference of one or two passes is noise.
+
+**Is turning reasoning on worth it?** We measured `qwen3:8b` with and without it over 20 representative tasks, with documentation:
+
+| | Reasoning off | Reasoning on |
+| --- | --- | --- |
+| Tasks passed | 8 / 20 | 10 / 20 |
+| Average time per task | 4.9 s | **82.7 s** |
+
+Two more passes, which are within the noise, in exchange for waiting **about 17 times longer** (and three tasks exceeded the 4-minute limit). That is why it **ships off**. Turn it on only if you do not mind waiting, with a context of 16,384 or more, and for hard tasks.
+
 
 ---
 
@@ -91,11 +119,11 @@ To connect a local AI, the form asks for three things: **model**, **context** an
 
 | I want to know… | Command | Form field |
 | --- | --- | --- |
-| Which models I have downloaded | `ollama list` | **Model**: the full `NAME` column (for example `qwen2.5:3b`; `llama3:latest` also works as `llama3`) |
+| Which models I have downloaded | `ollama list` | **Model**: the full `NAME` column (for example `qwen3:8b`; `llama3:latest` also works as `llama3`) |
 | The same, through the API | `curl http://localhost:11434/api/tags` | — |
 | Which models are loaded in memory right now | `ollama ps` | — |
-| Details of a model (architecture, parameters, maximum context, quantization) | `ollama show qwen2.5:3b` | **Context**: the maximum shown is the model's; choose a value equal to or lower than what fits in your memory |
-| Download a new model | `ollama pull qwen2.5:3b` | — |
+| Details of a model (architecture, parameters, maximum context, quantization) | `ollama show qwen3:8b` | **Context**: the maximum shown is the model's; choose a value equal to or lower than what fits in your memory |
+| Download a new model | `ollama pull qwen3:8b` | — |
 
 The editor **sets the context itself** with Ollama, so the *Context* field is what you decide, not whatever Ollama has configured. If you leave it empty, it uses a safe default (4,096).
 

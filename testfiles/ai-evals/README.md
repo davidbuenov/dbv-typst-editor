@@ -59,6 +59,25 @@ Cada tarea se ejecuta **sin** y **con** la documentación de Typst empaquetada. 
 | Redacción | 1 | añadir un resumen sin tocar lo demás |
 | Formato y estilo (RF-105) | 6 | tipografía, márgenes, numeración, color de encabezados, justificado; un cambio solo de contenido |
 
+## Resultados del 2026-10-03 y 04 (`qwen3:8b`, Ollama, RTX 4070 Ti 12 GB)
+
+Sobre las **32 tareas originales** (para poder compararlo con los de abajo; el corpus tiene ahora 38):
+
+| Modelo | Razonamiento | Sin documentación | Con documentación | Compila (sin → con) |
+| --- | --- | --- | --- | --- |
+| `qwen3:8b` | desactivado | 10 / 32 | 12 / 32 | 20 / 27 → 20 / 27 |
+
+Con **razonamiento activado** (`--think on`, contexto 16 384) solo se midió un subconjunto de 20 tareas (`fix-`, `table-`, `style-`) con documentación, porque una primera ejecución completa se colgó (y por eso el script tiene ahora `--timeout`, `--docs` y guardado incremental):
+
+| `qwen3:8b`, 20 tareas con documentación | Tareas superadas | Tiempo medio por tarea |
+| --- | --- | --- |
+| razonamiento desactivado | 8 / 20 | 4,9 s |
+| razonamiento activado | 10 / 20 | **82,7 s** |
+
+Dos aciertos más (dentro del ruido: hay tareas que pasan con una opción y fallan con la otra en los dos sentidos) por esperar unas 17 veces más, y tres tareas se pasaron del límite de 4 minutos (parte de esa medición compartió GPU con otras ejecuciones). Por eso el razonamiento va **desactivado por defecto**.
+
+**Estilo (RF-105), 6 tareas con `qwen3:8b` sin razonamiento:** el cambio de aspecto bien separado en un fichero de estilo pasó de 0/10 a 2/10 al añadir el principio al prompt (1/6 → 1/6 sin documentación y 1/6 → 2/6 con ella). Mejora pequeña, un solo modelo y una sola pasada: no concluyente (`2026-10-03-qwen3_8b-estilo-base.json` y `-estilo-prompt.json`).
+
 ## Resultados del 2026-10-02 (máquina de desarrollo, Ollama 0.6.5)
 
 | Modelo | Herramientas | Sin documentación | Con documentación | Preguntas de documentación (sin → con) |

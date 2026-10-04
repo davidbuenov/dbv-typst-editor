@@ -506,7 +506,11 @@ fn agent() -> ureq::Agent {
 pub fn error_message(body: &str) -> String {
     serde_json::from_str::<Value>(body)
         .ok()
-        .and_then(|value| value["error"]["message"].as_str().or_else(|| value["error"].as_str()).map(str::to_string))
+        .and_then(|value| {
+            // Gemini responde a veces con una LISTA: `[{"error": {"message": …}}]`.
+            let first = if value.is_array() { value[0].clone() } else { value };
+            first["error"]["message"].as_str().or_else(|| first["error"].as_str()).map(str::to_string)
+        })
         .unwrap_or_else(|| body.chars().take(400).collect())
 }
 
@@ -897,6 +901,17 @@ event: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason
         assert_eq!(raw, json!({"type": "done", "stopReason": "stop"}));
         let call = serde_json::to_value(StreamEvent::ToolCall { id: "1".into(), name: "n".into(), arguments: "{}".into() }).unwrap();
         assert_eq!(call["type"], "toolCall");
+    }
+
+    #[test]
+    fn el_mensaje_de_error_se_lee_en_objeto_texto_y_lista_de_gemini() {
+        assert_eq!(error_message(r#"{"error":{"message":"clave no válida"}}"#), "clave no válida");
+        assert_eq!(error_message(r#"{"error":"modelo inexistente"}"#), "modelo inexistente");
+        assert_eq!(
+            error_message(r#"[{"error":{"code":400,"message":"Function call is missing a thought_signature","status":"INVALID_ARGUMENT"}}]"#),
+            "Function call is missing a thought_signature"
+        );
+        assert_eq!(error_message("<html>Bad gateway</html>"), "<html>Bad gateway</html>");
     }
 
     #[test]

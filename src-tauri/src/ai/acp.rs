@@ -132,8 +132,11 @@ fn kill_tree(child: &mut Child) {
     }
     #[cfg(unix)]
     {
-        // El agente se lanzó como líder de su propio grupo (`process_group(0)`): `-PID` es todo el grupo.
-        let _ = Command::new("kill").args(["-TERM", &format!("-{}", child.id())]).output();
+        // El agente se lanzó como líder de su propio grupo (`process_group(0)`): `-PID` es todo el grupo. La forma
+        // `kill -TERM -PID` NO sirve: el `kill` de procps la interpreta de otro modo y mata la SESIÓN entera (en la CI de
+        // Linux se llevó por delante el propio job de pruebas). Con `-s TERM -- -PID` solo cae el grupo, y si el hijo no
+        // fuera líder de su grupo da «No such process» sin tocar nada más.
+        let _ = Command::new("kill").args(["-s", "TERM", "--", &format!("-{}", child.id())]).output();
     }
     let _ = child.kill();
 }
@@ -540,5 +543,28 @@ mod tests {
         let changes = diff_snapshots(&before, &snapshot_dir(dir.path()));
         assert_eq!(changes, vec![DiskChange { path: "main.typ".into(), before: Some("= Hola".into()), after: Some("= Hola, agente".into()) }]);
         drop(running);
+    }
+
+    /// El agente (y lo que lance) se termina como un grupo y NO se lleva por delante a quien lo lanzó. Regresión real de la
+    /// 0.14.0: `kill -TERM -PID` mataba la sesión entera y cancelaba la CI de Linux.
+    #[cfg(unix)]
+    #[test]
+    fn cerrar_el_agente_mata_su_grupo_y_no_a_quien_lo_lanzo() {
+        use std::os::unix::process::CommandExt;
+        use std::process::{Command, Stdio};
+        let mut command = Command::new("sh");
+        command.args(["-c", "sleep 60 & wait"]).stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null());
+        command.process_group(0);
+        let mut child = command.spawn().unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(200));
+        kill_tree(&mut child);
+        let started = std::time::Instant::now();
+        let mut status = None;
+        while status.is_none() && started.elapsed() < std::time::Duration::from_secs(5) {
+            status = child.try_wait().unwrap();
+            std::thread::sleep(std::time::Duration::from_millis(20));
+        }
+        assert!(status.is_some(), "el agente sigue vivo tras cerrarlo");
+        // Si hemos llegado hasta aquí, el proceso de pruebas sigue vivo: la señal no salió del grupo del agente.
     }
 }

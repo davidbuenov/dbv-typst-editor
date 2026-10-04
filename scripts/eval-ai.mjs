@@ -231,7 +231,7 @@ async function runTask(task, withDocs) {
   const steps = [];
   let result = await runAgent({ callModel, tools: toolset, messages, useTools, onStep: (step) => steps.push(step), followUp: (reply) => (useTools && proposal.files.size === 0 ? proposeNudge(reply) : null) });
   const failure = result.messages.find((m) => m.role === 'error');
-  if (failure && useTools && /tool/i.test(failure.content)) {
+  if (failure && useTools && PROVIDER === 'ollama' && /tool/i.test(failure.content)) {
     toolsSupported = false;
     return runTask(task, withDocs);
   }
@@ -268,6 +268,8 @@ async function runTask(task, withDocs) {
     checks,
     steps: steps.length,
     outcome: result.outcome,
+    // Si la llamada al modelo falló, el motivo (antes se perdía y «no pasaba nada»).
+    modelError: failure ? String(failure.content).slice(0, 600) : undefined,
     formatErrors,
     errorsAfter: finalErrors.map((d) => d.message),
     seconds: Math.round((Date.now() - started) / 100) / 10,
@@ -298,7 +300,14 @@ async function main() {
       const outcome = await runTask(task, withDocs).catch((error) => ({ id: task.id, category: task.category, withDocs, pass: false, error: error.message }));
       results.push(outcome);
       console.log(`${outcome.pass ? 'PASA' : 'FALLA'}  ${withDocs ? 'con docs' : 'sin docs'}  ${task.id.padEnd(28)} ${outcome.error ?? JSON.stringify(outcome.checks)} ${outcome.seconds ?? ''}s`);
+      if (outcome.modelError) console.log(`      ⚠ el modelo respondió con un error: ${outcome.modelError}`);
       save(false);
+      // Tres fallos seguidos de la propia llamada al modelo no son de la IA sino de la conexión: se para antes de gastar más.
+      if (results.slice(-3).length === 3 && results.slice(-3).every((r) => r.outcome === 'error')) {
+        console.log('\nPARO: las tres últimas ejecuciones fallaron al llamar al modelo (ver «⚠» arriba). Revisa el modelo, la clave y la cuenta antes de seguir.');
+        save(false);
+        process.exit(1);
+      }
     }
   }
   save(true);

@@ -51,6 +51,9 @@ export function createReviewCard({ proposal, check, setPreview, apply, onDone, o
   const head = el('div', 'ai-review__head');
   head.append(el('strong', '', t('ai.reviewTitle')));
   if (proposal.summary) head.append(el('span', 'ai-review__summary', proposal.summary));
+  // Avisos que la propia propuesta trae (p. ej. lo que puede chocar al aplicar una plantilla sin IA, RF-116.2).
+  const notes = el('div', 'ai-review__notes');
+  for (const note of proposal.notes ?? []) notes.append(el('p', 'ai-review__warn', note));
   const status = el('p', 'ai-review__status', '');
   status.setAttribute('aria-live', 'polite');
   const list = el('div', 'ai-review__files');
@@ -61,7 +64,7 @@ export function createReviewCard({ proposal, check, setPreview, apply, onDone, o
   const fontsBox = el('div', 'ai-review__packages hidden');
   fontsBox.setAttribute('role', 'group');
   fontsBox.setAttribute('aria-label', t('ai.fontsTitle'));
-  card.append(head, status, packagesBox, fontsBox, list, actions);
+  card.append(head, notes, status, packagesBox, fontsBox, list, actions);
   let previewing = false;
   let checkTimer = null;
   /** Paquetes que el usuario decidió no descargar: se quedan sin comprobar. */

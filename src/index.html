@@ -167,6 +167,9 @@
             <button id="btn-ai-connect" class="menu-item" type="button" role="menuitem">
               <span class="menu-item__icon menu-item__icon--glyph" aria-hidden="true">✦</span><span data-i18n="ai.connectMenu"></span>
             </button>
+            <button id="btn-apply-template" class="menu-item" type="button" role="menuitem">
+              <span class="menu-item__icon menu-item__icon--glyph" aria-hidden="true">▤</span><span data-i18n="ai.applyTemplateMenu"></span>
+            </button>
             <div class="menu-separator" role="separator"></div>
             <button id="btn-terminal" class="menu-item" type="button" role="menuitem">
               <span class="menu-item__icon menu-item__icon--glyph" aria-hidden="true">&gt;_</span><span data-i18n="action.terminal"></span>
@@ -1218,6 +1221,15 @@
         <nav class="help__nav" id="help-nav"></nav>
         <div class="help__content" id="help-content"></div>
       </div>
+    </div>
+
+    <!-- RF-116: «Aplicar plantilla…». -->
+    <div id="ai-template-panel" class="floating-panel floating-panel--help floating-panel--ai-connect hidden" role="dialog" aria-modal="false" aria-labelledby="ai-template-title">
+      <div class="panel__header">
+        <h2 id="ai-template-title" class="floating-panel__title" data-i18n="ai.applyTemplateTitle"></h2>
+        <button id="btn-ai-template-close" class="icon-button icon-button--small" type="button" data-i18n-title="action.close">✕</button>
+      </div>
+      <div class="ai-form ai-template" id="ai-template-body"></div>
     </div>
 
     <!-- RF-90: «Conectar una IA». -->

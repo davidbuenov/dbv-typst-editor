@@ -30,6 +30,8 @@ import { createModelClient } from './modelClient.js';
 import { applyChange, createProposal, normalizePath, overrides, parseChangeBlocks } from './proposal.js';
 import { createReviewCard } from './reviewView.js';
 import { createTools, describeCheck } from './tools.js';
+import { createApplyTemplateView } from './applyTemplateView.js';
+import { planTemplate } from './templateApply.js';
 
 // Los textos de la IA llegan con ella, no con el paquete inicial (RNF-IA.1).
 registerTranslations(AI_TRANSLATIONS);
@@ -124,6 +126,9 @@ export function createAiApp(deps) {
 
   const connectPanel = deps.registerPanel(elements.connectPanel, { toggle: false });
   elements.connectClose.addEventListener('click', connectPanel.close);
+  // «Aplicar plantilla…» (RF-116): un diálogo propio, que funciona sin ninguna IA conectada.
+  const templatePanel = elements.templatePanel ? deps.registerPanel(elements.templatePanel, { toggle: false }) : null;
+  elements.templateClose?.addEventListener('click', () => templatePanel?.close());
   const wizard = createConnectWizard({
     host: elements.connectBody,
     backend,
@@ -533,9 +538,10 @@ export function createAiApp(deps) {
     backend,
   });
 
-  function showProposal(proposal, check) {
+  /** La tarjeta de revisión de una propuesta (RF-93); la enseña quien la pide: el panel de la IA o el diálogo de plantillas. */
+  function buildReviewCard(proposal, check) {
     shownProposals.add(proposal);
-    const card = createReviewCard({
+    return createReviewCard({
       proposal,
       check: () => check(proposal),
       setPreview: (on) => {
@@ -573,7 +579,10 @@ export function createAiApp(deps) {
         persist();
       },
     });
-    panel.addNode(card);
+  }
+
+  function showProposal(proposal, check) {
+    panel.addNode(buildReviewCard(proposal, check));
   }
 
   // ─── Petición (RF-92, RF-94) ───────────────────────────────────────────────
@@ -858,6 +867,57 @@ export function createAiApp(deps) {
     wizard.open();
   }
 
+  // ─── Aplicar plantilla… (RF-116) ───────────────────────────────────────────
+
+  let templateView = null;
+
+  /**
+   * Lo mecánico de aplicar la plantilla elegida (`templateApply.js`) como una propuesta revisable (RF-93) que se
+   * enseña en el propio diálogo. Leer la documentación de la plantilla que el usuario ELIGE no es la IA tocando la
+   * red: es una acción suya.
+   */
+  async function planAndReview(hit) {
+    const target = workspace.getCompileTarget();
+    const relative = target && projectRoot ? relativeToRoot(projectRoot, target.document) : null;
+    const source = relative ? await readText(relative) : null;
+    if (source === null) return { error: t('ai.applyTemplateNoMain') };
+    const docs = await backend.aiUniversePackageDocs(hit.id, true);
+    if (!docs.ok) return { error: docs.error.message };
+    const plan = planTemplate({ source, docsText: docs.value, id: hit.id });
+    if (!plan.ok) return { error: t(`ai.applyTemplateReason.${plan.reason}`) };
+    const proposal = createProposal();
+    const applied = await applyChange(proposal, { path: relative, action: 'replace_all', content: plan.text }, readText);
+    if (!applied.ok) return { error: applied.message };
+    proposal.summary = t('ai.applyTemplateSummary').replace('{id}', hit.id);
+    proposal.notes = [
+      ...(plan.notes.includes('title') ? [t('ai.applyTemplateNoteTitle')] : []),
+      ...(plan.clashes.length ? [t('ai.applyTemplateNoteClashes').replace('{rules}', plan.clashes.map((c) => `${relative}:${c.line} ${c.text}`).join('; '))] : []),
+    ];
+    return { card: buildReviewCard(proposal, makeChecker()) };
+  }
+
+  /** Herramientas › «Aplicar plantilla…»: elegir una plantilla de Universe y aplicarla al documento principal. */
+  function applyTemplate() {
+    if (!projectRoot) {
+      toast.show(t('ai.applyTemplateNoProject'));
+      return;
+    }
+    if (!templatePanel || !workspace.getCompileTarget()) {
+      toast.show(t('ai.applyTemplateNoMain'));
+      return;
+    }
+    templateView ??= createApplyTemplateView({ panel: elements.templatePanel, body: elements.templateBody, backend, close: templatePanel.close });
+    templatePanel.open();
+    templateView.open({
+      hasAi: aiVisible() && Boolean(activeConnection()),
+      onApply: planAndReview,
+      onAskAi: (hit) => {
+        templatePanel.close();
+        ask(t('ai.applyTemplateAskPrompt').replace('{id}', hit.id), { label: t('ai.applyTemplateAskLabel').replace('{id}', hit.id) });
+      },
+    });
+  }
+
   // ─── Agentes por ACP (RF-91) ───────────────────────────────────────────────
 
   let agentTurn = null;
@@ -1099,6 +1159,7 @@ export function createAiApp(deps) {
     onProjectOpened,
     onProjectClosed,
     openConnect,
+    applyTemplate,
     ask,
     attachFile,
     isReady: () => aiVisible() && Boolean(activeConnection()) && Boolean(projectRoot),

@@ -1807,6 +1807,7 @@ async function bootstrap() {
     relativeToRoot,
     registerPanel,
     connectButton: el('btn-ai-connect'),
+    applyTemplateButton: el('btn-apply-template'),
     elements: {
       panel: el('ai-panel'),
       splitter: el('splitter-ai'),
@@ -1815,6 +1816,9 @@ async function bootstrap() {
       connectPanel: el('ai-connect-panel'),
       connectBody: el('ai-connect-body'),
       connectClose: el('btn-ai-connect-close'),
+      templatePanel: el('ai-template-panel'),
+      templateBody: el('ai-template-body'),
+      templateClose: el('btn-ai-template-close'),
     },
     backend: aiBackend,
     getProblems: () => problemsPanel.getProblems(),

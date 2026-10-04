@@ -50,6 +50,14 @@ export function initAi(deps) {
     ready.openConnect();
   });
 
+  // «Aplicar plantilla…» (RF-116) no es una función de IA: funciona sin ninguna conectada. Carga el módulo al pulsarlo,
+  // así que el paquete inicial no crece.
+  deps.applyTemplateButton?.addEventListener('click', async () => {
+    const file = await startup;
+    const ready = await load(file);
+    ready.applyTemplate();
+  });
+
   return {
     /** Se abrió un proyecto (antes o después de cargar la IA). */
     onProjectOpened(project) {

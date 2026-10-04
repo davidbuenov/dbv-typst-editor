@@ -19,7 +19,8 @@ function setup({ connections, script = [], agent = null, modelInfo = null } = {}
   document.body.innerHTML = `
     <main class="app-body"><section id="ws"></section><div id="split" class="hidden"></div><aside id="panel" class="hidden"></aside></main>
     <button id="toggle" class="hidden"></button>
-    <div id="connect" class="hidden"><div id="connect-body"></div><button id="connect-close"></button></div>`;
+    <div id="connect" class="hidden"><div id="connect-body"></div><button id="connect-close"></button></div>
+    <div id="tpl" class="hidden"><div id="tpl-body"></div><button id="tpl-close"></button></div>`;
   const handlers = {};
   const disk = { 'D:/p/main.typ': '= Hola\n\nUno.\n' };
   const saved = [];
@@ -128,6 +129,9 @@ function setup({ connections, script = [], agent = null, modelInfo = null } = {}
       connectPanel: document.getElementById('connect'),
       connectBody: document.getElementById('connect-body'),
       connectClose: document.getElementById('connect-close'),
+      templatePanel: document.getElementById('tpl'),
+      templateBody: document.getElementById('tpl-body'),
+      templateClose: document.getElementById('tpl-close'),
     },
     initialFile: file,
     getProblems: () => [],
@@ -1102,5 +1106,148 @@ describe('adaptar un documento a una plantilla, «pásalo al IEEE» (RF-110)', (
     expect(result).not.toContain('#set text');
     expect(result).toContain('Uno.');
     expect(result).toContain('Ana Pérez');
+  });
+});
+
+describe('«Aplicar plantilla…» (RF-116)', () => {
+  const ID = '@preview/charged-ieee:0.1.4';
+  const HIT = { id: ID, name: 'charged-ieee', version: '0.1.4', description: 'An IEEE-style paper template', kind: 'template', categories: ['paper'], license: 'MIT-0', updated: '2025-01-10', newerIncompatible: null };
+  const DOCS = `# ${ID}\n\n## Template entry point: template/main.typ (x)\n\`\`\`typst\n#import "${ID}": ieee\n#show: ieee.with(\n  title: [Paper Title],\n  authors: (),\n)\n\`\`\`\n\n## Template function \`ieee\` (x)\n\`\`\`typst\n#let ieee(title: [Paper Title], authors: (), body)\n\`\`\``;
+  const SOURCE = '#set document(title: "Mi artículo")\n#set page(margin: 3cm)\n\n= Introducción\n\nTexto.\n';
+  const panelEl = () => document.getElementById('tpl');
+  const byText = (root, text) => [...root.querySelectorAll('button')].find((b) => b.textContent.includes(text));
+
+  async function open(options = {}) {
+    const context = setup({ connections: [], ...options });
+    context.disk['D:/p/main.typ'] = SOURCE;
+    context.backend.aiUniverseSearch.mockResolvedValue(ok({ status: 'ok', hits: [HIT], fetchedAt: Math.floor(Date.now() / 1000), unavailable: [] }));
+    context.backend.aiUniversePackageDocs.mockResolvedValue(ok(DOCS));
+    await context.app.onProjectOpened({ root: 'D:/p' });
+    context.app.applyTemplate();
+    return context;
+  }
+
+  async function pick(context) {
+    const input = panelEl().querySelector('input[type="search"]');
+    input.value = 'ieee';
+    panelEl().querySelector('form').dispatchEvent(new Event('submit', { cancelable: true }));
+    await vi.waitFor(() => expect(panelEl().querySelector('input[type="radio"]')).not.toBeNull());
+    panelEl().querySelector('input[type="radio"]').click();
+    panelEl().querySelector('input[type="radio"]').dispatchEvent(new Event('change'));
+    return context;
+  }
+
+  it('funciona SIN ninguna IA conectada: abre el diálogo, busca solo plantillas y no ofrece pedirle nada a la IA', async () => {
+    const { backend } = await open();
+    expect(panelEl().classList.contains('hidden')).toBe(false);
+    expect(panelEl().textContent).toContain('Elige una plantilla del catálogo de Typst Universe');
+    expect(byText(panelEl(), 'Que la IA lo adapte').classList.contains('hidden')).toBe(true);
+    expect(byText(panelEl(), 'Aplicar la plantilla').disabled).toBe(true);
+    await pick({ backend });
+    expect(backend.aiUniverseSearch).toHaveBeenCalledWith('ieee', 'template', 8);
+    expect(panelEl().textContent).toContain(ID);
+    expect(panelEl().textContent).toContain('An IEEE-style paper template');
+    expect(byText(panelEl(), 'Aplicar la plantilla').disabled).toBe(false);
+  });
+
+  it('«Aplicar la plantilla» enseña UNA propuesta revisable: import y #show arriba, el documento intacto debajo, y no toca el disco', async () => {
+    const context = await open();
+    await pick(context);
+    byText(panelEl(), 'Aplicar la plantilla').click();
+    await vi.waitFor(() => expect(panelEl().querySelector('.ai-review')).not.toBeNull());
+    expect(context.backend.aiUniversePackageDocs).toHaveBeenCalledWith(ID, true);
+    const card = panelEl().querySelector('.ai-review');
+    expect(card.textContent).toContain(`Aplicar la plantilla ${ID}`);
+    await vi.waitFor(() => expect(card.querySelector('.ai-review__status').textContent).toMatch(/Compila/));
+    expect(context.disk['D:/p/main.typ']).toBe(SOURCE);
+
+    byText(card, 'Aplicar').click();
+    await vi.waitFor(() => expect(context.multiFileEdit.apply).toHaveBeenCalled());
+    const text = context.multiFileEdit.apply.mock.calls[0][0][0].edits[0].newText;
+    expect(text.startsWith(`#import "${ID}": ieee\n#show: ieee.with(\n  title: [Mi artículo],`)).toBe(true);
+    expect(text.endsWith(SOURCE)).toBe(true);
+  });
+
+  it('marca lo que puede chocar con la plantilla (sin quitarlo) y avisa de lo que no pudo rellenar', async () => {
+    const context = await open();
+    context.disk['D:/p/main.typ'] = '= Sin título declarado\n#set text(size: 12pt)\n';
+    await pick(context);
+    byText(panelEl(), 'Aplicar la plantilla').click();
+    await vi.waitFor(() => expect(panelEl().querySelector('.ai-review__notes')).not.toBeNull());
+    const notes = panelEl().querySelector('.ai-review__notes').textContent;
+    expect(notes).toContain('no lo declara con #set document(title: …)');
+    expect(notes).toContain('pueden chocar con la plantilla (no se han quitado)');
+    expect(notes).toContain('main.typ:2 #set text(size: 12pt)');
+  });
+
+  it('si la plantilla necesita un paquete sin instalar, sale el bloque «Paquetes que se descargarán» (RF-109) y se descarga solo con el clic', async () => {
+    const context = await open();
+    context.backend.aiCheckProposal.mockResolvedValue(ok({ diagnostics: [], missingPackages: [ID] }));
+    await pick(context);
+    byText(panelEl(), 'Aplicar la plantilla').click();
+    await vi.waitFor(() => expect(panelEl().querySelector('.ai-review__packages')).not.toBeNull());
+    await vi.waitFor(() => expect(panelEl().textContent).toContain('Paquetes que se descargarán'));
+    expect(context.backend.aiUniverseInstall).not.toHaveBeenCalled();
+    byText(panelEl(), 'Descargar y comprobar').click();
+    await vi.waitFor(() => expect(context.backend.aiUniverseInstall).toHaveBeenCalledWith(ID));
+  });
+
+  it('una plantilla que el documento ya usa, o que no se puede aplicar, se explica y no se propone nada', async () => {
+    const used = await open();
+    used.disk['D:/p/main.typ'] = `#import "${ID}": ieee\n#show: ieee.with()\n`;
+    await pick(used);
+    byText(panelEl(), 'Aplicar la plantilla').click();
+    await vi.waitFor(() => expect(panelEl().textContent).toContain('Este documento ya usa esa plantilla'));
+    expect(panelEl().querySelector('.ai-review')).toBeNull();
+
+    const odd = await open();
+    odd.backend.aiUniversePackageDocs.mockResolvedValue(ok('# x\n\n## README.md\nSolo un README'));
+    await pick(odd);
+    byText(panelEl(), 'Aplicar la plantilla').click();
+    await vi.waitFor(() => expect(panelEl().textContent).toContain('no describe una función de plantilla'));
+  });
+
+  it('si no se puede leer la documentación lo dice con el motivo', async () => {
+    const context = await open();
+    context.backend.aiUniversePackageDocs.mockResolvedValue({ ok: false, error: { kind: 'network', message: 'sin conexión' } });
+    await pick(context);
+    byText(panelEl(), 'Aplicar la plantilla').click();
+    await vi.waitFor(() => expect(panelEl().textContent).toContain('sin conexión'));
+  });
+
+  it('sin catálogo ofrece descargarlo (acción del usuario) y vuelve a buscar', async () => {
+    const context = setup({ connections: [] });
+    context.backend.aiUniverseSearch.mockResolvedValueOnce(ok({ status: 'noCatalog', hits: [], fetchedAt: null, unavailable: [] }));
+    context.backend.aiUniverseSearch.mockResolvedValue(ok({ status: 'ok', hits: [HIT], fetchedAt: 1, unavailable: [] }));
+    await context.app.onProjectOpened({ root: 'D:/p' });
+    context.app.applyTemplate();
+    panelEl().querySelector('input[type="search"]').value = 'ieee';
+    panelEl().querySelector('form').dispatchEvent(new Event('submit', { cancelable: true }));
+    await vi.waitFor(() => expect(panelEl().textContent).toContain('Todavía no hay catálogo'));
+    expect(context.backend.aiUniverseRefresh).not.toHaveBeenCalled();
+    byText(panelEl(), 'Descargar el catálogo').click();
+    await vi.waitFor(() => expect(panelEl().querySelector('input[type="radio"]')).not.toBeNull());
+    expect(context.backend.aiUniverseRefresh).toHaveBeenCalledTimes(1);
+  });
+
+  it('con una IA conectada se ofrece «Que la IA lo adapte», que cierra el diálogo y le pide el trabajo completo', async () => {
+    const context = await open({ connections: [ollama], script: [{ text: 'Voy a ello.' }] });
+    expect(byText(panelEl(), 'Que la IA lo adapte').classList.contains('hidden')).toBe(false);
+    await pick(context);
+    byText(panelEl(), 'Que la IA lo adapte').click();
+    await vi.waitFor(() => expect(context.backend.aiChat).toHaveBeenCalled());
+    expect(panelEl().classList.contains('hidden')).toBe(true);
+    const messages = context.backend.aiChat.mock.calls[0][2].messages;
+    const asked = messages.at(-1).content;
+    expect(asked).toContain(ID);
+    expect(asked).toContain('Adapta el formato de este documento a la plantilla');
+    expect(messages[0].content).toContain('To adapt an EXISTING document');
+  });
+
+  it('sin proyecto abierto lo dice y no abre nada', async () => {
+    const context = setup({ connections: [] });
+    context.app.applyTemplate();
+    expect(context.toast.show).toHaveBeenCalledWith(expect.stringContaining('Abre un proyecto'));
+    expect(panelEl().classList.contains('hidden')).toBe(true);
   });
 });

@@ -302,7 +302,7 @@ impl InProcEngine {
         let root = PathBuf::from(&target.root);
         let main = PathBuf::from(&target.document);
         let mut active = lock(&self.active);
-        let stale_world = active.as_ref().is_none_or(|a| a.root != root || a.main != main);
+        let stale_world = active.as_ref().is_none_or(|a| a.root != root || a.main != main || a.world.fonts_changed());
         if stale_world {
             let world = EngineWorld::new(&root, &main).map_err(|error| error.to_string())?;
             let waiters: Arc<Mutex<HashMap<u64, oneshot::Sender<CompileResult>>>> = Arc::default();

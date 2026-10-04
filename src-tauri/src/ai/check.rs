@@ -98,7 +98,7 @@ impl CheckWorlds {
     fn world(&self, root: &PathBuf, main: &PathBuf) -> Result<Arc<EngineWorld>, AiError> {
         let mut current = self.current.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
         if let Some((known_root, known_main, world)) = current.as_ref() {
-            if known_root == root && known_main == main {
+            if known_root == root && known_main == main && !world.fonts_changed() {
                 return Ok(world.clone());
             }
         }

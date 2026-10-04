@@ -81,6 +81,8 @@ pub struct EngineWorld {
     root: PathBuf,
     library: LazyHash<Library>,
     fonts: Arc<FontStore>,
+    /// Qué carpetas de fuentes había al crear el mundo: si cambia, el mundo está desfasado (`fonts_changed`).
+    font_key: FontKey,
     main: FileId,
     /// `RwLock`: las lecturas de Typst (que puede componer en paralelo) comparten;
     /// `reset` entre compilaciones toma el acceso exclusivo.
@@ -105,15 +107,24 @@ impl EngineWorld {
             None => (FsPackages::system_data(), FsPackages::system_cache()),
         };
         let packages = SystemPackages::from_parts(data, cache, UniversePackages::new(Offline));
+        let font_key = font_key(root);
+        let fonts = font_store_for(&font_key);
         Ok(Arc::new(Self {
             root: root.to_path_buf(),
             library: LazyHash::new(Library::builder().build()),
-            fonts: font_store(root),
+            fonts,
+            font_key,
             main: RootedPath::new(VirtualRoot::Project, vpath).intern(),
             files: RwLock::new(FileStore::new(SystemFiles::new(FsRoot::new(root.to_path_buf()), packages))),
             now: RwLock::new(Time::system()),
             overrides: RwLock::new(HashMap::new()),
         }))
+    }
+
+    /// ¿Se añadió, quitó o cambió una fuente de `fonts/` desde que se creó el mundo? Entonces hay que crear otro:
+    /// las fuentes se reúnen una sola vez por mundo (p. ej. las que un agente deja en el proyecto).
+    pub fn fonts_changed(&self) -> bool {
+        font_key(&self.root) != self.font_key
     }
 
     /// Raíz del proyecto.
@@ -323,15 +334,19 @@ fn folder_signature(path: &Path) -> u64 {
     hasher.finish()
 }
 
-pub(crate) fn font_store(root: &Path) -> Arc<FontStore> {
+fn font_key(root: &Path) -> FontKey {
     let paths = project_font_paths(root);
-    let key = FontKey {
-        contents: paths.iter().fold(0u64, |acc, path| acc.rotate_left(7) ^ folder_signature(path)),
-        paths,
-    };
+    FontKey { contents: paths.iter().fold(0u64, |acc, path| acc.rotate_left(7) ^ folder_signature(path)), paths }
+}
+
+pub(crate) fn font_store(root: &Path) -> Arc<FontStore> {
+    font_store_for(&font_key(root))
+}
+
+fn font_store_for(key: &FontKey) -> Arc<FontStore> {
     let mut cached = FONTS.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
     if let Some((known, store)) = cached.as_ref() {
-        if *known == key {
+        if known == key {
             return store.clone();
         }
     }
@@ -343,7 +358,7 @@ pub(crate) fn font_store(root: &Path) -> Arc<FontStore> {
         store.extend(fonts::scan(path));
     }
     let store = Arc::new(store);
-    *cached = Some((key, store.clone()));
+    *cached = Some((key.clone(), store.clone()));
     store
 }
 
@@ -485,6 +500,18 @@ A2.".into())]);
         assert!(error.to_lowercase().contains("package"), "{error}");
         // Sin red no hay espera de conexión: el fallo es inmediato.
         assert!(started.elapsed() < std::time::Duration::from_secs(5));
+    }
+
+    #[test]
+    fn una_fuente_nueva_en_el_proyecto_deja_el_mundo_desfasado() {
+        let dir = project(&[("main.typ", "x")]);
+        let world = EngineWorld::new(dir.path(), &dir.path().join("main.typ")).unwrap();
+        assert!(!world.fonts_changed());
+        std::fs::create_dir_all(dir.path().join("fonts")).unwrap();
+        std::fs::write(dir.path().join("fonts").join("Nueva.otf"), b"no es una fuente").unwrap();
+        assert!(world.fonts_changed(), "un agente dejó una fuente en fonts/: hay que reunirlas de nuevo");
+        let renewed = EngineWorld::new(dir.path(), &dir.path().join("main.typ")).unwrap();
+        assert!(!renewed.fonts_changed());
     }
 
     #[test]

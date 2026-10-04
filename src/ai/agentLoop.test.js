@@ -6,7 +6,7 @@
 // =============================================================================
 
 import { describe, expect, it, vi } from 'vitest';
-import { extractTextToolCalls, parseArguments, proposeNudge, runAgent } from './agentLoop.js';
+import { diagnoseResponse, extractTextToolCalls, parseArguments, proposeNudge, runAgent } from './agentLoop.js';
 import { buildContext, estimateTokens, separationPrinciple, systemPrompt, windowAround } from './context.js';
 
 /** Modelo simulado con guion: devuelve las respuestas en orden. */
@@ -20,6 +20,88 @@ function scripted(...responses) {
 }
 
 const tool = (name, run) => ({ name, description: name, parameters: { type: 'object' }, run: vi.fn(run), label: (args) => `${name} ${JSON.stringify(args)}` });
+
+describe('respuestas vacías, cortadas o rotas (RF-107.3)', () => {
+  const run = (responses, extra = {}) => {
+    const { callModel, calls } = scripted(...responses);
+    const notices = [];
+    const result = runAgent({ callModel, tools: [tool('read_file', async () => 'x')], messages: [{ role: 'user', content: 'hola' }], onNotice: (n) => notices.push(n), ...extra });
+    return { result, calls, notices };
+  };
+
+  it('diagnoseResponse distingue vacía, cortada con llamada o sin nada, y texto cortado', () => {
+    expect(diagnoseResponse({ text: '  ', stopReason: 'stop' }, [])).toBe('empty');
+    expect(diagnoseResponse({ text: 'Hola', stopReason: 'stop' }, [])).toBeNull();
+    expect(diagnoseResponse({ text: '', stopReason: 'stop' }, [{ id: '1', name: 'a', arguments: '{}' }])).toBeNull();
+    expect(diagnoseResponse({ text: '', stopReason: 'length' }, [])).toBe('length');
+    expect(diagnoseResponse({ text: '', stopReason: 'length' }, [{ id: '1', name: 'a', arguments: '{' }])).toBe('length');
+    expect(diagnoseResponse({ text: 'Mira <tool_call>{"name":"a"', stopReason: 'length' }, [])).toBe('length');
+    expect(diagnoseResponse({ text: 'Una respuesta larga que se cortó', stopReason: 'length' }, [])).toBe('lengthText');
+  });
+
+  it('(a) una respuesta vacía: aviso, un reintento con recordatorio y sin guardar el mensaje vacío', async () => {
+    const { result, calls, notices } = run([{ text: '', toolCalls: [] }, { text: 'Ahora sí.', toolCalls: [] }]);
+    const done = await result;
+    expect(done.outcome).toBe('done');
+    expect(notices).toEqual([{ kind: 'empty', final: false }]);
+    expect(calls).toHaveLength(2);
+    expect(calls[1].messages.at(-1).role).toBe('user');
+    expect(calls[1].messages.at(-1).content).toContain('empty');
+    expect(done.messages.filter((m) => m.role === 'assistant').map((m) => m.content)).toEqual(['Ahora sí.']);
+  });
+
+  it('(a) dos vacías seguidas: la segunda es definitiva y el turno acaba sin más llamadas', async () => {
+    const { result, calls, notices } = run([{ text: '', toolCalls: [] }, { text: '', toolCalls: [] }, { text: 'nunca', toolCalls: [] }]);
+    const done = await result;
+    expect(done.outcome).toBe('stalled');
+    expect(notices).toEqual([{ kind: 'empty', final: false }, { kind: 'empty', final: true }]);
+    expect(calls).toHaveLength(2);
+  });
+
+  it('(b) cortada por el tope con una llamada a medias: no se ejecuta y se pide más breve', async () => {
+    const read = tool('read_file', async () => 'x');
+    const { callModel, calls } = scripted(
+      { text: '', stopReason: 'length', toolCalls: [{ id: 'c1', name: 'read_file', arguments: '{"path":"ma' }] },
+      { text: 'Más corto.', toolCalls: [] },
+    );
+    const notices = [];
+    const done = await runAgent({ callModel, tools: [read], messages: [], onNotice: (n) => notices.push(n) });
+    expect(read.run).not.toHaveBeenCalled();
+    expect(notices).toEqual([{ kind: 'length', final: false }]);
+    expect(calls[1].messages.at(-1).content).toContain('much shorter');
+    expect(done.messages.at(-1).content).toBe('Más corto.');
+  });
+
+  it('(b) un texto largo cortado por el tope se conserva, se avisa y NO se repite', async () => {
+    const { result, calls, notices } = run([{ text: 'Una respuesta muy larga que llegó hasta el tope', stopReason: 'length', toolCalls: [] }]);
+    const done = await result;
+    expect(calls).toHaveLength(1);
+    expect(notices).toEqual([{ kind: 'lengthText', final: true }]);
+    expect(done.messages.at(-1).content).toContain('muy larga');
+    expect(done.outcome).toBe('done');
+  });
+
+  it('(c) una llamada con JSON roto: aviso, el error vuelve al modelo para que la repita; la segunda vez, se para', async () => {
+    const broken = { id: 'c1', name: 'read_file', arguments: '{nope' };
+    const { result, calls, notices } = run([
+      { text: '', toolCalls: [broken] },
+      { text: '', toolCalls: [{ ...broken, id: 'c2' }] },
+      { text: 'nunca', toolCalls: [] },
+    ]);
+    const done = await result;
+    expect(notices).toEqual([{ kind: 'broken', final: false }, { kind: 'broken', final: true }]);
+    expect(calls[1].messages.at(-1)).toMatchObject({ role: 'tool', toolCallId: 'c1' });
+    expect(calls[1].messages.at(-1).content).toContain('invalid JSON');
+    expect(calls).toHaveLength(2);
+    expect(done.outcome).toBe('stalled');
+  });
+
+  it('una respuesta normal no genera avisos', async () => {
+    const { result, notices } = run([{ text: 'Hola.', toolCalls: [], stopReason: 'stop' }]);
+    await result;
+    expect(notices).toEqual([]);
+  });
+});
 
 describe('runAgent', () => {
   it('ejecuta herramientas y devuelve sus resultados al modelo hasta que responde', async () => {

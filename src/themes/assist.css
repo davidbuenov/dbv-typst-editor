@@ -293,6 +293,8 @@
 .ai-form__advice:empty, .ai-panel__warning:empty { display: none; }
 .ai-advice { font-size: 12px; padding: 6px 8px; border-radius: var(--radius); background: var(--bg-tertiary); color: var(--text-secondary); border-left: 3px solid var(--status-warning, #b8860b); }
 .ai-panel__warning { display: grid; gap: 4px; padding: 0 10px; }
+.ai-activity-row { display: flex; align-items: center; gap: 6px; }
+.ai-activity__time { font-size: 11px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
 .ai-activity { font-size: 11px; color: var(--text-muted); font-style: italic; display: flex; align-items: center; gap: 6px; }
 .ai-activity::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--accent, currentColor); opacity: 0.8; }
 @media (prefers-reduced-motion: no-preference) {

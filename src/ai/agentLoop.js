@@ -56,6 +56,31 @@ export function proposeNudge(text) {
     : null;
 }
 
+/** Recordatorios para el único reintento de una respuesta inservible (RF-107.3). En inglés, como los demás mensajes al modelo. */
+const RETRY_REMINDERS = {
+  empty: "Your last reply was empty: no text and no tool call, so the user saw nothing. Reply now: call the right tool, or answer briefly in the user's language.",
+  length:
+    'Your last reply was cut off at the length limit before it finished, so none of it was used. Make it much shorter: change only what is needed with an `edit` (search and replace) instead of rewriting whole files, or split the work into smaller proposals.',
+};
+
+/**
+ * ¿Qué tiene de malo una respuesta, si algo? (RF-107.3)
+ * - `empty`: ni texto ni llamadas válidas (el panel quedaría mudo).
+ * - `length`: el tope de salida la cortó y se perdió una llamada a herramienta o no quedó nada que enseñar.
+ * - `lengthText`: el tope cortó una respuesta de texto: lo escrito es útil, se avisa pero no se repite (otros 4 minutos no lo arreglarían).
+ */
+export function diagnoseResponse(response, calls) {
+  const text = String(response.text ?? '').trim();
+  let verdict = null;
+  if (response.stopReason === 'length') {
+    const lostCall = calls.length > 0 || text.includes('<tool_call>');
+    verdict = lostCall || !text ? 'length' : 'lengthText';
+  } else if (!text && !calls.length) {
+    verdict = 'empty';
+  }
+  return verdict;
+}
+
 /** Argumentos de una llamada (JSON del modelo); un JSON roto da `{}` y un aviso. */
 export function parseArguments(raw) {
   let result = { args: {}, error: null };
@@ -88,14 +113,18 @@ function safeLabel(tool, args, fallback) {
  * @param {number} [options.maxSteps]
  * @param {(step: {tool: string, label: string, result: string}) => void} [options.onStep]
  * @param {() => boolean} [options.isCancelled]
+ * @param {(notice: {kind: 'empty'|'length'|'lengthText'|'broken', final: boolean}) => void} [options.onNotice]
+ *   Una respuesta vacía, cortada por el tope o con una llamada rota (RF-107.3): se avisa y se reintenta UNA vez; a la segunda `final` es `true` y el turno acaba como `stalled`.
  */
-export async function runAgent({ callModel, tools, messages, useTools = true, maxSteps = MAX_STEPS, onStep = () => {}, isCancelled = () => false, followUp = () => null }) {
+export async function runAgent({ callModel, tools, messages, useTools = true, maxSteps = MAX_STEPS, onStep = () => {}, isCancelled = () => false, followUp = () => null, onNotice = () => {} }) {
   const added = [];
   const byName = new Map(tools.map((tool) => [tool.name, tool]));
   const specs = useTools ? tools.map(({ name, description, parameters }) => ({ name, description, parameters })) : [];
   let outcome = 'done';
   let usage = { input: 0, output: 0 };
   let nudged = false;
+  let retried = false;
+  let brokenSeen = false;
   for (let step = 0; ; step += 1) {
     if (isCancelled()) {
       outcome = 'cancelled';
@@ -117,6 +146,28 @@ export async function runAgent({ callModel, tools, messages, useTools = true, ma
     // Modelos pequeños escriben a veces la llamada como texto (`<tool_call>…`).
     const fromText = useTools && !response.toolCalls?.length ? extractTextToolCalls(response.text ?? '') : null;
     const calls = useTools ? (fromText?.calls.length ? fromText.calls : response.toolCalls ?? []) : [];
+    const trouble = diagnoseResponse(response, calls);
+    if (trouble === 'empty' || trouble === 'length') {
+      // Nada de esa respuesta se guarda (un mensaje vacío ni siquiera lo admiten todos los proveedores) ni se ejecuta una llamada cortada.
+      onNotice({ kind: trouble, final: retried });
+      if (retried) {
+        outcome = 'stalled';
+        break;
+      }
+      retried = true;
+      added.push({ role: 'user', content: RETRY_REMINDERS[trouble] });
+      continue;
+    }
+    if (trouble === 'lengthText') onNotice({ kind: 'lengthText', final: true });
+    if (calls.some((call) => parseArguments(call.arguments).error)) {
+      // El error de cada llamada vuelve al modelo (abajo) y es su oportunidad de repetirla; a la segunda vez se para.
+      onNotice({ kind: 'broken', final: brokenSeen });
+      if (brokenSeen) {
+        outcome = 'stalled';
+        break;
+      }
+      brokenSeen = true;
+    }
     added.push({ role: 'assistant', content: fromText?.calls.length ? fromText.text : response.text ?? '', toolCalls: calls });
     if (!calls.length) {
       // Un solo recordatorio si el modelo dijo que iba a usar una herramienta y no lo hizo.

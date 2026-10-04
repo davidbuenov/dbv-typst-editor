@@ -18,6 +18,8 @@ import { looksLikeEdit } from './proposal.js';
 
 /** Cada cuántos ms se pinta el razonamiento acumulado (agrupa los trozos que llegan muy seguidos). */
 const THOUGHT_PAINT_MS = 40;
+/** Con herramientas y sin ningún dato tras estos ms, «Esperando al modelo» pasa a «Preparando una propuesta» (RF-107.2). */
+const PREPARING_AFTER_MS = 6000;
 
 function el(tag, className, text) {
   const node = document.createElement(tag);
@@ -255,10 +257,15 @@ export function createChatPanel({ host, callbacks }) {
      * (`append`/`finish`), el indicador de actividad (RF-100.3) y el bloque
      * plegable de razonamiento (RF-100.2), que solo se muestra y nunca se guarda.
      */
-    addAssistant(initial = '') {
+    addAssistant(initial = '', { toolsOffered = false } = {}) {
       const bubble = el('div', 'ai-msg ai-msg--assistant md');
+      const activityRow = el('div', 'ai-activity-row');
       const activityLine = el('div', 'ai-activity hidden');
       activityLine.setAttribute('role', 'status');
+      // El contador de tiempo va aparte y fuera de la región `aria-live`: un segundo por segundo sería ruido (RF-107.2).
+      const activityTime = el('span', 'ai-activity__time hidden');
+      activityTime.setAttribute('aria-hidden', 'true');
+      activityRow.append(activityLine, activityTime);
       const thinkBox = el('details', 'ai-think hidden');
       const thinkSummary = el('summary', 'ai-think__summary');
       const thinkText = el('div', 'ai-think__text');
@@ -266,7 +273,7 @@ export function createChatPanel({ host, callbacks }) {
       thinkBox.setAttribute('aria-live', 'off');
       thinkBox.append(thinkSummary, thinkText);
       const body = el('div', 'ai-msg__body');
-      bubble.append(activityLine, thinkBox, body);
+      bubble.append(activityRow, thinkBox, body);
       let text = initial;
       if (text) renderInto(body, text);
       messages.append(bubble);
@@ -278,6 +285,18 @@ export function createChatPanel({ host, callbacks }) {
       let timer = null;
       let pendingThought = '';
       let frame = null;
+      let waitStart = null;
+      let tick = null;
+      let toPreparing = null;
+      const stopTicking = () => {
+        clearInterval(tick);
+        clearTimeout(toPreparing);
+        tick = null;
+        toPreparing = null;
+      };
+      const paintWait = () => {
+        activityTime.textContent = `${Math.max(0, Math.round((Date.now() - waitStart) / 1000))} s`;
+      };
       const seconds = () => Math.max(0, Math.round((Date.now() - thoughtStart) / 1000));
       const flushThought = () => {
         if (frame !== null) clearTimeout(frame);
@@ -298,12 +317,28 @@ export function createChatPanel({ host, callbacks }) {
           body.textContent = text;
           scrollToEnd();
         },
-        /** Qué está haciendo el modelo: `waiting`, `thinking`, `writing` o `null` (nada). */
+        /**
+         * Qué está haciendo el modelo: `waiting`, `preparing`, `thinking`, `writing` o `null` (nada).
+         * Mientras no llega nada (`waiting` y `preparing`) corre el tiempo transcurrido; con herramientas
+         * y sin respuesta tras unos segundos pasa a `preparing`: un modelo local que escribe una llamada
+         * larga a `propose_changes` no emite nada hasta terminarla (Ollama la entrega completa).
+         */
         activity(kind) {
           if (kind === activityKind) return;
           activityKind = kind;
+          stopTicking();
           activityLine.classList.toggle('hidden', !kind);
           activityLine.textContent = kind ? t(`ai.activity.${kind}`) : '';
+          const counting = kind === 'waiting' || kind === 'preparing';
+          activityTime.classList.toggle('hidden', !counting);
+          if (!counting) {
+            waitStart = null;
+            return;
+          }
+          waitStart ??= Date.now();
+          paintWait();
+          tick = setInterval(paintWait, 1000);
+          if (kind === 'waiting' && toolsOffered) toPreparing = setTimeout(() => api.activity('preparing'), PREPARING_AFTER_MS);
         },
         /** Un trozo de razonamiento: el bloque aparece abierto y se va llenando. */
         thinking(chunk) {

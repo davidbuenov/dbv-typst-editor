@@ -40,7 +40,7 @@ function setup({ connections, script = [], agent = null, modelInfo = null } = {}
         if (next.text) handlers['ai-stream']({ requestId, type: 'text', text: next.text });
         for (const call of next.toolCalls ?? []) handlers['ai-stream']({ requestId, type: 'toolCall', ...call });
         handlers['ai-stream']({ requestId, type: 'usage', input: 10, output: 5, ...next.usage });
-        handlers['ai-stream']({ requestId, type: 'done', stopReason: next.toolCalls?.length ? 'toolCalls' : 'stop' });
+        handlers['ai-stream']({ requestId, type: 'done', stopReason: next.stopReason ?? (next.toolCalls?.length ? 'toolCalls' : 'stop') });
       });
       return ok(null);
     }),
@@ -385,6 +385,42 @@ describe('modelo directo con herramientas (RF-92, RF-93, RF-94)', () => {
     await pending;
     expect(backend.aiCancel).toHaveBeenCalled();
     expect(document.querySelector('.ai-note--error')).toBeNull();
+  });
+
+  it('una respuesta vacía se avisa y se reintenta una vez; si llega, no hay error (RF-107.3)', async () => {
+    const { app, backend } = setup({ connections: [ollama], script: [{ text: '' }, { text: 'Ahora sí.' }] });
+    await app.onProjectOpened({ root: 'D:/p' });
+    await app.ask('hola');
+    expect(backend.aiChat).toHaveBeenCalledTimes(2);
+    const panel = document.getElementById('panel');
+    expect(panel.querySelector('.ai-note--info').textContent).toContain('sin texto ni llamada');
+    expect(panel.querySelector('.ai-note--error')).toBeNull();
+    expect(panel.textContent).toContain('Ahora sí.');
+    // El recordatorio viaja como mensaje del usuario y de la respuesta vacía no se guarda nada.
+    const retry = backend.aiChat.mock.calls[1][2].messages;
+    expect(retry.at(-1)).toMatchObject({ role: 'user' });
+    expect(retry.filter((m) => m.role === 'assistant')).toHaveLength(0);
+  });
+
+  it('dos respuestas vacías seguidas no son un bucle: un aviso de error y nada más (RF-107.3)', async () => {
+    const { app, backend } = setup({ connections: [ollama], script: [{ text: '' }, { text: '' }, { text: 'no debería llegar' }] });
+    await app.onProjectOpened({ root: 'D:/p' });
+    await app.ask('hola');
+    expect(backend.aiChat).toHaveBeenCalledTimes(2);
+    expect(document.querySelector('.ai-note--error').textContent).toContain('volvió a responder sin nada');
+  });
+
+  it('una llamada cortada por el tope no se ejecuta: se avisa del máximo y se pide más breve (RF-107.3)', async () => {
+    const script = [
+      { stopReason: 'length', toolCalls: [{ id: 't1', name: 'propose_changes', arguments: '{"changes":[{"path":"main.typ","action":"replace_all","content":"= Corto' }] },
+      { text: 'Más corto.' },
+    ];
+    const { app, backend } = setup({ connections: [ollama], script });
+    await app.onProjectOpened({ root: 'D:/p' });
+    await app.ask('hazlo');
+    expect(document.querySelector('.ai-note--info').textContent).toContain('máximo de tokens por respuesta');
+    expect(document.querySelector('.ai-review')).toBeNull();
+    expect(JSON.stringify(backend.aiChat.mock.calls[1][2].messages.at(-1))).toContain('much shorter');
   });
 
   it('un error del proveedor se explica en la conversación', async () => {

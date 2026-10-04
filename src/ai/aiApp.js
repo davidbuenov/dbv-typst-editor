@@ -380,7 +380,7 @@ export function createAiApp(deps) {
    * streaming y, al acabar, la velocidad. Si falla, la burbuja se cierra y el error sigue su camino.
    */
   async function streamIntoBubble({ connection, request, conversationId, register }) {
-    const bubble = panel.addAssistant();
+    const bubble = panel.addAssistant('', { toolsOffered: (request.tools?.length ?? 0) > 0 });
     bubble.activity('waiting');
     let firstAt = 0;
     let response = null;
@@ -641,6 +641,13 @@ export function createAiApp(deps) {
         isCancelled: () => cancelled,
         followUp: (reply) => (tools && proposal.files.size === 0 ? proposeNudge(reply) : null),
         onStep: (step) => panel.addStep(step.label),
+        onNotice: (notice) => {
+          // Una respuesta vacía, cortada por el tope o con la llamada rota (RF-107.3): el panel dice qué pasó, nunca se queda mudo.
+          const message = t(`ai.notice.${notice.kind}${notice.final && notice.kind !== 'lengthText' ? 'Final' : ''}`);
+          const tone = notice.final ? 'error' : 'info';
+          panel.addNote(message, tone);
+          current.entries.push({ role: 'note', content: message, tone });
+        },
         callModel: (request) => streamIntoBubble({ connection, request, conversationId: current.id, register: (fn) => (cancel = fn) }),
       });
       return { result, proposal, check };

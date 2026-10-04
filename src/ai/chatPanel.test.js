@@ -46,6 +46,64 @@ describe('indicador de actividad (RF-100.3)', () => {
   });
 });
 
+describe('progreso mientras no llega nada (RF-107.2)', () => {
+  it('cuenta el tiempo de espera; el contador va fuera de la región «status»', () => {
+    const { panel, host } = setup();
+    const bubble = panel.addAssistant();
+    bubble.activity('waiting');
+    const time = host.querySelector('.ai-activity__time');
+    expect(time.getAttribute('aria-hidden')).toBe('true');
+    expect(host.querySelector('.ai-activity').contains(time)).toBe(false);
+    expect(time.textContent).toBe('0 s');
+    vi.advanceTimersByTime(4000);
+    expect(time.textContent).toBe('4 s');
+    expect(host.querySelector('.ai-activity').textContent).toBe('Esperando al modelo…');
+  });
+
+  it('con herramientas, tras unos segundos pasa a «Preparando una propuesta…» sin reiniciar el tiempo', () => {
+    const { panel, host } = setup();
+    const bubble = panel.addAssistant('', { toolsOffered: true });
+    bubble.activity('waiting');
+    vi.advanceTimersByTime(5000);
+    expect(host.querySelector('.ai-activity').textContent).toBe('Esperando al modelo…');
+    vi.advanceTimersByTime(2000);
+    expect(host.querySelector('.ai-activity').textContent).toBe('Preparando una propuesta…');
+    expect(host.querySelector('.ai-activity__time').textContent).toBe('7 s');
+    expect(host.querySelector('.ai-activity__time').classList.contains('hidden')).toBe(false);
+  });
+
+  it('sin herramientas nunca dice «propuesta»', () => {
+    const { panel, host } = setup();
+    const bubble = panel.addAssistant();
+    bubble.activity('waiting');
+    vi.advanceTimersByTime(30000);
+    expect(host.querySelector('.ai-activity').textContent).toBe('Esperando al modelo…');
+  });
+
+  it('al llegar el primer dato el contador desaparece y deja de correr', () => {
+    const { panel, host } = setup();
+    const bubble = panel.addAssistant('', { toolsOffered: true });
+    bubble.activity('waiting');
+    vi.advanceTimersByTime(8000);
+    bubble.activity('writing');
+    const time = host.querySelector('.ai-activity__time');
+    expect(time.classList.contains('hidden')).toBe(true);
+    expect(host.querySelector('.ai-activity').textContent).toBe('Escribiendo…');
+    expect(vi.getTimerCount()).toBe(0);
+    bubble.finish('Hola');
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('si la respuesta llega antes del cambio, no se queda un temporizador pendiente', () => {
+    const { panel } = setup();
+    const bubble = panel.addAssistant('', { toolsOffered: true });
+    bubble.activity('waiting');
+    bubble.activity('writing');
+    vi.advanceTimersByTime(10000);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+});
+
 describe('bloque de razonamiento (RF-100.2)', () => {
   it('aparece abierto con el texto fluyendo y se contrae a «Pensó durante N s» al terminar', () => {
     const { panel, host } = setup();

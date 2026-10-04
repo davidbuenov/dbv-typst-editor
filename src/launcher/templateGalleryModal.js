@@ -106,6 +106,14 @@ export function createTemplateGalleryModal({
   let selectedTemplate = null;
   /** @type {'local'|'universe'|'spec'} Pestaña activa (RF-26). */
   let activeTab = 'local';
+  /**
+   * «Aplicar plantilla…» (RF-116) reutiliza esta misma galería —lista, vista previa maquetada, buscador y dirección
+   * libre— pero para ADAPTAR el documento abierto: no hay pestaña local y el botón aplica en vez de crear.
+   * @type {((template: object) => void)|null}
+   */
+  let applyHandler = null;
+  /** Título y texto de la galería tal como estaban, para devolverlos al salir del modo «aplicar». */
+  let savedHeader = null;
   /** @type {object|null} Entrada sintética de la pestaña "Dirección", si ya se validó. */
   let typedTemplate = null;
   /** @type {string|null} Identificador cuyo lienzo se ve ahora mismo en la pestaña "Dirección". */
@@ -126,7 +134,7 @@ export function createTemplateGalleryModal({
       if (previewEl) previewEl.replaceChildren();
       if (useBtnEl) {
         useBtnEl.disabled = true;
-        useBtnEl.textContent = t('gallery.useTemplate');
+        useBtnEl.textContent = t(applyHandler ? 'gallery.applyTemplate' : 'gallery.useTemplate');
       }
       return;
     }
@@ -252,7 +260,7 @@ export function createTemplateGalleryModal({
     // Actualizar botón de acción principal
     if (useBtnEl) {
       useBtnEl.disabled = false;
-      const label = t('gallery.useTemplateNamed', { name }).replace('{name}', name);
+      const label = t(applyHandler ? 'gallery.applyTemplateNamed' : 'gallery.useTemplateNamed', { name }).replace('{name}', name);
       useBtnEl.textContent = label;
     }
   }
@@ -525,8 +533,11 @@ export function createTemplateGalleryModal({
   function confirmSelection() {
     if (!selectedTemplate) return;
     const chosen = selectedTemplate;
+    const handler = applyHandler ?? onSelectTemplate;
+    // En modo «aplicar» solo vale una plantilla de Universe: las locales son para crear documentos nuevos.
+    if (applyHandler && templateSource(chosen) !== 'universe') return;
     close();
-    onSelectTemplate(chosen);
+    handler(chosen);
   }
 
   // Botones de acción
@@ -647,6 +658,36 @@ export function createTemplateGalleryModal({
   function close() {
     closeZoom();
     dialogEl.classList.add('hidden');
+    setApplyMode(null);
+  }
+
+  /** Entra o sale del modo «aplicar»: sin pestaña local, con el título y el botón de aplicar. */
+  function setApplyMode(handler) {
+    applyHandler = handler;
+    const title = dialogEl.querySelector('.modal__title');
+    const text = dialogEl.querySelector('.template-gallery__titles .modal__text');
+    tabsEl?.querySelector('[data-gallery-tab="local"]')?.classList.toggle('hidden', Boolean(handler));
+    if (handler) {
+      savedHeader ??= { title: title?.textContent ?? '', text: text?.textContent ?? '' };
+      if (title) title.textContent = t('gallery.applyTitle');
+      if (text) text.textContent = t('gallery.applySubtitle');
+    } else if (savedHeader) {
+      if (title) title.textContent = savedHeader.title;
+      if (text) text.textContent = savedHeader.text;
+      savedHeader = null;
+    }
+  }
+
+  /**
+   * Abre la galería para aplicar una plantilla de Universe al documento abierto (RF-116). `onApply` recibe la
+   * plantilla elegida (con su `universeSpec` o su `id` `@preview/…`).
+   */
+  function openForApply(availableCatalog, onApply) {
+    setApplyMode(onApply);
+    const first = (availableCatalog ?? []).find((template) => templateSource(template) === 'universe');
+    open(first ? first.id || first.universeSpec : null, availableCatalog);
+    if (!first) setActiveTab('spec');
+    renderPreview();
   }
 
   /**
@@ -672,6 +713,7 @@ export function createTemplateGalleryModal({
 
   return {
     open,
+    openForApply,
     openWithSpec,
     close,
     isOpen,

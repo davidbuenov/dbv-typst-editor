@@ -1189,6 +1189,21 @@ async function bootstrap() {
     }
     wizard.open(blank);
   });
+  // Herramientas › «Aplicar plantilla…» (RF-116): la MISMA galería, en modo «aplicar» sobre el documento abierto.
+  el('btn-apply-template')?.addEventListener('click', () => {
+    if (!workspace.state.project) {
+      toast.show(t('ai.applyTemplateNoProject'));
+      return;
+    }
+    if (!workspace.getCompileTarget()) {
+      toast.show(t('ai.applyTemplateNoMain'));
+      return;
+    }
+    templateGallery.openForApply(getFullGalleryCatalog(), (template) => {
+      const id = template.universeSpec || template.id;
+      if (id) ai.applyTemplate({ id, description: template.description ?? '' });
+    });
+  });
   // Única vía de creación desde plantilla del lanzador (RF-25).
   el('btn-launcher-new')?.addEventListener('click', () => {
     templateGallery.open(null, getFullGalleryCatalog());
@@ -1847,7 +1862,6 @@ async function bootstrap() {
     relativeToRoot,
     registerPanel,
     connectButton: el('btn-ai-connect'),
-    applyTemplateButton: el('btn-apply-template'),
     elements: {
       panel: el('ai-panel'),
       splitter: el('splitter-ai'),

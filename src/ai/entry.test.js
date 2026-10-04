@@ -24,7 +24,7 @@ const ok = (value) => ({ ok: true, value });
 function setup(file) {
   document.body.innerHTML = '<button id="connect"></button><button id="apply"></button>';
   const backend = { aiConnections: vi.fn(async () => ok(file)) };
-  const ai = initAi({ backend, connectButton: document.getElementById('connect'), applyTemplateButton: document.getElementById('apply') });
+  const ai = initAi({ backend, connectButton: document.getElementById('connect') });
   return { ai, backend };
 }
 
@@ -40,19 +40,19 @@ describe('la IA solo se carga cuando hace falta (RNF-IA.1)', () => {
     expect(created.calls).toBe(0);
   });
 
-  it('«Aplicar plantilla…» carga el módulo al pulsarlo, SIN conexiones, y abre el diálogo', async () => {
-    setup({ connections: [], active: null, showAi: true });
-    document.getElementById('apply').click();
+  it('«Aplicar plantilla…» carga el módulo al usarlo, SIN conexiones, y abre el diálogo', async () => {
+    const { ai } = setup({ connections: [], active: null, showAi: true });
+    ai.applyTemplate({ id: '@preview/x:1.0.0' });
     await vi.waitFor(() => expect(created.app?.applyTemplate).toHaveBeenCalledTimes(1));
     expect(created.calls).toBe(1);
     expect(created.app.openConnect).not.toHaveBeenCalled();
   });
 
   it('pulsarlo dos veces no carga el módulo dos veces', async () => {
-    setup({ connections: [], active: null, showAi: true });
-    document.getElementById('apply').click();
+    const { ai } = setup({ connections: [], active: null, showAi: true });
+    ai.applyTemplate({ id: '@preview/x:1.0.0' });
     await vi.waitFor(() => expect(created.app?.applyTemplate).toHaveBeenCalledTimes(1));
-    document.getElementById('apply').click();
+    ai.applyTemplate({ id: '@preview/x:1.0.0' });
     await vi.waitFor(() => expect(created.app.applyTemplate).toHaveBeenCalledTimes(2));
     expect(created.calls).toBe(1);
   });

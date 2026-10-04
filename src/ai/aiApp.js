@@ -896,8 +896,11 @@ export function createAiApp(deps) {
     return { card: buildReviewCard(proposal, makeChecker()) };
   }
 
-  /** Herramientas › «Aplicar plantilla…»: elegir una plantilla de Universe y aplicarla al documento principal. */
-  function applyTemplate() {
+  /**
+   * Herramientas › «Aplicar plantilla…»: aplicar al documento principal la plantilla de Universe que el usuario eligió en
+   * la galería (`template` = `{id}`).
+   */
+  function applyTemplate(template) {
     if (!projectRoot) {
       toast.show(t('ai.applyTemplateNoProject'));
       return;
@@ -906,9 +909,10 @@ export function createAiApp(deps) {
       toast.show(t('ai.applyTemplateNoMain'));
       return;
     }
-    templateView ??= createApplyTemplateView({ panel: elements.templatePanel, body: elements.templateBody, backend, close: templatePanel.close });
+    templateView ??= createApplyTemplateView({ panel: elements.templatePanel, body: elements.templateBody, close: templatePanel.close });
     templatePanel.open();
     templateView.open({
+      template,
       hasAi: aiVisible() && Boolean(activeConnection()),
       onApply: planAndReview,
       onAskAi: (hit) => {
@@ -1000,6 +1004,8 @@ export function createAiApp(deps) {
       `You are helping inside DBV Typst Editor with a Typst ${deps.typstVersion()} project (Typst is NOT LaTeX).`,
       docs.ok ? `The official Typst ${deps.typstVersion()} documentation, as Markdown files, is in: ${docs.value} — read it when unsure about a function or its syntax.` : '',
       'The user reviews every edit before it is written, and DBV compiles the project to check it. Keep changes minimal and inside the project folder. Do not run commands unless asked.',
+      'DBV gives you its MCP server `dbv` (read-only, no network): `compile_project` (errors with the exact compiler), `render_page` (SEE the rendered pages), `search_universe`, `read_package_docs`, `list_fonts`, `list_bibliography`, `citation_styles`, `search_typst_docs`, `read_typst_docs`. Use them instead of guessing, and never write a package name or version from memory: take the exact identifier from `search_universe`.',
+      'If `read_package_docs` says a package is not installed, do NOT stop or ask the user to install it: add its `#import "@preview/name:version": *` line at the top of the document as part of your edit, so DBV downloads it (the user approves it), and carry on with what the search showed you; read its documentation as soon as it is installed.',
       separationPrinciple(getLanguage()),
       getLanguage() === 'es' ? 'Responde en español.' : 'Answer in English.',
     ];

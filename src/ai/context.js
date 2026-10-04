@@ -86,7 +86,7 @@ function bibliographyRule() {
 function universeRule() {
   return [
     'Typst packages and templates: call `search_universe` and use ONLY the exact `@preview/name:version` identifiers it returns. NEVER write a package name or a version from memory: versions change and an old one may not compile.',
-    'Prefer a Universe package to writing the feature yourself, and read its usage with `read_package_docs` before using it. You cannot download anything: if a package is not installed, DBV asks the user to approve it when they review your proposal.',
+    'Prefer a Universe package to writing the feature yourself, and read its usage with `read_package_docs` before using it. You cannot download anything, and you do not need to: if a package is not installed, do NOT stop or ask the user to install it; write its `#import` at the top of the document in your proposal and DBV asks the user to approve the download when they review it.',
   ].join(' ');
 }
 

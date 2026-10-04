@@ -611,6 +611,93 @@ describe('galería unificada de tres pestañas (RF-26)', () => {
 });
 
 // ─── RF-29: ver la página a tamaño grande ───────────────────────────────────
+describe('modo «aplicar» de la galería (RF-116)', () => {
+  const catalogo = [
+    { id: '@local/dbv-tfg', name: 'dbv-tfg', version: '1.0.0', description: 'TFG' },
+    { id: '@preview/charged-ieee:0.1.4', name: 'charged-ieee', version: '0.1.4', description: 'IEEE', universeSpec: '@preview/charged-ieee:0.1.4' },
+  ];
+
+  function montar(onSelectTemplate = vi.fn()) {
+    const dialogEl = document.createElement('div');
+    dialogEl.className = 'modal hidden';
+    const titles = document.createElement('div');
+    titles.className = 'template-gallery__titles';
+    const title = document.createElement('h2');
+    title.className = 'modal__title';
+    title.textContent = 'Crear documento';
+    const text = document.createElement('p');
+    text.className = 'modal__text';
+    text.textContent = 'Explora';
+    titles.append(title, text);
+    const tabsEl = document.createElement('div');
+    for (const tab of ['local', 'universe', 'spec']) {
+      const button = document.createElement('button');
+      button.setAttribute('data-gallery-tab', tab);
+      tabsEl.append(button);
+    }
+    const listEl = document.createElement('div');
+    const sidebarEl = document.createElement('aside');
+    sidebarEl.append(listEl);
+    const searchEl = document.createElement('input');
+    const useBtnEl = document.createElement('button');
+    dialogEl.append(titles, tabsEl, searchEl, sidebarEl, document.createElement('div'), useBtnEl);
+    document.body.append(dialogEl);
+    const gallery = createTemplateGalleryModal({
+      dialogEl,
+      listEl,
+      previewEl: dialogEl.children[4],
+      searchEl,
+      useBtnEl,
+      cancelBtnEl: document.createElement('button'),
+      onSelectTemplate,
+      tabsEl,
+      sidebarEl,
+    });
+    return { gallery, dialogEl, tabsEl, title, useBtnEl, onSelectTemplate };
+  }
+
+  it('abre en la pestaña de Universe, sin pestaña local, con otro título y el botón de aplicar', () => {
+    const { gallery, tabsEl, title, useBtnEl } = montar();
+    gallery.openForApply(catalogo, vi.fn());
+    expect(gallery.getActiveTab()).toBe('universe');
+    expect(gallery.getSelectedTemplate().id).toBe('@preview/charged-ieee:0.1.4');
+    expect(tabsEl.querySelector('[data-gallery-tab="local"]').classList.contains('hidden')).toBe(true);
+    expect(title.textContent).not.toBe('Crear documento');
+    expect(useBtnEl.textContent).toContain('charged-ieee');
+    expect(useBtnEl.textContent).toMatch(/Aplicar|Apply/);
+  });
+
+  it('confirmar entrega la plantilla elegida al manejador de «aplicar», no al de crear un documento', () => {
+    const { gallery, useBtnEl, onSelectTemplate } = montar();
+    const onApply = vi.fn();
+    gallery.openForApply(catalogo, onApply);
+    useBtnEl.click();
+    expect(onApply).toHaveBeenCalledWith(expect.objectContaining({ universeSpec: '@preview/charged-ieee:0.1.4' }));
+    expect(onSelectTemplate).not.toHaveBeenCalled();
+    expect(gallery.isOpen()).toBe(false);
+  });
+
+  it('al cerrarla se restaura la galería de crear: pestaña local, título y manejador originales', () => {
+    const { gallery, tabsEl, title, useBtnEl, onSelectTemplate } = montar();
+    gallery.openForApply(catalogo, vi.fn());
+    gallery.close();
+    expect(title.textContent).toBe('Crear documento');
+    expect(tabsEl.querySelector('[data-gallery-tab="local"]').classList.contains('hidden')).toBe(false);
+    gallery.open(null, catalogo);
+    useBtnEl.click();
+    expect(onSelectTemplate).toHaveBeenCalled();
+  });
+
+  it('una plantilla local no se puede aplicar a un documento', () => {
+    const { gallery, useBtnEl } = montar();
+    const onApply = vi.fn();
+    gallery.openForApply(catalogo, onApply);
+    gallery.selectTemplate(catalogo[0]);
+    useBtnEl.click();
+    expect(onApply).not.toHaveBeenCalled();
+  });
+});
+
 describe('vista ampliada de la previsualización (RF-29)', () => {
   const catalogo = [
     { id: '@local/dbv-tfg', name: 'dbv-tfg', version: '1.0.0', description: 'TFG' },

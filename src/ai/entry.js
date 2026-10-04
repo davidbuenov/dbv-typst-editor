@@ -50,13 +50,6 @@ export function initAi(deps) {
     ready.openConnect();
   });
 
-  // «Aplicar plantilla…» (RF-116) no es una función de IA: funciona sin ninguna conectada. Carga el módulo al pulsarlo,
-  // así que el paquete inicial no crece.
-  deps.applyTemplateButton?.addEventListener('click', async () => {
-    const file = await startup;
-    const ready = await load(file);
-    ready.applyTemplate();
-  });
 
   return {
     /** Se abrió un proyecto (antes o después de cargar la IA). */
@@ -67,6 +60,15 @@ export function initAi(deps) {
     onProjectClosed() {
       pendingProject = null;
       app?.onProjectClosed();
+    },
+    /**
+     * Herramientas › «Aplicar plantilla…» (RF-116): aplica la plantilla de Universe que el usuario eligió en la galería.
+     * No es una función de IA y funciona sin ninguna conectada; el módulo se carga al usarlo, así que el paquete inicial
+     * no crece.
+     */
+    async applyTemplate(template) {
+      const ready = await load(await startup);
+      ready.applyTemplate(template);
     },
     /** La IA ya está cargada y lista para pedirle algo. */
     get app() {

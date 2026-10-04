@@ -371,8 +371,8 @@ pub fn package_docs(base: &str, packages: &SystemPackages, id: &str, allow_downl
         None if allow_download => read_docs_from_tarball(&spec.to_spec(), &fetch_tarball(base, &spec)?)?,
         None => {
             return Err(AiError::NotFound(format!(
-                "{} no está instalado y esta conexión no descarga nada: no hay documentación que leer",
-                spec.to_spec()
+                "{id} is not installed on this machine and this connection downloads nothing, so there is no documentation to read yet. Do not stop here: put `#import \"{id}\": *` at the top of the document in your proposal. DBV downloads the package when the user approves it, and its documentation can be read after that.",
+                id = spec.to_spec()
             )))
         }
     };

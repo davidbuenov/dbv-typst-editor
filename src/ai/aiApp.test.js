@@ -1117,43 +1117,33 @@ describe('«Aplicar plantilla…» (RF-116)', () => {
   const panelEl = () => document.getElementById('tpl');
   const byText = (root, text) => [...root.querySelectorAll('button')].find((b) => b.textContent.includes(text));
 
-  async function open(options = {}) {
+  async function open({ source = SOURCE, ...options } = {}) {
     const context = setup({ connections: [], ...options });
-    context.disk['D:/p/main.typ'] = SOURCE;
+    context.disk['D:/p/main.typ'] = source;
     context.backend.aiUniverseSearch.mockResolvedValue(ok({ status: 'ok', hits: [HIT], fetchedAt: Math.floor(Date.now() / 1000), unavailable: [] }));
     context.backend.aiUniversePackageDocs.mockResolvedValue(ok(DOCS));
     await context.app.onProjectOpened({ root: 'D:/p' });
-    context.app.applyTemplate();
+    context.app.applyTemplate(HIT);
     return context;
   }
 
+  /** La plantilla ya viene elegida de la galería: aplicarla es automático, no hay nada que elegir aquí. */
   async function pick(context) {
-    const input = panelEl().querySelector('input[type="search"]');
-    input.value = 'ieee';
-    panelEl().querySelector('form').dispatchEvent(new Event('submit', { cancelable: true }));
-    await vi.waitFor(() => expect(panelEl().querySelector('input[type="radio"]')).not.toBeNull());
-    panelEl().querySelector('input[type="radio"]').click();
-    panelEl().querySelector('input[type="radio"]').dispatchEvent(new Event('change'));
     return context;
   }
 
-  it('funciona SIN ninguna IA conectada: abre el diálogo, busca solo plantillas y no ofrece pedirle nada a la IA', async () => {
+  it('funciona SIN ninguna IA conectada: aplica la plantilla elegida en la galería y no ofrece pedirle nada a la IA', async () => {
     const { backend } = await open();
     expect(panelEl().classList.contains('hidden')).toBe(false);
-    expect(panelEl().textContent).toContain('Elige una plantilla del catálogo de Typst Universe');
-    expect(byText(panelEl(), 'Que la IA lo adapte').classList.contains('hidden')).toBe(true);
-    expect(byText(panelEl(), 'Aplicar la plantilla').disabled).toBe(true);
-    await pick({ backend });
-    expect(backend.aiUniverseSearch).toHaveBeenCalledWith('ieee', 'template', 8);
     expect(panelEl().textContent).toContain(ID);
-    expect(panelEl().textContent).toContain('An IEEE-style paper template');
-    expect(byText(panelEl(), 'Aplicar la plantilla').disabled).toBe(false);
+    expect(byText(panelEl(), 'Que la IA lo adapte').classList.contains('hidden')).toBe(true);
+    await vi.waitFor(() => expect(panelEl().querySelector('.ai-review')).not.toBeNull());
+    expect(backend.aiUniverseSearch).not.toHaveBeenCalled();
   });
 
   it('«Aplicar la plantilla» enseña UNA propuesta revisable: import y #show arriba, el documento intacto debajo, y no toca el disco', async () => {
     const context = await open();
     await pick(context);
-    byText(panelEl(), 'Aplicar la plantilla').click();
     await vi.waitFor(() => expect(panelEl().querySelector('.ai-review')).not.toBeNull());
     expect(context.backend.aiUniversePackageDocs).toHaveBeenCalledWith(ID, true);
     const card = panelEl().querySelector('.ai-review');
@@ -1169,10 +1159,8 @@ describe('«Aplicar plantilla…» (RF-116)', () => {
   });
 
   it('marca lo que puede chocar con la plantilla (sin quitarlo) y avisa de lo que no pudo rellenar', async () => {
-    const context = await open();
-    context.disk['D:/p/main.typ'] = '= Sin título declarado\n#set text(size: 12pt)\n';
+    const context = await open({ source: '= Sin título declarado\n#set text(size: 12pt)\n' });
     await pick(context);
-    byText(panelEl(), 'Aplicar la plantilla').click();
     await vi.waitFor(() => expect(panelEl().querySelector('.ai-review__notes')).not.toBeNull());
     const notes = panelEl().querySelector('.ai-review__notes').textContent;
     expect(notes).toContain('no lo declara con #set document(title: …)');
@@ -1184,7 +1172,6 @@ describe('«Aplicar plantilla…» (RF-116)', () => {
     const context = await open();
     context.backend.aiCheckProposal.mockResolvedValue(ok({ diagnostics: [], missingPackages: [ID] }));
     await pick(context);
-    byText(panelEl(), 'Aplicar la plantilla').click();
     await vi.waitFor(() => expect(panelEl().querySelector('.ai-review__packages')).not.toBeNull());
     await vi.waitFor(() => expect(panelEl().textContent).toContain('Paquetes que se descargarán'));
     expect(context.backend.aiUniverseInstall).not.toHaveBeenCalled();
@@ -1193,17 +1180,14 @@ describe('«Aplicar plantilla…» (RF-116)', () => {
   });
 
   it('una plantilla que el documento ya usa, o que no se puede aplicar, se explica y no se propone nada', async () => {
-    const used = await open();
-    used.disk['D:/p/main.typ'] = `#import "${ID}": ieee\n#show: ieee.with()\n`;
+    const used = await open({ source: `#import "${ID}": ieee\n#show: ieee.with()\n` });
     await pick(used);
-    byText(panelEl(), 'Aplicar la plantilla').click();
     await vi.waitFor(() => expect(panelEl().textContent).toContain('Este documento ya usa esa plantilla'));
     expect(panelEl().querySelector('.ai-review')).toBeNull();
 
     const odd = await open();
     odd.backend.aiUniversePackageDocs.mockResolvedValue(ok('# x\n\n## README.md\nSolo un README'));
     await pick(odd);
-    byText(panelEl(), 'Aplicar la plantilla').click();
     await vi.waitFor(() => expect(panelEl().textContent).toContain('no describe una función de plantilla'));
   });
 
@@ -1211,32 +1195,7 @@ describe('«Aplicar plantilla…» (RF-116)', () => {
     const context = await open();
     context.backend.aiUniversePackageDocs.mockResolvedValue({ ok: false, error: { kind: 'network', message: 'sin conexión' } });
     await pick(context);
-    byText(panelEl(), 'Aplicar la plantilla').click();
     await vi.waitFor(() => expect(panelEl().textContent).toContain('sin conexión'));
-  });
-
-  it('sin catálogo lo descarga al buscar (acción del usuario) y vuelve a buscar', async () => {
-    const context = setup({ connections: [] });
-    context.backend.aiUniverseSearch.mockResolvedValueOnce(ok({ status: 'noCatalog', hits: [], fetchedAt: null, unavailable: [] }));
-    context.backend.aiUniverseSearch.mockResolvedValue(ok({ status: 'ok', hits: [HIT], fetchedAt: 1, unavailable: [] }));
-    await context.app.onProjectOpened({ root: 'D:/p' });
-    context.app.applyTemplate();
-    panelEl().querySelector('input[type="search"]').value = 'ieee';
-    panelEl().querySelector('form').dispatchEvent(new Event('submit', { cancelable: true }));
-    await vi.waitFor(() => expect(panelEl().querySelector('input[type="radio"]')).not.toBeNull());
-    expect(context.backend.aiUniverseRefresh).toHaveBeenCalledTimes(1);
-  });
-
-  it('sin catálogo y sin red lo dice y ofrece reintentar la descarga', async () => {
-    const context = setup({ connections: [] });
-    context.backend.aiUniverseSearch.mockResolvedValue(ok({ status: 'noCatalog', hits: [], fetchedAt: null, unavailable: [] }));
-    context.backend.aiUniverseRefresh.mockResolvedValue({ ok: false, error: { message: 'sin red' } });
-    await context.app.onProjectOpened({ root: 'D:/p' });
-    context.app.applyTemplate();
-    panelEl().querySelector('input[type="search"]').value = 'ieee';
-    panelEl().querySelector('form').dispatchEvent(new Event('submit', { cancelable: true }));
-    await vi.waitFor(() => expect(panelEl().textContent).toContain('Todavía no hay catálogo'));
-    expect(byText(panelEl(), 'Descargar el catálogo')).toBeTruthy();
   });
 
   it('con una IA conectada se ofrece «Que la IA lo adapte», que cierra el diálogo y le pide el trabajo completo', async () => {
@@ -1255,7 +1214,7 @@ describe('«Aplicar plantilla…» (RF-116)', () => {
 
   it('sin proyecto abierto lo dice y no abre nada', async () => {
     const context = setup({ connections: [] });
-    context.app.applyTemplate();
+    context.app.applyTemplate(HIT);
     expect(context.toast.show).toHaveBeenCalledWith(expect.stringContaining('Abre un proyecto'));
     expect(panelEl().classList.contains('hidden')).toBe(true);
   });

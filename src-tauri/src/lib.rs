@@ -29,6 +29,7 @@ pub mod snippets;
 pub mod templates;
 pub mod typst_engine;
 pub mod universe;
+pub mod universe_catalog;
 pub mod watcher;
 
 #[cfg(desktop)]

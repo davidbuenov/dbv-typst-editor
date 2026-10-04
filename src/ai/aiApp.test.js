@@ -830,7 +830,7 @@ describe('bibliografía para la IA (RF-115)', () => {
     await tools.app.onProjectOpened({ root: 'D:/p' });
     await tools.app.ask('hola');
     const call = tools.backend.aiChat.mock.calls[0][2];
-    expect(call.messages[0].content).toMatch(/use ONLY a key it returns/);
+    expect(call.messages[0].content).toMatch(/ONLY with a key returned by `list_bibliography`/);
     expect(call.messages[0].content).toMatch(/propose adding its entry/);
     expect(call.tools.map((t) => t.name)).toEqual(expect.arrayContaining(['list_bibliography', 'citation_styles']));
 
@@ -1020,5 +1020,87 @@ describe('fuentes en el proyecto (RF-111)', () => {
     await context.app.ask('usa Cerrada');
     expect(context.backend.aiChat.mock.calls.at(-1)[2].messages.filter((m) => m.role === 'tool').map((m) => m.content)[0]).toContain('licencia libre');
     expect(document.querySelector('.ai-review')).toBeNull();
+  });
+});
+
+describe('adaptar un documento a una plantilla, «pásalo al IEEE» (RF-110)', () => {
+  const ID = '@preview/charged-ieee:0.1.4';
+  const HIT = { id: ID, name: 'charged-ieee', version: '0.1.4', description: 'An IEEE-style paper template', kind: 'template', categories: ['paper'], license: 'MIT-0', updated: '2025-01-10', newerIncompatible: null };
+  const DOCS = `# ${ID} — documentation\n\n## Template entry point: template/main.typ\n\`\`\`typst\n#import "${ID}": ieee\n#show: ieee.with(title: [Paper Title], authors: ())\n\`\`\`\n\n## Template function \`ieee\` (the parameters to fill when applying it to a document)\n\`\`\`typst\n#let ieee(title: [Paper Title], authors: (), abstract: none, body)\n\`\`\``;
+  const ORIGINAL = '#set page(margin: 3cm)\n#set text(size: 12pt)\n\n= Mi artículo\n\nAutor: Ana Pérez\n\nUno.\n';
+  const ADAPTED = `#import "${ID}": ieee\n#show: ieee.with(\n  title: [Mi artículo],\n  authors: ((name: "Ana Pérez"),),\n)\n\nUno.\n`;
+  const call = (name, args) => ({ toolCalls: [{ id: `c-${name}`, name, arguments: JSON.stringify(args) }] });
+
+  async function adapt() {
+    const script = [
+      call('search_universe', { query: 'ieee', kind: 'template' }),
+      call('read_package_docs', { id: ID }),
+      call('propose_changes', { summary: 'Adaptar al formato IEEE', changes: [{ path: 'main.typ', action: 'replace_all', content: ADAPTED }] }),
+      { text: 'He adaptado el documento a charged-ieee.' },
+    ];
+    const context = setup({ connections: [claudeApi], script });
+    context.disk['D:/p/main.typ'] = ORIGINAL;
+    context.backend.aiUniverseSearch.mockResolvedValue(ok({ status: 'ok', hits: [HIT], fetchedAt: Math.floor(Date.now() / 1000), unavailable: [] }));
+    context.backend.aiUniverseCheck.mockImplementation(async (ids) => ok(ids.map((id) => ({ id, status: 'ok', latest: null, compiler: null }))));
+    context.backend.aiUniversePackageDocs.mockResolvedValue(ok(DOCS));
+    await context.app.onProjectOpened({ root: 'D:/p' });
+    await context.app.ask('Adapta el formato de este documento al IEEE');
+    return context;
+  }
+
+  it('las instrucciones del sistema explican el procedimiento (con herramientas, no sin ellas)', async () => {
+    const { backend } = await adapt();
+    const system = backend.aiChat.mock.calls[0][2].messages[0].content;
+    expect(system).toContain('To adapt an EXISTING document to a template');
+    expect(system).toContain('WAIT for the choice');
+    expect(system).toContain('KEEP all other content exactly as is');
+    expect(system).toContain('check the result with `render_page`');
+
+    const chat = setup({ connections: [{ ...ollama, supportsTools: false }], script: [{ text: 'Hola' }] });
+    await chat.app.onProjectOpened({ root: 'D:/p' });
+    await chat.app.ask('hola');
+    expect(chat.backend.aiChat.mock.calls[0][2].messages[0].content).not.toContain('To adapt an EXISTING document');
+
+    const text = setup({ connections: [ollama], script: [{ text: 'Hola' }] });
+    await text.app.onProjectOpened({ root: 'D:/p' });
+    await text.app.ask('hola');
+    const local = text.backend.aiChat.mock.calls[0][2].messages[0].content;
+    expect(local).toContain('To adapt an EXISTING document');
+    expect(local, 'un modelo sin imágenes no oye hablar de render_page').not.toContain('render_page');
+  });
+
+  it('la cadena de herramientas busca, lee y propone con el identificador que devolvió la búsqueda', async () => {
+    const { backend } = await adapt();
+    const toolResults = backend.aiChat.mock.calls.at(-1)[2].messages.filter((m) => m.role === 'tool').map((m) => m.content);
+    expect(toolResults[0]).toContain(`1. ${ID} — template`);
+    expect(toolResults[1]).toContain('Template function `ieee`');
+    expect(toolResults[1]).toContain('authors: ()');
+    expect(toolResults[2]).toContain('compiles without new errors');
+    expect(toolResults[2]).not.toContain('WARNING');
+    expect(backend.aiUniverseSearch).toHaveBeenCalledWith('ieee', 'template', 8);
+    expect(backend.aiUniversePackageDocs).toHaveBeenCalledWith(ID, true);
+  });
+
+  it('la propuesta importa la plantilla, mueve los metadatos, quita los #set que chocan y deja el contenido intacto; el disco no se toca', async () => {
+    const { multiFileEdit, disk } = await adapt();
+    const card = document.querySelector('.ai-review');
+    expect(card).not.toBeNull();
+    expect(card.textContent).toContain('Adaptar al formato IEEE');
+    await vi.waitFor(() => expect(card.querySelector('.ai-review__status').textContent).toMatch(/Compila/));
+    expect(disk['D:/p/main.typ']).toBe(ORIGINAL);
+
+    [...card.querySelectorAll('button')].find((b) => b.textContent.includes('Aplicar')).click();
+    await vi.waitFor(() => expect(multiFileEdit.apply).toHaveBeenCalled());
+    const [[files]] = multiFileEdit.apply.mock.calls;
+    // `replace_all` se aplica como UN reemplazo completo (applyProposal.fullReplace): el texto resultante es el de la propuesta.
+    expect(files[0].edits).toHaveLength(1);
+    const result = files[0].edits[0].newText;
+    expect(result).toBe(ADAPTED);
+    expect(result).toContain(`#import "${ID}": ieee`);
+    expect(result).toContain('#show: ieee.with(');
+    expect(result).not.toContain('#set page');
+    expect(result).not.toContain('#set text');
+    expect(result).toContain('Uno.');
+    expect(result).toContain('Ana Pérez');
   });
 });

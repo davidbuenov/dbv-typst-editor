@@ -47,6 +47,7 @@ const README_CHARS: usize = 9_000;
 const MANIFEST_CHARS: usize = 2_000;
 const TEMPLATE_CHARS: usize = 6_000;
 const EXAMPLE_CHARS: usize = 3_000;
+const FUNCTION_CHARS: usize = 2_400;
 const MAX_EXAMPLES: usize = 2;
 
 /// Descargador de `typst-kit` con `ureq` (ya presente) en vez de `system-downloader`,
@@ -127,6 +128,9 @@ pub struct PackageDocs {
     pub readme: Option<String>,
     /// Ruta dentro del paquete y contenido del fichero de entrada de la plantilla.
     pub template_entry: Option<(String, String)>,
+    /// La función que la plantilla aplica (`#show: ieee.with(…)`): su nombre y su firma, leída del fichero de
+    /// entrada del paquete (`lib.typ`). Son los PARÁMETROS que hay que rellenar al adaptar un documento (RF-110).
+    pub template_function: Option<(String, String)>,
     pub examples: Vec<(String, String)>,
 }
 
@@ -149,7 +153,26 @@ fn template_path(manifest: &str) -> Option<String> {
     safe.then(|| format!("{}/{}", folder.trim_end_matches('/'), entry))
 }
 
-/// Lector mínimo de las dos claves de `[template]` de un `typst.toml` (sin añadir un parser de TOML).
+/// `entrypoint` de `[package]` en un `typst.toml`, si es una ruta que no sale del paquete.
+fn package_entrypoint(manifest: &str) -> Option<String> {
+    let mut inside = false;
+    for line in manifest.lines().map(str::trim) {
+        if line.starts_with('[') {
+            inside = line == "[package]";
+            continue;
+        }
+        if let (true, Some((key, value))) = (inside, line.split_once('=')) {
+            if key.trim() == "entrypoint" {
+                let value = value.trim().trim_matches('"');
+                let safe = !value.is_empty() && !value.contains("..") && !value.starts_with('/') && !value.contains('\\');
+                return safe.then(|| value.to_string());
+            }
+        }
+    }
+    None
+}
+
+/// Lector mínimo de las dos claves de `[template]' de un `typst.toml` (sin añadir un parser de TOML).
 mod toml_like {
     #[derive(Default)]
     pub struct Template {
@@ -180,6 +203,36 @@ mod toml_like {
     }
 }
 
+/// Nombre de la función de una plantilla: la de `#show: NOMBRE.with(` (o `#show: NOMBRE`) del ejemplo.
+fn template_function_name(template_source: &str) -> Option<String> {
+    let after = template_source.split("#show:").nth(1)?.trim_start();
+    let name: String = after.chars().take_while(|c| c.is_alphanumeric() || *c == '-' || *c == '_').collect();
+    (!name.is_empty()).then_some(name)
+}
+
+/// La definición `#let nombre(…) =` de una función, con los paréntesis equilibrados (sin su cuerpo), o `None`.
+fn function_signature(source: &str, name: &str) -> Option<String> {
+    let head = format!("#let {name}(");
+    let start = source.find(&head)?;
+    let mut depth = 0usize;
+    let mut end = None;
+    for (offset, ch) in source[start..].char_indices() {
+        match ch {
+            '(' => depth += 1,
+            ')' => {
+                depth = depth.saturating_sub(1);
+                if depth == 0 {
+                    end = Some(start + offset + 1);
+                    break;
+                }
+            }
+            _ => {}
+        }
+    }
+    let signature = &source[start..end?];
+    Some(cut(signature, FUNCTION_CHARS))
+}
+
 /// Selecciona de un conjunto de ficheros `(ruta, contenido)` lo que interesa leer.
 fn assemble(id: &str, mut files: Vec<(String, String)>) -> PackageDocs {
     files.sort_by(|a, b| a.0.cmp(&b.0));
@@ -190,13 +243,18 @@ fn assemble(id: &str, mut files: Vec<(String, String)>) -> PackageDocs {
         .as_deref()
         .and_then(template_path)
         .and_then(|wanted| files.iter().find(|(path, _)| *path == wanted).map(|(path, text)| (path.clone(), text.clone())));
+    let entrypoint = manifest.as_deref().and_then(package_entrypoint).unwrap_or_else(|| "lib.typ".to_string());
+    let template_function = template_entry.as_ref().and_then(|(_, text)| template_function_name(text)).and_then(|name| {
+        let source = files.iter().find(|(path, _)| *path == entrypoint)?;
+        function_signature(&source.1, &name).map(|signature| (name, signature))
+    });
     let examples = files
         .iter()
         .filter(|(path, _)| path.ends_with(".typ") && (path.starts_with("examples/") || path.starts_with("example/") || path.starts_with("gallery/")))
         .take(MAX_EXAMPLES)
         .cloned()
         .collect();
-    PackageDocs { id: id.to_string(), manifest, readme, template_entry, examples }
+    PackageDocs { id: id.to_string(), manifest, readme, template_entry, template_function, examples }
 }
 
 /// ¿Es un fichero que merece la pena leer del paquete?
@@ -205,7 +263,7 @@ fn is_interesting(path: &str) -> bool {
     lower == "typst.toml"
         || lower == "readme.md"
         || lower == "readme"
-        || (lower.ends_with(".typ") && (lower.starts_with("template/") || lower.starts_with("examples/") || lower.starts_with("example/") || lower.starts_with("gallery/")))
+        || (lower.ends_with(".typ") && (!lower.contains('/') || lower.starts_with("template/") || lower.starts_with("examples/") || lower.starts_with("example/") || lower.starts_with("gallery/")))
 }
 
 fn normalize_member(path: &Path) -> Option<String> {
@@ -281,6 +339,9 @@ pub fn docs_to_text(docs: &PackageDocs) -> String {
     }
     if let Some((path, text)) = &docs.template_entry {
         parts.push(format!("## Template entry point: {path} (shows how the template is used)\n```typst\n{}\n```", cut(text, TEMPLATE_CHARS)));
+    }
+    if let Some((name, signature)) = &docs.template_function {
+        parts.push(format!("## Template function `{name}` (the parameters to fill when applying it to a document)\n```typst\n{signature}\n```"));
     }
     for (path, text) in &docs.examples {
         parts.push(format!("## Example: {path}\n```typst\n{}\n```", cut(text, EXAMPLE_CHARS)));
@@ -461,6 +522,57 @@ mod tests {
         assert!(!docs_to_text(&docs).contains("no debe"));
     }
 
+    const LIB: &str = "#let ieee(\n  title: [Paper Title],\n  authors: (),\n  abstract: none,\n  index-terms: (),\n  paper-size: \"us-letter\",\n  bibliography: none,\n  figure-supplement: [Fig.],\n  body,\n) = {\n  set page(columns: 2)\n  body\n}\n\n#let otra(x) = x\n";
+
+    #[test]
+    fn la_ia_recibe_la_funcion_de_la_plantilla_con_sus_parametros() {
+        let archive = tarball(&[
+            ("typst.toml", MANIFEST),
+            ("README.md", "# charged-ieee"),
+            ("lib.typ", LIB),
+            ("template/main.typ", "#import \"@preview/charged-ieee:0.1.4\": ieee\n#show: ieee.with(\n  title: [Paper Title],\n  authors: (),\n)\n"),
+        ]);
+        let docs = read_docs_from_tarball("@preview/charged-ieee:0.1.4", &archive).unwrap();
+        let (name, signature) = docs.template_function.clone().expect("la función de la plantilla");
+        assert_eq!(name, "ieee");
+        assert!(signature.starts_with("#let ieee(") && signature.ends_with(')'));
+        assert!(signature.contains("authors: ()") && signature.contains("abstract: none") && signature.contains("index-terms: ()"), "{signature}");
+        assert!(!signature.contains("set page"), "solo la firma, no el cuerpo: {signature}");
+        let text = docs_to_text(&docs);
+        assert!(text.contains("## Template function `ieee`") && text.contains("paper-size: \"us-letter\""));
+    }
+
+    #[test]
+    fn la_funcion_se_busca_en_el_fichero_de_entrada_que_declara_el_manifiesto() {
+        let manifest = "[package]\nname = \"x\"\nversion = \"1.0.0\"\nentrypoint = \"src/lib.typ\"\n\n[template]\npath = \"template\"\nentrypoint = \"main.typ\"\n";
+        // `src/lib.typ` no es de la raíz: no se lee, y no se inventa una función.
+        let archive = tarball(&[("typst.toml", manifest), ("src/lib.typ", LIB), ("template/main.typ", "#show: ieee.with(title: [x])")]);
+        assert!(read_docs_from_tarball("@preview/x:1.0.0", &archive).unwrap().template_function.is_none());
+        // Con el `lib.typ` en la raíz sí.
+        let ok = tarball(&[("typst.toml", MANIFEST), ("lib.typ", LIB), ("template/main.typ", "#show: ieee.with(title: [x])")]);
+        assert!(read_docs_from_tarball("@preview/x:1.0.0", &ok).unwrap().template_function.is_some());
+    }
+
+    #[test]
+    fn un_paquete_sin_plantilla_o_sin_la_funcion_no_inventa_ninguna() {
+        let sin_plantilla = tarball(&[("typst.toml", "[package]\nname = \"cetz\"\nversion = \"0.5.2\"\nentrypoint = \"lib.typ\"\n"), ("lib.typ", "#let canvas(x) = x")]);
+        assert!(read_docs_from_tarball("@preview/cetz:0.5.2", &sin_plantilla).unwrap().template_function.is_none());
+        let otra_funcion = tarball(&[("typst.toml", MANIFEST), ("lib.typ", "#let otra(x) = x"), ("template/main.typ", "#show: ieee.with(title: [x])")]);
+        assert!(read_docs_from_tarball("@preview/x:1.0.0", &otra_funcion).unwrap().template_function.is_none());
+        assert_eq!(template_function_name("#show: ieee.with(\n title: [x])").as_deref(), Some("ieee"));
+        assert_eq!(template_function_name("#show: conf").as_deref(), Some("conf"));
+        assert_eq!(template_function_name("Sin plantilla"), None);
+        assert_eq!(function_signature("#let f(a, (b, c)) = 1", "f").as_deref(), Some("#let f(a, (b, c))"), "paréntesis anidados");
+        assert_eq!(function_signature("#let f(a", "f"), None, "sin cerrar");
+    }
+
+    #[test]
+    fn una_firma_enorme_se_recorta() {
+        let long = format!("#let g({}) = 1", "a: 1, ".repeat(2_000));
+        let text = function_signature(&long, "g").unwrap();
+        assert!(text.chars().count() < FUNCTION_CHARS + 60 && text.contains("truncated"));
+    }
+
     #[test]
     fn un_readme_enorme_se_recorta_y_un_fichero_enorme_se_ignora() {
         let big = "x".repeat(50_000);
@@ -568,6 +680,9 @@ mod tests {
             let text = package_docs(OFFICIAL_REGISTRY, &packages, id, true).expect(id);
             println!("{id}: {} caracteres, README: {}, plantilla: {}", text.chars().count(), text.contains("## README.md"), text.contains("Template entry point"));
             assert!(text.contains("## README.md") && !text.contains("this package has no README"), "{id}");
+            if id.contains("charged-ieee") {
+                assert!(text.contains("## Template function `ieee`") && text.contains("authors"), "{text}");
+            }
         }
         assert_eq!(std::fs::read_dir(cache.path()).unwrap().count(), 0, "leer no instala");
         let result = install_with(&packages, &parse_universe_spec("@preview/charged-ieee:0.1.4").unwrap()).unwrap();

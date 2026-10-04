@@ -61,23 +61,32 @@ function renderRule() {
   ].join(' ');
 }
 
+/**
+ * Adaptar un documento que ya existe a una plantilla («pásalo al formato IEEE», RF-110): buscar, elegir con el
+ * usuario, leer cómo se usa, mover los metadatos sin tocar el contenido y comprobar el resultado.
+ */
+function templateRule(render = false) {
+  const check = render ? ' Then check the result with `render_page`.' : '';
+  return [
+    'To adapt an EXISTING document to a template or format ("make it IEEE"): `search_universe` (kind "template", English keywords); if several fit, offer 2 or 3 with one line each and WAIT for the choice. `read_package_docs` shows how to use it and its parameters.',
+    'Then ONE `propose_changes`: `#import` the identifier and `#show: function.with(…)`; move title, authors, abstract and keywords into the parameters; KEEP all other content exactly as is; remove only the document\'s `#set`/`#show` rules that clash with the template (say which); set the bibliography `style:` from `citation_styles`.' + check,
+    'If the template does not fit (it lacks something the document has, or needs a newer compiler), say so and suggest the closest one.',
+  ].join(' ');
+}
+
 /** Referencias y estilos de cita (RF-115.3): solo claves que existen, nunca una referencia inventada. */
 function bibliographyRule() {
   return [
-    'To cite a source, call `list_bibliography` and use ONLY a key it returns (`@key`); never invent a reference, an author, a title or a year.',
-    'If the reference the user mentions is not in the bibliography, say so and propose adding its entry to the project\'s `.bib` file with the data the user gave you; do not cite it until it exists.',
-    'For `bibliography(style: …)` use only a name returned by `citation_styles` (for example "ieee" for engineering or "apa" for psychology).',
+    'Cite a source ONLY with a key returned by `list_bibliography` (`@key`): never invent a reference, author, title or year. If it is missing, say so and propose adding its entry to the project\'s `.bib` (use ONLY the data the user gave you).',
+    'For `bibliography(style: …)` use only names from `citation_styles`.',
   ].join(' ');
 }
 
 /** Paquetes y plantillas de Typst Universe (RF-108.4): solo identificadores que devolvió la búsqueda. */
 function universeRule() {
   return [
-    'To use or recommend a Typst package or a document template, call `search_universe` and use ONLY the exact identifiers (`@preview/name:version`) it returns.',
-    'NEVER write a package name or a version from memory: versions change and an old one may not work with this compiler.',
-    'When a Universe package already does what the user needs (drawing, tables, a journal format…), prefer it to writing the feature yourself, and read its usage with `read_package_docs` before you write code that uses it.',
-    'A "template" is a package that ships a whole document layout (a journal or a thesis format): to adapt an existing document to it, import it like any package and follow its documentation.',
-    'You cannot download anything: if a package is not installed yet, DBV asks the user to approve its download when they review your proposal.',
+    'Typst packages and templates: call `search_universe` and use ONLY the exact `@preview/name:version` identifiers it returns. NEVER write a package name or a version from memory: versions change and an old one may not compile.',
+    'Prefer a Universe package to writing the feature yourself, and read its usage with `read_package_docs` before using it. You cannot download anything: if a package is not installed, DBV asks the user to approve it when they review your proposal.',
   ].join(' ');
 }
 
@@ -106,7 +115,7 @@ export function systemPrompt({ lang = 'es', tools = true, typstVersion = '0.15.1
         'For a NEW file (or a full rewrite): ```dbv-file path="relative/path.typ"``` with the whole content. To delete: ```dbv-delete path="relative/path.typ"```.',
         'The SEARCH text must be copied exactly from the file shown in the context.',
       ];
-  const universeRules = universe ? [universeRule()] : [];
+  const universeRules = universe ? [universeRule(), templateRule(render)] : [];
   const bibliographyRules = bibliography ? [bibliographyRule()] : [];
   const renderRules = render ? [renderRule()] : [];
   const fontRules = fonts ? [fontRule()] : [];

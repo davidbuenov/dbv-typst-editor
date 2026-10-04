@@ -1215,7 +1215,7 @@ describe('«Aplicar plantilla…» (RF-116)', () => {
     await vi.waitFor(() => expect(panelEl().textContent).toContain('sin conexión'));
   });
 
-  it('sin catálogo ofrece descargarlo (acción del usuario) y vuelve a buscar', async () => {
+  it('sin catálogo lo descarga al buscar (acción del usuario) y vuelve a buscar', async () => {
     const context = setup({ connections: [] });
     context.backend.aiUniverseSearch.mockResolvedValueOnce(ok({ status: 'noCatalog', hits: [], fetchedAt: null, unavailable: [] }));
     context.backend.aiUniverseSearch.mockResolvedValue(ok({ status: 'ok', hits: [HIT], fetchedAt: 1, unavailable: [] }));
@@ -1223,11 +1223,20 @@ describe('«Aplicar plantilla…» (RF-116)', () => {
     context.app.applyTemplate();
     panelEl().querySelector('input[type="search"]').value = 'ieee';
     panelEl().querySelector('form').dispatchEvent(new Event('submit', { cancelable: true }));
-    await vi.waitFor(() => expect(panelEl().textContent).toContain('Todavía no hay catálogo'));
-    expect(context.backend.aiUniverseRefresh).not.toHaveBeenCalled();
-    byText(panelEl(), 'Descargar el catálogo').click();
     await vi.waitFor(() => expect(panelEl().querySelector('input[type="radio"]')).not.toBeNull());
     expect(context.backend.aiUniverseRefresh).toHaveBeenCalledTimes(1);
+  });
+
+  it('sin catálogo y sin red lo dice y ofrece reintentar la descarga', async () => {
+    const context = setup({ connections: [] });
+    context.backend.aiUniverseSearch.mockResolvedValue(ok({ status: 'noCatalog', hits: [], fetchedAt: null, unavailable: [] }));
+    context.backend.aiUniverseRefresh.mockResolvedValue({ ok: false, error: { message: 'sin red' } });
+    await context.app.onProjectOpened({ root: 'D:/p' });
+    context.app.applyTemplate();
+    panelEl().querySelector('input[type="search"]').value = 'ieee';
+    panelEl().querySelector('form').dispatchEvent(new Event('submit', { cancelable: true }));
+    await vi.waitFor(() => expect(panelEl().textContent).toContain('Todavía no hay catálogo'));
+    expect(byText(panelEl(), 'Descargar el catálogo')).toBeTruthy();
   });
 
   it('con una IA conectada se ofrece «Que la IA lo adapte», que cierra el diálogo y le pide el trabajo completo', async () => {

@@ -117,8 +117,17 @@ export function createApplyTemplateView({ panel, body, backend, close }) {
       return;
     }
     setStatus(t('ai.applyTemplateSearching'));
-    const found = await backend.aiUniverseSearch(query, 'template', 8);
+    let found = await backend.aiUniverseSearch(query, 'template', 8);
     if (run !== runId) return;
+    // Sin catálogo en el equipo, lo descarga el propio usuario al buscar (acción suya, no del modelo): no hace falta
+    // haber abierto antes la galería de Universe. Si falla (sin red), se ofrece reintentarlo.
+    if (!found.ok || found.value.status === 'noCatalog') {
+      setStatus(t('ai.step.universeRefresh'));
+      const refreshed = await backend.aiUniverseRefresh();
+      if (run !== runId) return;
+      if (refreshed.ok) found = await backend.aiUniverseSearch(query, 'template', 8);
+      if (run !== runId) return;
+    }
     if (!found.ok || found.value.status === 'noCatalog') {
       renderResults([]);
       setStatus(t('ai.applyTemplateNoCatalog'), 'error');

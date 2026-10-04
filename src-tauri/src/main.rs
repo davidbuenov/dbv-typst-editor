@@ -9,5 +9,11 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
+    // `--mcp`: en lugar de la ventana, un servidor MCP por stdio para agentes externos (RF-113). Se decide ANTES de
+    // arrancar nada de Tauri: sin ventana, sin instancia única y sin tocar la interfaz.
+    let args: Vec<String> = std::env::args().collect();
+    if dbv_typst_editor_lib::mcp::requested(&args) {
+        std::process::exit(dbv_typst_editor_lib::mcp::run(&args));
+    }
     dbv_typst_editor_lib::run()
 }

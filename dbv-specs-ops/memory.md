@@ -521,6 +521,17 @@
 - **Lo que sigue sin comprobar** (se verifica en su slice): que el alias llegue al `.msixbundle` y se lance desde fuera (`bundle.config.json` no lo soporta; hay que escribirlo en la plantilla), el alta en cada agente y la API exacta de `rmcp` 3.5.
 - **Lección del `/plan`.** Medir antes de fijar un número: el 16 000 del spec era una cifra «generosa» sin dato; con la medida real cambia. Y comprobar el límite de una API antes de elegirla (GitHub, 60/h).
 
+### ADR-V0140-003 — El servidor MCP es el modo `--mcp` del propio ejecutable (spike S157, 2026-10-04) — CONTRADICE el plan
+
+*Medido en el spike; sustituye a D7 y R-M1 de `implementation_plan.md` (crate de consola aparte copiado como sidecar).*
+
+- **Decisión.** `DBV Typst Editor --mcp --project <carpeta>` sirve MCP por stdio **en lugar de abrir la ventana** (`main.rs` lo decide antes de arrancar Tauri). Sin crate nuevo, sin sidecar, sin `externalBin`, sin tocar `tauri-build`.
+- **Por qué cambia.** El plan temía dos cosas: (1) que un `[[bin]]` en el paquete de la aplicación choque con la comprobación de `externalBin` y (2) que un ejecutable de interfaz de Windows no pudiera ser un servidor stdio. Un crate aparte, además, obligaba a sacar a una biblioteca sin Tauri el motor, la documentación, Universe, las fuentes y el renderizado (miles de líneas) o a duplicarlos. El modo `--mcp` reutiliza todo ese código tal cual.
+- **Medido.** (a) **Claude Code** (cliente real) lista el servidor: `dbv-spike: ✔ Connected`, y un cliente JSON-RPC propio hace `initialize`, `tools/list` y `tools/call` contra el ejecutable de **debug** (consola) y contra el de **release** (**subsistema de ventanas, PE = 2**) a 23–33 ms del `initialize`. (b) `rmcp` 3.5.0 añade **+2,0 MB** al ejecutable (64,0 frente a 62,0 MB), muy por debajo del límite de 8 MB. (d) No hay sidecar nuevo: el riesgo de `externalBin` desaparece.
+- **Pendiente del usuario (criterio (c)).** El alias de ejecución del MSIX (`desktop:ExecutionAlias Alias="dbv-typst-editor.exe"`, ya en `AppxManifest.xml.template`) apunta al **mismo** ejecutable: hay que comprobar con el `.msixbundle` instalado que `dbv-typst-editor.exe --mcp` lanzado desde una terminal ajena sirve stdio. Un ejecutable del subsistema de ventanas lanzado a través de un alias de ejecución es el único punto no verificable aquí. Si falla, el MCP de Windows pasa a la 0.14.1 y la 0.14.0 sale con el servidor en macOS y Linux.
+- **Consecuencia para el empaquetado (D8).** Windows (Store): alias del manifiesto. macOS: `…/DBV Typst Editor.app/Contents/MacOS/dbv-typst-editor --mcp`. Linux: el AppImage admite argumentos (`./DBV…AppImage --mcp`) y el `.deb` instala el ejecutable en el PATH; la ruta del AppImage cambia en cada montaje, así que el ajuste ofrece la ruta del propio fichero (`$APPIMAGE`).
+- **Lección.** Un riesgo de empaquetado se comprueba con la cosa real antes de diseñar alrededor de él: la hipótesis «un ejecutable de ventanas no sirve stdio» era falsa en Windows con tuberías heredadas, y desmontó dos riesgos del plan.
+
 ### Lección — los permisos ACL de Tauri no los ve ninguna herramienta de este repo (2026-09-22)
 
 `appWindow.destroy()` (RF-64.6) se escribió, se testeó con Vitest y pasó `verify:frontend`/`verify:layout` — y aun así fallaba en la ventana real: "Promesa rechazada: Command plugin:window|destroy not allowed by ACL". `src-tauri/capabilities/main.json` no declaraba `core:window:allow-destroy`. Ninguna comprobación sin Tauri real puede detectar esto: Vitest simula el DOM, no el puente de comandos de Tauri.

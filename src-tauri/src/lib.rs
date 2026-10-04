@@ -18,6 +18,7 @@ pub mod commands;
 pub mod docs;
 pub mod error;
 pub mod history;
+pub mod mcp;
 pub mod engine;
 #[cfg(target_os = "macos")]
 pub mod macos_menu;

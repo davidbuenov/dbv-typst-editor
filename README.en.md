@@ -33,7 +33,7 @@
 - [Current status](#-current-status)
 - [Download and install](#-download-and-install)
 - [Target audience](#-target-audience)
-- [Planned features (MVP)](#-planned-features-mvp)
+- [What it can do](#-what-it-can-do)
 - [Requirements](#-requirements)
 - [Using an AI (guide)](./docs/IA.en.md)
 - [Installation (development)](#-installation-development)
@@ -155,16 +155,49 @@ If the app is already running, `typs` reuses the same window. `brew uninstall --
 
 ---
 
-## ✅ Planned features (MVP)
+## ✅ What it can do
 
-- Open, create, save, and save as `.typ` files
-- Real-time PDF preview with automatic recompilation
-- Basic project management
-- Editor with Typst syntax highlighting, autocompletion, line numbers, code folding, and find/replace
-- Light, dark and sepia themes
-- Persistent settings
-- Templates: academic article, undergraduate/master's thesis, doctoral thesis, technical report, CV, presentation
-- Packaging for Windows and Linux (macOS in later phases)
+Grouped by what you want to do. Each version’s detail is in the [`CHANGELOG`](./dbv-specs-ops/CHANGELOG.en.md); the in-app help (the **?** button) walks through each topic step by step.
+
+> ℹ️ The following describes the development branch: **Apply template…**, the Typst Universe tools, the rendered pages and the fonts for the AI, and the **MCP server** arrive with **v0.14.0** (the latest published is v0.13.1).
+
+### ✍️ Writing
+- **A real Typst editor** (CodeMirror 6): Typst 0.15 syntax highlighting, autocompletion of functions and symbols, folding, multiple cursors, find and replace, and **one tab per file** that keeps changes, cursor and undo history.
+- **Insertion toolbar and assistants**: formatting, headings, lists, tables, figures (also by pasting an image from the clipboard), citations from the project’s real bibliography and a gallery of maths symbols.
+- Your own and per-project **snippets**, with import from VS Code and from Sublime Text.
+- With **Tinymist** (on demand): semantic completion, go to definition, find references, rename symbols and format.
+- **Find and replace across the whole project**, with regular expressions, and a **file explorer** that rewrites `#include`, `image()`… when you move or rename, with local version history.
+
+### 👀 Seeing the result
+- **In-process preview**: Typst as a library, ≈0.5 s per edit in a 224-page book, with exact word-by-word synchronization between editor and preview in both directions.
+- A syntax error mid-typing **does not clear** the view: the last good one stays and the problem shows in a band. **Problems** panel, outline, find and copy text in the preview, and internal links.
+- **Everything offline**: the compiler and the Typst documentation ship with the app.
+
+### 🧩 Templates, packages and fonts
+- **8 own templates** (blank, bachelor’s thesis, master’s thesis, doctoral thesis, paper, report, presentation and CV), with a form that writes your data into the document.
+- **Typst Universe** (~4,700 packages and templates): a gallery with preview, a search over the whole catalog and a free identifier.
+- **Apply template…** to a document you already have (for example, turn it into IEEE): DBV adds the `#import` and the `#show`, moves the title, authors and abstract into its parameters and leaves the rest untouched, as a proposal you review.
+- **Your own fonts** in `fonts/`: picked up instantly, they travel with the project and you can drag a missing one onto the editor.
+
+### 📊 Figures and data
+- Visual editors for **equations** (with "Paste LaTeX"), node-and-arrow **flowcharts** (CeTZ), **sequence** diagrams, **Gantt**, **Kanban** and **DOT/Graphviz**, each with its preview and help.
+- **Data viewer** for CSV/TSV, and running **Python** and **JavaScript** (jogs) for figures and dynamic data.
+
+### 🤖 Optional AI: local, cloud or your subscription
+- **You choose where it lives**: a local model (Ollama, LM Studio, llama.cpp…) with nothing leaving your computer, a provider with your API key (Anthropic, OpenAI, Gemini, OpenRouter) or your installed agent with your subscription (Claude Code, Gemini CLI, Codex, Copilot). With no AI connected, the editor works the same.
+- **It never writes without you seeing it**: it proposes changes in one or several files, DBV **compiles them in memory**, and you accept or reject each hunk, with Undo.
+- **It works on your project**: it reads the files, looks up the Typst documentation, searches **real** Universe templates and packages (it never invents a name or version), cites only references that exist in your `.bib`, **sees the rendered pages** to judge the layout and, with the cloud, offers a missing typeface (you confirm).
+- Inline actions on the selection (Ctrl+Shift+I), "Explain and fix" for an error, and an evaluation with real local models published with its numbers: see the [AI guide](./docs/IA.en.md).
+
+### 🔌 MCP server for other agents (v0.14.0)
+- Tools › **MCP server…** gives, ready to copy, the configuration for **Claude Code, Claude Desktop, Cursor, Codex…** to use DBV’s exact compiler, see the rendered pages and query the documentation and Universe. The agent in DBV’s panel receives it by itself.
+- **Read-only, no network and confined to the project**; installing a package requires your confirmation in a dialog, and sharing the editor state (tabs with unsaved text) is a separate setting, off by default. Details in the [AI guide](./docs/IA.en.md#6-dbvs-mcp-server-dbvs-tools-for-other-agents).
+
+### 📦 Project and distribution
+- A DBV project is a **standard Typst project**: it compiles with plain `typst`, with no lock-in and nothing odd written in your folder. Built-in **Git** (commit, push, pull, clone and conflict resolution).
+- Export **PDF** and **PNG**, and pack everything into a `.dbvt`.
+- **No telemetry, no accounts**; light, dark and sepia themes; Spanish and English interface.
+- **Windows** (Microsoft Store), **macOS** (`.dmg` and Homebrew) and **Linux** (AppImage, `.deb` and Homebrew).
 
 Full requirements and acceptance criteria live in [`dbv-specs-ops/docs/SPECIFICATIONS.md`](./dbv-specs-ops/docs/SPECIFICATIONS.md).
 
@@ -234,13 +267,31 @@ stop.cmd
 
 ```
 /
-├── src/                # Frontend (editor + preview)
-├── src-tauri/           # Rust backend + Tauri/Typst integration
-├── dbv-specs-ops/       # SDD documentation (specs, architecture, memory, tasks)
-├── templates/           # Typst templates (article, thesis, CV...)
-├── start.cmd / start.sh # Startup scripts
-├── stop.cmd / stop.sh   # Stop scripts
-└── README.md            # This file
+├── src/                          # Frontend (ESM, no monolith)
+│   ├── app/                       # Workspace state, tabs, preferences
+│   ├── editor/                     # CodeMirror 6 editor, Typst language and assistants
+│   ├── preview/                     # Real-time preview
+│   ├── ai/                           # AI assistant (connections, panel, tools, proposals)
+│   ├── mcp/                           # MCP server: editor state and configuration dialog
+│   ├── launcher/ · project-wizard/     # Launcher, template gallery and project wizard
+│   ├── project-explorer/ · search/      # File tree and project search
+│   ├── outline/ · problems/ · history/   # Outline, Problems panel and local history
+│   ├── universe/ · snippets/ · docs/      # Typst Universe, snippets and Typst documentation
+│   ├── help/ · terminal/ · data/           # In-app help, terminal and data viewer
+│   ├── services/                            # The only boundary with the backend
+│   └── panels/ · ui/ · themes/ · i18n/       # Panels, controls, themes and translations
+├── src-tauri/                    # Rust backend
+│   └── src/                       # engine/ (in-process compiler), typst_engine/ (sidecar),
+│                                   # ai/ (AI, Universe, rendering, fonts), mcp.rs and mcp_bridge.rs
+│                                   # (MCP server), commands/, project.rs, templates.rs, watcher.rs…
+├── templates/local/              # Own templates, as `@local` packages
+├── docs/                         # Project website (GitHub Pages) and AI guide
+├── testfiles/                    # Test document and project, and the AI evaluation
+├── scripts/                      # Vendoring and dependency-free checks
+├── dbv-specs-ops/                # SDD documentation (specs, architecture, memory, changelog)
+├── start.cmd / start.sh          # Startup scripts
+├── stop.cmd / stop.sh            # Stop scripts
+└── README.md                     # This file
 ```
 
 ---

@@ -16,7 +16,7 @@ The AI assistant in DBV Typst Editor is **optional**. With nothing configured, t
 
 To open the connection assistant: **Tools → Connect an AI**. When it opens, the editor **detects what you already have** (Ollama, LM Studio and the agents) and marks it with ✓; anything it does not find appears with an installation link. This detection only happens when you open that screen, never when the app starts.
 
-Once connected, the AI panel opens with the **AI** button, next to P/E/V.
+Once connected, the AI panel opens with the **AI** button, next to P/E/V. To learn **what the AI does for your document**, see section 4; to **change a document’s format** (IEEE, Springer…), section 5; and to use DBV’s tools from **another agent** (Claude Code in your terminal, Cursor…), section 6.
 
 ---
 
@@ -223,6 +223,119 @@ Install links: [Claude Code](https://docs.anthropic.com/en/docs/claude-code/setu
 
 ---
 
+## 4. What the AI can do for your document
+
+With a model that supports **tools** (cloud models and many local ones; the connection’s *Tools* field detects it), the AI does not just answer: it **works on your project**. Everything below it does on its own, without writing anything yet; what it wants to change reaches you as a **proposal you review**.
+
+| It can… | How | Limit |
+| --- | --- | --- |
+| **Read and search** the project files | Through its tools, only inside the project folder | A loose `.typ`: it only sees that file |
+| **Look up the Typst documentation** | That of the exact version DBV compiles with, offline | — |
+| **Check its proposal** | Compiles it in memory and tells you the new and the fixed errors | A package that is not installed is flagged as an "incomplete check", not as an error |
+| **Search templates and packages** in Typst Universe | From the real catalog, one version per package (the latest compatible with the compiler) | It never writes a name or version from memory |
+| **Read how a package is used** | The package’s README, manifest and template function | With a local AI, only for installed ones |
+| **Cite references** | Only keys that exist in your `.bib`; only citation styles Typst ships with | A loose document has no folder bibliography |
+| **See the pages** | Renders up to 3 pages and receives them as images | Only with a model that accepts images |
+| **Offer a missing typeface** | Shows its licence and size; it is only copied into `fonts/` if you press **Add to project** | Cloud AI only; it can be undone |
+
+**Why "it does not invent" matters:** package versions change and an old one may not compile with your compiler. So the AI only writes the `@preview/name:version` identifiers the search returned. If it needs a package that is **not installed**, it puts it in its proposal and **you decide** in the review whether it is downloaded ("Packages that will be downloaded": licence, card and a button; nothing is downloaded by itself).
+
+**What each route does with the network:**
+
+| | Local AI | Cloud AI | Agent (subscription) |
+| --- | --- | --- | --- |
+| Universe catalog | Only if you already downloaded it (by opening the gallery) | DBV downloads it once and says so in the panel | The agent uses DBV’s MCP server (section 6) |
+| Installing a package | Never on its own | Always with your confirmation | Always with your confirmation (`install_package`) |
+| Adding a font | No | Always with your confirmation | — |
+
+---
+
+## 5. Changing a document’s format: applying a template
+
+To move a document you already have into a new format (IEEE, Springer, a thesis…) without copying and pasting by hand there are **two paths to the same result**:
+
+### With DBV, no AI
+
+**Tools → Apply template…** *(works with no AI connected)*.
+
+1. Open the project’s main document.
+2. Choose **Tools → Apply template…**. **The same gallery as "New document"** opens, with a laid-out preview of each template: the *Typst Universe* tab (reviewed ones), *Search* (the whole catalog) and the free address (`@preview/charged-ieee:0.1.4`). There is no local-templates tab: those are for creating new documents.
+3. Pick one and press **Apply "…" to my document**.
+4. DBV reads the template’s documentation (if it is not installed, it downloads it: that is an action of yours) and prepares **one proposal**: it adds the `#import` and the `#show` with the template, **moves the title, authors, abstract and keywords** into its parameters and leaves **the rest of the content exactly as it is**.
+5. The proposal is **reviewed** like any AI change: you see the differences, whether it compiles and which packages will be downloaded. It **flags** the `#set` and `#show` rules in your document that may clash with the template (it does not remove them) and nothing is written until you press **Apply**. Then, **Undo**.
+
+### By asking the AI
+
+With an AI connected, the **Let the AI adapt it** button (or typing in the panel *"Adapt the document to @preview/…"*, or simply *"make it IEEE"*) asks it for the full job: it looks for the template in the catalog (if several fit, it offers two or three and waits for your choice), reads its parameters, fills them with your data, removes only what clashes, sets the bibliography style from Typst’s styles and **checks the result by rendering the page** if the model accepts images. It is more flexible than the mechanical path, and also costlier and more variable by model: always review the proposal.
+
+**Limits:** Typst Universe templates only; the template must describe a template function (`#show: name.with(…)`); if the document already uses it, DBV tells you and proposes nothing. A format very different from the starting one may need touch-ups by hand (headers, bibliography): that is what the review is for.
+
+---
+
+## 6. DBV’s MCP server: DBV’s tools for other agents
+
+**MCP** (*Model Context Protocol*) is a standard that lets an AI agent use the tools of other programs. DBV includes an **MCP server** that lends an agent what it lacks on its own:
+
+- **Compile with DBV’s exact compiler** (Typst 0.15.1) and get the errors with file and line.
+- **See the rendered pages** as images, to judge the layout.
+- **The Typst documentation** of that version, offline, and the **Typst Universe catalog** with real identifiers and versions.
+- **Ask your permission to install a package**, with a dialog in DBV’s window: nothing is downloaded unless you accept it.
+- Available typefaces, **references from your `.bib`** and citation styles.
+
+The agent **still reads and writes your files on its own**: the server is **read-only**, writes nothing in the project and opens no network connection.
+
+### Who uses it and how it connects
+
+| Agent | What to do |
+| --- | --- |
+| **The one in DBV’s AI panel** (Claude Code, Gemini CLI…) | **Nothing.** DBV offers it when the conversation opens, pointing at the open project (as long as the agent supports MCP). |
+| **An agent you run outside DBV** (Claude Code in your terminal, Claude Desktop, Cursor, Codex…) | **Tools → MCP server…** shows the configuration ready to copy with DBV’s real path and your project. |
+
+The configuration looks like this (the dialog fills in the real values):
+
+```bash
+# Claude Code and Codex: one command in a terminal
+claude mcp add dbv -- "<DBV-path>" --mcp --project "<project-folder>"
+codex  mcp add dbv -- "<DBV-path>" --mcp --project "<project-folder>"
+```
+
+```json
+{ "mcpServers": { "dbv": { "command": "<DBV-path>", "args": ["--mcp", "--project", "<project-folder>"] } } }
+```
+
+The JSON works for Claude Desktop, Cursor, Gemini CLI and others that read `mcpServers`. The `<DBV-path>` is the application’s executable: in the **Microsoft Store** version it is the `dbv-typst-editor.exe` alias (it works from any terminal), on **Linux** the AppImage itself, and elsewhere the install path. `--mcp` starts **the server instead of the window**: the agent launches it as a child process and closes it when done.
+
+### The tools
+
+| Tool | What it does |
+| --- | --- |
+| `compile_project` | Compiles and returns errors and warnings with file, line and hints. A package that is not installed shows as "incomplete", not as an error. |
+| `render_page` | Up to 3 pages as PNG images. |
+| `search_typst_docs`, `read_typst_docs` | Search and read the Typst documentation of the exact version. |
+| `search_universe` | Searches templates and packages in the catalog **already downloaded** (one version per package). With no catalog it says so: it does not invent. |
+| `read_package_docs` | README, manifest and template of a package **already installed**. |
+| `install_package` | Asks DBV to install a catalog package **with your permission**, and returns its documentation. If DBV is not open, nothing is installed. |
+| `list_fonts`, `list_bibliography`, `citation_styles` | Typefaces, `.bib` references and citation styles. |
+| `editor_state` | What you see in the editor (see below). |
+| `dbv_info` | Server and compiler version, and the project. |
+
+### Sharing the editor state (optional)
+
+With **Preferences → Share the editor state with MCP agents** (**off by default**; also in the *MCP server…* dialog), a connected agent also sees what is **not on disk**: the open tabs **with their unsaved text**, the active document, the cursor and the selection, the outline and the problems. It is useful for asking *"explain what I am writing"*.
+
+- **Read-only** and **only for the open project**: there is no way for an agent to move the cursor, edit a tab or save.
+- While an agent reads it, **"Agent connected ✕"** shows in the document header; clicking it **cuts** the access.
+- If DBV is not open, or the setting is off, `editor_state` says so and the agent works from what is on disk.
+
+### Security
+
+- The agent launches the server as a **child process** and talks to it over standard input and output: **there is no network port**.
+- The channel between the server and DBV’s window is **local** (a named pipe on Windows, a Unix socket on macOS and Linux), with a **random 256-bit token** that changes on every run and that only the user running DBV can read.
+- It only sees **the project folder** it was launched with; no tool takes paths.
+- Installing a package **always** goes through DBV’s dialog.
+
+---
+
 ## Privacy at a glance
 
 | Route | What leaves your computer |
@@ -231,7 +344,7 @@ Install links: [Claude Code](https://docs.anthropic.com/en/docs/claude-code/setu
 | Cloud API | The context that is sent, to the provider. You are asked the first time per project. |
 | Agent with subscription | Whatever the agent sends to its service. DBV does not control its network traffic; permissions do pass through DBV. |
 
-The direct models' tools **cannot reach the network or run programs**: they only read the project and propose changes that you review hunk by hunk before applying them, with **Undo**.
+The direct models’ tools **open no connections and run no programs**: the model only asks DBV for things, and DBV reads the project and proposes changes that you review hunk by hunk before applying them, with **Undo**. What DBV downloads **on behalf of a cloud AI** (the public Typst Universe catalog, sending nothing of yours) is announced in the panel, and **installing a package or adding a typeface always requires your confirmation**. With a local AI, DBV downloads nothing: it only reads what is already on your computer.
 
 ## Common problems
 
@@ -248,4 +361,4 @@ The direct models' tools **cannot reach the network or run programs**: they only
 
 ---
 
-> This guide describes version **0.13.0**. The in-app help (**?** → *AI assistant*) summarizes the essentials; the full specification is in [`RF-90`–`RF-96` of SPECIFICATIONS.md](../dbv-specs-ops/docs/SPECIFICATIONS.md) (in Spanish).
+> This guide describes version **0.14.0**. The in-app help (**?** → *AI assistant*, *MCP server*) summarizes the essentials; the full specification is in [`RF-90`–`RF-96` of SPECIFICATIONS.md](../dbv-specs-ops/docs/SPECIFICATIONS.md) (in Spanish).

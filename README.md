@@ -33,7 +33,7 @@
 - [Estado actual](#-estado-actual)
 - [Descárgalo e instálalo](#-descárgalo-e-instálalo)
 - [Público objetivo](#-público-objetivo)
-- [Funcionalidades del MVP](#-funcionalidades-del-mvp)
+- [Qué puede hacer](#-qué-puede-hacer)
 - [Requisitos](#-requisitos)
 - [Usar una IA (guía)](./docs/IA.md)
 - [Instalación (desarrollo)](#-instalación-desarrollo)
@@ -71,7 +71,7 @@ Sigue la misma filosofía que su proyecto hermano [DBV Markdown Reader](https://
   - 🐧 **Linux**: Paquetes `.AppImage` (portable) y `.deb` (Debian/Ubuntu/Mint).
 - 🏬 **Microsoft Store:** disponible en la tienda oficial. [🛒 Consíguelo en Microsoft Store (ID 9PCPSVTNJMP0)](https://apps.microsoft.com/store/detail/9PCPSVTNJMP0?cid=DevShareMCLPCB). Si instalaste una versión previa desde la Store, asegúrate de contar con `v0.3.1` o superior (ver [`CHANGELOG.md`](./dbv-specs-ops/CHANGELOG.md)).
 - 🧪 **Calidad y estabilidad:** 1.843 pruebas automatizadas pasando al 100% (1.339 tests de frontend + 504 tests de backend en Rust), evaluación de la IA con modelos locales reales y validación de layout en motor Chromium/WebKit real.
-- 🚀 **Funcionalidades destacadas incluidas:**
+- 🚀 **Novedades de las últimas versiones** (lo que hace la aplicación, agrupado por temas, está en [«Qué puede hacer»](#-qué-puede-hacer)):
   - **La IA con modelos locales y con Gemini, más honesta (v0.13.1):** el asistente ya no anuncia propuestas que no existen, enseña **lo que piensa el modelo** (bloque plegable), **qué está haciendo y a qué velocidad**, y avisa de un **modelo demasiado pequeño o un contexto demasiado corto**; el razonamiento viene **desactivado** y se activa por conexión; al escribir **separa presentación de contenido** (el estilo, en ficheros de estilo); **Gemini 3 vuelve a poder usar herramientas**. Nuevo **«Nuevo .typ vacío…»** para crear un documento suelto sin crear un proyecto (la IA solo ve su fichero). La guía incluye por fin **números medidos** de los modelos locales (`qwen3:8b` resuelve poco más de 1 de cada 3 tareas: revisa siempre lo que propone) y una referencia en la nube, y `eval:ai` mide también IAs en la nube.
   - **Asistente de IA integrado y opcional (v0.13.0):** conecta una IA local (Ollama, LM Studio), en la nube con tu clave (Anthropic, OpenAI, Gemini, OpenRouter) o tu agente instalado con tu suscripción (Claude Code, Gemini CLI, Codex, Copilot). Conversa con el proyecto como contexto, propone cambios en varios ficheros que DBV **compila en memoria** antes de enseñártelos y que revisas trozo a trozo antes de aplicar (con Deshacer); IA en línea sobre la selección (Ctrl+Mayús+I) y «Explicar y arreglar» en los errores. Sin configurar nada, el editor funciona igual que siempre; con una IA local, nada sale de tu equipo; las claves van al almacén de credenciales del sistema. **[📖 Guía: qué necesitas instalar para usar cada IA](./docs/IA.md).** Además: **documentación oficial de Typst sin conexión** (la de la versión exacta del compilador, con buscador también en español), **panel de Problemas** con la lista completa de errores y **visor de datos CSV/TSV** con «Insertar como tabla».
   - **Esquema desde la vista previa y arreglos (v0.12.1):** el panel Esquema sale del mismo compilado que la vista previa, al instante y sin compilar dos veces; lista los encabezados que irían en el índice y, si no puede mostrarlos, dice por qué (documento con errores o fallo de la herramienta) en vez de «no tiene encabezados». Corrige el AppImage de Linux (Tinymist, exportar y el motor clásico no arrancaban), la vista previa que se salía de la ventana con el panel estrecho y la sincronización por palabra tras caer al motor clásico; si la vista previa usa el motor de respaldo, un aviso permite volver al rápido.
@@ -165,20 +165,49 @@ No está firmado ni notarizado (requeriría una cuenta Apple Developer de pago).
 
 ---
 
-## ✅ Funcionalidades del MVP
+## ✅ Qué puede hacer
 
-- **Lanzador orientado a tareas:** la aplicación no abre un editor vacío, pregunta qué quieres escribir.
-- **Asistente de creación de proyecto:** eliges plantilla, rellenas cuatro datos y el proyecto queda listo para compilar.
-- **Plantillas curadas:** Proyecto en blanco, Trabajo de Fin de Grado, Artículo académico y Currículum vitae. Cada proyecto generado es Typst estándar y compila con `typst` a secas, sin depender de esta aplicación.
-- **Modelo de proyecto, no de fichero suelto:** explorador lateral, proyectos recientes y "mostrar en el explorador del sistema". Abrir un repositorio Git clonado o un proyecto Typst hecho a mano funciona igual de bien, y la aplicación no escribe nada en su carpeta.
-- **Editor Typst real:** CodeMirror 6 con resaltado de la sintaxis de Typst 0.15, autocompletado de las funciones y símbolos integrados, plegado, numeración de líneas, búsqueda y reemplazo y selección múltiple.
-- **Vista previa en tiempo real:** el PDF se recompila solo tras cada pausa de escritura, con zoom y carga de páginas bajo demanda. Un error de sintaxis a medio escribir no borra la vista: mantiene la última correcta y muestra el error en una banda.
-- **Guardar, guardar como y detección de cambios externos**, con recarga automática cuando no hay nada que perder y aviso solo cuando lo hay.
-- **Exportación a PDF** del documento tal como se ve, incluidos los cambios sin guardar.
-- **Temas claro, oscuro y sepia**, interfaz en español e inglés y compilador Typst embebido: todo funciona sin conexión.
-- **Empaquetado** para Windows (NSIS) y Linux (AppImage + `.deb`), con asociación de fichero `.typ`. macOS tiene menú nativo escrito, pendiente de su primera compilación real.
-- **Typst Universe:** plantillas y paquetes de la comunidad, lista curada + identificador libre, con detección de fuentes que faltan en los avisos del compilador y la posibilidad de arrastrarlas al proyecto para añadirlas.
-- **Project Archive `.dbvt`, barra de herramientas de inserción, outline, terminal avanzado, modos de escritura, gestión de imágenes/citas/bibliografía por asistente, instancia única y actualizador automático** — el detalle completo de cada uno vive en `CHANGELOG.md`.
+Agrupado por lo que quieres hacer. El detalle de cada versión está en el [`CHANGELOG`](./dbv-specs-ops/CHANGELOG.md); la ayuda dentro de la aplicación (botón **?**) explica cada tema paso a paso.
+
+> ℹ️ Lo siguiente describe la rama de desarrollo: **Aplicar plantilla…**, las herramientas de Typst Universe, las páginas renderizadas y las fuentes para la IA, y el **servidor MCP** llegan con la **v0.14.0** (la última publicada es la v0.13.1).
+
+### ✍️ Escribir
+- **Editor Typst real** (CodeMirror 6): resaltado de la sintaxis de Typst 0.15, autocompletado de funciones y símbolos, plegado, multicursor, buscar y reemplazar, y una **pestaña por fichero** que conserva cambios, cursor y deshacer.
+- **Barra de inserción y asistentes**: formato, encabezados, listas, tablas, figuras (también pegando una imagen del portapapeles), citas con la bibliografía real del proyecto y una galería de símbolos matemáticos.
+- **Snippets** propios y por proyecto, con importación desde VS Code y desde Sublime Text.
+- Con **Tinymist** (bajo demanda): autocompletado semántico, ir a la definición, buscar referencias, renombrar símbolos y formatear.
+- **Buscar y reemplazar en todo el proyecto**, con expresiones regulares, y un **explorador de archivos** que reescribe los `#include`, `image()`… al mover o renombrar, con historial local de versiones.
+
+### 👀 Ver el resultado
+- **Vista previa en proceso**: Typst como librería, ≈0,5 s por edición en un libro de 224 páginas, con sincronización exacta palabra a palabra entre el editor y la vista previa en los dos sentidos.
+- Un error de sintaxis a medio escribir **no borra** la vista: se queda la última correcta y el problema sale en una banda. Panel de **Problemas**, esquema, buscar y copiar texto en la vista previa, y enlaces internos.
+- **Todo sin conexión**: el compilador y la documentación de Typst viajan con la aplicación.
+
+### 🧩 Plantillas, paquetes y fuentes
+- **8 plantillas propias** (en blanco, TFG, TFM, tesis doctoral, artículo, informe, presentación y currículum), con un formulario que escribe tus datos dentro del documento.
+- **Typst Universe** (~4.700 paquetes y plantillas): galería con vista previa, buscador sobre todo el catálogo e identificador libre.
+- **Aplicar plantilla…** a un documento que ya tienes (por ejemplo, pasarlo al IEEE): DBV añade el `#import` y el `#show`, mueve el título, los autores y el resumen a sus parámetros y deja el resto intacto, como una propuesta que revisas.
+- **Fuentes propias** en `fonts/`: se recogen al instante, viajan con el proyecto y puedes arrastrar la que falta al editor.
+
+### 📊 Figuras y datos
+- Editores visuales de **ecuaciones** (con «Pegar LaTeX»), **diagramas** de flujo con nodos y flechas (CeTZ), de **secuencia**, **Gantt**, **Kanban** y **DOT/Graphviz**, cada uno con su vista previa y su ayuda.
+- **Visor de datos** CSV/TSV, y ejecución de **Python** y **JavaScript** (jogs) para figuras y datos dinámicos.
+
+### 🤖 IA opcional: local, en la nube o con tu suscripción
+- **Tú eliges dónde vive**: un modelo local (Ollama, LM Studio, llama.cpp…) sin que nada salga de tu equipo, un proveedor con tu clave de API (Anthropic, OpenAI, Gemini, OpenRouter) o tu agente instalado con tu suscripción (Claude Code, Gemini CLI, Codex, Copilot). Sin ninguna IA conectada, el editor funciona igual.
+- **Nunca escribe sin que lo veas**: propone cambios en uno o varios ficheros, DBV los **compila en memoria**, y tú aceptas o rechazas cada trozo, con Deshacer.
+- **Trabaja sobre tu proyecto**: lee los ficheros, consulta la documentación de Typst, busca plantillas y paquetes **reales** de Universe (nunca inventa un nombre ni una versión), cita solo referencias que existen en tu `.bib`, **ve las páginas renderizadas** para juzgar el formato y, con la nube, te ofrece una tipografía que falte (tú confirmas).
+- Acciones en línea sobre la selección (Ctrl+Mayús+I), «Explicar y arreglar» un error y evaluación con modelos locales reales publicada con sus números: ver la [guía de IA](./docs/IA.md).
+
+### 🔌 Servidor MCP para otros agentes (v0.14.0)
+- Herramientas › **Servidor MCP…** da, lista para copiar, la configuración para que **Claude Code, Claude Desktop, Cursor, Codex…** usen el compilador exacto de DBV, vean las páginas renderizadas y consulten la documentación y Universe. El agente del panel de DBV lo recibe solo.
+- **Solo lectura, sin red y confinado al proyecto**; instalar un paquete exige tu confirmación en un diálogo, y compartir el estado del editor (pestañas con texto sin guardar) es un ajuste aparte, desactivado por defecto. Detalle en la [guía de IA](./docs/IA.md#6-el-servidor-mcp-de-dbv-las-herramientas-de-dbv-para-otros-agentes).
+
+### 📦 Proyecto y publicación
+- Un proyecto de DBV es un **proyecto Typst estándar**: compila con `typst` a secas, sin ataduras ni escribir nada raro en tu carpeta. **Git** integrado (commit, push, pull, clonar y resolver conflictos).
+- Exportar **PDF** y **PNG**, y empaquetar todo en un `.dbvt`.
+- **Sin telemetría ni cuentas**; temas claro, oscuro y sepia; interfaz en español e inglés.
+- **Windows** (Microsoft Store), **macOS** (`.dmg` y Homebrew) y **Linux** (AppImage, `.deb` y Homebrew).
 
 El detalle completo de requisitos y criterios de aceptación vive en [`dbv-specs-ops/docs/SPECIFICATIONS.md`](./dbv-specs-ops/docs/SPECIFICATIONS.md).
 
@@ -213,7 +242,7 @@ npm run verify:typst
 # compilador real, sustituye datos de ejemplo y comprueba que compila a PDF
 npm run verify:templates
 
-# Tests: lógica del frontend (Vitest, 1339) + backend Rust (504)
+# Tests: lógica del frontend (Vitest) y backend Rust (cargo test)
 npm test
 ```
 
@@ -255,25 +284,31 @@ stop.cmd
 
 ```
 /
-├── src/                        # Frontend (ESM, sin monolito)
-│   ├── app/                     # Estado del espacio de trabajo
-│   ├── editor/                   # Editor CodeMirror 6 + lenguaje Typst
-│   ├── preview/                   # Vista previa SVG en tiempo real
-│   ├── launcher/                   # Lanzador orientado a tareas
-│   ├── project-wizard/              # Asistente de creación de proyecto
-│   ├── project-explorer/             # Árbol de ficheros del proyecto
-│   ├── services/                      # Única frontera con el backend
-│   ├── panels/ · ui/ · themes/ · i18n/ # Paneles, controles, temas y traducciones
-├── src-tauri/                  # Backend Rust
-│   └── src/                     # commands/, project.rs, templates.rs,
-│                                 # typst_engine/, watcher.rs, error.rs
-├── templates/local/            # Plantillas curadas, como paquetes `@local`
-├── testfiles/                  # Documento y proyecto de prueba para abrir en la app
-├── scripts/                    # Vendorizado y verificaciones sin dependencias
-├── dbv-specs-ops/              # Documentación SDD (specs, arquitectura, memoria)
-├── start.cmd / start.sh        # Scripts de arranque
-├── stop.cmd / stop.sh          # Scripts de parada
-└── README.md                   # Este fichero
+├── src/                          # Frontend (ESM, sin monolito)
+│   ├── app/                       # Estado del espacio de trabajo, pestañas, preferencias
+│   ├── editor/                     # Editor CodeMirror 6, lenguaje Typst y asistentes
+│   ├── preview/                     # Vista previa en tiempo real
+│   ├── ai/                           # Asistente de IA (conexiones, panel, herramientas, propuestas)
+│   ├── mcp/                           # Servidor MCP: estado del editor y diálogo de configuración
+│   ├── launcher/ · project-wizard/     # Lanzador, galería de plantillas y asistente de proyecto
+│   ├── project-explorer/ · search/      # Árbol de ficheros y búsqueda en el proyecto
+│   ├── outline/ · problems/ · history/   # Esquema, panel de Problemas e historial local
+│   ├── universe/ · snippets/ · docs/      # Typst Universe, snippets y documentación de Typst
+│   ├── help/ · terminal/ · data/           # Ayuda integrada, terminal y visor de datos
+│   ├── services/                            # Única frontera con el backend
+│   └── panels/ · ui/ · themes/ · i18n/       # Paneles, controles, temas y traducciones
+├── src-tauri/                    # Backend Rust
+│   └── src/                       # engine/ (compilador en proceso), typst_engine/ (sidecar),
+│                                   # ai/ (IA, Universe, renderizado, fuentes), mcp.rs y mcp_bridge.rs
+│                                   # (servidor MCP), commands/, project.rs, templates.rs, watcher.rs…
+├── templates/local/              # Plantillas propias, como paquetes `@local`
+├── docs/                         # Web del proyecto (GitHub Pages) y guía de IA
+├── testfiles/                    # Documento y proyecto de prueba, y evaluación de la IA
+├── scripts/                      # Vendorizado y verificaciones sin dependencias
+├── dbv-specs-ops/                # Documentación SDD (specs, arquitectura, memoria, changelog)
+├── start.cmd / start.sh          # Scripts de arranque
+├── stop.cmd / stop.sh            # Scripts de parada
+└── README.md                     # Este fichero
 ```
 
 ---

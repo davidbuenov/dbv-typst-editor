@@ -16,7 +16,7 @@ El asistente de IA de DBV Typst Editor es **opcional**. Sin configurar nada, el 
 
 Para abrir el asistente de conexión: **Herramientas → Conectar una IA**. Al abrirlo, el editor **detecta lo que ya tienes** (Ollama, LM Studio y los agentes) y lo marca con ✓; lo que no encuentra aparece con un enlace de instalación. Esta detección solo ocurre al abrir esa pantalla, nunca al arrancar la aplicación.
 
-Una vez conectada, el panel de la IA se abre con el botón **IA**, junto a P/E/V.
+Una vez conectada, el panel de la IA se abre con el botón **IA**, junto a P/E/V. Para saber **qué hace la IA por tu documento**, ve a la sección 4; para **cambiar el formato** de un documento (IEEE, Springer…), a la 5; y para usar las herramientas de DBV desde **otro agente** (Claude Code en tu terminal, Cursor…), a la 6.
 
 ---
 
@@ -223,6 +223,119 @@ Enlaces de instalación: [Claude Code](https://docs.anthropic.com/en/docs/claude
 
 ---
 
+## 4. Qué puede hacer la IA por tu documento
+
+Con un modelo que admite **herramientas** (los de la nube y muchos locales; el campo *Herramientas* de la conexión lo detecta), la IA no se limita a contestar: **trabaja sobre tu proyecto**. Todo lo que sigue lo hace ella sola, sin escribir nada todavía; lo que quiere cambiar te llega como una **propuesta que revisas**.
+
+| Puede… | Cómo lo hace | Límite |
+| --- | --- | --- |
+| **Leer y buscar** en los ficheros del proyecto | Por sus herramientas, solo dentro de la carpeta del proyecto | Un `.typ` suelto: solo ve ese fichero |
+| **Consultar la documentación de Typst** | La de la versión exacta que compila DBV, sin conexión | — |
+| **Comprobar su propuesta** | La compila en memoria y te dice los errores nuevos y los corregidos | Un paquete sin instalar se marca como «comprobación incompleta», no como error |
+| **Buscar plantillas y paquetes** en Typst Universe | Del catálogo real, con una sola versión por paquete (la última compatible con el compilador) | Nunca escribe un nombre o una versión de memoria |
+| **Leer cómo se usa un paquete** | README, manifiesto y función de plantilla del paquete | Con una IA local, solo de los ya instalados |
+| **Citar referencias** | Solo claves que existen en tu `.bib`; estilos de cita de los que trae Typst | Un documento suelto no tiene bibliografía de la carpeta |
+| **Ver las páginas** | Renderiza hasta 3 páginas y las recibe como imágenes | Solo con un modelo que admite imágenes |
+| **Ofrecer una tipografía** que falta | Te enseña licencia y tamaño; solo se copia a `fonts/` si pulsas **Añadir al proyecto** | Solo con una IA en la nube; se puede deshacer |
+
+**Por qué importa que «no invente»:** las versiones de los paquetes cambian y una antigua puede no compilar con tu compilador. Por eso la IA solo escribe los identificadores `@preview/nombre:versión` que le devolvió la búsqueda. Si necesita un paquete que **no está instalado**, lo pone en su propuesta y **tú decides** en la revisión si se descarga («Paquetes que se descargarán»: licencia, ficha y un botón; no se descarga nada sola).
+
+**Qué hace cada vía con la red:**
+
+| | IA local | IA en la nube | Agente (suscripción) |
+| --- | --- | --- | --- |
+| Catálogo de Universe | Solo si ya lo descargaste tú (abriendo la galería) | Lo descarga DBV una vez y lo dice en el panel | El agente usa el servidor MCP de DBV (sección 6) |
+| Instalar un paquete | Nunca por sí sola | Siempre con tu confirmación | Siempre con tu confirmación (`install_package`) |
+| Añadir una fuente | No | Siempre con tu confirmación | — |
+
+---
+
+## 5. Cambiar el formato de un documento: aplicar una plantilla
+
+Para pasar un documento que ya tienes a un formato nuevo (IEEE, Springer, una tesis…) sin copiar y pegar a mano hay **dos caminos al mismo resultado**:
+
+### Con DBV, sin IA
+
+**Herramientas → Aplicar plantilla…** *(funciona sin ninguna IA conectada)*.
+
+1. Abre el documento principal del proyecto.
+2. Elige **Herramientas → Aplicar plantilla…**. Se abre **la misma galería que «Nuevo documento»**, con vista previa maquetada de cada plantilla: la pestaña *Typst Universe* (revisadas), *Buscar* (todo el catálogo) y la dirección libre (`@preview/charged-ieee:0.1.4`). No hay pestaña de plantillas locales: esas sirven para crear documentos nuevos.
+3. Elige una y pulsa **Aplicar «…» a mi documento**.
+4. DBV lee la documentación de la plantilla (si no está instalada, la descarga: es una acción tuya) y prepara **una propuesta**: añade el `#import` y el `#show` con la plantilla, **mueve el título, los autores, el resumen y las palabras clave** a sus parámetros y deja **el resto del contenido exactamente como está**.
+5. La propuesta se **revisa** como cualquier cambio de la IA: ves las diferencias, si compila y qué paquetes se descargarán. Te **marca** las reglas `#set` y `#show` de tu documento que pueden chocar con la plantilla (no las quita) y no se escribe nada hasta que pulsas **Aplicar**. Después, **Deshacer**.
+
+### Pidiéndoselo a la IA
+
+Con una IA conectada, el botón **Que la IA lo adapte** (o escribir en el panel *«Adapta el documento a @preview/…»*, o simplemente *«pásalo al IEEE»*) le pide el trabajo completo: busca la plantilla en el catálogo (si hay varias, te ofrece dos o tres y espera tu elección), lee sus parámetros, los rellena con tus datos, quita solo lo que choque, ajusta el estilo de la bibliografía con los estilos de Typst y **comprueba el resultado renderizando la página** si el modelo admite imágenes. Es más flexible que el camino mecánico, y también más caro y más variable según el modelo: revisa siempre la propuesta.
+
+**Límites:** solo plantillas de Typst Universe; la plantilla debe describir una función de plantilla (`#show: nombre.with(…)`); si el documento ya la usa, DBV te lo dice y no propone nada. Un formato muy distinto del de partida puede pedir retoques a mano (cabeceras, bibliografía): para eso es la revisión.
+
+---
+
+## 6. El servidor MCP de DBV: las herramientas de DBV para otros agentes
+
+**MCP** (*Model Context Protocol*) es un estándar para que un agente de IA use las herramientas de otros programas. DBV incluye un **servidor MCP** que le presta a un agente lo que no tiene por sí solo:
+
+- **Compilar con el compilador exacto de DBV** (Typst 0.15.1) y recibir los errores con fichero y línea.
+- **Ver las páginas renderizadas** como imágenes, para juzgar el formato.
+- **La documentación de Typst** de esa versión, sin conexión, y el **catálogo de Typst Universe** con identificadores y versiones reales.
+- **Pedirte permiso para instalar un paquete**, con un diálogo en la ventana de DBV: nada se descarga sin que lo aceptes.
+- Tipografías disponibles, **referencias de tu `.bib`** y estilos de cita.
+
+El agente **sigue leyendo y escribiendo tus ficheros por su cuenta**: el servidor es de **solo lectura**, no escribe nada en el proyecto y no abre ninguna conexión de red.
+
+### ¿Quién lo usa y cómo se conecta?
+
+| Agente | Qué hay que hacer |
+| --- | --- |
+| **El del panel de IA de DBV** (Claude Code, Gemini CLI…) | **Nada.** DBV se lo ofrece al abrir la conversación, apuntando al proyecto abierto (siempre que el agente admita MCP). |
+| **Un agente que ejecutas fuera de DBV** (Claude Code en tu terminal, Claude Desktop, Cursor, Codex…) | **Herramientas → Servidor MCP…** enseña la configuración lista para copiar con la ruta real de DBV y tu proyecto. |
+
+La configuración tiene esta forma (los valores reales los pone el diálogo):
+
+```bash
+# Claude Code y Codex: un comando en una terminal
+claude mcp add dbv -- "<ruta-de-DBV>" --mcp --project "<carpeta-del-proyecto>"
+codex  mcp add dbv -- "<ruta-de-DBV>" --mcp --project "<carpeta-del-proyecto>"
+```
+
+```json
+{ "mcpServers": { "dbv": { "command": "<ruta-de-DBV>", "args": ["--mcp", "--project", "<carpeta-del-proyecto>"] } } }
+```
+
+El JSON sirve para Claude Desktop, Cursor, Gemini CLI y otros que leen `mcpServers`. La `<ruta-de-DBV>` es el ejecutable de la aplicación: en la versión de **Microsoft Store** es el alias `dbv-typst-editor.exe` (funciona desde cualquier terminal), en **Linux** el propio AppImage y en el resto la ruta de instalación. `--mcp` arranca **el servidor en lugar de la ventana**: el agente lo lanza como proceso hijo y lo cierra al terminar.
+
+### Las herramientas
+
+| Herramienta | Qué hace |
+| --- | --- |
+| `compile_project` | Compila y devuelve errores y avisos con fichero, línea y pistas. Un paquete sin instalar sale como «incompleto», no como error. |
+| `render_page` | Hasta 3 páginas como imágenes PNG. |
+| `search_typst_docs`, `read_typst_docs` | Busca y lee la documentación de Typst de la versión exacta. |
+| `search_universe` | Busca plantillas y paquetes en el catálogo **ya descargado** (una versión por paquete). Sin catálogo, lo dice: no inventa. |
+| `read_package_docs` | README, manifiesto y plantilla de un paquete **ya instalado**. |
+| `install_package` | Pide a DBV que, **con tu permiso**, instale un paquete del catálogo, y devuelve su documentación. Si DBV no está abierto, no instala nada. |
+| `list_fonts`, `list_bibliography`, `citation_styles` | Tipografías, referencias del `.bib` y estilos de cita. |
+| `editor_state` | Lo que ves en el editor (ver abajo). |
+| `dbv_info` | Versión del servidor, del compilador y proyecto. |
+
+### Compartir el estado del editor (opcional)
+
+Con **Preferencias → Compartir el estado del editor con agentes MCP** (**desactivado por defecto**; también en el diálogo *Servidor MCP…*), un agente conectado ve además lo que **no está en disco**: las pestañas abiertas **con su texto sin guardar**, el documento activo, el cursor y la selección, el esquema y los problemas. Es útil para pedirle *«explica lo que estoy escribiendo»*.
+
+- **Solo lectura** y **solo del proyecto abierto**: no hay forma de que un agente mueva el cursor, edite una pestaña o guarde.
+- Mientras un agente lo lee, aparece **«Agente conectado ✕»** en la cabecera del documento; pulsarlo **corta** el acceso.
+- Si DBV no está abierto, o el ajuste está apagado, `editor_state` lo dice y el agente trabaja con lo que hay en disco.
+
+### Seguridad
+
+- El servidor lo lanza el agente como **proceso hijo** y habla con él por la entrada y salida estándar: **no hay ningún puerto de red**.
+- El canal entre el servidor y la ventana de DBV es **local** (tubería con nombre en Windows, socket de Unix en macOS y Linux), con un **testigo aleatorio de 256 bits** que cambia en cada ejecución y solo lee el usuario que ejecuta DBV.
+- Solo ve **la carpeta del proyecto** con el que se lanzó; ninguna herramienta recibe rutas.
+- Instalar un paquete **siempre** pasa por el diálogo de DBV.
+
+---
+
 ## Privacidad de un vistazo
 
 | Vía | Qué sale de tu equipo |
@@ -231,7 +344,7 @@ Enlaces de instalación: [Claude Code](https://docs.anthropic.com/en/docs/claude
 | API en la nube | El contexto que se envía, al proveedor. Se pregunta la primera vez por proyecto. |
 | Agente con suscripción | Lo que el agente envíe a su servicio. DBV no controla su red; los permisos sí pasan por DBV. |
 
-Las herramientas de los modelos directos **no acceden a la red ni ejecutan programas**: solo leen el proyecto y proponen cambios que tú revisas trozo a trozo antes de aplicarlos, con **Deshacer**.
+Las herramientas de los modelos directos **no abren conexiones ni ejecutan programas**: el modelo solo le pide cosas a DBV, que lee el proyecto y propone cambios que tú revisas trozo a trozo antes de aplicarlos, con **Deshacer**. Lo que DBV descarga **en nombre de una IA en la nube** (el catálogo público de Typst Universe, sin enviar nada tuyo) se avisa en el panel, y **instalar un paquete o añadir una tipografía exige siempre tu confirmación**. Con una IA local, DBV no descarga nada: solo lee lo que ya hay en tu equipo.
 
 ## Problemas frecuentes
 
@@ -248,4 +361,4 @@ Las herramientas de los modelos directos **no acceden a la red ni ejecutan progr
 
 ---
 
-> Esta guía describe la versión **0.13.0**. La ayuda dentro de la aplicación (**?** → *Asistente de IA*) resume lo esencial; la especificación completa está en [`RF-90`–`RF-96` de SPECIFICATIONS.md](../dbv-specs-ops/docs/SPECIFICATIONS.md).
+> Esta guía describe la versión **0.14.0**. La ayuda dentro de la aplicación (**?** → *Asistente de IA*, *Servidor MCP*) resume lo esencial; la especificación completa está en [`RF-90`–`RF-96` de SPECIFICATIONS.md](../dbv-specs-ops/docs/SPECIFICATIONS.md).

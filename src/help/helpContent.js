@@ -53,25 +53,27 @@ export const HELP_SECTIONS = [
   },
   {
     id: 'paneles',
-    title: { es: 'Los tres paneles', en: 'The three panels' },
+    title: { es: 'Los cuatro paneles', en: 'The four panels' },
     blocks: [
       {
-        es: 'La ventana tiene tres paneles y cada uno se enciende o se apaga por su cuenta con los botones P / E / V de la cabecera. Los que queden visibles se reparten siempre todo el ancho.',
-        en: 'The window has three panels, and each one toggles independently with the P / E / V buttons in the header. Whichever ones stay visible always share the full width.',
+        es: 'La ventana tiene cuatro paneles y cada uno se enciende o se apaga por su cuenta con los botones P / E / V / IA de la cabecera. P, E y V se reparten siempre todo el ancho que dejen libre los demás; el panel de IA se abre a la derecha con su propio ancho.',
+        en: 'The window has four panels, and each one toggles independently with the P / E / V / AI buttons in the header. P, E and V always share whatever width the others leave free; the AI panel opens on the right with its own width.',
       },
       {
         list: {
           es: [
-            'P — Proyecto: el panel lateral, con dos pestañas, Archivos (el árbol del proyecto) y Esquema (los encabezados del documento).',
-            'E — Editor: el documento con su barra de herramientas.',
+            'P — Proyecto: el panel lateral, con cuatro pestañas: Archivos (el árbol del proyecto), Esquema (los encabezados del documento), Buscar (en todo el proyecto) y Problemas (errores y avisos del compilador).',
+            'E — Editor: el documento con sus pestañas y su barra de herramientas.',
             'V — Vista previa: el documento compuesto, página a página.',
+            'IA — Asistente: la conversación con la IA, a la derecha. El botón solo aparece cuando hay un proyecto abierto y una IA conectada (ver «Asistente de IA»).',
             'Las divisiones entre paneles se arrastran con el ratón; doble clic sobre una devuelve el reparto por defecto.',
             'La combinación elegida se recuerda al cerrar la aplicación.',
           ],
           en: [
-            'P — Project: the side panel, with two tabs, Files (the project tree) and Outline (the document headings).',
-            'E — Editor: the document with its toolbar.',
+            'P — Project: the side panel, with four tabs: Files (the project tree), Outline (the document headings), Search (across the project) and Problems (the compiler’s errors and warnings).',
+            'E — Editor: the document with its tabs and its toolbar.',
             'V — Preview: the typeset document, page by page.',
+            'AI — Assistant: the conversation with the AI, on the right. The button only appears when a project is open and an AI is connected (see "AI assistant").',
             'The dividers between panels can be dragged; double-clicking one restores the default split.',
             'Your chosen combination is remembered when you close the app.',
           ],
@@ -272,7 +274,7 @@ export const HELP_SECTIONS = [
   },
   {
     id: 'ia',
-    title: { es: 'Asistente de IA (opcional)', en: 'AI assistant (optional)' },
+    title: { es: 'Asistente de IA: conectar una IA (opcional)', en: 'AI assistant: connecting an AI (optional)' },
     blocks: [
       {
         es: 'La IA es opcional: sin conectar ninguna, el editor funciona igual que siempre. Herramientas › «Conectar una IA…» detecta lo que hay en el equipo y lo conecta con un botón:',
@@ -343,17 +345,151 @@ export const HELP_SECTIONS = [
           label: { es: 'Guía completa: qué instalar para cada IA', en: 'Full guide: what to install for each AI' },
         },
       },
+    ],
+  },
+  {
+    id: 'ia-trabajar',
+    title: { es: 'Trabajar con la IA: el panel y las propuestas', en: 'Working with the AI: the panel and proposals' },
+    blocks: [
       {
-        es: 'El panel de la IA se abre con el botón «IA» junto a P/E/V. Dice a dónde va lo que envías y qué contexto se manda (fichero abierto, selección, problemas, esquema, ficheros mencionados con @, la página de la vista previa); puedes quitar cualquier elemento. La primera vez que un proyecto se va a enviar a la nube, se pregunta.',
-        en: 'The AI panel opens with the "AI" button next to P/E/V. It shows where your data goes and what context is sent (open file, selection, problems, outline, files mentioned with @, the preview page); you can remove any item. The first time a project would be sent to the cloud, you are asked.',
+        es: 'El panel de la IA se abre con el botón «IA» de la cabecera (el cuarto, junto a P / E / V) y solo aparece cuando hay un proyecto abierto y una IA conectada. Arriba eliges la conexión y la conversación; debajo ves a dónde va lo que escribes y qué contexto se envía.',
+        en: 'The AI panel opens with the "AI" button in the header (the fourth, next to P / E / V) and only appears when a project is open and an AI is connected. At the top you choose the connection and the conversation; below you see where what you type goes and what context is sent.',
+      },
+      {
+        list: {
+          es: [
+            'Contexto automático: el fichero abierto, la selección, los problemas del compilador, el esquema y la lista de ficheros. Cada elemento sale como una etiqueta y puedes quitarlo con su ✕.',
+            'Mencionar ficheros: escribe @ y elige uno para adjuntarlo a la pregunta.',
+            'Adjuntar la página visible: manda una captura de la vista previa (solo con un modelo que admite imágenes).',
+            'Nube: la primera vez que un proyecto se va a enviar a un proveedor en la nube, se pregunta. Con una IA local no sale nada de tu equipo.',
+          ],
+          en: [
+            'Automatic context: the open file, the selection, the compiler problems, the outline and the file list. Each item appears as a tag and you can remove it with its ✕.',
+            'Mentioning files: type @ and pick one to attach it to the question.',
+            'Attach the visible page: sends a capture of the preview (only with a model that accepts images).',
+            'Cloud: the first time a project is about to be sent to a cloud provider, you are asked. With a local AI nothing leaves your computer.',
+          ],
+        },
       },
       {
         es: 'La IA nunca escribe sin que lo veas: propone cambios (también en varios ficheros, o ficheros nuevos), DBV los compila en memoria y te dice si compilan, y tú aceptas o rechazas cada trozo, puedes retocar el texto y verlo en la vista previa antes de aplicar; después, Deshacer. Con un agente, cada edición llega como petición de permiso con su diff, y al acabar se listan los ficheros que cambió con Deshacer.',
         en: 'The AI never writes without you seeing it: it proposes changes (across several files, or new files), DBV compiles them in memory and tells you whether they compile, and you accept or reject each hunk, can edit the text and see it in the preview before applying; then, Undo. With an agent, every edit arrives as a permission request with its diff, and afterwards the files it changed are listed with Undo.',
       },
       {
+        es: 'Con un modelo que admite herramientas, la IA puede hacer por su cuenta, sin escribir nada todavía:',
+        en: 'With a model that supports tools, the AI can do the following on its own, without writing anything yet:',
+      },
+      {
+        list: {
+          es: [
+            'Leer y buscar en los ficheros del proyecto, y consultar la documentación de Typst de la versión exacta que compila la aplicación.',
+            'Comprobar su propia propuesta compilándola (errores nuevos y corregidos) antes de enseñártela.',
+            'Buscar plantillas y paquetes en Typst Universe y leer cómo se usan: solo usa identificadores y versiones reales del catálogo, nunca los inventa. Si necesita un paquete que no está instalado, lo incluye en la propuesta y tú decides si se descarga.',
+            'Citar solo referencias que existen en tu .bib y usar solo estilos de cita que trae Typst.',
+            'Ver las páginas renderizadas, con un modelo que admite imágenes, para juzgar el formato en lugar de adivinarlo.',
+            'Con una conexión en la nube, ofrecerte una tipografía que falte: DBV te enseña su licencia y su tamaño y solo la copia a fonts/ si pulsas «Añadir al proyecto» (se puede deshacer).',
+            'Con una IA local, el acceso a Typst Universe y a las fuentes es solo de lectura de lo que ya hay en tu equipo: no descarga nada.',
+          ],
+          en: [
+            'Read and search the project files, and look up the Typst documentation of the exact version the app compiles with.',
+            'Check its own proposal by compiling it (new and fixed errors) before showing it to you.',
+            'Search Typst Universe for templates and packages and read how they are used: it only uses real identifiers and versions from the catalog and never invents them. If it needs a package that is not installed, it includes it in the proposal and you decide whether it is downloaded.',
+            'Cite only references that exist in your .bib and use only citation styles that Typst ships with.',
+            'See the rendered pages, with a model that accepts images, to judge the layout instead of guessing it.',
+            'With a cloud connection, offer you a missing typeface: DBV shows its licence and size and only copies it into fonts/ if you press "Add to project" (it can be undone).',
+            'With a local AI, access to Typst Universe and to fonts is read-only on what is already on your computer: it downloads nothing.',
+          ],
+        },
+      },
+      {
         es: 'Ctrl+Mayús+I (o «IA…» en el menú contextual) actúa sobre la selección o el párrafo: mejorar, corregir, traducir, acortar, ampliar, convertir a tabla o lista, explicar o lo que pidas. En Problemas, «Explicar y arreglar» resuelve un error con una propuesta comprobada.',
         en: 'Ctrl+Shift+I (or "AI…" in the context menu) works on the selection or the paragraph: improve, fix, translate, shorten, expand, convert to table or list, explain, or anything you ask. In Problems, "Explain and fix" solves an error with a checked proposal.',
+      },
+    ],
+  },
+  {
+    id: 'ia-plantillas',
+    title: { es: 'Cambiar el formato de un documento: aplicar una plantilla', en: 'Changing a document’s format: applying a template' },
+    blocks: [
+      {
+        es: 'Para pasar un documento que ya tienes a otro formato (IEEE, Springer, una tesis…) sin copiar y pegar a mano: Herramientas › «Aplicar plantilla…». Es una función de DBV y no necesita ninguna IA conectada.',
+        en: 'To move a document you already have into another format (IEEE, Springer, a thesis…) without copying and pasting by hand: Tools › "Apply template…". It is a DBV feature and needs no AI connected.',
+      },
+      {
+        list: {
+          es: [
+            'Abre el documento principal del proyecto y elige Herramientas › «Aplicar plantilla…». Se abre la misma galería de «Nuevo documento», con vista previa maquetada: la pestaña «Typst Universe» con las plantillas revisadas, la pestaña «Buscar» sobre todo el catálogo y la dirección libre (por ejemplo @preview/charged-ieee:0.1.4). No hay pestaña de plantillas locales: esas sirven para crear documentos nuevos.',
+            'Elige una y pulsa «Aplicar "…" a mi documento».',
+            'DBV lee la documentación de la plantilla (si no está instalada, la descarga: es una acción tuya) y prepara UNA propuesta: añade el #import y el #show con la plantilla, mueve el título, los autores, el resumen y las palabras clave a sus parámetros y deja el resto del contenido exactamente como está.',
+            'La propuesta se revisa como cualquier cambio de la IA: ves las diferencias, si compila y qué paquetes se descargarán; te marca las reglas #set y #show de tu documento que pueden chocar con la plantilla (no las quita); y no se escribe nada hasta que pulsas Aplicar. Después, Deshacer.',
+            'Si el resultado no es el que esperabas, «Que la IA lo adapte» (con una IA conectada) le pide el trabajo completo: leer la plantilla, rellenar sus parámetros con tus datos y quitar solo lo que choque. También puedes pedírselo a mano en el panel: «Adapta el documento a @preview/…».',
+          ],
+          en: [
+            'Open the project’s main document and choose Tools › "Apply template…". The same gallery as "New document" opens, with a laid-out preview: the "Typst Universe" tab with the reviewed templates, the "Search" tab over the whole catalog and the free address (for example @preview/charged-ieee:0.1.4). There is no local-templates tab: those are for creating new documents.',
+            'Pick one and press "Apply "…" to my document".',
+            'DBV reads the template’s documentation (if it is not installed, it downloads it: that is an action of yours) and prepares ONE proposal: it adds the #import and the #show with the template, moves the title, authors, abstract and keywords into its parameters and leaves the rest of the content exactly as it is.',
+            'The proposal is reviewed like any AI change: you see the differences, whether it compiles and which packages will be downloaded; it flags the #set and #show rules in your document that may clash with the template (it does not remove them); and nothing is written until you press Apply. Then, Undo.',
+            'If the result is not what you expected, "Let the AI adapt it" (with an AI connected) asks it for the full job: read the template, fill its parameters with your data and remove only what clashes. You can also ask by hand in the panel: "Adapt the document to @preview/…".',
+          ],
+        },
+      },
+      {
+        es: 'Límites: solo plantillas de Typst Universe; la plantilla tiene que describir una función de plantilla (#show: nombre.with(…)); si tu documento ya la usa, DBV te lo dice y no propone nada. Un cambio de formato muy distinto puede pedir retoques a mano (cabeceras, bibliografía), por eso la propuesta siempre se revisa antes.',
+        en: 'Limits: Typst Universe templates only; the template must describe a template function (#show: name.with(…)); if your document already uses it, DBV tells you and proposes nothing. A very different format may need touch-ups by hand (headers, bibliography), which is why the proposal is always reviewed first.',
+      },
+    ],
+  },
+  {
+    id: 'ia-mcp',
+    title: { es: 'Servidor MCP: las herramientas de DBV para otros agentes', en: 'MCP server: DBV’s tools for other agents' },
+    blocks: [
+      {
+        es: 'MCP es un estándar para que un agente de IA use las herramientas de otros programas. El servidor MCP de DBV le da a un agente lo que no tiene por sí solo: compilar con el compilador exacto de DBV, ver las páginas renderizadas, consultar la documentación de Typst y el catálogo de Universe sin inventar nada, y pedirte permiso para instalar paquetes. El agente sigue leyendo y escribiendo tus ficheros por su cuenta; el servidor no escribe nada en el proyecto.',
+        en: 'MCP is a standard that lets an AI agent use the tools of other programs. DBV’s MCP server gives an agent what it lacks on its own: compiling with DBV’s exact compiler, seeing the rendered pages, looking up the Typst documentation and the Universe catalog without inventing anything, and asking your permission to install packages. The agent still reads and writes your files on its own; the server writes nothing in the project.',
+      },
+      {
+        list: {
+          es: [
+            'El agente del panel de IA de DBV (Claude Code, Gemini CLI…) lo recibe solo al abrir la conversación: no hay que configurar nada.',
+            'Un agente que ejecutas fuera de DBV (Claude Code en tu terminal, Claude Desktop, Cursor, Codex…): Herramientas › «Servidor MCP…» enseña la configuración lista para copiar, con la ruta real de DBV y tu proyecto.',
+          ],
+          en: [
+            'The agent in DBV’s AI panel (Claude Code, Gemini CLI…) receives it by itself when the conversation opens: nothing to configure.',
+            'An agent you run outside DBV (Claude Code in your terminal, Claude Desktop, Cursor, Codex…): Tools › "MCP server…" shows the configuration ready to copy, with DBV’s real path and your project.',
+          ],
+        },
+      },
+      {
+        es: 'Herramientas que ofrece:',
+        en: 'Tools it offers:',
+      },
+      {
+        list: {
+          es: [
+            'compile_project: compila y devuelve errores y avisos con fichero y línea. Un paquete sin instalar se marca como comprobación incompleta, no como error.',
+            'render_page: hasta 3 páginas como imágenes.',
+            'search_typst_docs y read_typst_docs: la documentación de la versión exacta, sin conexión.',
+            'search_universe, read_package_docs e install_package: plantillas y paquetes del catálogo. install_package te muestra un diálogo y nada se descarga sin que lo permitas.',
+            'list_fonts, list_bibliography y citation_styles: tipografías disponibles, referencias de tu .bib y estilos de cita.',
+            'editor_state: lo que ves en el editor (ver abajo).',
+          ],
+          en: [
+            'compile_project: compiles and returns errors and warnings with file and line. A package that is not installed is flagged as an incomplete check, not as an error.',
+            'render_page: up to 3 pages as images.',
+            'search_typst_docs and read_typst_docs: the documentation of the exact version, offline.',
+            'search_universe, read_package_docs and install_package: catalog templates and packages. install_package shows you a dialog and nothing is downloaded unless you allow it.',
+            'list_fonts, list_bibliography and citation_styles: available typefaces, your .bib references and citation styles.',
+            'editor_state: what you see in the editor (see below).',
+          ],
+        },
+      },
+      {
+        es: 'Estado del editor (opcional): con Preferencias › «Compartir el estado del editor con agentes MCP» (desactivado por defecto), el agente ve también las pestañas abiertas con su texto sin guardar, el cursor y la selección, para ayudarte con lo que estás escribiendo. Es solo lectura y solo del proyecto abierto; mientras un agente lo lee aparece «Agente conectado ✕» en la cabecera del documento, y al pulsarlo se corta. Si DBV no está abierto, el agente trabaja con lo que hay en disco.',
+        en: 'Editor state (optional): with Preferences › "Share the editor state with MCP agents" (off by default), the agent also sees the open tabs with their unsaved text, the cursor and the selection, to help with what you are writing. It is read-only and only for the open project; while an agent reads it, "Agent connected ✕" shows in the document header, and clicking it cuts it off. If DBV is not open, the agent works from what is on disk.',
+      },
+      {
+        es: 'Seguridad: el servidor lo lanza el agente como proceso hijo y no abre ningún puerto de red; el canal con la ventana de DBV es local y lleva un testigo aleatorio; solo ve el proyecto con el que se lanzó; y no hace ninguna conexión: lee el catálogo y los paquetes que ya hay en tu equipo.',
+        en: 'Security: the agent launches the server as a child process and it opens no network port; the channel to the DBV window is local and carries a random token; it only sees the project it was launched with; and it makes no connection: it reads the catalog and packages already on your computer.',
       },
     ],
   },
@@ -623,11 +759,15 @@ export const HELP_SECTIONS = [
             'Se suma a las fuentes del sistema, no las sustituye: puedes mezclar unas y otras.',
             'Se busca también dentro de subcarpetas.',
             'Esa carpeta viaja dentro del .dbvt al exportar, así que quien reciba el proyecto lo verá igual sin instalar nada.',
+            'Si el compilador avisa de que falta una fuente, puedes arrastrar su fichero (.ttf o .otf) al editor, o pedirle a una IA en la nube que la busque: DBV te enseña su licencia y su tamaño y solo la copia a fonts/ si pulsas «Añadir al proyecto» (se puede deshacer).',
+            'Una fuente que añades a fonts/ mientras la aplicación está abierta —tú o un agente— se recoge en el siguiente compilado, sin reiniciar.',
           ],
           en: [
             'It adds to your system fonts rather than replacing them: you can mix both.',
             'Subfolders are searched too.',
             'The folder travels inside the .dbvt when exporting, so whoever receives the project sees it identically without installing anything.',
+            'If the compiler warns that a font is missing, you can drag its file (.ttf or .otf) onto the editor, or ask a cloud AI to find it: DBV shows its licence and size and only copies it into fonts/ if you press "Add to project" (it can be undone).',
+            'A font you add to fonts/ while the app is open —you or an agent— is picked up on the next compile, with no restart.',
           ],
         },
       },
@@ -660,8 +800,8 @@ export const HELP_SECTIONS = [
         },
       },
       {
-        es: 'Una diferencia a tener en cuenta: las plantillas de la comunidad no traen el formulario de datos que sí tienen las plantillas propias de la aplicación, así que solo se te pedirá el nombre del proyecto y dónde crearlo.',
-        en: 'One difference worth knowing: community templates do not carry the data form that the app’s own templates have, so you will only be asked for the project name and where to create it.',
+        es: 'Una diferencia a tener en cuenta: las plantillas de la comunidad no traen el formulario de datos que sí tienen las plantillas propias de la aplicación, así que solo se te pedirá el nombre del proyecto y dónde crearlo. Para llevar un documento que ya tienes a una de estas plantillas, usa Herramientas › «Aplicar plantilla…» (ver «Cambiar el formato de un documento»).',
+        en: 'One difference worth knowing: community templates do not carry the data form that the app’s own templates have, so you will only be asked for the project name and where to create it. To bring a document you already have into one of these templates, use Tools › "Apply template…" (see "Changing a document’s format").',
       },
     ],
   },

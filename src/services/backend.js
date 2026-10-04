@@ -404,6 +404,10 @@ export const aiUniverseSearch = (query, kind = 'any', limit = 8) => call('ai_uni
 export const aiUniverseRefresh = () => call('ai_universe_refresh');
 /** Comprueba identificadores `@preview/nombre:versión` contra el catálogo descargado. */
 export const aiUniverseCheck = (ids) => call('ai_universe_check', { ids });
+/** Referencias del proyecto (`.bib` y `.yml` de Hayagriva) para la IA, filtradas por `query`. */
+export const aiBibliography = (root, query = '') => call('ai_bibliography', { root, query });
+/** Estilos de cita incluidos en Typst, de la documentación vendorizada. */
+export const aiCitationStyles = () => call('ai_citation_styles');
 /** Licencia y descripción de los paquetes que la revisión pide descargar (del catálogo ya guardado). */
 export const aiUniverseInfo = (ids) => call('ai_universe_info', { ids });
 /** README, manifiesto y plantilla de un paquete. `allowDownload` solo con una conexión en la nube (RNF-IA.9.3). */

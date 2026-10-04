@@ -11,7 +11,7 @@ import { createProposal, resultText } from './proposal.js';
 import { detectStyleFiles, importedFiles, separationChecks } from './styleFiles.js';
 import { estimateTokens } from './context.js';
 import { TOOL_SPEC_TOKENS } from './modelFit.js';
-import { createTools, describeCheck, describePackageCheck, formatUniverseResult, MAX_FIX_ATTEMPTS, newErrors, newPackageIds } from './tools.js';
+import { createTools, describeCheck, describePackageCheck, formatBibliography, formatCitationStyles, formatUniverseResult, MAX_FIX_ATTEMPTS, newErrors, newPackageIds } from './tools.js';
 
 const err = (file, message) => ({ level: 'error', file, line: 1, message });
 
@@ -50,7 +50,7 @@ describe('herramientas', () => {
 
   it('TOOL_SPEC_TOKENS cubre lo que ocupan las definiciones de las herramientas (RF-103)', () => {
     // Todas las que se ofrecen en la aplicación: las del proyecto y las de Typst Universe.
-    const { deps } = setup({ universe: { universeSearch: async () => ({ status: 'ok', hits: [] }), universeDocs: async () => '' } });
+    const { deps } = setup({ universe: { universeSearch: async () => ({ status: 'ok', hits: [] }), universeDocs: async () => '', bibliography: async () => ({ references: [], total: 0, files: [] }), citationStyles: async () => [] } });
     const specs = createTools(deps).map(({ name, description, parameters }) => ({ name, description, parameters }));
     const real = estimateTokens(JSON.stringify(specs));
     // Si las herramientas crecen, hay que subir la constante: el presupuesto de contexto depende de ella.
@@ -423,5 +423,81 @@ describe('comprobar con paquetes sin instalar (RF-109.1)', () => {
   it('sin paquetes que falten sigue diciendo lo de siempre', async () => {
     const { tools } = setup({ check: async () => ({ fresh: [], fixed: 0, missing: [] }) });
     expect(await tools.propose_changes.run(edit)).toContain('compiles without new errors');
+  });
+});
+
+describe('bibliografía y estilos de cita para la IA (RF-115)', () => {
+  const REFS = {
+    files: ['refs.bib'],
+    total: 2,
+    references: [
+      { key: 'knuth1984', entryType: 'article', title: 'Literate Programming', authors: ['Knuth, Donald E.'], etAl: false, year: 1984 },
+      { key: 'lamport1994', entryType: 'book', title: 'LaTeX: A Document Preparation System', authors: ['Lamport, Leslie', 'A. Otro', 'B. Tercero'], etAl: true, year: 1994 },
+    ],
+  };
+  const STYLES = [
+    { name: 'ieee', details: 'IEEE' },
+    { name: 'apa', details: 'American Psychological Association 7th edition' },
+    { name: 'chicago-author-date', details: 'Chicago Manual of Style 17th edition (author-date)' },
+    { name: 'chicago-notes', details: 'Chicago Manual of Style 17th edition (notes)' },
+    { name: 'nature', details: 'Nature' },
+  ];
+
+  it('solo se ofrecen si hay bibliografía y estilos que consultar', () => {
+    const none = setup().tools;
+    expect(none.list_bibliography).toBeUndefined();
+    expect(none.citation_styles).toBeUndefined();
+    const some = setup({ universe: { bibliography: async () => REFS, citationStyles: async () => STYLES } }).tools;
+    expect(some.list_bibliography).toBeDefined();
+    expect(some.citation_styles).toBeDefined();
+  });
+
+  it('list_bibliography da las claves con autor, año y título, y manda citar SOLO esas', async () => {
+    const bibliography = vi.fn(async () => REFS);
+    const { tools } = setup({ universe: { bibliography } });
+    const text = await tools.list_bibliography.run({});
+    expect(bibliography).toHaveBeenCalledWith('');
+    expect(text).toContain('@knuth1984 — Knuth, Donald E. (1984). Literate Programming [article]');
+    expect(text).toContain('@lamport1994 — Lamport, Leslie; A. Otro; B. Tercero et al. (1994)');
+    expect(text).toMatch(/Cite ONLY these keys/);
+    expect(text).toMatch(/never invent a reference, an author or a year/);
+  });
+
+  it('con más referencias de las que caben lo dice y explica cómo filtrar', async () => {
+    const { tools } = setup({ universe: { bibliography: async () => ({ ...REFS, total: 90 }) } });
+    expect(await tools.list_bibliography.run({ query: 'x' })).toContain('2 of 90 shown; pass `query`');
+  });
+
+  it('sin fichero de bibliografía no inventa: manda pedir los datos y proponer un .bib', async () => {
+    const { tools } = setup({ universe: { bibliography: async () => ({ references: [], total: 0, files: [] }) } });
+    const text = await tools.list_bibliography.run({});
+    expect(text).toContain('no bibliography file');
+    expect(text).toContain('Do NOT invent references');
+  });
+
+  it('una consulta sin coincidencias dice que no está y qué hacer (proponer la entrada), sin inventarla', async () => {
+    const { tools } = setup({ universe: { bibliography: async () => ({ references: [], total: 0, files: ['refs.bib'] }) } });
+    const text = await tools.list_bibliography.run({ query: 'turing' });
+    expect(text).toContain('no references match "turing"');
+    expect(text).toContain('propose adding an entry to the .bib file');
+  });
+
+  it('citation_styles sin consulta enseña los habituales y cuántos hay; con consulta, los que coinciden', async () => {
+    const { tools } = setup({ universe: { citationStyles: async () => STYLES } });
+    const common = await tools.citation_styles.run({});
+    expect(common).toContain('"ieee" — IEEE');
+    expect(common).toContain('"apa"');
+    expect(common).not.toContain('"nature"');
+    expect(common).toContain('5 built-in styles in total');
+    const chicago = await tools.citation_styles.run({ query: 'chicago' });
+    expect(chicago).toContain('"chicago-author-date"');
+    expect(chicago).toContain('"chicago-notes"');
+    expect(chicago).not.toContain('"ieee"');
+    expect(await tools.citation_styles.run({ query: 'zzz' })).toContain('no built-in style matches "zzz"');
+  });
+
+  it('si la lista de estilos no está disponible no se inventa una', () => {
+    expect(formatCitationStyles([])).toMatch(/^error: the list of citation styles is not available/);
+    expect(formatBibliography({ references: [], total: 0, files: [] })).toContain('no bibliography file');
   });
 });

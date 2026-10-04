@@ -113,6 +113,8 @@ pub fn run() {
             assets::supported_asset_extensions,
             bibliography::bibliography_entries,
             bibliography::bibliography_keys,
+            bibliography::ai_bibliography,
+            docs::ai_citation_styles,
             commands::app_info::app_info,
             ai::commands::ai_connections,
             ai::commands::ai_save_connection,

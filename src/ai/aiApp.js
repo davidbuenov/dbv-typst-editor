@@ -646,7 +646,9 @@ export function createAiApp(deps) {
         if (found.ok && found.value.status === 'ok') universe.push(...found.value.hits);
       }
       const budget = contextBudget(connection);
-      const system = systemPrompt({ lang: getLanguage(), tools, typstVersion: deps.typstVersion(), universe: tools });
+      // En un documento suelto la IA solo ve su fichero: la bibliografía de la carpeta no es suya (RF-106.7).
+      const withBibliography = tools && singleFile === null;
+      const system = systemPrompt({ lang: getLanguage(), tools, typstVersion: deps.typstVersion(), universe: tools, bibliography: withBibliography });
       const context = buildContext(contextSource([...mentioned, ...(options.attachments ?? [])], docs, universe), Math.max(400, budget - estimateTokens(system) - estimateTokens(text)));
       renderContextPreview(context.items);
       const historyBudget = Math.max(0, budget - estimateTokens(system) - estimateTokens(context.text) - estimateTokens(text));
@@ -687,6 +689,18 @@ export function createAiApp(deps) {
           return checked.ok ? checked.value : [];
         },
         universeSeen: seenIdentifiers(current.id),
+        ...(withBibliography
+          ? {
+              bibliography: async (query) => {
+                const found = await backend.aiBibliography(projectRoot, query);
+                return found.ok ? found.value : { references: [], total: 0, files: [] };
+              },
+              citationStyles: async () => {
+                const styles = await backend.aiCitationStyles();
+                return styles.ok ? styles.value : [];
+              },
+            }
+          : {}),
         // Con una nube, leer un paquete que no está instalado lo baja a memoria (6–213 KB, nada se instala); con una local, solo lo ya instalado.
         universeDocs: async (id) => {
           const docs = await backend.aiUniversePackageDocs(id, isCloud(connection));

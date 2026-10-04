@@ -69,6 +69,39 @@ export function formatUniverseResult(result, query) {
   ].join('\n');
 }
 
+/** Estilos que se enseñan sin consulta: los habituales de cada disciplina (`bibliography` de la documentación de Typst). */
+const COMMON_STYLES = ['ieee', 'apa', 'chicago-author-date', 'chicago-notes', 'mla', 'harvard-cite-them-right', 'american-physics-society', 'vancouver', 'american-chemical-society'];
+
+/** Lo que `list_bibliography` le cuenta al modelo: las claves que existen, cortas, y la orden de no inventar ninguna. */
+export function formatBibliography(result, query = '') {
+  if (!result.files.length) {
+    return 'The project has no bibliography file (.bib or Hayagriva .yml). Do NOT invent references. Ask the user for the reference data, then propose creating a .bib file with exactly those entries.';
+  }
+  if (!result.references.length) {
+    return `no references match "${query}" (${result.files.join(', ')} have none). Do not invent one: say it is not in the bibliography and, if the user gave you its data, propose adding an entry to the .bib file.`;
+  }
+  const lines = result.references.map((ref) => {
+    const who = ref.authors.length ? `${ref.authors.join('; ')}${ref.etAl ? ' et al.' : ''}` : 'no author';
+    const title = ref.title && ref.title.length > 90 ? `${ref.title.slice(0, 90)}…` : ref.title ?? 'no title';
+    return `@${ref.key} — ${who} (${ref.year ?? 'n.d.'}). ${title} [${ref.entryType}]`;
+  });
+  const more = result.total > result.references.length ? ` (${result.references.length} of ${result.total} shown; pass \`query\` to filter by key, author, title or year)` : '';
+  return [`Bibliography of the project (${result.files.join(', ')})${more}. Cite ONLY these keys with @key; never invent a reference, an author or a year.`, ...lines].join('\n');
+}
+
+/** Lo que `citation_styles` le cuenta al modelo: nombres válidos para `bibliography(style: …)`. */
+export function formatCitationStyles(styles, query = '') {
+  if (!styles.length) return 'error: the list of citation styles is not available. Use "ieee" or "apa", which every Typst version includes, and tell the user.';
+  const needle = query.trim().toLowerCase();
+  const chosen = needle
+    ? styles.filter((s) => s.name.toLowerCase().includes(needle) || s.details.toLowerCase().includes(needle))
+    : styles.filter((s) => COMMON_STYLES.includes(s.name));
+  if (!chosen.length) return `no built-in style matches "${query}". There are ${styles.length} built-in styles; try another word (e.g. "ieee", "apa", "chicago", "nature").`;
+  const lines = chosen.slice(0, 15).map((s) => `"${s.name}" — ${s.details}`);
+  const note = needle ? '' : ` There are ${styles.length} built-in styles in total; pass \`query\` to search them.`;
+  return [`Built-in citation styles (use them as bibliography(style: "name")).${note}`, ...lines, ...(chosen.length > 15 ? [`… ${chosen.length - 15} more; narrow the query`] : [])].join('\n');
+}
+
 const object = (properties, required = []) => ({ type: 'object', properties, required, additionalProperties: false });
 
 /**
@@ -112,6 +145,8 @@ export function describeCheck(baseline, checked) {
  * @param {(query: string, kind: string) => Promise<object>} [deps.universeSearch] Búsqueda en el catálogo de Typst Universe (RF-108); si falta, la herramienta no se ofrece.
  * @param {(ids: string[]) => Promise<Array<{id: string, status: string, latest: string|null, compiler: string|null}>>} [deps.universeCheck] Comprueba los identificadores de paquete de una propuesta.
  * @param {Set<string>} [deps.universeSeen] Identificadores que la búsqueda ya devolvió en esta conversación.
+ * @param {(query: string) => Promise<{references: Array, total: number, files: string[]}>} [deps.bibliography] Referencias del proyecto (RF-115); si falta, la herramienta no se ofrece.
+ * @param {() => Promise<Array<{name: string, details: string}>>} [deps.citationStyles] Estilos de cita incluidos en Typst (RF-115.2).
  * @param {(id: string) => Promise<string>} [deps.universeDocs] README, manifiesto y plantilla de un paquete (RF-108.3); si falta, la herramienta no se ofrece.
  */
 export function createTools(deps) {
@@ -135,12 +170,37 @@ export function createTools(deps) {
     return relative;
   };
 
+  const bibliographyTools = [
+    ...(deps.bibliography
+      ? [
+          {
+            name: 'list_bibliography',
+            description: 'List the project bibliography (key, authors, year, title); optional `query`. Cite ONLY these keys.',
+            parameters: object({ query: { type: 'string' } }),
+            label: (args) => `Consultando la bibliografía${args.query ? `: ${args.query}` : ''}`,
+            run: async ({ query = '' }) => formatBibliography(await deps.bibliography(String(query ?? '')), String(query ?? '')),
+          },
+        ]
+      : []),
+    ...(deps.citationStyles
+      ? [
+          {
+            name: 'citation_styles',
+            description: 'Built-in citation styles for bibliography(style: "name"); optional `query`.',
+            parameters: object({ query: { type: 'string' } }),
+            label: (args) => `Consultando los estilos de cita${args.query ? `: ${args.query}` : ''}`,
+            run: async ({ query = '' }) => formatCitationStyles(await deps.citationStyles(), String(query ?? '')),
+          },
+        ]
+      : []),
+  ];
+
   let packageReads = 0;
   const packageDocsTool = deps.universeDocs
     ? [
         {
           name: 'read_package_docs',
-          description: 'Read the README, manifest and template example of a Typst Universe package, e.g. "@preview/charged-ieee:0.1.4". Only identifiers from search_universe.',
+          description: 'Read the README and template example of a Universe package (identifier from search_universe).',
           parameters: object({ id: { type: 'string' } }, ['id']),
           label: (args) => `Leyendo la documentación del paquete ${args.id ?? ''}`,
           run: async ({ id }) => {
@@ -335,5 +395,6 @@ export function createTools(deps) {
     },
     ...universeTools,
     ...packageDocsTool,
+    ...bibliographyTools,
   ];
 }

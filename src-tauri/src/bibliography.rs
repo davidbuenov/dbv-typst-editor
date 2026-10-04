@@ -195,9 +195,188 @@ pub fn bibliography_entries(root: String) -> Result<Vec<BibliographyEntry>, AppE
     Ok(entries)
 }
 
+// ---------------------------------------------------------------------------
+// Para la IA (RF-115.1)
+// ---------------------------------------------------------------------------
+
+/// Una referencia tal como se le cuenta a la IA: lo justo para elegir una clave sin inventar ninguna.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AiReference {
+    pub key: String,
+    pub entry_type: String,
+    pub title: Option<String>,
+    /// Hasta tres autores («Apellido, Nombre»); `etAl` dice si había más.
+    pub authors: Vec<String>,
+    pub et_al: bool,
+    pub year: Option<i32>,
+}
+
+/// Resultado de `ai_bibliography`.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AiBibliography {
+    pub references: Vec<AiReference>,
+    /// Cuántas coinciden en total (puede ser más de las devueltas).
+    pub total: usize,
+    /// Ficheros de bibliografía del proyecto que se pudieron leer.
+    pub files: Vec<String>,
+}
+
+/// Máximo de referencias que se devuelven de una vez: un modelo local tiene poco contexto (RF-107.5).
+pub const AI_REFERENCE_LIMIT: usize = 40;
+
+/// Ficheros de bibliografía de la raíz: `.bib` (BibLaTeX) y `.yml`/`.yaml` (Hayagriva). Un `.yml` que no es una
+/// bibliografía (una configuración) simplemente no se interpreta y se ignora.
+fn read_bibliography_files(root_path: &Path) -> Vec<(String, String, bool)> {
+    let mut files = Vec::new();
+    let Ok(entries) = fs::read_dir(root_path) else {
+        return files;
+    };
+    for entry in entries.filter_map(|entry| entry.ok()) {
+        let path = entry.path();
+        let extension = path.extension().and_then(|ext| ext.to_str()).map(str::to_ascii_lowercase).unwrap_or_default();
+        let is_yaml = extension == "yml" || extension == "yaml";
+        if extension != "bib" && !is_yaml {
+            continue;
+        }
+        // Una bibliografía de 1 MB ya es enorme; más que eso no es una bibliografía.
+        if entry.metadata().map(|meta| meta.len() > 1_048_576).unwrap_or(true) {
+            continue;
+        }
+        let name = path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+        if let Ok(text) = fs::read_to_string(&path) {
+            files.push((name, text, is_yaml));
+        }
+    }
+    files.sort_by(|a, b| a.0.cmp(&b.0));
+    files
+}
+
+fn matches_query(reference: &AiReference, query: &str) -> bool {
+    let needle = query.trim().to_lowercase();
+    needle.is_empty()
+        || reference.key.to_lowercase().contains(&needle)
+        || reference.title.as_deref().is_some_and(|t| t.to_lowercase().contains(&needle))
+        || reference.authors.iter().any(|a| a.to_lowercase().contains(&needle))
+        || reference.year.is_some_and(|y| y.to_string() == needle)
+}
+
+/// Referencias de la bibliografía del proyecto, filtradas por `query` (clave, título, autor o año) y acotadas.
+pub fn collect_ai_bibliography(root_path: &Path, query: &str) -> AiBibliography {
+    let mut references = Vec::new();
+    let mut files = Vec::new();
+    for (name, text, is_yaml) in read_bibliography_files(root_path) {
+        let library = if is_yaml { hayagriva::io::from_yaml_str(&text).ok() } else { hayagriva::io::from_biblatex_str(&text).ok() };
+        let Some(library) = library else { continue };
+        files.push(name);
+        for entry in library.iter() {
+            let all_authors: Vec<String> = entry.authors().map(|people| people.iter().map(|p| p.name_first(false, false)).collect()).unwrap_or_default();
+            references.push(AiReference {
+                key: entry.key().to_string(),
+                entry_type: format!("{:?}", entry.entry_type()).to_lowercase(),
+                title: entry.title().map(|value| value.to_string()),
+                et_al: all_authors.len() > 3,
+                authors: all_authors.into_iter().take(3).collect(),
+                year: entry.date().map(|date| date.year),
+            });
+        }
+    }
+    references.sort_by(|a, b| a.key.cmp(&b.key));
+    references.dedup_by(|a, b| a.key == b.key);
+    let matching: Vec<AiReference> = references.into_iter().filter(|r| matches_query(r, query)).collect();
+    let total = matching.len();
+    AiBibliography { references: matching.into_iter().take(AI_REFERENCE_LIMIT).collect(), total, files }
+}
+
+/// Las referencias del proyecto para la IA (herramienta `list_bibliography`). Solo la raíz del proyecto.
+#[tauri::command]
+pub fn ai_bibliography(root: String, query: Option<String>) -> Result<AiBibliography, AppError> {
+    let root_path = Path::new(&root);
+    if !root_path.is_dir() {
+        return Err(AppError::InvalidPath(root));
+    }
+    Ok(collect_ai_bibliography(root_path, query.as_deref().unwrap_or("")))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn project(files: &[(&str, &str)]) -> tempfile::TempDir {
+        let dir = tempfile::tempdir().unwrap();
+        for (name, content) in files {
+            fs::write(dir.path().join(name), content).unwrap();
+        }
+        dir
+    }
+
+    const BIB: &str = "@article{knuth1984,\n  author = {Donald E. Knuth},\n  title = {Literate Programming},\n  journal = {The Computer Journal},\n  year = {1984},\n}\n\n@book{lamport1994,\n  author = {Leslie Lamport and A. Otro and B. Tercero and C. Cuarto},\n  title = {LaTeX: A Document Preparation System},\n  publisher = {Addison-Wesley},\n  year = {1994},\n}\n";
+    const YAML: &str = "turing1950:\n  type: article\n  title: Computing Machinery and Intelligence\n  author: Turing, Alan\n  date: 1950\n  parent:\n    type: periodical\n    title: Mind\n";
+
+    #[test]
+    fn la_ia_ve_las_claves_los_titulos_y_los_autores_de_un_bib_y_de_un_yml() {
+        let dir = project(&[("refs.bib", BIB), ("extra.yml", YAML)]);
+        let result = collect_ai_bibliography(dir.path(), "");
+        let keys: Vec<&str> = result.references.iter().map(|r| r.key.as_str()).collect();
+        assert_eq!(keys, vec!["knuth1984", "lamport1994", "turing1950"]);
+        assert_eq!(result.total, 3);
+        assert_eq!(result.files, vec!["extra.yml".to_string(), "refs.bib".to_string()]);
+        let knuth = &result.references[0];
+        assert_eq!((knuth.year, knuth.title.as_deref()), (Some(1984), Some("Literate Programming")));
+        assert_eq!(result.references[2].year, Some(1950));
+    }
+
+    #[test]
+    fn de_los_autores_solo_van_tres_y_se_dice_si_habia_mas() {
+        let dir = project(&[("refs.bib", BIB)]);
+        let lamport = &collect_ai_bibliography(dir.path(), "lamport").references[0];
+        assert_eq!(lamport.authors.len(), 3);
+        assert!(lamport.et_al);
+        assert!(!collect_ai_bibliography(dir.path(), "knuth").references[0].et_al);
+    }
+
+    #[test]
+    fn se_filtra_por_clave_titulo_autor_o_anio_sin_distinguir_mayusculas() {
+        let dir = project(&[("refs.bib", BIB), ("extra.yml", YAML)]);
+        let keys = |query: &str| collect_ai_bibliography(dir.path(), query).references.into_iter().map(|r| r.key).collect::<Vec<_>>();
+        assert_eq!(keys("KNUTH"), vec!["knuth1984"]);
+        assert_eq!(keys("machinery"), vec!["turing1950"]);
+        assert_eq!(keys("lamport"), vec!["lamport1994"]);
+        assert_eq!(keys("1994"), vec!["lamport1994"]);
+        assert!(keys("no-existe").is_empty());
+    }
+
+    #[test]
+    fn nunca_devuelve_mas_de_cuarenta_pero_cuenta_todas() {
+        let many: String = (0..90).map(|i| format!("@misc{{ref{i:03},\n  author = {{Autor {i}}},\n  title = {{Titulo {i}}},\n  year = {{2020}},\n}}\n")).collect();
+        let dir = project(&[("grande.bib", &many)]);
+        let result = collect_ai_bibliography(dir.path(), "");
+        assert_eq!(result.references.len(), AI_REFERENCE_LIMIT);
+        assert_eq!(result.total, 90);
+    }
+
+    #[test]
+    fn un_yml_que_no_es_una_bibliografia_y_un_bib_roto_no_tumban_la_lectura() {
+        let dir = project(&[("refs.bib", BIB), ("config.yml", "puerto: 8080\nmodo: rapido\n"), ("roto.bib", "@article{sin-cerrar, title = {X")]);
+        let result = collect_ai_bibliography(dir.path(), "");
+        assert!(result.references.iter().any(|r| r.key == "knuth1984"));
+        assert!(!result.files.contains(&"config.yml".to_string()), "{:?}", result.files);
+    }
+
+    #[test]
+    fn sin_bibliografia_es_una_lista_vacia_no_un_error() {
+        let dir = project(&[("main.typ", "Hola")]);
+        let result = collect_ai_bibliography(dir.path(), "");
+        assert_eq!((result.references.len(), result.total, result.files.len()), (0, 0, 0));
+        assert!(ai_bibliography("/no/existe/dbv".into(), None).is_err());
+    }
+
+    #[test]
+    fn la_misma_clave_en_dos_ficheros_sale_una_vez() {
+        let dir = project(&[("a.bib", BIB), ("b.bib", BIB)]);
+        assert_eq!(collect_ai_bibliography(dir.path(), "knuth").total, 1);
+    }
 
     #[test]
     fn extract_keys_lee_entradas_normales() {

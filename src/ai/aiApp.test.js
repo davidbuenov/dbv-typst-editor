@@ -68,6 +68,8 @@ function setup({ connections, script = [], agent = null, modelInfo = null } = {}
     aiUniverseSearch: vi.fn(async () => ok({ status: 'noCatalog', hits: [], fetchedAt: null, unavailable: [] })),
     aiUniverseRefresh: vi.fn(async () => ok(null)),
     aiUniverseCheck: vi.fn(async () => ok([])),
+    aiBibliography: vi.fn(async () => ok({ references: [], total: 0, files: [] })),
+    aiCitationStyles: vi.fn(async () => ok([{ name: 'ieee', details: 'IEEE' }, { name: 'apa', details: 'APA 7' }])),
     aiUniversePackageDocs: vi.fn(async (id) => ok(`# ${id} — README`)),
     docsSearch: vi.fn(async () => ok([])),
     docsPage: vi.fn(async () => ok({ markdown: '# x' })),
@@ -792,5 +794,54 @@ describe('paquetes sin instalar en la revisión (RF-109.2)', () => {
     const toolResult = backend.aiChat.mock.calls.at(-1)[2].messages.filter((m) => m.role === 'tool').map((m) => m.content)[0];
     expect(toolResult).toContain('Do NOT remove the import');
     expect(toolResult).toContain(ID);
+  });
+});
+
+describe('bibliografía para la IA (RF-115)', () => {
+  const toolMessages = (backend) => backend.aiChat.mock.calls.at(-1)[2].messages.filter((m) => m.role === 'tool').map((m) => m.content);
+
+  it('lee la bibliografía de la raíz del proyecto y la IA recibe las claves que existen', async () => {
+    const script = [{ toolCalls: [{ id: 'b1', name: 'list_bibliography', arguments: '{"query":"knuth"}' }] }, { text: 'Cito @knuth1984.' }];
+    const { app, backend } = setup({ connections: [ollama], script });
+    backend.aiBibliography.mockResolvedValue(ok({ files: ['refs.bib'], total: 1, references: [{ key: 'knuth1984', entryType: 'article', title: 'Literate Programming', authors: ['Knuth, Donald E.'], etAl: false, year: 1984 }] }));
+    await app.onProjectOpened({ root: 'D:/p' });
+    await app.ask('cita a Knuth');
+    expect(backend.aiBibliography).toHaveBeenCalledWith('D:/p', 'knuth');
+    expect(toolMessages(backend)[0]).toContain('@knuth1984');
+  });
+
+  it('los estilos vienen de la documentación vendorizada', async () => {
+    const script = [{ toolCalls: [{ id: 's1', name: 'citation_styles', arguments: '{"query":"apa"}' }] }, { text: 'Uso apa.' }];
+    const { app, backend } = setup({ connections: [ollama], script });
+    await app.onProjectOpened({ root: 'D:/p' });
+    await app.ask('estilo APA');
+    expect(backend.aiCitationStyles).toHaveBeenCalled();
+    expect(toolMessages(backend)[0]).toContain('"apa" — APA 7');
+  });
+
+  it('las instrucciones piden citar solo claves que existen; sin herramientas no hay esas instrucciones', async () => {
+    const tools = setup({ connections: [ollama], script: [{ text: 'Hola' }] });
+    await tools.app.onProjectOpened({ root: 'D:/p' });
+    await tools.app.ask('hola');
+    const call = tools.backend.aiChat.mock.calls[0][2];
+    expect(call.messages[0].content).toMatch(/use ONLY a key it returns/);
+    expect(call.messages[0].content).toMatch(/propose adding its entry/);
+    expect(call.tools.map((t) => t.name)).toEqual(expect.arrayContaining(['list_bibliography', 'citation_styles']));
+
+    const chat = setup({ connections: [{ ...ollama, supportsTools: false }], script: [{ text: 'Hola' }] });
+    await chat.app.onProjectOpened({ root: 'D:/p' });
+    await chat.app.ask('hola');
+    expect(chat.backend.aiChat.mock.calls[0][2].messages[0].content).not.toContain('list_bibliography');
+  });
+
+  it('en un documento suelto la IA NO ve la bibliografía de la carpeta (RF-106.7)', async () => {
+    const { app, backend } = setup({ connections: [ollama], script: [{ text: 'Hola' }] });
+    await app.onProjectOpened({ root: 'D:/p', name: 'main.typ', entrypoint: 'main.typ', isSingleFile: true });
+    await app.ask('hola');
+    const call = backend.aiChat.mock.calls[0][2];
+    expect(call.tools.map((t) => t.name)).not.toContain('list_bibliography');
+    expect(call.tools.map((t) => t.name)).not.toContain('citation_styles');
+    expect(call.messages[0].content).not.toContain('list_bibliography');
+    expect(backend.aiBibliography).not.toHaveBeenCalled();
   });
 });

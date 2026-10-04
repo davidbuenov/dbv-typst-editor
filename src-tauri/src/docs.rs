@@ -384,6 +384,40 @@ impl DocsIndex {
     }
 }
 
+/// Un estilo de cita incluido en Typst (`bibliography(style: "ieee")`).
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct CitationStyle {
+    pub name: String,
+    pub details: String,
+}
+
+/// Los estilos incluidos en Typst, leídos de la documentación VENDORIZADA (RF-115.2, ADR-V0140-002 D10): la tabla
+/// de variantes del parámetro `style` de `bibliography`. Así la lista es la de la versión exacta del compilador y
+/// no una de memoria.
+pub fn citation_styles(docs: &DocsIndex) -> Vec<CitationStyle> {
+    let Some(page) = docs.page("reference/model/bibliography") else {
+        return Vec::new();
+    };
+    let Some(start) = page.markdown.find("### style {#parameters-style}") else {
+        return Vec::new();
+    };
+    let section = &page.markdown[start..];
+    let end = section[10..].find("\n### ").map(|i| i + 10).unwrap_or(section.len());
+    section[..end]
+        .lines()
+        .filter_map(|line| {
+            let cells: Vec<&str> = line.split('|').map(str::trim).collect();
+            let name = cells.get(1)?.strip_prefix("`\"")?.strip_suffix("\"`")?;
+            Some(CitationStyle { name: name.to_string(), details: cells.get(2).copied().unwrap_or_default().to_string() })
+        })
+        .collect()
+}
+
+#[tauri::command]
+pub fn ai_citation_styles(app: AppHandle, state: State<'_, DocsState>) -> Result<Vec<CitationStyle>, AppError> {
+    index(&app, &state).map(citation_styles)
+}
+
 /// Estado gestionado por Tauri: el índice se monta perezosamente.
 #[derive(Default)]
 pub struct DocsState(OnceLock<Result<DocsIndex, AppError>>);
@@ -477,6 +511,34 @@ mod tests {
     fn la_documentacion_es_de_la_version_del_compilador_vendorizado() {
         // Si falla: se subió el sidecar y falta `npm run docs:typst` (RF-96.1).
         assert_eq!(bundled().info().typst_version, vendored_version());
+    }
+
+    #[test]
+    fn los_estilos_de_cita_salen_de_la_documentacion_y_el_compilador_los_acepta_todos() {
+        let styles = citation_styles(&bundled());
+        let names: Vec<&str> = styles.iter().map(|s| s.name.as_str()).collect();
+        for expected in ["ieee", "apa", "chicago-author-date", "mla", "harvard-cite-them-right", "american-physics-society"] {
+            assert!(names.contains(&expected), "falta {expected}: {names:?}");
+        }
+        assert!(styles.len() > 40, "{}", styles.len());
+        assert!(styles.iter().all(|s| !s.details.is_empty()), "cada estilo trae su descripción");
+        // La lista de la documentación es la del compilador vendorizado: cada nombre se resuelve igual que lo hace el compilador (`ArchivedStyle::by_name`).
+        for style in &styles {
+            assert!(hayagriva::archive::ArchivedStyle::by_name(&style.name).is_some(), "el compilador no conoce «{}»", style.name);
+        }
+    }
+
+    #[test]
+    fn sin_la_pagina_de_bibliografia_no_hay_estilos_en_vez_de_inventarlos() {
+        let docs = DocsIndex::from_gzip(&{
+            let mut raw = Vec::new();
+            let mut encoder = flate2::write::GzEncoder::new(&mut raw, flate2::Compression::default());
+            std::io::Write::write_all(&mut encoder, br#"{"typstVersion":"0.15.1","license":"x","pages":[]}"#).unwrap();
+            encoder.finish().unwrap();
+            raw
+        })
+        .unwrap();
+        assert!(citation_styles(&docs).is_empty());
     }
 
     #[test]

@@ -43,36 +43,30 @@ Version 0.14.0 — "AI Native": the AI knows Typst Universe, sees your pages and
 Campo del envío: **Envíos → Notas para la certificación**.
 
 ```text
-SUBMISSION NOTES — v0.14.0 (Minor Release over the last published version, 0.12.1; it also includes the changes of 0.13.0 and 0.13.1, which were never submitted to the Store)
+SUBMISSION NOTES — v0.14.0 (Minor Release over the last published version, 0.12.1; it also includes 0.13.0 and 0.13.1, which were never submitted to the Store)
 
-WHAT'S NEW IN THIS VERSION:
-- (0.14.0) "AI Native" release around the OPTIONAL AI assistant and a new, optional integration for other AI coding agents:
-  * Tools > "Apply template…" opens the same template gallery as "New document", in "apply" mode, to turn the open document into a Typst Universe template (e.g. IEEE). The result is shown as a proposal that the user reviews before anything is written.
-  * The AI assistant can search Typst Universe (public catalog), read package documentation, look at rendered pages (images) and cite only references of the project's .bib. It never writes a package name or version it did not get from the catalog. Installing a package or adding a font ALWAYS needs an explicit confirmation from the user in a dialog.
-  * Tools > "MCP server…": the application executable has a headless mode (`--mcp --project <folder>`) that speaks the Model Context Protocol over standard input/output, so AI coding agents that the user runs (Claude Code, Cursor, Codex…) can use the app's Typst compiler. It is read-only, opens NO network port and never writes to the project. To make it launchable from outside the Store package, the manifest declares an app execution alias (`dbv-typst-editor.exe`, uap3 `windows.appExecutionAlias`).
-  * When the user turns it on (Preferences > "Share the editor state with MCP agents", OFF by default), a connected agent can read the open tabs, including unsaved text, through a local named pipe protected by a random token; a "Agent connected" badge is shown and can be clicked to cut it off.
-  * Local-model robustness (output cap, progress, retry), Sublime Text snippet import, fonts added to the project's fonts/ folder are picked up without a restart, and a larger help and AI guide. Several fixes.
-- (0.13.1 and 0.13.0, also new for the Store) The OPTIONAL AI assistant itself: off until the user connects one from Tools > "Connect an AI…" (local server such as Ollama/LM Studio, a cloud provider with the user's own API key, or an installed AI coding agent launched as a child process in the project folder); keys are stored in the Windows Credential Manager, never in files; the first time a project would be sent to a cloud provider the app asks; every proposed change is shown for review. Plus offline Typst documentation, a Problems tab, a CSV/TSV data viewer and File > "New empty .typ…".
+WHAT'S NEW SINCE 0.12.1:
+- An OPTIONAL AI assistant (0.13.x). It is off until the user connects one from Tools > "Connect an AI…": a local model server (Ollama, LM Studio), a cloud provider with the user's own API key, or an AI coding agent the user already has installed (Claude Code, Gemini CLI, Codex, Copilot CLI), launched as a child process in the project folder. API keys are stored in the Windows Credential Manager, never in files. The first time a project would be sent to a cloud provider the app asks for confirmation, and every change proposed by the AI is shown for review before anything is written.
+- Also in 0.13.x: offline Typst documentation (Help), a Problems tab in the sidebar, a CSV/TSV data viewer (Tools > "Data viewer") and File > "New empty .typ…".
+- 0.14.0: Tools > "Apply template…" turns the open document into a Typst Universe template, shown as a proposal the user reviews; the AI can search Typst Universe and look at rendered pages (installing a package or adding a font always needs an explicit confirmation dialog); Sublime Text snippet import; expanded help. It also adds an optional MCP server mode of the same executable, for AI agents the user runs themselves (read-only, no network port; the manifest declares an app execution alias, dbv-typst-editor.exe, to start it from a terminal).
 
 CREDENTIALS:
-None required. Every feature of the editor works offline without any account. The AI assistant and the MCP server are optional and not needed to test the app; they use the user's own provider or local software, never a service run by us.
+None required. Every feature of the editor works offline without any account. The AI assistant and the MCP mode are optional and not needed to test the app; they use the user's own provider or local software, never a service run by us.
 
 QUICK 2-MINUTE TESTING GUIDE:
 1. Launch the application and choose File > New blank project; create it in any folder. main.typ opens with the live preview on the right.
-2. Replace its content with:  = Paper title  /  Some text.  Then Tools > "Apply template…": the template gallery opens with a "Typst Universe" tab (it needs Internet the first time). Pick any template and press "Apply … to my document": a review card appears with the differences, the packages that would be downloaded and an Apply button. Do NOT apply; close it. Nothing was written.
-3. Tools > "MCP server…": the dialog shows what the MCP server gives an AI agent and the configuration (command and JSON) with this installation's real path, ready to copy. Close it.
-4. Optional, from a terminal (the alias is declared in the manifest):  dbv-typst-editor.exe --mcp --project <the project folder>  and send one JSON-RPC line, e.g.  {"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"t","version":"1"}}}  : the server answers with its capabilities on standard output; no window opens and no port is listened on.
-5. Help (?): the help now shows "The four panels" and separate sections for the AI assistant, "Changing a document's format" and the MCP server.
-6. Tools > "Connect an AI…" shows what was detected (nothing needs to be connected); no AI panel appears unless an AI is connected.
-7. Tools > "Import Sublime snippets…" opens a dialog to pick .sublime-snippet files (any file can be tried; nothing is written without a confirmation).
+2. Type on a new line:  #tabla(columns: 2)[A][B]  — the red badge on the document bar shows 1 error. Click it: the Problems tab lists "unknown variable: tabla" with its line. Clicking "View documentation" opens the offline documentation.
+3. Tools > "Data viewer (CSV/TSV)…": pick any .csv file; it is shown as a sortable, filterable table.
+4. File > "New empty .typ…": pick a name in any folder; an empty loose document opens and nothing else is created in that folder.
+5. Tools > "Apply template…": the template gallery opens (the "Typst Universe" tab needs Internet the first time). Pick a template and press "Apply … to my document": a review card shows the differences, the packages that would be downloaded and an Apply button. Do not apply; close it. Nothing was written.
+6. Tools > "Connect an AI…" shows what was detected on the computer (nothing needs to be connected). Close it: no AI panel or button appears unless an AI is connected.
+7. Help (?): "The four panels" and the separate sections for the AI assistant and for changing a document's format.
 
 ADDITIONAL TECHNICAL CONTEXT:
 - No new sidecars: still the Typst compiler and the tinymist Language Server. The Typst documentation is a bundled resource (typst-docs.json.gz, 0.3 MB).
-- New manifest extension: an app execution alias (`dbv-typst-editor.exe`) pointing at the same executable, used only to start the optional MCP server mode from a terminal or from an AI agent the user runs. It declares no extra capability.
-- Network access happens only on explicit user action: connecting a cloud AI (HTTPS to the user's provider), downloading Typst packages (packages.typst.org, as before), the public Typst Universe catalog index (packages.typst.org) when the user opens the gallery or applies a template, and — only if the user confirms a dialog while using a cloud AI — a font from Google Fonts' public repository (raw.githubusercontent.com/google/fonts). The MCP server itself never opens a connection.
-- The local channel between the MCP server process and the window is a named pipe (Windows) with a random 256-bit token kept in a user-only file; it is only used when the user has a project open and, for the editor state, only if the user enabled the setting.
+- Network access happens only on explicit user action: connecting a cloud AI (HTTPS to the user's provider), downloading Typst packages and the public Typst Universe catalog (packages.typst.org) and, only if the user confirms a dialog while using a cloud AI, a font from Google Fonts' public repository. The MCP mode never opens a connection.
 - No background telemetry, no advertising, no tracking — consistent with all previous releases.
-- The privacy policy (https://davidbuenov.github.io/dbv-typst-editor/privacy.html) describes the optional AI connections (updated 2026-10-02). The 0.14.0 additions do not send data to any server of ours.
+- The privacy policy (https://davidbuenov.github.io/dbv-typst-editor/privacy.html) describes the optional AI connections (updated 2026-10-02). Nothing in 0.14.0 sends data to any server of ours.
 ```
 
 ---

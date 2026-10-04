@@ -191,7 +191,7 @@ fn compile_svg_args(prepared: &PreparedInput, output_pattern: &Path) -> Vec<Stri
 /// mecanismo interno de réplica (`shadow.rs`). En Windows, `typst` normaliza la
 /// ruta que recibe en `--root` a su forma verbatim `\\?\C:\...` al reportarla en
 /// un error, así que se prueban ambas formas.
-fn remap_shadow_root(text: &str, shadow_root: &str, real_root: &str) -> String {
+pub(crate) fn remap_shadow_root(text: &str, shadow_root: &str, real_root: &str) -> String {
     let mut result = text.replace(shadow_root, real_root);
     if !shadow_root.starts_with(r"\\?\") {
         let verbatim = format!(r"\\?\{shadow_root}");

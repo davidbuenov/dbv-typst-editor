@@ -648,7 +648,9 @@ export function createAiApp(deps) {
       const budget = contextBudget(connection);
       // En un documento suelto la IA solo ve su fichero: la bibliografía de la carpeta no es suya (RF-106.7).
       const withBibliography = tools && singleFile === null;
-      const system = systemPrompt({ lang: getLanguage(), tools, typstVersion: deps.typstVersion(), universe: tools, bibliography: withBibliography });
+      // Ver las páginas solo si el modelo admite imágenes y hay un documento principal que compilar (RF-114.3).
+      const withRender = tools && supportsImages(connection) && Boolean(workspace.getCompileTarget());
+      const system = systemPrompt({ lang: getLanguage(), tools, typstVersion: deps.typstVersion(), universe: tools, bibliography: withBibliography, render: withRender });
       const context = buildContext(contextSource([...mentioned, ...(options.attachments ?? [])], docs, universe), Math.max(400, budget - estimateTokens(system) - estimateTokens(text)));
       renderContextPreview(context.items);
       const historyBudget = Math.max(0, budget - estimateTokens(system) - estimateTokens(context.text) - estimateTokens(text));
@@ -689,6 +691,23 @@ export function createAiApp(deps) {
           return checked.ok ? checked.value : [];
         },
         universeSeen: seenIdentifiers(current.id),
+        ...(withRender
+          ? {
+              // Con la propuesta pendiente aplicada en memoria (RF-114.2), sobre lo que el editor tiene sin guardar.
+              renderPages: async ({ pages, proposal: withProposal }) => {
+                const target = workspace.getCompileTarget();
+                if (!target) throw new Error('there is no main document to render');
+                const unsaved = unsavedFiles();
+                const changed = withProposal ? overrides(proposal, projectRoot, joinPath) : [];
+                const files = [...unsaved.filter((file) => !changed.some((other) => other.path === file.path)), ...changed];
+                const rendered = await backend.aiRenderPages({ root: projectRoot, main: target.document, files, pages, singleFile: singleFile !== null });
+                if (!rendered.ok) throw new Error(rendered.error.message);
+                // Lo que se envía al modelo queda a la vista (RF-114.4); con una nube, las imágenes salen como el texto (RNF-IA.4).
+                panel.addStep(t('ai.step.pagesSent').replace('{pages}', rendered.value.pages.map((p) => p.page).join(', ')));
+                return rendered.value;
+              },
+            }
+          : {}),
         ...(withBibliography
           ? {
               bibliography: async (query) => {

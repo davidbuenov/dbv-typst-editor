@@ -11,7 +11,7 @@ import { createProposal, resultText } from './proposal.js';
 import { detectStyleFiles, importedFiles, separationChecks } from './styleFiles.js';
 import { estimateTokens } from './context.js';
 import { TOOL_SPEC_TOKENS } from './modelFit.js';
-import { createTools, describeCheck, describePackageCheck, formatBibliography, formatCitationStyles, formatUniverseResult, MAX_FIX_ATTEMPTS, newErrors, newPackageIds } from './tools.js';
+import { createTools, describeCheck, describePackageCheck, formatBibliography, formatCitationStyles, formatUniverseResult, MAX_FIX_ATTEMPTS, newErrors, newPackageIds, parsePageSpec } from './tools.js';
 
 const err = (file, message) => ({ level: 'error', file, line: 1, message });
 
@@ -499,5 +499,52 @@ describe('bibliografía y estilos de cita para la IA (RF-115)', () => {
   it('si la lista de estilos no está disponible no se inventa una', () => {
     expect(formatCitationStyles([])).toMatch(/^error: the list of citation styles is not available/);
     expect(formatBibliography({ references: [], total: 0, files: [] })).toContain('no bibliography file');
+  });
+});
+
+describe('render_page: la IA ve las páginas (RF-114)', () => {
+  const PAGE = (page) => ({ page, width: 827, height: 1169, mime: 'image/png', base64: `PNG${page}` });
+  const renderSetup = (renderPages = vi.fn(async ({ pages }) => ({ pages: pages.map(PAGE), totalPages: 5 }))) => ({ renderPages, ...setup({ universe: { renderPages } }) });
+
+  it('parsePageSpec entiende «1», «2-3» y «1,3», ignora lo raro y nunca devuelve una lista vacía', () => {
+    expect(parsePageSpec('1')).toEqual([1]);
+    expect(parsePageSpec('2-3')).toEqual([2, 3]);
+    expect(parsePageSpec('1, 3')).toEqual([1, 3]);
+    expect(parsePageSpec('abc')).toEqual([1]);
+    expect(parsePageSpec(undefined)).toEqual([1]);
+    expect(parsePageSpec('1-9999').length).toBeLessThanOrEqual(6);
+    expect(parsePageSpec('../../x, 2')).toEqual([2]);
+  });
+
+  it('solo se ofrece si el modelo puede recibir imágenes (si no, no hay renderPages)', () => {
+    expect(setup().tools.render_page).toBeUndefined();
+    expect(renderSetup().tools.render_page).toBeDefined();
+  });
+
+  it('devuelve el texto y las imágenes, con cuántas páginas hay y el tamaño', async () => {
+    const { tools, renderPages } = renderSetup();
+    const result = await tools.render_page.run({ pages: '1-2' });
+    expect(renderPages).toHaveBeenCalledWith({ pages: [1, 2], proposal: false });
+    expect(result.text).toContain('Rendered page(s) 1, 2 of 5 (827×1169 px)');
+    expect(result.text).toContain('follow in the next message');
+    expect(result.images).toEqual([{ mime: 'image/png', base64: 'PNG1' }, { mime: 'image/png', base64: 'PNG2' }]);
+  });
+
+  it('con «proposal: true» renderiza la propuesta pendiente, y sin propuesta lo explica en vez de mostrar otra cosa', async () => {
+    const { tools, renderPages, proposal } = renderSetup();
+    expect(await tools.render_page.run({ proposal: true })).toMatch(/^error: there is no proposal yet/);
+    expect(renderPages).not.toHaveBeenCalled();
+    await tools.propose_changes.run({ changes: [{ path: 'cap.typ', action: 'replace_all', content: '= Nuevo\n' }] });
+    expect(proposal.files.size).toBe(1);
+    const result = await tools.render_page.run({ proposal: true });
+    expect(renderPages).toHaveBeenCalledWith({ pages: [1], proposal: true });
+    expect(result.text).toContain('with your proposal applied');
+  });
+
+  it('un fallo del compilador al renderizar le llega al modelo como error, no tumba el turno', async () => {
+    const { tools } = renderSetup(vi.fn(async () => { throw new Error('error: unknown variable: x'); }));
+    const { callModel } = { callModel: vi.fn(async () => ({ text: '', toolCalls: [{ id: 'r1', name: 'render_page', arguments: '{}' }] })) };
+    const result = await runAgent({ callModel, tools: Object.values(tools), messages: [], maxSteps: 2 });
+    expect(result.messages.find((m) => m.role === 'tool').content).toContain('unknown variable');
   });
 });

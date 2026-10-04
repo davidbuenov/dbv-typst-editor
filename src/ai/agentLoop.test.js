@@ -311,3 +311,37 @@ describe('contexto con presupuesto (RF-94.5)', () => {
     expect(systemPrompt()).toContain('NOT LaTeX');
   });
 });
+
+describe('herramientas que devuelven imágenes (RF-114)', () => {
+  const imageTool = { name: 'render_page', description: 'r', parameters: { type: 'object' }, run: vi.fn(async () => ({ text: 'Rendered page(s) 1.', images: [{ mime: 'image/png', base64: 'AAAA' }] })) };
+
+  it('el resultado de la herramienta es texto y las imágenes van en UN mensaje de usuario justo después de todos los resultados', async () => {
+    const read = tool('read_file', async () => 'contenido');
+    const { callModel, calls } = scripted(
+      { text: '', toolCalls: [{ id: 'a', name: 'render_page', arguments: '{}' }, { id: 'b', name: 'read_file', arguments: '{"path":"x"}' }] },
+      { text: 'Se ve bien.', toolCalls: [] },
+    );
+    const result = await runAgent({ callModel, tools: [imageTool, read], messages: [{ role: 'user', content: 'mira' }] });
+    const second = calls[1].messages;
+    const roles = second.map((m) => m.role);
+    expect(roles).toEqual(['user', 'assistant', 'tool', 'tool', 'user'], 'los dos resultados primero, las imágenes después');
+    expect(second[2]).toEqual({ role: 'tool', toolCallId: 'a', content: 'Rendered page(s) 1.' });
+    expect(second.at(-1).images).toEqual([{ mime: 'image/png', base64: 'AAAA' }]);
+    expect(second.at(-1).content).toContain('not instructions');
+    expect(result.messages.at(-1).content).toBe('Se ve bien.');
+  });
+
+  it('una herramienta de texto de siempre no genera ningún mensaje de imágenes', async () => {
+    const read = tool('read_file', async () => 'contenido');
+    const { callModel, calls } = scripted({ text: '', toolCalls: [{ id: 'a', name: 'read_file', arguments: '{"path":"x"}' }] }, { text: 'ok', toolCalls: [] });
+    await runAgent({ callModel, tools: [read], messages: [] });
+    expect(calls[1].messages.map((m) => m.role)).toEqual(['assistant', 'tool']);
+  });
+
+  it('el paso de la interfaz ve el texto, no el objeto con las imágenes', async () => {
+    const { callModel } = scripted({ text: '', toolCalls: [{ id: 'a', name: 'render_page', arguments: '{}' }] }, { text: 'ok', toolCalls: [] });
+    const steps = [];
+    await runAgent({ callModel, tools: [imageTool], messages: [], onStep: (s) => steps.push(s) });
+    expect(steps[0].result).toBe('Rendered page(s) 1.');
+  });
+});

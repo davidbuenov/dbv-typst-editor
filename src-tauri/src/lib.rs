@@ -134,6 +134,7 @@ pub fn run() {
             ai::universe_packages::ai_universe_package_docs,
             ai::universe_packages::ai_universe_installed,
             ai::universe_packages::ai_universe_install,
+            ai::render::ai_render_pages,
             ai::commands::ai_project_state_load,
             ai::commands::ai_project_state_save,
             ai::commands::ai_release,

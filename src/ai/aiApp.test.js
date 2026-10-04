@@ -70,6 +70,7 @@ function setup({ connections, script = [], agent = null, modelInfo = null } = {}
     aiUniverseCheck: vi.fn(async () => ok([])),
     aiBibliography: vi.fn(async () => ok({ references: [], total: 0, files: [] })),
     aiCitationStyles: vi.fn(async () => ok([{ name: 'ieee', details: 'IEEE' }, { name: 'apa', details: 'APA 7' }])),
+    aiRenderPages: vi.fn(async (request) => ok({ pages: request.pages.map((page) => ({ page, width: 827, height: 1169, mime: 'image/png', base64: `PNG${page}` })), totalPages: 4 })),
     aiUniversePackageDocs: vi.fn(async (id) => ok(`# ${id} — README`)),
     docsSearch: vi.fn(async () => ok([])),
     docsPage: vi.fn(async () => ok({ markdown: '# x' })),
@@ -843,5 +844,70 @@ describe('bibliografía para la IA (RF-115)', () => {
     expect(call.tools.map((t) => t.name)).not.toContain('citation_styles');
     expect(call.messages[0].content).not.toContain('list_bibliography');
     expect(backend.aiBibliography).not.toHaveBeenCalled();
+  });
+});
+
+describe('la IA ve las páginas (RF-114)', () => {
+  const render = (args) => ({ toolCalls: [{ id: 'v1', name: 'render_page', arguments: JSON.stringify(args) }] });
+  const names = (backend) => backend.aiChat.mock.calls[0][2].tools.map((t) => t.name);
+
+  it('solo con un modelo que admite imágenes: una nube sí, un local de texto no, un local con visión sí', async () => {
+    const cloud = setup({ connections: [claudeApi], script: [{ text: 'Hola' }] });
+    await cloud.app.onProjectOpened({ root: 'D:/p' });
+    await cloud.app.ask('hola');
+    expect(names(cloud.backend)).toContain('render_page');
+    expect(cloud.backend.aiChat.mock.calls[0][2].messages[0].content).toContain('You can SEE the document');
+
+    const text = setup({ connections: [ollama], script: [{ text: 'Hola' }] });
+    await text.app.onProjectOpened({ root: 'D:/p' });
+    await text.app.ask('hola');
+    expect(names(text.backend)).not.toContain('render_page');
+    expect(text.backend.aiChat.mock.calls[0][2].messages[0].content).not.toContain('render_page');
+
+    const vision = setup({ connections: [{ ...ollama, supportsImages: true }], script: [{ text: 'Hola' }] });
+    await vision.app.onProjectOpened({ root: 'D:/p' });
+    await vision.app.ask('hola');
+    expect(names(vision.backend)).toContain('render_page');
+  });
+
+  it('renderiza el proyecto con lo sin guardar y la siguiente petición lleva las imágenes tras los resultados', async () => {
+    const { app, backend } = setup({ connections: [claudeApi], script: [render({ pages: '1-2' }), { text: 'Se ve bien.' }] });
+    await app.onProjectOpened({ root: 'D:/p' });
+    await app.ask('¿cómo queda?');
+    const [request] = backend.aiRenderPages.mock.calls[0];
+    expect(request).toMatchObject({ root: 'D:/p', main: 'D:/p/main.typ', pages: [1, 2], singleFile: false });
+    const messages = backend.aiChat.mock.calls.at(-1)[2].messages;
+    const last = messages.at(-1);
+    expect(messages.at(-2).role).toBe('tool');
+    expect(last.role).toBe('user');
+    expect(last.images).toHaveLength(2);
+    expect(document.getElementById('panel').textContent).toContain('Página(s) 1, 2 enviada(s) al modelo como imagen');
+  });
+
+  it('con «proposal: true» manda también lo que cambiaría la propuesta pendiente, sin tocar el disco', async () => {
+    const propose = { toolCalls: [{ id: 'p1', name: 'propose_changes', arguments: JSON.stringify({ changes: [{ path: 'main.typ', action: 'edit', search: 'Uno.', replace: 'Dos columnas.' }] }) }] };
+    const { app, backend, disk } = setup({ connections: [claudeApi], script: [propose, render({ proposal: true }), { text: 'Listo.' }] });
+    await app.onProjectOpened({ root: 'D:/p' });
+    await app.ask('ponlo a dos columnas');
+    const [request] = backend.aiRenderPages.mock.calls[0];
+    expect(request.files).toEqual([{ path: 'D:/p/main.typ', content: '= Hola\n\nDos columnas.\n' }]);
+    expect(disk['D:/p/main.typ']).toBe('= Hola\n\nUno.\n');
+  });
+
+  it('un documento suelto se renderiza como suelto (la réplica no desciende a la carpeta)', async () => {
+    const { app, backend } = setup({ connections: [claudeApi], script: [render({}), { text: 'ok' }] });
+    await app.onProjectOpened({ root: 'D:/p', name: 'main.typ', entrypoint: 'main.typ', isSingleFile: true });
+    await app.ask('mira');
+    expect(backend.aiRenderPages.mock.calls[0][0].singleFile).toBe(true);
+  });
+
+  it('si el compilador no puede renderizar, el modelo recibe el error', async () => {
+    const { app, backend } = setup({ connections: [claudeApi], script: [render({}), { text: 'Lo arreglo.' }] });
+    backend.aiRenderPages.mockResolvedValue({ ok: false, error: { kind: 'badRequest', message: 'error: unknown variable: x' } });
+    await app.onProjectOpened({ root: 'D:/p' });
+    await app.ask('mira');
+    const tool = backend.aiChat.mock.calls.at(-1)[2].messages.filter((m) => m.role === 'tool').map((m) => m.content)[0];
+    expect(tool).toMatch(/^error: /);
+    expect(tool).toContain('unknown variable: x');
   });
 });

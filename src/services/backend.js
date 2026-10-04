@@ -404,6 +404,8 @@ export const aiUniverseSearch = (query, kind = 'any', limit = 8) => call('ai_uni
 export const aiUniverseRefresh = () => call('ai_universe_refresh');
 /** Comprueba identificadores `@preview/nombre:versión` contra el catálogo descargado. */
 export const aiUniverseCheck = (ids) => call('ai_universe_check', { ids });
+/** Renderiza páginas a PNG para que la IA las vea (con lo sin guardar y, si se manda, una propuesta). */
+export const aiRenderPages = (request) => call('ai_render_pages', { request });
 /** Referencias del proyecto (`.bib` y `.yml` de Hayagriva) para la IA, filtradas por `query`. */
 export const aiBibliography = (root, query = '') => call('ai_bibliography', { root, query });
 /** Estilos de cita incluidos en Typst, de la documentación vendorizada. */

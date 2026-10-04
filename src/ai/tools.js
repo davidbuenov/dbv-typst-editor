@@ -72,6 +72,19 @@ export function formatUniverseResult(result, query) {
 /** Estilos que se enseñan sin consulta: los habituales de cada disciplina (`bibliography` de la documentación de Typst). */
 const COMMON_STYLES = ['ieee', 'apa', 'chicago-author-date', 'chicago-notes', 'mla', 'harvard-cite-them-right', 'american-physics-society', 'vancouver', 'american-chemical-society'];
 
+/** «1», «2-3», «1,3» → [1], [2, 3], [1, 3]. Lo que no se entiende se ignora; vacío = la primera. */
+export function parsePageSpec(text) {
+  const pages = [];
+  for (const part of String(text ?? '1').split(',')) {
+    const range = part.trim().match(/^(\d{1,4})(?:\s*-\s*(\d{1,4}))?$/);
+    if (!range) continue;
+    const first = Number(range[1]);
+    const last = Number(range[2] ?? range[1]);
+    for (let page = first; page <= Math.min(last, first + 5); page += 1) pages.push(page);
+  }
+  return pages.length ? pages : [1];
+}
+
 /** Lo que `list_bibliography` le cuenta al modelo: las claves que existen, cortas, y la orden de no inventar ninguna. */
 export function formatBibliography(result, query = '') {
   if (!result.files.length) {
@@ -147,6 +160,7 @@ export function describeCheck(baseline, checked) {
  * @param {Set<string>} [deps.universeSeen] Identificadores que la búsqueda ya devolvió en esta conversación.
  * @param {(query: string) => Promise<{references: Array, total: number, files: string[]}>} [deps.bibliography] Referencias del proyecto (RF-115); si falta, la herramienta no se ofrece.
  * @param {() => Promise<Array<{name: string, details: string}>>} [deps.citationStyles] Estilos de cita incluidos en Typst (RF-115.2).
+ * @param {(options: {pages: number[], proposal: boolean}) => Promise<{pages: Array, totalPages: number|null}>} [deps.renderPages] Renderiza páginas a PNG (RF-114); si falta (modelo sin imágenes), la herramienta no se ofrece.
  * @param {(id: string) => Promise<string>} [deps.universeDocs] README, manifiesto y plantilla de un paquete (RF-108.3); si falta, la herramienta no se ofrece.
  */
 export function createTools(deps) {
@@ -194,6 +208,27 @@ export function createTools(deps) {
         ]
       : []),
   ];
+
+  const renderTool = deps.renderPages
+    ? [
+        {
+          name: 'render_page',
+          description: 'See the rendered page(s) as an image (max 3). `pages`: "1", "2-3" or "1,3". `proposal: true` renders the project WITH your pending proposal applied, to check it before the user does.',
+          parameters: object({ pages: { type: 'string' }, proposal: { type: 'boolean' } }),
+          label: (args) => `Mirando la página ${args.pages ?? '1'}${args.proposal ? ' de la propuesta' : ''}`,
+          run: async ({ pages = '1', proposal: withProposal = false }) => {
+            if (withProposal && !deps.getProposal().files.size) return 'error: there is no proposal yet. Call propose_changes first, or render the current project with `proposal: false`.';
+            const rendered = await deps.renderPages({ pages: parsePageSpec(pages), proposal: Boolean(withProposal) });
+            const shown = rendered.pages.map((p) => p.page).join(', ');
+            const size = rendered.pages[0] ? ` (${rendered.pages[0].width}×${rendered.pages[0].height} px)` : '';
+            return {
+              text: `Rendered page(s) ${shown}${rendered.totalPages ? ` of ${rendered.totalPages}` : ''}${size}${withProposal ? ', with your proposal applied' : ''}. The image(s) follow in the next message; judge the layout from them.`,
+              images: rendered.pages.map((p) => ({ mime: p.mime, base64: p.base64 })),
+            };
+          },
+        },
+      ]
+    : [];
 
   let packageReads = 0;
   const packageDocsTool = deps.universeDocs
@@ -396,5 +431,6 @@ export function createTools(deps) {
     ...universeTools,
     ...packageDocsTool,
     ...bibliographyTools,
+    ...renderTool,
   ];
 }

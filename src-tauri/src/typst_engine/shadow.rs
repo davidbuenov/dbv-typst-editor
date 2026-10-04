@@ -547,6 +547,19 @@ pub fn build(
     seed: bool,
     dirty: Option<(&Path, &str)>,
 ) -> Result<ShadowRoot, TypstError> {
+    let one: Vec<(PathBuf, String)> = dirty.into_iter().map(|(path, content)| (path.to_path_buf(), content.to_string())).collect();
+    build_with(project_root, flat, seed, &one)
+}
+
+/// Como `build`, pero con VARIOS ficheros sustituidos: lo que el editor tiene sin guardar más lo que una
+/// propuesta de la IA cambiaría (RF-114.2: renderizar el proyecto con la propuesta aplicada, sin tocar el
+/// disco del usuario). Los ficheros nuevos (que aún no existen) se crean en la réplica.
+pub fn build_with(
+    project_root: &Path,
+    flat: bool,
+    seed: bool,
+    dirty: &[(PathBuf, String)],
+) -> Result<ShadowRoot, TypstError> {
     if !project_root.is_dir() {
         return Err(TypstError::ExecutionFailed(format!(
             "{} no es una carpeta de proyecto",
@@ -567,7 +580,11 @@ pub fn build(
     )?;
 
     let shadow = ShadowRoot { dir };
-    if let Some((path, content)) = dirty {
+    for (path, content) in dirty {
+        let path = path.as_path();
+        if path.strip_prefix(project_root).is_err() {
+            return Err(TypstError::ExecutionFailed(format!("{} no está dentro del proyecto: no se sustituye", path.display())));
+        }
         let destination = shadow.translate(project_root, path);
         if let Some(parent) = destination.parent() {
             fs::create_dir_all(parent)

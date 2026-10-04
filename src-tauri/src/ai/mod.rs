@@ -16,6 +16,7 @@ pub mod commands;
 pub mod connections;
 pub mod detect;
 pub mod providers;
+pub mod render;
 pub mod secrets;
 pub mod store;
 pub mod universe_packages;

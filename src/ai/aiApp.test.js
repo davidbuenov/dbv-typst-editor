@@ -62,6 +62,9 @@ function setup({ connections, script = [], agent = null, modelInfo = null } = {}
     aiSetPreferences: vi.fn(async () => ok(file)),
     aiConnections: vi.fn(async () => ok(file)),
     aiDetect: vi.fn(async () => ok({ servers: [], tools: [] })),
+    aiUniverseSearch: vi.fn(async () => ok({ status: 'noCatalog', hits: [], fetchedAt: null, unavailable: [] })),
+    aiUniverseRefresh: vi.fn(async () => ok(null)),
+    aiUniverseCheck: vi.fn(async () => ok([])),
     docsSearch: vi.fn(async () => ok([])),
     docsPage: vi.fn(async () => ok({ markdown: '# x' })),
     docsExportDir: vi.fn(async () => ok('C:/datos/typst-docs/0.15.1')),
@@ -593,5 +596,101 @@ describe('avisos del modelo en el panel: no se recuerdan los fallos (RF-103.1)',
     await new Promise((resolve) => setTimeout(resolve, 0));
     // Una sola pregunta aunque haya varios refrescos (al construir la app, al abrir el proyecto, al llegar los proveedores).
     expect(backend.aiModelInfo).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('Typst Universe para la IA (RF-108, RNF-IA.9)', () => {
+  const NOW = Math.floor(Date.now() / 1000);
+  const hit = { id: '@preview/cetz:0.5.2', name: 'cetz', version: '0.5.2', description: 'Drawing with Typst', kind: 'package', categories: [], license: 'LGPL-3.0-or-later', updated: '2025-10-09', newerIncompatible: null };
+  const search = (call) => ({ toolCalls: [{ id: 'u1', name: 'search_universe', arguments: JSON.stringify(call) }] });
+  const toolMessages = (backend) => backend.aiChat.mock.calls.at(-1)[2].messages.filter((m) => m.role === 'tool').map((m) => m.content);
+
+  it('con una conexión LOCAL solo lee lo que hay en disco: nunca descarga, aunque no haya catálogo (RNF-IA.9.3)', async () => {
+    const { app, backend } = setup({ connections: [ollama], script: [search({ query: 'cetz' }), { text: 'No hay catálogo.' }] });
+    await app.onProjectOpened({ root: 'D:/p' });
+    await app.ask('dibuja con cetz');
+    expect(backend.aiUniverseSearch).toHaveBeenCalledWith('cetz', 'any', 8);
+    expect(backend.aiUniverseRefresh).not.toHaveBeenCalled();
+    expect(toolMessages(backend)[0]).toMatch(/not available yet/);
+  });
+
+  it('con una conexión en la NUBE y sin catálogo, lo descarga una vez, lo dice en el panel y busca de nuevo', async () => {
+    const { app, backend } = setup({ connections: [claudeApi], script: [search({ query: 'cetz', kind: 'package' }), { text: 'Usa cetz.' }] });
+    backend.aiUniverseSearch.mockResolvedValueOnce(ok({ status: 'noCatalog', hits: [], fetchedAt: null, unavailable: [] }));
+    backend.aiUniverseSearch.mockResolvedValue(ok({ status: 'ok', hits: [hit], fetchedAt: NOW, unavailable: [] }));
+    await app.onProjectOpened({ root: 'D:/p' });
+    await app.ask('dibuja con cetz');
+    expect(backend.aiUniverseRefresh).toHaveBeenCalledTimes(1);
+    expect(backend.aiUniverseSearch).toHaveBeenCalledTimes(2);
+    expect(document.getElementById('panel').textContent).toContain('Descargando el catálogo de Typst Universe');
+    expect(toolMessages(backend)[0]).toContain('@preview/cetz:0.5.2');
+  });
+
+  it('con la nube y un catálogo de hace más de una semana lo refresca; con uno reciente, no', async () => {
+    const stale = setup({ connections: [claudeApi], script: [search({ query: 'cetz' }), { text: 'ok' }] });
+    stale.backend.aiUniverseSearch.mockResolvedValue(ok({ status: 'ok', hits: [hit], fetchedAt: NOW - 8 * 24 * 3600, unavailable: [] }));
+    await stale.app.onProjectOpened({ root: 'D:/p' });
+    await stale.app.ask('cetz');
+    expect(stale.backend.aiUniverseRefresh).toHaveBeenCalledTimes(1);
+
+    const fresh = setup({ connections: [claudeApi], script: [search({ query: 'cetz' }), { text: 'ok' }] });
+    fresh.backend.aiUniverseSearch.mockResolvedValue(ok({ status: 'ok', hits: [hit], fetchedAt: NOW - 3600, unavailable: [] }));
+    await fresh.app.onProjectOpened({ root: 'D:/p' });
+    await fresh.app.ask('cetz');
+    expect(fresh.backend.aiUniverseRefresh).not.toHaveBeenCalled();
+  });
+
+  it('si la descarga falla (sin red), sigue con lo que hubiera en disco', async () => {
+    const { app, backend } = setup({ connections: [claudeApi], script: [search({ query: 'cetz' }), { text: 'ok' }] });
+    backend.aiUniverseSearch.mockResolvedValue(ok({ status: 'ok', hits: [hit], fetchedAt: NOW - 30 * 24 * 3600, unavailable: [] }));
+    backend.aiUniverseRefresh.mockResolvedValue({ ok: false, error: { kind: 'network', message: 'sin red' } });
+    await app.onProjectOpened({ root: 'D:/p' });
+    await app.ask('cetz');
+    expect(toolMessages(backend)[0]).toContain('@preview/cetz:0.5.2');
+  });
+
+  it('las instrucciones del sistema piden usar solo identificadores devueltos, con herramientas y no sin ellas', async () => {
+    const tools = setup({ connections: [ollama], script: [{ text: 'Hola' }] });
+    await tools.app.onProjectOpened({ root: 'D:/p' });
+    await tools.app.ask('hola');
+    const system = tools.backend.aiChat.mock.calls[0][2].messages[0].content;
+    expect(system).toContain('search_universe');
+    expect(system).toMatch(/NEVER write a package name or a version from memory/);
+    expect(tools.backend.aiChat.mock.calls[0][2].tools.map((t) => t.name)).toContain('search_universe');
+
+    const chat = setup({ connections: [{ ...ollama, supportsTools: false }], script: [{ text: 'Hola' }] });
+    await chat.app.onProjectOpened({ root: 'D:/p' });
+    await chat.app.ask('hola');
+    expect(chat.backend.aiChat.mock.calls[0][2].messages[0].content).not.toContain('search_universe');
+  });
+
+  it('en modo conversación, si se habla de paquetes o plantillas, se adelantan los candidatos al contexto (RF-108.5)', async () => {
+    const { app, backend } = setup({ connections: [{ ...ollama, supportsTools: false }], script: [{ text: 'Usa esta plantilla.' }] });
+    backend.aiUniverseSearch.mockResolvedValue(ok({ status: 'ok', hits: [{ ...hit, id: '@preview/charged-ieee:0.1.4', kind: 'template', description: 'An IEEE-style paper template' }], fetchedAt: NOW, unavailable: [] }));
+    await app.onProjectOpened({ root: 'D:/p' });
+    await app.ask('quiero una plantilla ieee');
+    expect(backend.aiUniverseSearch).toHaveBeenCalledWith('quiero una plantilla ieee', 'any', 3);
+    const context = backend.aiChat.mock.calls[0][2].messages.find((m) => m.content.startsWith('# Context')).content;
+    expect(context).toContain('Typst Universe candidates');
+    expect(context).toContain('@preview/charged-ieee:0.1.4 — template');
+    expect(backend.aiUniverseRefresh).not.toHaveBeenCalled();
+  });
+
+  it('en modo conversación, una petición que no habla de paquetes no consulta el catálogo', async () => {
+    const { app, backend } = setup({ connections: [{ ...ollama, supportsTools: false }], script: [{ text: 'Hecho.' }] });
+    await app.onProjectOpened({ root: 'D:/p' });
+    await app.ask('corrige la ortografía del primer párrafo');
+    expect(backend.aiUniverseSearch).not.toHaveBeenCalled();
+  });
+
+  it('un paquete inventado en una propuesta vuelve al modelo con el aviso y la propuesta sigue siendo revisable', async () => {
+    const proposal = { toolCalls: [{ id: 'p1', name: 'propose_changes', arguments: JSON.stringify({ changes: [{ path: 'main.typ', action: 'edit', search: 'Uno.', replace: 'Uno.\n#import "@preview/inventado:1.0.0": *' }] }) }] };
+    const { app, backend } = setup({ connections: [ollama], script: [proposal, { text: 'Lo corrijo.' }] });
+    backend.aiUniverseCheck.mockResolvedValue(ok([{ id: '@preview/inventado:1.0.0', status: 'unknownPackage', latest: null, compiler: null }]));
+    await app.onProjectOpened({ root: 'D:/p' });
+    await app.ask('añade un paquete');
+    expect(backend.aiUniverseCheck).toHaveBeenCalledWith(['@preview/inventado:1.0.0']);
+    expect(toolMessages(backend)[0]).toContain('Never invent a package');
+    expect(document.querySelector('.ai-review')).not.toBeNull();
   });
 });

@@ -11,11 +11,11 @@ import { createProposal, resultText } from './proposal.js';
 import { detectStyleFiles, importedFiles, separationChecks } from './styleFiles.js';
 import { estimateTokens } from './context.js';
 import { TOOL_SPEC_TOKENS } from './modelFit.js';
-import { createTools, describeCheck, MAX_FIX_ATTEMPTS, newErrors } from './tools.js';
+import { createTools, describeCheck, describePackageCheck, formatUniverseResult, MAX_FIX_ATTEMPTS, newErrors, newPackageIds } from './tools.js';
 
 const err = (file, message) => ({ level: 'error', file, line: 1, message });
 
-function setup({ check } = {}) {
+function setup({ check, universe } = {}) {
   const files = { 'main.typ': '= Hola\n#include "cap.typ"\n', 'cap.typ': 'Uno.\n' };
   const proposal = createProposal();
   const deps = {
@@ -30,6 +30,7 @@ function setup({ check } = {}) {
     docsPage: async (path) => (path === 'reference/model/table' ? '# table' : null),
     checkProposal: check ?? (async () => ({ fresh: [], fixed: 0 })),
     getProposal: () => proposal,
+    ...(universe ?? {}),
   };
   const tools = Object.fromEntries(createTools(deps).map((tool) => [tool.name, tool]));
   return { tools, proposal, deps };
@@ -217,5 +218,116 @@ describe('separar presentación de contenido con un modelo simulado (RF-105.8)',
   it('la métrica detecta el caso malo: las reglas puestas en el principal', async () => {
     const after = await run({ 'main.typ': MAIN }, [{ path: 'main.typ', action: 'edit', search: '= Informe', replace: '#set text(font: "Libertinus Serif", size: 12pt)\n= Informe' }]);
     expect(separationChecks({ before: { 'main.typ': MAIN }, after })).toEqual({ contentKept: false, styleChanged: false });
+  });
+});
+
+const HIT = { id: '@preview/charged-ieee:0.1.4', name: 'charged-ieee', version: '0.1.4', description: 'An IEEE-style paper template', kind: 'template', categories: ['paper'], license: 'MIT-0', updated: '2025-01-10', newerIncompatible: null };
+const CETZ = { id: '@preview/cetz:0.5.2', name: 'cetz', version: '0.5.2', description: 'Drawing with Typst', kind: 'package', categories: [], license: 'LGPL-3.0-or-later', updated: '2025-10-09', newerIncompatible: { version: '0.6.0', compiler: '0.16.0' } };
+
+describe('search_universe (RF-108.2)', () => {
+  it('solo se ofrece si hay catálogo que consultar', () => {
+    expect(setup().tools.search_universe).toBeUndefined();
+    expect(setup({ universe: { universeSearch: async () => ({ status: 'ok', hits: [] }) } }).tools.search_universe).toBeDefined();
+  });
+
+  it('devuelve el identificador completo de cada resultado y recuerda no escribir nada de memoria', async () => {
+    const universeSearch = vi.fn(async () => ({ status: 'ok', hits: [HIT, CETZ] }));
+    const { tools } = setup({ universe: { universeSearch } });
+    const text = await tools.search_universe.run({ query: 'ieee', kind: 'template' });
+    expect(universeSearch).toHaveBeenCalledWith('ieee', 'template');
+    expect(text).toContain('1. @preview/charged-ieee:0.1.4 — template [paper] — An IEEE-style paper template (MIT-0, 2025-01-10)');
+    expect(text).toContain('2. @preview/cetz:0.5.2 — package');
+    expect(text).toContain('a newer 0.6.0 exists but needs Typst 0.16.0');
+    expect(text).toMatch(/ONLY these exact identifiers/);
+    expect(text).toMatch(/never write a package or a version from memory/);
+  });
+
+  it('un tipo desconocido se trata como «any» y la consulta no es un riesgo', async () => {
+    const universeSearch = vi.fn(async () => ({ status: 'ok', hits: [] }));
+    const { tools } = setup({ universe: { universeSearch } });
+    await tools.search_universe.run({ query: 12, kind: '../../x' });
+    expect(universeSearch).toHaveBeenCalledWith('12', 'any');
+  });
+
+  it('sin catálogo lo dice y manda a la galería en vez de dejar que adivine', async () => {
+    const { tools } = setup({ universe: { universeSearch: async () => ({ status: 'noCatalog', hits: [] }) } });
+    const text = await tools.search_universe.run({ query: 'cetz' });
+    expect(text).toMatch(/not available yet/);
+    expect(text).toMatch(/do NOT guess/);
+  });
+
+  it('sin resultados no inventa y avisa del paquete que existe pero no cabe en este compilador', async () => {
+    const { tools } = setup({ universe: { universeSearch: async () => ({ status: 'ok', hits: [], unavailable: [{ name: 'futuro', compiler: '0.16.0' }] }) } });
+    const text = await tools.search_universe.run({ query: 'futuro' });
+    expect(text).toContain('no results for "futuro"');
+    expect(text).toContain('futuro exists but needs Typst 0.16.0 or newer');
+    expect(text).toMatch(/Do not invent/);
+  });
+
+  it('las definiciones de las herramientas, con ésta incluida, caben en el presupuesto de contexto (RF-103)', () => {
+    const { deps } = setup({ universe: { universeSearch: async () => ({ status: 'ok', hits: [] }) } });
+    const specs = createTools(deps).map(({ name, description, parameters }) => ({ name, description, parameters }));
+    expect(estimateTokens(JSON.stringify(specs))).toBeLessThanOrEqual(TOOL_SPEC_TOKENS);
+  });
+});
+
+describe('paquetes que la IA escribe en una propuesta (RF-108.4)', () => {
+  const change = (content) => ({ changes: [{ path: 'main.typ', action: 'replace_all', content }] });
+
+  it('newPackageIds solo devuelve los identificadores que el texto ESTRENA', () => {
+    const before = '#import "@preview/cetz:0.4.2": canvas\n';
+    const after = '#import "@preview/cetz:0.4.2": canvas\n#import "@preview/tablex:0.0.9": *\n#import "@preview/tablex:0.0.9": tablex\n';
+    expect(newPackageIds(after, before)).toEqual(['@preview/tablex:0.0.9']);
+    expect(newPackageIds('#import "@local/x:1.0.0"')).toEqual([]);
+    expect(newPackageIds('#import "@preview/sin-version"')).toEqual([]);
+  });
+
+  it('describePackageCheck dice qué usar en cada caso y calla cuando está bien', () => {
+    expect(describePackageCheck({ id: '@preview/cetz:0.5.2', status: 'ok' })).toBeNull();
+    expect(describePackageCheck({ id: '@preview/inventado:1.0.0', status: 'unknownPackage' })).toMatch(/Never invent a package/);
+    expect(describePackageCheck({ id: '@preview/cetz:0.4.2', status: 'outdated', latest: '0.5.2' })).toContain('@preview/cetz:0.5.2');
+    expect(describePackageCheck({ id: '@preview/cetz:9.9.9', status: 'unknownVersion', latest: '0.5.2' })).toContain('never write a version from memory');
+    expect(describePackageCheck({ id: '@preview/cetz:0.6.0', status: 'needsNewerCompiler', latest: '0.5.2', compiler: '0.16.0' })).toMatch(/needs Typst 0\.16\.0/);
+    expect(describePackageCheck({ id: '@preview/futuro:1.0.0', status: 'unavailable', compiler: '0.16.0' })).toMatch(/Choose another package/);
+  });
+
+  it('una propuesta con un paquete inexistente o con una versión de memoria recibe el aviso, y se propone igual', async () => {
+    const universeCheck = vi.fn(async () => [
+      { id: '@preview/cetz:0.4.2', status: 'outdated', latest: '0.5.2' },
+      { id: '@preview/inventado:1.0.0', status: 'unknownPackage' },
+    ]);
+    const { tools, proposal } = setup({ universe: { universeCheck } });
+    const result = await tools.propose_changes.run(change('#import "@preview/cetz:0.4.2": canvas\n#import "@preview/inventado:1.0.0": *\n'));
+    expect(universeCheck).toHaveBeenCalledWith(['@preview/cetz:0.4.2', '@preview/inventado:1.0.0']);
+    expect(result).toContain('WARNING about packages');
+    expect(result).toContain('@preview/cetz:0.5.2');
+    expect(result).toContain('Never invent a package');
+    expect(proposal.files.size).toBe(1);
+  });
+
+  it('un paquete que ya estaba en el fichero no se vuelve a cuestionar, ni uno que está bien', async () => {
+    const universeCheck = vi.fn(async () => [{ id: '@preview/cetz:0.5.2', status: 'ok' }]);
+    const { tools, deps } = setup({ universe: { universeCheck } });
+    deps.readText.mockImplementation(async () => '#import "@preview/viejo:0.1.0": *\n= Hola\n');
+    const result = await tools.propose_changes.run(change('#import "@preview/viejo:0.1.0": *\n#import "@preview/cetz:0.5.2": canvas\n= Hola\n'));
+    expect(universeCheck).toHaveBeenCalledWith(['@preview/cetz:0.5.2']);
+    expect(result).not.toContain('WARNING');
+  });
+
+  it('sin paquetes nuevos ni siquiera se consulta el catálogo', async () => {
+    const universeCheck = vi.fn(async () => []);
+    const { tools } = setup({ universe: { universeCheck } });
+    await tools.propose_changes.run(change('= Otro título\n'));
+    expect(universeCheck).not.toHaveBeenCalled();
+  });
+
+  it('con el catálogo sin descargar (sin veredictos) no se inventa ningún aviso', async () => {
+    const { tools } = setup({ universe: { universeCheck: async () => [] } });
+    const result = await tools.propose_changes.run(change('#import "@preview/cetz:0.5.2": canvas\n'));
+    expect(result).not.toContain('WARNING');
+  });
+
+  it('formatUniverseResult acepta un resultado vacío sin lanzar', () => {
+    expect(formatUniverseResult({ status: 'ok', hits: [] }, 'x')).toContain('no results');
   });
 });

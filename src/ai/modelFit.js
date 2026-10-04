@@ -22,8 +22,8 @@ export const SMALL_MODEL_BILLIONS = 7;
 /** Fracción de la ventana que se llena; el resto es holgura (la usa `aiApp.contextBudget`). */
 export const CONTEXT_FILL_RATIO = 0.8;
 
-/** Tokens de las definiciones de las herramientas, que viajan en cada petición (medido ≈631). */
-export const TOOL_SPEC_TOKENS = 650;
+/** Tokens de las definiciones de las herramientas, que viajan en cada petición (medido ≈737 con `search_universe`; 631 sin ella). */
+export const TOOL_SPEC_TOKENS = 760;
 
 /** Contexto automático básico: árbol de ficheros, fichero activo recortado, problemas y esquema. */
 export const BASIC_CONTEXT_TOKENS = 1500;

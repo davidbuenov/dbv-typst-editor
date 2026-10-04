@@ -18,6 +18,7 @@ pub mod detect;
 pub mod providers;
 pub mod secrets;
 pub mod store;
+pub mod universe_search;
 
 use std::collections::HashMap;
 use std::sync::atomic::AtomicBool;

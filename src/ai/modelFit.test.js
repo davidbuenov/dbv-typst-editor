@@ -82,8 +82,8 @@ describe('avisos de un modelo (RF-103)', () => {
 
 describe('presupuesto de contexto (RF-103)', () => {
   it('es la fracción que se llena menos la reserva de respuesta y las herramientas', () => {
-    // 8 192 × 0,8 = 6 553; − 1 024 de respuesta; − 650 de herramientas.
-    expect(contextBudget({ contextTokens: 8192 })).toBe(4879);
+    // 8 192 × 0,8 = 6 553; − 1 024 de respuesta; − 760 de herramientas (con `search_universe`).
+    expect(contextBudget({ contextTokens: 8192 })).toBe(4769);
     expect(contextBudget({ contextTokens: 8192, tools: false })).toBe(5529);
   });
 
@@ -91,8 +91,8 @@ describe('presupuesto de contexto (RF-103)', () => {
     expect(contextBudget({ contextTokens: 16384, tools: false }) - contextBudget({ contextTokens: 16384, tools: true })).toBe(TOOL_SPEC_TOKENS);
   });
 
-  it('con los 4 096 de Ollama por defecto queda un margen real de ≈1 600 tokens', () => {
-    expect(contextBudget({ contextTokens: 4096 })).toBe(1602);
+  it('con los 4 096 que Ollama usaba por defecto queda un margen de ≈1 500 tokens (por eso DBV pide 8 192)', () => {
+    expect(contextBudget({ contextTokens: 4096 })).toBe(1492);
   });
 });
 

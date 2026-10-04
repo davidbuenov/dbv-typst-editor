@@ -398,6 +398,12 @@ export const aiCheckProposal = (root, main, files) => call('ai_check_proposal', 
 export const aiProjectStateLoad = (root) => call('ai_project_state_load', { root });
 export const aiProjectStateSave = (root, value) => call('ai_project_state_save', { root, value });
 export const aiRelease = () => call('ai_release');
+/** Busca en el catálogo de Typst Universe YA descargado (nunca abre una conexión, RNF-IA.9.3). */
+export const aiUniverseSearch = (query, kind = 'any', limit = 8) => call('ai_universe_search', { query, kind, limit });
+/** Descarga el índice público de Universe; solo con una conexión en la nube. */
+export const aiUniverseRefresh = () => call('ai_universe_refresh');
+/** Comprueba identificadores `@preview/nombre:versión` contra el catálogo descargado. */
+export const aiUniverseCheck = (ids) => call('ai_universe_check', { ids });
 
 // ─── Agentes por ACP (RF-91) ─────────────────────────────────────────────────
 // Transporte: Rust lanza el agente y reenvía sus mensajes como `acp-message`.

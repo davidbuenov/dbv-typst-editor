@@ -85,6 +85,11 @@ export function isToolsUnsupported(error) {
   return error?.kind === 'badRequest' && TOOLS_UNSUPPORTED.test(error?.message ?? error?.content ?? '');
 }
 
+/** El catálogo de Universe de una conexión en la nube se refresca si tiene más de una semana (RF-108.6). */
+const UNIVERSE_FRESH_SECONDS = 7 * 24 * 3600;
+/** Peticiones que hablan de paquetes o plantillas: sin herramientas, es cuando se adelantan candidatos de Universe. */
+const UNIVERSE_HINT = /paquete|package|plantilla|template|universe|@preview|ieee|apa\b|tesis|thesis|p[oó]ster|curr[ií]culum|\bcv\b|resume|slides|diapositiv|presentaci|diagram|dibuj|draw|gr[aá]fic|tabla|table/i;
+
 /**
  * @param {object} deps Ver `entry.js`, que es quien la crea.
  */
@@ -358,7 +363,7 @@ export function createAiApp(deps) {
     return detectStyleFiles({ files, entrypointText, texts });
   }
 
-  function contextSource(extraAttachments = [], docs = []) {
+  function contextSource(extraAttachments = [], docs = [], universe = []) {
     const project = workspace.state.project;
     return {
       projectName: project?.name ?? '',
@@ -371,6 +376,7 @@ export function createAiApp(deps) {
       outline: deps.getOutline(),
       attachments: [...attachments.filter((a) => a.kind === 'file'), ...extraAttachments],
       docs,
+      universe,
       excluded: [...excluded],
     };
   }
@@ -420,6 +426,30 @@ export function createAiApp(deps) {
       slowHinted.add(conversationId);
       panel.addNote(t('ai.slowHint'));
     }
+  }
+
+  /**
+   * Busca en el catálogo de Universe (RF-108). Con una conexión en la nube, si no hay catálogo o tiene más de
+   * una semana, lo descarga antes (es el índice público: no sale nada del proyecto, RNF-IA.9.2); con una
+   * local solo lee lo que ya hay en disco y nunca abre una conexión (RNF-IA.9.3).
+   */
+  async function searchUniverse(connection, query, kind) {
+    let result = await backend.aiUniverseSearch(query, kind, 8);
+    const missing = !result.ok || result.value.status === 'noCatalog';
+    const stale = !missing && !(result.value.fetchedAt && Date.now() / 1000 - result.value.fetchedAt < UNIVERSE_FRESH_SECONDS);
+    if (isCloud(connection) && (missing || stale)) {
+      panel.addStep(t('ai.step.universeRefresh'));
+      const refreshed = await backend.aiUniverseRefresh();
+      if (refreshed.ok) result = await backend.aiUniverseSearch(query, kind, 8);
+    }
+    return result.ok ? result.value : { status: 'noCatalog', hits: [] };
+  }
+
+  /** Identificadores que la búsqueda ya devolvió en cada conversación (los usa RF-108.4 y, luego, read_package_docs). */
+  const seenByConversation = new Map();
+  function seenIdentifiers(conversationId) {
+    if (!seenByConversation.has(conversationId)) seenByConversation.set(conversationId, new Set());
+    return seenByConversation.get(conversationId);
   }
 
   function contextBudget(connection) {
@@ -591,15 +621,21 @@ export function createAiApp(deps) {
       if (content !== null) mentioned.push({ path, content });
     }
     const docs = [];
+    const universe = [];
     const images = attachments.filter((a) => a.kind === 'image').map((a) => ({ mime: a.mime, base64: a.base64 }));
     const run = async (tools) => {
       if (!tools && !docs.length) {
         const hits = await backend.docsSearch(text, 3);
         if (hits.ok) docs.push(...hits.value);
       }
+      // Sin herramientas no hay `search_universe`: si la petición habla de paquetes o plantillas, se adelantan los candidatos (RF-108.5).
+      if (!tools && !universe.length && UNIVERSE_HINT.test(text)) {
+        const found = await backend.aiUniverseSearch(text, 'any', 3);
+        if (found.ok && found.value.status === 'ok') universe.push(...found.value.hits);
+      }
       const budget = contextBudget(connection);
-      const system = systemPrompt({ lang: getLanguage(), tools, typstVersion: deps.typstVersion() });
-      const context = buildContext(contextSource([...mentioned, ...(options.attachments ?? [])], docs), Math.max(400, budget - estimateTokens(system) - estimateTokens(text)));
+      const system = systemPrompt({ lang: getLanguage(), tools, typstVersion: deps.typstVersion(), universe: tools });
+      const context = buildContext(contextSource([...mentioned, ...(options.attachments ?? [])], docs, universe), Math.max(400, budget - estimateTokens(system) - estimateTokens(text)));
       renderContextPreview(context.items);
       const historyBudget = Math.max(0, budget - estimateTokens(system) - estimateTokens(context.text) - estimateTokens(text));
       const history = historyMessages(current.entries.slice(0, -1), historyBudget);
@@ -633,6 +669,12 @@ export function createAiApp(deps) {
         },
         checkProposal: check,
         getProposal: () => proposal,
+        universeSearch: (query, kind) => searchUniverse(connection, query, kind),
+        universeCheck: async (ids) => {
+          const checked = await backend.aiUniverseCheck(ids);
+          return checked.ok ? checked.value : [];
+        },
+        universeSeen: seenIdentifiers(current.id),
       });
       const result = await runAgent({
         tools: toolset,

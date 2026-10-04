@@ -24,6 +24,49 @@ export const MAX_FIX_ATTEMPTS = 2;
 const READ_LIMIT = 24000;
 const LIST_LIMIT = 400;
 
+/** `@preview/nombre:1.2.3` en un texto Typst. */
+const PACKAGE_ID = /@preview\/[A-Za-z0-9_-]+:\d+\.\d+\.\d+/g;
+
+/** Identificadores de paquete que `text` tiene y `base` no (los que la IA acaba de escribir). */
+export function newPackageIds(text, base = '') {
+  const known = new Set(base.match(PACKAGE_ID) ?? []);
+  return [...new Set(text.match(PACKAGE_ID) ?? [])].filter((id) => !known.has(id));
+}
+
+/** Aviso para el modelo sobre un identificador de paquete que no encaja con el catálogo, o `null` si está bien. */
+export function describePackageCheck(check) {
+  const unversioned = check.id.split(':')[0];
+  const warnings = {
+    unknownPackage: `${check.id}: no such package exists in Typst Universe. Never invent a package; call search_universe.`,
+    unknownVersion: `${check.id}: that version does not exist. Use ${unversioned}:${check.latest} (the latest version this editor's compiler supports); never write a version from memory.`,
+    outdated: `${check.id}: an outdated version. Use ${unversioned}:${check.latest}, the latest one this editor's compiler supports.`,
+    needsNewerCompiler: `${check.id}: needs Typst ${check.compiler} or newer and this editor's compiler is older. Use ${unversioned}:${check.latest}.`,
+    unavailable: `${check.id}: no version of this package works with this editor's compiler (it needs Typst ${check.compiler} or newer). Choose another package.`,
+  };
+  return warnings[check.status] ?? null;
+}
+
+/** Lo que la herramienta `search_universe` le cuenta al modelo: pocos resultados, cada uno con su identificador completo. */
+export function formatUniverseResult(result, query) {
+  if (result.status === 'noCatalog') {
+    return 'The Typst Universe catalog is not available yet (it has not been downloaded). Tell the user to open the Typst Universe gallery once to download it; meanwhile do NOT guess package names or versions.';
+  }
+  if (!result.hits.length) {
+    const unfit = (result.unavailable ?? []).map((u) => `${u.name} exists but needs Typst ${u.compiler} or newer`).join('; ');
+    return `no results for "${query}"${unfit ? ` (${unfit})` : ''}. Do not invent a package: say that none was found.`;
+  }
+  const lines = result.hits.map((hit, index) => {
+    const newer = hit.newerIncompatible ? ` (a newer ${hit.newerIncompatible.version} exists but needs Typst ${hit.newerIncompatible.compiler}, which this editor does not have)` : '';
+    const tags = hit.categories?.length ? ` [${hit.categories.join(', ')}]` : '';
+    return `${index + 1}. ${hit.id} — ${hit.kind}${tags} — ${hit.description} (${hit.license || 'license n/a'}${hit.updated ? `, ${hit.updated}` : ''})${newer}`;
+  });
+  return [
+    'Typst Universe results. Use ONLY these exact identifiers, with their version; never write a package or a version from memory.',
+    '"package" = a library you #import. "template" = a package that ships a document template: to apply it to an existing document, import it like any package and use it as the example in its documentation shows.',
+    ...lines,
+  ].join('\n');
+}
+
 const object = (properties, required = []) => ({ type: 'object', properties, required, additionalProperties: false });
 
 /**
@@ -64,14 +107,47 @@ export function describeCheck(baseline, checked) {
  * @param {(proposal: object) => Promise<Array|null>} deps.checkProposal Diagnósticos con la propuesta; `null` si no se puede comprobar.
  * @param {() => object} deps.getProposal Propuesta de la respuesta en curso.
  * @param {(path: string) => boolean} [deps.allowPath] Si existe, solo se pueden proponer cambios en las rutas que admite (documento suelto, RF-106.7).
+ * @param {(query: string, kind: string) => Promise<object>} [deps.universeSearch] Búsqueda en el catálogo de Typst Universe (RF-108); si falta, la herramienta no se ofrece.
+ * @param {(ids: string[]) => Promise<Array<{id: string, status: string, latest: string|null, compiler: string|null}>>} [deps.universeCheck] Comprueba los identificadores de paquete de una propuesta.
+ * @param {Set<string>} [deps.universeSeen] Identificadores que la búsqueda ya devolvió en esta conversación.
  */
 export function createTools(deps) {
   let fixAttempts = 0;
+  const seen = deps.universeSeen ?? new Set();
+  /**
+   * Avisos sobre los `@preview/…` que la propuesta ESTRENA (RF-108.4): un paquete o una versión que no
+   * existen, o una que no es la que el compilador admite. Sin catálogo descargado no se dice nada.
+   */
+  const packageWarnings = async (proposal) => {
+    if (!deps.universeCheck) return [];
+    const ids = [...proposal.files.values()].flatMap((file) => (file.kind === 'delete' ? [] : newPackageIds(file.proposed ?? '', file.base ?? '')));
+    if (!ids.length) return [];
+    const checks = await deps.universeCheck([...new Set(ids)]);
+    const warnings = checks.map(describePackageCheck).filter(Boolean);
+    return warnings.length ? [`WARNING about packages (fix them in another propose_changes call):\n${warnings.map((w) => `- ${w}`).join('\n')}`] : [];
+  };
   const safe = (path) => {
     const relative = normalizePath(path);
     if (!isSafeRelativePath(relative)) throw new Error(`path outside the project: ${path}`);
     return relative;
   };
+
+  const universeTools = deps.universeSearch
+    ? [
+        {
+          name: 'search_universe',
+          description:
+            'Search Typst Universe for packages and document templates (max 8 results, each with its exact @preview/name:version). Use English keywords. Never write a package or version this tool did not return.',
+          parameters: object({ query: { type: 'string' }, kind: { type: 'string', enum: ['any', 'package', 'template'] } }, ['query']),
+          label: (args) => `Consultando Typst Universe: ${args.query ?? ''}`,
+          run: async ({ query, kind = 'any' }) => {
+            const result = await deps.universeSearch(String(query ?? ''), ['package', 'template'].includes(kind) ? kind : 'any');
+            for (const hit of result?.hits ?? []) seen.add(hit.id);
+            return formatUniverseResult(result ?? { status: 'noCatalog', hits: [] }, query);
+          },
+        },
+      ]
+    : [];
 
   return [
     {
@@ -204,6 +280,7 @@ export function createTools(deps) {
         if (!proposal.files.size) {
           report.push('NOTHING was proposed: no change modified any file (the edit may be empty or identical to the current text). Tell the user the proposal is empty or retry with a correct edit.');
         }
+        report.push(...(await packageWarnings(proposal)));
         const checked = proposal.files.size ? await deps.checkProposal(proposal) : null;
         if (checked) {
           const { fresh, fixed } = checked;
@@ -220,5 +297,6 @@ export function createTools(deps) {
         return report.join('\n');
       },
     },
+    ...universeTools,
   ];
 }

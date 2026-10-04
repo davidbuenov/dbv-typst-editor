@@ -143,6 +143,32 @@ pub struct UniverseIndexState {
 /// sincronizado.
 pub const CACHE_FILE: &str = "universe-index.json";
 
+/// Descarga el índice, lo guarda en disco y lo deja en memoria (no usa la
+/// caché: es lo que hace la galería al abrirse y la IA en la nube, a petición).
+pub fn refresh_index(dir: Option<&std::path::Path>, state: &UniverseIndexState) -> Result<Vec<UniverseIndexEntry>, AppError> {
+    let (entries, raw) = download_index()?;
+    if let Some(dir) = dir {
+        // No poder guardarlo no es un fallo: quien lo pidió ya tiene lo que necesitaba.
+        let _ = save_cache(dir, &raw);
+    }
+    if let Ok(mut guard) = state.cached.lock() {
+        *guard = Some(entries.clone());
+    }
+    Ok(entries)
+}
+
+/// Lo que ya hay, SIN red: memoria de esta sesión o, si no, el último
+/// sincronizado en disco (RNF-IA.9.3: las conexiones locales solo leen esto).
+pub fn cached_entries(dir: Option<&std::path::Path>, state: &UniverseIndexState) -> Option<CachedIndex> {
+    let fetched_at = dir.and_then(cache_time);
+    if let Ok(guard) = state.cached.lock() {
+        if let Some(entries) = guard.as_ref() {
+            return Some(CachedIndex { entries: entries.clone(), fetched_at });
+        }
+    }
+    dir.and_then(load_cache)
+}
+
 /// Descarga (o sirve de caché) el índice completo de Typst Universe. Si no hay
 /// red, usa el del último sincronizado en disco antes que fallar.
 #[tauri::command]
@@ -155,24 +181,11 @@ pub fn fetch_universe_index(
             return Ok(entries.clone());
         }
     }
-
     let dir = tauri::Manager::path(&app).app_data_dir().ok();
-    let entries = match download_index() {
-        Ok((entries, raw)) => {
-            if let Some(dir) = dir.as_deref() {
-                // No poder guardarlo no es un fallo: la galería ya tiene lo que pidió.
-                let _ = save_cache(dir, &raw);
-            }
-            entries
-        }
-        Err(error) => dir.as_deref().and_then(|dir| load_cache(dir).map(|cached| cached.entries)).ok_or(error)?,
-    };
-
-    if let Ok(mut guard) = state.cached.lock() {
-        *guard = Some(entries.clone());
+    match refresh_index(dir.as_deref(), &state) {
+        Ok(entries) => Ok(entries),
+        Err(error) => dir.as_deref().and_then(load_cache).map(|cached| cached.entries).ok_or(error),
     }
-
-    Ok(entries)
 }
 
 fn download_index() -> Result<(Vec<UniverseIndexEntry>, Vec<u8>), AppError> {
@@ -212,18 +225,22 @@ pub fn save_cache(dir: &std::path::Path, raw: &[u8]) -> std::io::Result<()> {
     std::fs::rename(&temporary, &target)
 }
 
+/// Segundos Unix de la última modificación del índice guardado.
+pub fn cache_time(dir: &std::path::Path) -> Option<u64> {
+    std::fs::metadata(dir.join(CACHE_FILE))
+        .and_then(|meta| meta.modified())
+        .ok()
+        .and_then(|time| time.duration_since(std::time::UNIX_EPOCH).ok())
+        .map(|elapsed| elapsed.as_secs())
+}
+
 /// Lee el índice guardado. `None` si no existe o no se puede interpretar (se
 /// ignora en silencio: se vuelve a descargar cuando el usuario abra la galería).
 pub fn load_cache(dir: &std::path::Path) -> Option<CachedIndex> {
     let path = dir.join(CACHE_FILE);
     let raw = std::fs::read(&path).ok()?;
     let entries = parse_index(&raw).ok()?;
-    let fetched_at = std::fs::metadata(&path)
-        .and_then(|meta| meta.modified())
-        .ok()
-        .and_then(|time| time.duration_since(std::time::UNIX_EPOCH).ok())
-        .map(|elapsed| elapsed.as_secs());
-    Some(CachedIndex { entries, fetched_at })
+    Some(CachedIndex { entries, fetched_at: cache_time(dir) })
 }
 
 #[cfg(test)]

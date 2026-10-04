@@ -661,21 +661,20 @@
 
 ## 🔄 Context Snapshot / Snapshot de Contexto
 
-> ### 👉 RETOMAR AQUÍ (2026-10-04): v0.13.1 LISTA EN LOCAL — `/ship` hecho, SIN push ni Store
+> ### 👉 RETOMAR AQUÍ (2026-10-04): v0.13.1 PUBLICADA en GitHub (Latest); falta solo la Store
 >
-> Ciclo completo de la v0.13.1 (Spec → Plan → Build → Test → Simplify → Ship), todo commiteado en local
-> y con el tag `v0.13.1` local; **no se ha empujado nada a GitHub ni a la Store**. `SPECIFICATIONS.md` v1.18
-> (§5o, RF-99 a RF-106), `ADR-V0130-005` y `-006`. Suites: 1339 Vitest · 504 Rust · `verify:frontend` 12/12 ·
-> `verify:layout` 20/20; mutación 39/39 + 10/10. El `.msixbundle` está en
-> `src-tauri/target/msix/dbv-typst-editor_0.13.1.0.msixbundle` (77,61 MB, verificado).
+> Release publicada: https://github.com/davidbuenov/dbv-typst-editor/releases/tag/v0.13.1 (notas ES + EN;
+> `.AppImage`, `.zsync`, `.deb`, `.dmg` y `.app.tar.gz`, las cinco descargas con 200). Push de `master` y del tag
+> `v0.13.1` hecho a petición del usuario; CI, Release Linux y Release macOS en verde; el Cask de Homebrew se
+> actualizó solo a la 0.13.1 con los `sha256` iguales a los `digest` de GitHub. Suites: 1339 Vitest · 504 Rust ·
+> `verify:frontend` 12/12 · `verify:layout` 20/20; mutación 39/39 + 10/10.
 >
-> **Pendiente del usuario:** (1) instalar el paquete con el certificado de pruebas y seguir la guía de
-> 2 minutos de `notasActualizacionStore_v0.13.1.md`; (2) decidir cuándo `git push` (commits + tag) y la
-> Release de GitHub; (3) subir el `.msixbundle` a Partner Center con las notas y las «Novedades» (la Store
-> viene de la 0.12.1, así que el texto cubre la 0.13.0 y la 0.13.1); (4) probar Gemini y Claude Code en el
-> editor con el paquete. **No medido todavía:** modelos locales de 14B o más y la nube con documentación.
-> Hay un `memory.md` y un `task.md` sin seguimiento en la raíz del repositorio, ajenos a `dbv-specs-ops/`
-> (de otra conversación): no se han tocado.
+> **Pendiente del usuario:** subir el `.msixbundle` a Partner Center
+> (`src-tauri/target/msix/dbv-typst-editor_0.13.1.0.msixbundle`, 77,61 MB) con las notas y las «Novedades» de
+> `notasActualizacionStore_v0.13.1.md` (la Store viene de la 0.12.1: el texto cubre la 0.13.0 y la 0.13.1);
+> instalar antes el paquete con el certificado de pruebas y seguir la guía de 2 minutos. **No medido todavía:**
+> modelos locales de 14B o más y la nube con documentación. Hay un `memory.md` y un `task.md` sin seguimiento
+> en la raíz del repositorio, ajenos a `dbv-specs-ops/` (de otra conversación): no se han tocado.
 >
 > **Estado anterior (2026-10-03): v0.13.0 PUBLICADA**
 >

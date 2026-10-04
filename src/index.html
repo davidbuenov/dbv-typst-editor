@@ -170,6 +170,9 @@
             <button id="btn-apply-template" class="menu-item" type="button" role="menuitem">
               <span class="menu-item__icon menu-item__icon--glyph" aria-hidden="true">▤</span><span data-i18n="ai.applyTemplateMenu"></span>
             </button>
+            <button id="btn-mcp-server" class="menu-item" type="button" role="menuitem">
+              <span class="menu-item__icon menu-item__icon--glyph" aria-hidden="true">⇄</span><span data-i18n="mcp.menu"></span>
+            </button>
             <div class="menu-separator" role="separator"></div>
             <button id="btn-terminal" class="menu-item" type="button" role="menuitem">
               <span class="menu-item__icon menu-item__icon--glyph" aria-hidden="true">&gt;_</span><span data-i18n="action.terminal"></span>
@@ -1237,6 +1240,15 @@
         <button id="btn-sublime-import-close" class="icon-button icon-button--small" type="button" data-i18n-title="action.close">✕</button>
       </div>
       <div class="ai-form snippet-import" id="sublime-import-body"></div>
+    </div>
+
+    <!-- RF-113.6: «Servidor MCP…». -->
+    <div id="mcp-panel" class="floating-panel floating-panel--help floating-panel--ai-connect hidden" role="dialog" aria-modal="false" aria-labelledby="mcp-title">
+      <div class="panel__header">
+        <h2 id="mcp-title" class="floating-panel__title" data-i18n="mcp.title"></h2>
+        <button id="btn-mcp-close" class="icon-button icon-button--small" type="button" data-i18n-title="action.close">✕</button>
+      </div>
+      <div class="ai-form mcp" id="mcp-body"></div>
     </div>
 
     <!-- RF-116: «Aplicar plantilla…». -->

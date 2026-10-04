@@ -25,4 +25,29 @@ antes `npm run vendor:typst` y `npm run vendor:tinymist`. Al terminar, pasa y re
 (~75-80 MB), no ~30 MB. Deja la ruta del `.msixbundle` en `task.md`. Instalarlo con el certificado de
 pruebas y subirlo a Partner Center siguen siendo acciones del usuario.
 
+**Y revisa SIEMPRE la documentación, en el repositorio y en la web** (antes del bump de versión; no es
+opcional ni se reduce a «añadir una línea al README»). Lo que se añadió en la versión tiene que estar
+explicado donde el usuario lo busca, y lo que ya estaba tiene que seguir siendo verdad:
+
+1. **Sitios a revisar** (todos, en ES y EN): `README.md` y `README.en.md` (estado actual: versión y
+   número de pruebas; funcionalidades; requisitos); `docs/IA.md` y `docs/IA.en.md`; la web del proyecto
+   `docs/index.html` y `docs/en/index.html`; `descripcionStore_es.md` y `descripcionStore_en.md`; y la
+   **ayuda integrada** `src/help/helpContent.js` (sección por tema, en ES y EN).
+2. **La web `davidbuenov.com`** vive en otro repositorio (Jekyll): su ficha de este proyecto es
+   `D:\Programacion\github-davidbuenov\web\_projects\dbv-typst-editor.md` (versión, métricas del hero,
+   características, historial de versiones, comparativa). Actualízala con lo de esta versión. **No edites
+   `public/` del repo `davidbuenov` (es una copia generada), no hagas commit allí ni despliegues**: el
+   despliegue es del usuario, con DBV Control Center.
+3. **Comprobar que lo antiguo sigue siendo cierto.** Busca las afirmaciones que cambian con los números y
+   los nombres: «tres paneles» (hoy son cuatro: P / E / V / IA), recuentos de pruebas, de plantillas, de
+   paquetes, de modelos, versiones («v0.9.0»), rutas de menú y atajos. Contrástalas con el código y con
+   `package.json`/`CHANGELOG.md`, no con la memoria.
+4. **Claridad.** Cada tema de la ayuda y de la guía responde a *qué es*, *dónde está* (ruta de menú o
+   botón), *cómo se usa* (pasos o un ejemplo) y *qué límites tiene*. Un tema que solo se menciona de
+   pasada se amplía; un párrafo largo que mezcla varias cosas se divide en secciones con título propio.
+   Las novedades de la versión van a la sección del tema que corresponde, no a una lista aparte por
+   versión.
+5. Deja constancia en `dbv-specs-ops/walkthrough.md` de qué ficheros se revisaron y qué se cambió o se
+   descartó, y en `task.md` de lo que quedó pendiente (por ejemplo, capturas de pantalla nuevas).
+
 $ARGUMENTS

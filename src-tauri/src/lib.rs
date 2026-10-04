@@ -106,6 +106,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             mcp::mcp_server_spec,
+            mcp::mcp_launch_info,
             mcp_bridge::mcp_bridge_configure,
             mcp_bridge::mcp_state_reply,
             archive::export_project_archive,

@@ -492,6 +492,33 @@ pub fn server_spec(exe: &Path, root: &str) -> Value {
     json!({ "name": "dbv", "command": command, "args": ["--mcp", "--project", root], "env": [] })
 }
 
+/// Cómo se invoca este ejecutable desde FUERA de la aplicación (la configuración que se copia a Claude Code, Claude
+/// Desktop, Cursor…). En la Store, el alias del manifiesto; en un AppImage, el propio fichero (`$APPIMAGE`: la ruta del
+/// ejecutable montado cambia en cada arranque); en el resto, la ruta del ejecutable.
+#[derive(Debug, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LaunchInfo {
+    pub command: String,
+    /// El comando es el alias de ejecución de la Store, no una ruta.
+    pub store: bool,
+    /// El comando es el AppImage.
+    pub appimage: bool,
+}
+
+pub fn launch_info(exe: &Path, appimage: Option<&str>) -> LaunchInfo {
+    if let Some(image) = appimage.filter(|path| !path.is_empty()) {
+        return LaunchInfo { command: image.to_string(), store: false, appimage: true };
+    }
+    let packaged = exe.to_string_lossy().to_lowercase().contains(r"\windowsapps\");
+    LaunchInfo { command: if packaged { "dbv-typst-editor.exe".to_string() } else { exe.to_string_lossy().into_owned() }, store: packaged, appimage: false }
+}
+
+#[tauri::command]
+pub fn mcp_launch_info() -> Result<LaunchInfo, String> {
+    let exe = std::env::current_exe().map_err(|error| error.to_string())?;
+    Ok(launch_info(&exe, std::env::var("APPIMAGE").ok().as_deref()))
+}
+
 /// El servidor de DBV para el agente del panel de IA: así ve el renderizado, compila con el compilador exacto y
 /// consulta Universe y la documentación (RF-113). Es el mismo ejecutable, en modo `--mcp`.
 #[tauri::command]
@@ -723,6 +750,17 @@ mod tests {
         let mut found: Vec<&str> = names.iter().map(String::as_str).collect();
         found.sort_unstable();
         assert_eq!(found, expected);
+    }
+
+    #[test]
+    fn la_configuracion_para_agentes_externos_usa_alias_appimage_o_ruta() {
+        assert_eq!(launch_info(Path::new("D:/apps/dbv-typst-editor.exe"), None), LaunchInfo { command: "D:/apps/dbv-typst-editor.exe".into(), store: false, appimage: false });
+        let store = launch_info(Path::new(r"C:\Program Files\WindowsApps\DBV_0.14.0.0_x64__abc\dbv-typst-editor.exe"), None);
+        assert_eq!((store.command.as_str(), store.store), ("dbv-typst-editor.exe", true));
+        // El ejecutable de dentro del AppImage cambia en cada arranque: se ofrece el propio AppImage.
+        let image = launch_info(Path::new("/tmp/.mount_abc/usr/bin/dbv-typst-editor"), Some("/home/u/DBV.AppImage"));
+        assert_eq!((image.command.as_str(), image.appimage), ("/home/u/DBV.AppImage", true));
+        assert!(!launch_info(Path::new("/usr/bin/dbv-typst-editor"), Some("")).appimage);
     }
 
     #[test]

@@ -394,6 +394,8 @@ export const aiSetPreferences = ({ active, showAi } = {}) =>
 export const mcpBridgeConfigure = (root, shareState = false) => call('mcp_bridge_configure', { root: root ?? null, shareState: Boolean(shareState) });
 /** Cómo lanza un agente ACP el servidor MCP de DBV (formato `mcpServers` de `session/new`). */
 export const mcpServerSpec = (root) => call('mcp_server_spec', { root });
+/** Cómo se invoca DBV desde fuera para su servidor MCP: `{command, store, appimage}`. */
+export const mcpLaunchInfo = () => call('mcp_launch_info');
 export const mcpStateReply = (id, snapshot) => call('mcp_state_reply', { id, snapshot });
 export const aiProviders = () => call('ai_providers');
 export const aiDetect = () => call('ai_detect');

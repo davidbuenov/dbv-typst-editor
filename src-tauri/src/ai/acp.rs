@@ -117,8 +117,25 @@ struct Running {
 
 impl Drop for Running {
     fn drop(&mut self) {
-        let _ = self.child.kill();
+        kill_tree(&mut self.child);
     }
+}
+
+/// Mata al agente Y a todo lo que lanzó (`npx` → `node` → el servidor MCP de DBV…). `Child::kill` solo alcanza al hijo
+/// directo: los nietos quedaban vivos y uno bloqueaba el ejecutable de debug al volver a compilar.
+fn kill_tree(child: &mut Child) {
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        let _ = Command::new("taskkill").args(["/PID", &child.id().to_string(), "/T", "/F"]).creation_flags(CREATE_NO_WINDOW).output();
+    }
+    #[cfg(unix)]
+    {
+        // El agente se lanzó como líder de su propio grupo (`process_group(0)`): `-PID` es todo el grupo.
+        let _ = Command::new("kill").args(["-TERM", &format!("-{}", child.id())]).output();
+    }
+    let _ = child.kill();
 }
 
 /// Estado del agente por ACP gestionado por Tauri (uno a la vez).
@@ -183,12 +200,14 @@ pub type Sink = Arc<dyn Fn(&str, Value) + Send + Sync>;
 
 /// Lanza `program args` en `cwd` y empieza a leer su salida.
 fn spawn_agent(program: &Path, args: &[String], cwd: &str, sink: Sink) -> Result<Running, AiError> {
-    let mut child = Command::new(program)
-        .args(args)
-        .current_dir(cwd)
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
+    let mut command = Command::new(program);
+    command.args(args).current_dir(cwd).stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped());
+    #[cfg(unix)]
+    {
+        use std::os::unix::process::CommandExt;
+        command.process_group(0);
+    }
+    let mut child = command
         .spawn()
         .map_err(|error| AiError::Config(format!("no se pudo lanzar el agente ({}): {error}", program.display())))?;
     let stdin = Arc::new(Mutex::new(child.stdin.take().ok_or_else(|| AiError::Server("sin entrada estándar".into()))?));

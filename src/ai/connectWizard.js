@@ -88,6 +88,7 @@ export function createConnectWizard({ host, backend, onChanged, onAgent, notify 
     showBox.checked = file.showAi !== false;
     showBox.addEventListener('change', async () => {
       const saved = await backend.aiSetPreferences({ showAi: showBox.checked });
+      document.dispatchEvent(new CustomEvent('dbv-ai-show-changed', { detail: { show: showBox.checked } }));
       if (saved.ok) {
         file = saved.value;
         onChanged(file);

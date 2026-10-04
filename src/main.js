@@ -79,6 +79,7 @@ import {
   importProjectArchive,
   on,
   mcpBridgeConfigure,
+  mcpLaunchInfo,
   mcpStateReply,
   openUniversePackagePage,
   previewUniverseTemplate,
@@ -117,6 +118,7 @@ import { getLastDocumentDir, rememberDocumentPath } from './app/lastDocumentDir.
 import { createNewDocumentFlow, isNewDocumentShortcut } from './app/newDocument.js';
 import { getPref, onPrefsChanged, setPref, togglePref } from './app/prefs.js';
 import { initMcpBridge } from './mcp/mcpBridge.js';
+import { createMcpDialog } from './mcp/mcpDialog.js';
 import { getCurrentWebview } from '@tauri-apps/api/webview';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 
@@ -1903,6 +1905,26 @@ async function bootstrap() {
       })) === 'allow',
     installPackage: (id) => backendModule.aiUniverseInstall(id),
   });
+  // Herramientas › «Servidor MCP…» (RF-113.6): la configuración lista para copiar de cada agente externo.
+  const mcpPanel = registerPanel(el('mcp-panel'), { toggle: false });
+  el('btn-mcp-close').addEventListener('click', mcpPanel.close);
+  const mcpDialog = createMcpDialog({
+    body: el('mcp-body'),
+    backend: { mcpLaunchInfo },
+    getProject: () => workspace.state.project?.root ?? null,
+    copy: (text) => navigator.clipboard.writeText(text),
+    notify: toast.show,
+    isShared: () => getPref('mcpShareState'),
+    setShared: (value) => setPref('mcpShareState', value),
+  });
+  el('btn-mcp-server').addEventListener('click', () => {
+    mcpPanel.open();
+    mcpDialog.open();
+  });
+  // Con «Mostrar las funciones de IA» desactivado no se ofrece (RF-113.6): se sigue el ajuste de las conexiones.
+  const showMcpMenu = (visible) => el('btn-mcp-server').classList.toggle('hidden', !visible);
+  aiBackend.aiConnections().then((loaded) => showMcpMenu(!loaded.ok || loaded.value.showAi !== false));
+  document.addEventListener('dbv-ai-show-changed', (event) => showMcpMenu(event.detail.show));
   mcpBridge.configure();
   onPrefsChanged(({ key }) => {
     if (key === 'mcpShareState') mcpBridge.configure();

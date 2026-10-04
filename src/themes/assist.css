@@ -374,6 +374,16 @@
 .ai-template__row:hover { background: var(--bg-tertiary); }
 .ai-template__text { display: grid; gap: 2px; font-size: 12px; }
 .ai-template__desc { color: var(--text-secondary); }
+
+/* RF-113.6: «Servidor MCP…» */
+.mcp { display: grid; gap: 8px; }
+.mcp__list { margin: 0; padding-left: 18px; font-size: 12px; color: var(--text-secondary); display: grid; gap: 2px; }
+.mcp__note, .mcp__hint { margin: 0; font-size: 12px; color: var(--text-muted); }
+.mcp__heading { margin: 8px 0 0; font-size: 13px; color: var(--text-primary); }
+.mcp__agent { margin: 0; font-size: 12px; color: var(--text-primary); }
+.mcp__block { display: grid; gap: 4px; justify-items: start; }
+.mcp__code { margin: 0; width: 100%; box-sizing: border-box; padding: 6px 8px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--code-bg); font-size: 11px; white-space: pre-wrap; word-break: break-all; user-select: all; }
+.mcp__share { display: flex; gap: 8px; align-items: flex-start; font-size: 12px; color: var(--text-secondary); }
 .ai-template__actions { display: flex; gap: 6px; flex-wrap: wrap; }
 .ai-review__notes { display: grid; gap: 4px; }
 .ai-review__status--warn { color: var(--status-warning, var(--text-secondary)); }

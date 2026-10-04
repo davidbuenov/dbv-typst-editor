@@ -404,6 +404,16 @@ export const aiUniverseSearch = (query, kind = 'any', limit = 8) => call('ai_uni
 export const aiUniverseRefresh = () => call('ai_universe_refresh');
 /** Comprueba identificadores `@preview/nombre:versión` contra el catálogo descargado. */
 export const aiUniverseCheck = (ids) => call('ai_universe_check', { ids });
+/** Qué se ofrecería de una familia de Google Fonts (licencia, ficheros, tamaño); no descarga nada. */
+export const aiFontOffer = (family) => call('ai_font_offer', { family });
+/** ¿Existe `fonts/` en el proyecto, y crearla taparía `TYPST_FONT_PATHS`? */
+export const aiFontStatus = (root) => call('ai_font_status', { root });
+/** Instala una familia en `fonts/` del proyecto. SOLO tras el clic del usuario (RNF-IA.9.4). */
+export const aiFontInstall = (root, family, createAnyway = false) => call('ai_font_install', { root, family, createAnyway });
+/** Deshacer: quita de `fonts/` los ficheros que instaló la acción. */
+export const aiFontRemove = (root, files, removeFolder) => call('ai_font_remove', { root, files, removeFolder });
+/** Familias de fuente que el compilador conoce en el proyecto. */
+export const aiListFonts = (root, query = '') => call('ai_list_fonts', { root, query });
 /** Renderiza páginas a PNG para que la IA las vea (con lo sin guardar y, si se manda, una propuesta). */
 export const aiRenderPages = (request) => call('ai_render_pages', { request });
 /** Referencias del proyecto (`.bib` y `.yml` de Hayagriva) para la IA, filtradas por `query`. */

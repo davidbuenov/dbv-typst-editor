@@ -15,6 +15,7 @@ pub mod check;
 pub mod commands;
 pub mod connections;
 pub mod detect;
+pub mod fonts;
 pub mod providers;
 pub mod render;
 pub mod secrets;

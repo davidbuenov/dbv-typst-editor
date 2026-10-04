@@ -323,7 +323,7 @@ fn folder_signature(path: &Path) -> u64 {
     hasher.finish()
 }
 
-fn font_store(root: &Path) -> Arc<FontStore> {
+pub(crate) fn font_store(root: &Path) -> Arc<FontStore> {
     let paths = project_font_paths(root);
     let key = FontKey {
         contents: paths.iter().fold(0u64, |acc, path| acc.rotate_left(7) ^ folder_signature(path)),

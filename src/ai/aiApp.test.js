@@ -70,6 +70,11 @@ function setup({ connections, script = [], agent = null, modelInfo = null } = {}
     aiUniverseCheck: vi.fn(async () => ok([])),
     aiBibliography: vi.fn(async () => ok({ references: [], total: 0, files: [] })),
     aiCitationStyles: vi.fn(async () => ok([{ name: 'ieee', details: 'IEEE' }, { name: 'apa', details: 'APA 7' }])),
+    aiListFonts: vi.fn(async () => ok([{ name: 'Libertinus Serif', project: false }])),
+    aiFontOffer: vi.fn(async (family) => ok({ family, slug: family.toLowerCase(), license: 'OFL', files: [{ name: `${family}[wght].ttf`, size: 876576 }], totalBytes: 876576, page: `https://github.com/google/fonts/tree/main/ofl/${family.toLowerCase()}` })),
+    aiFontStatus: vi.fn(async () => ok({ exists: false, shadowsEnvPaths: false })),
+    aiFontInstall: vi.fn(async (root, family) => ok({ installed: [`${family}[wght].ttf`], skipped: [], createdFolder: true })),
+    aiFontRemove: vi.fn(async () => ok(1)),
     aiRenderPages: vi.fn(async (request) => ok({ pages: request.pages.map((page) => ({ page, width: 827, height: 1169, mime: 'image/png', base64: `PNG${page}` })), totalPages: 4 })),
     aiUniversePackageDocs: vi.fn(async (id) => ok(`# ${id} — README`)),
     docsSearch: vi.fn(async () => ok([])),
@@ -909,5 +914,111 @@ describe('la IA ve las páginas (RF-114)', () => {
     const tool = backend.aiChat.mock.calls.at(-1)[2].messages.filter((m) => m.role === 'tool').map((m) => m.content)[0];
     expect(tool).toMatch(/^error: /);
     expect(tool).toContain('unknown variable: x');
+  });
+});
+
+describe('fuentes en el proyecto (RF-111)', () => {
+  const addFont = (family) => ({ toolCalls: [{ id: 'f1', name: 'add_font', arguments: JSON.stringify({ family }) }] });
+  const byText = (root, text) => [...root.querySelectorAll('button')].find((b) => b.textContent.includes(text));
+  const toolNames = (backend) => backend.aiChat.mock.calls[0][2].tools.map((t) => t.name);
+
+  async function offered(options = {}) {
+    const context = setup({ connections: [claudeApi], script: [addFont('Inter'), { text: 'Propuesta lista.' }], ...options });
+    await context.app.onProjectOpened({ root: 'D:/p' });
+    await context.app.ask('usa la fuente Inter');
+    const card = document.querySelector('.ai-review');
+    return { ...context, card, box: card.querySelector('.ai-review__packages[aria-label="Fuentes que se añadirán al proyecto"]') };
+  }
+
+  it('solo con una IA en la nube y en un proyecto: una local no las ve, ni un documento suelto', async () => {
+    const cloud = setup({ connections: [claudeApi], script: [{ text: 'Hola' }] });
+    await cloud.app.onProjectOpened({ root: 'D:/p' });
+    await cloud.app.ask('hola');
+    expect(toolNames(cloud.backend)).toEqual(expect.arrayContaining(['list_fonts', 'add_font']));
+    expect(cloud.backend.aiChat.mock.calls[0][2].messages[0].content).toContain('call `add_font`');
+
+    const local = setup({ connections: [ollama], script: [{ text: 'Hola' }] });
+    await local.app.onProjectOpened({ root: 'D:/p' });
+    await local.app.ask('hola');
+    expect(toolNames(local.backend)).not.toContain('add_font');
+    expect(toolNames(local.backend)).not.toContain('list_fonts');
+    expect(local.backend.aiChat.mock.calls[0][2].messages[0].content).not.toContain('add_font');
+
+    const loose = setup({ connections: [claudeApi], script: [{ text: 'Hola' }] });
+    await loose.app.onProjectOpened({ root: 'D:/p', name: 'main.typ', entrypoint: 'main.typ', isSingleFile: true });
+    await loose.app.ask('hola');
+    expect(toolNames(loose.backend)).not.toContain('add_font');
+  });
+
+  it('el modelo ofrece una fuente: se enseña con licencia, tamaño y ficheros y NO se instala sola', async () => {
+    const { backend, box } = await offered();
+    await vi.waitFor(() => expect(box.textContent).toContain('Inter'));
+    expect(box.classList.contains('hidden')).toBe(false);
+    expect(box.textContent).toContain('OFL');
+    expect(box.textContent).toContain('1 fichero(s)');
+    expect(box.textContent).toContain('856 KB');
+    expect(box.textContent).toContain('Inter[wght].ttf');
+    expect(box.textContent).toContain('Irán a git');
+    expect(backend.aiFontOffer).toHaveBeenCalledWith('Inter');
+    expect(backend.aiFontInstall).not.toHaveBeenCalled();
+    expect(backend.aiFontStatus).toHaveBeenCalledWith('D:/p');
+  });
+
+  it('una propuesta que solo ofrece una fuente no enseña «Aplicar»: no hay cambios de texto', async () => {
+    const { card } = await offered();
+    expect(card.querySelector('.ai-review__actions').classList.contains('hidden')).toBe(true);
+    expect(card.querySelector('.ai-review__files').classList.contains('hidden')).toBe(true);
+  });
+
+  it('«Añadir al proyecto» instala SOLO esa familia en el proyecto y se puede deshacer', async () => {
+    const { backend, card, box } = await offered();
+    await vi.waitFor(() => expect(byText(box, 'Añadir al proyecto')).toBeDefined());
+    byText(box, 'Añadir al proyecto').click();
+    await vi.waitFor(() => expect(box.textContent).toContain('Añadida a fonts/ (1 fichero(s))'));
+    expect(backend.aiFontInstall).toHaveBeenCalledTimes(1);
+    expect(backend.aiFontInstall).toHaveBeenCalledWith('D:/p', 'Inter', false);
+
+    byText(card, 'Deshacer').click();
+    await vi.waitFor(() => expect(box.textContent).toContain('Quitada de fonts/'));
+    expect(backend.aiFontRemove).toHaveBeenCalledWith('D:/p', ['Inter[wght].ttf'], true);
+  });
+
+  it('con TYPST_FONT_PATHS avisa y pide confirmar la creación de fonts/ antes de instalar', async () => {
+    const context = setup({ connections: [claudeApi], script: [addFont('Inter'), { text: 'ok' }] });
+    context.backend.aiFontStatus.mockResolvedValue(ok({ exists: false, shadowsEnvPaths: true }));
+    await context.app.onProjectOpened({ root: 'D:/p' });
+    await context.app.ask('usa Inter');
+    const box = document.querySelector('.ai-review__packages[aria-label="Fuentes que se añadirán al proyecto"]');
+    await vi.waitFor(() => expect(box.textContent).toContain('TYPST_FONT_PATHS'));
+    expect(context.backend.aiFontInstall).not.toHaveBeenCalled();
+    byText(box, 'Crear fonts/ y añadir').click();
+    await vi.waitFor(() => expect(context.backend.aiFontInstall).toHaveBeenCalledWith('D:/p', 'Inter', true));
+  });
+
+  it('«No añadir» no descarga nada', async () => {
+    const { backend, box } = await offered();
+    await vi.waitFor(() => expect(byText(box, 'No añadir')).toBeDefined());
+    byText(box, 'No añadir').click();
+    await vi.waitFor(() => expect(box.textContent).toContain('No se añadirá'));
+    expect(backend.aiFontInstall).not.toHaveBeenCalled();
+    expect(byText(box, 'Añadir al proyecto')).toBeUndefined();
+  });
+
+  it('si la instalación falla lo dice y deja reintentar', async () => {
+    const { backend, box } = await offered();
+    backend.aiFontInstall.mockResolvedValueOnce({ ok: false, error: { kind: 'network', message: 'sin conexión' } });
+    await vi.waitFor(() => expect(byText(box, 'Añadir al proyecto')).toBeDefined());
+    byText(box, 'Añadir al proyecto').click();
+    await vi.waitFor(() => expect(box.textContent).toContain('sin conexión'));
+    expect(byText(box, 'Añadir al proyecto')).toBeDefined();
+  });
+
+  it('una familia que no existe vuelve al modelo como error y no aparece ninguna oferta', async () => {
+    const context = setup({ connections: [claudeApi], script: [addFont('Cerrada'), { text: 'Uso otra.' }] });
+    context.backend.aiFontOffer.mockResolvedValue({ ok: false, error: { kind: 'notFound', message: '«Cerrada» no está en Google Fonts con una licencia libre' } });
+    await context.app.onProjectOpened({ root: 'D:/p' });
+    await context.app.ask('usa Cerrada');
+    expect(context.backend.aiChat.mock.calls.at(-1)[2].messages.filter((m) => m.role === 'tool').map((m) => m.content)[0]).toContain('licencia libre');
+    expect(document.querySelector('.ai-review')).toBeNull();
   });
 });

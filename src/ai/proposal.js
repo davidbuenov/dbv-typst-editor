@@ -34,7 +34,8 @@ let nextProposalId = 1;
  */
 
 export function createProposal() {
-  return { id: nextProposalId++, files: new Map(), summary: '', status: 'pending' };
+  // `fonts`: familias que la IA ofrece añadir al proyecto (RF-111): se instalan solo con el clic del usuario.
+  return { id: nextProposalId++, files: new Map(), fonts: [], summary: '', status: 'pending' };
 }
 
 function refresh(file) {

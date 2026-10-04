@@ -72,6 +72,20 @@ export function formatUniverseResult(result, query) {
 /** Estilos que se enseñan sin consulta: los habituales de cada disciplina (`bibliography` de la documentación de Typst). */
 const COMMON_STYLES = ['ieee', 'apa', 'chicago-author-date', 'chicago-notes', 'mla', 'harvard-cite-them-right', 'american-physics-society', 'vancouver', 'american-chemical-society'];
 
+/** Tamaño legible: 1,7 MB, 420 KB. */
+export function formatBytes(bytes) {
+  if (!bytes) return 'size unknown';
+  return bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
+
+/** Lo que `list_fonts` le cuenta al modelo: nombres de familia, con las del proyecto marcadas. */
+export function formatFonts(families, query = '') {
+  if (!families.length) return query ? `no font family matches "${query}". If the document needs it and it is a free Google font, call add_font; otherwise tell the user it is not installed.` : 'no font families found';
+  const shown = families.slice(0, 60).map((f) => (f.project ? `${f.name} (in the project's fonts/)` : f.name));
+  const more = families.length > shown.length ? ` … ${families.length - shown.length} more; pass \`query\` to filter` : '';
+  return `Font families the compiler can use (${families.length}): ${shown.join(', ')}${more}. A font that is not here compiles with a fallback font and a warning "unknown font family".`;
+}
+
 /** «1», «2-3», «1,3» → [1], [2, 3], [1, 3]. Lo que no se entiende se ignora; vacío = la primera. */
 export function parsePageSpec(text) {
   const pages = [];
@@ -160,6 +174,8 @@ export function describeCheck(baseline, checked) {
  * @param {Set<string>} [deps.universeSeen] Identificadores que la búsqueda ya devolvió en esta conversación.
  * @param {(query: string) => Promise<{references: Array, total: number, files: string[]}>} [deps.bibliography] Referencias del proyecto (RF-115); si falta, la herramienta no se ofrece.
  * @param {() => Promise<Array<{name: string, details: string}>>} [deps.citationStyles] Estilos de cita incluidos en Typst (RF-115.2).
+ * @param {(query: string) => Promise<Array<{name: string, project: boolean}>>} [deps.listFonts] Familias de fuente disponibles (RF-111.2); solo con una IA en la nube.
+ * @param {(family: string) => Promise<{family: string, license: string, files: Array<{name: string, size: number|null}>, totalBytes: number}>} [deps.offerFont] Lo que se ofrecería de una familia de Google Fonts; lanza si no existe o su licencia no se admite.
  * @param {(options: {pages: number[], proposal: boolean}) => Promise<{pages: Array, totalPages: number|null}>} [deps.renderPages] Renderiza páginas a PNG (RF-114); si falta (modelo sin imágenes), la herramienta no se ofrece.
  * @param {(id: string) => Promise<string>} [deps.universeDocs] README, manifiesto y plantilla de un paquete (RF-108.3); si falta, la herramienta no se ofrece.
  */
@@ -204,6 +220,36 @@ export function createTools(deps) {
             parameters: object({ query: { type: 'string' } }),
             label: (args) => `Consultando los estilos de cita${args.query ? `: ${args.query}` : ''}`,
             run: async ({ query = '' }) => formatCitationStyles(await deps.citationStyles(), String(query ?? '')),
+          },
+        ]
+      : []),
+  ];
+
+  const fontTools = [
+    ...(deps.listFonts
+      ? [
+          {
+            name: 'list_fonts',
+            description: 'List the font families the compiler can use in this project; optional `query`.',
+            parameters: object({ query: { type: 'string' } }),
+            label: (args) => `Consultando las fuentes${args.query ? `: ${args.query}` : ''}`,
+            run: async ({ query = '' }) => formatFonts(await deps.listFonts(String(query ?? '')), String(query ?? '')),
+          },
+        ]
+      : []),
+    ...(deps.offerFont
+      ? [
+          {
+            name: 'add_font',
+            description: 'Offer to add a free Google font (OFL/Apache/UFL) to the project\'s fonts/ folder, by family name (e.g. "Inter"). The user must approve; nothing is installed by this call.',
+            parameters: object({ family: { type: 'string' } }, ['family']),
+            label: (args) => `Buscando la fuente ${args.family ?? ''}`,
+            run: async ({ family }) => {
+              const offer = await deps.offerFont(String(family ?? '').trim());
+              const proposal = deps.getProposal();
+              if (!proposal.fonts.some((f) => f.family.toLowerCase() === offer.family.toLowerCase())) proposal.fonts.push(offer);
+              return `Font "${offer.family}" (${offer.license}, ${offer.files.length} file(s), ${formatBytes(offer.totalBytes)}) was added to the proposal: the user will be asked to add it to the project's fonts/ folder. Use it in the document with #set text(font: "${offer.family}"). Do not tell the user it is installed: it is only if they approve.`;
+            },
           },
         ]
       : []),
@@ -431,6 +477,7 @@ export function createTools(deps) {
     ...universeTools,
     ...packageDocsTool,
     ...bibliographyTools,
+    ...fontTools,
     ...renderTool,
   ];
 }

@@ -547,6 +547,16 @@ export function createAiApp(deps) {
       },
       apply: () => applier.apply(proposal),
       openFile: (relative) => workspace.openDocument(joinPath(projectRoot, relative)),
+      onFontsChanged: () => deps.refreshPreview(),
+      fonts: {
+        status: async () => {
+          const status = await backend.aiFontStatus(projectRoot);
+          return status.ok ? status.value : { exists: true, shadowsEnvPaths: false };
+        },
+        install: (family, createAnyway) => backend.aiFontInstall(projectRoot, family, createAnyway),
+        remove: (files, removeFolder) => backend.aiFontRemove(projectRoot, files, removeFolder),
+        openPage: (url) => backend.openExternalUrl(url),
+      },
       packages: {
         info: async (ids) => {
           const found = await backend.aiUniverseInfo(ids);
@@ -650,7 +660,9 @@ export function createAiApp(deps) {
       const withBibliography = tools && singleFile === null;
       // Ver las páginas solo si el modelo admite imágenes y hay un documento principal que compilar (RF-114.3).
       const withRender = tools && supportsImages(connection) && Boolean(workspace.getCompileTarget());
-      const system = systemPrompt({ lang: getLanguage(), tools, typstVersion: deps.typstVersion(), universe: tools, bibliography: withBibliography, render: withRender });
+      // Fuentes en el proyecto: solo con una IA en la nube (las locales no necesitan red, RNF-IA.9.3) y no en un documento suelto.
+      const withFonts = tools && isCloud(connection) && connection.provider !== 'agent' && singleFile === null;
+      const system = systemPrompt({ lang: getLanguage(), tools, typstVersion: deps.typstVersion(), universe: tools, bibliography: withBibliography, render: withRender, fonts: withFonts });
       const context = buildContext(contextSource([...mentioned, ...(options.attachments ?? [])], docs, universe), Math.max(400, budget - estimateTokens(system) - estimateTokens(text)));
       renderContextPreview(context.items);
       const historyBudget = Math.max(0, budget - estimateTokens(system) - estimateTokens(context.text) - estimateTokens(text));
@@ -691,6 +703,20 @@ export function createAiApp(deps) {
           return checked.ok ? checked.value : [];
         },
         universeSeen: seenIdentifiers(current.id),
+        ...(withFonts
+          ? {
+              listFonts: async (query) => {
+                const found = await backend.aiListFonts(projectRoot, query);
+                return found.ok ? found.value : [];
+              },
+              // Consulta el origen (METADATA.pb) y devuelve lo que se ofrecería; NO instala nada (RNF-IA.9.4).
+              offerFont: async (family) => {
+                const offer = await backend.aiFontOffer(family);
+                if (!offer.ok) throw new Error(offer.error.message);
+                return offer.value;
+              },
+            }
+          : {}),
         ...(withRender
           ? {
               // Con la propuesta pendiente aplicada en memoria (RF-114.2), sobre lo que el editor tiene sin guardar.
@@ -778,7 +804,7 @@ export function createAiApp(deps) {
       }
       if (result.outcome === 'maxSteps') panel.addNote(t('ai.maxSteps'), 'error');
       if (result.outcome === 'cancelled') panel.addNote(t('ai.stopped'));
-      if (proposal.files.size) showProposal(proposal, check);
+      if (proposal.files.size || proposal.fonts.length) showProposal(proposal, check);
       if (result.usage.input || result.usage.output) {
         projectState.usage = { input: (projectState.usage?.input ?? 0) + result.usage.input, output: (projectState.usage?.output ?? 0) + result.usage.output };
         panel.setUsage(t('ai.usage').replace('{input}', String(projectState.usage.input)).replace('{output}', String(projectState.usage.output)));

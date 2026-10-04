@@ -37,11 +37,14 @@ function button(label, onClick, className = 'button button--compact') {
  * @param {() => Promise<{report: object, undo: () => Promise<boolean>}>} deps.apply
  * @param {() => void} deps.onDone Al aplicar o rechazar (la conversación guarda el resumen).
  * @param {(path: string) => void} deps.openFile
+ * @param {{status: () => Promise<{exists: boolean, shadowsEnvPaths: boolean}>, install: (family: string, createAnyway: boolean) => Promise<{ok: boolean, value?: object, error?: object}>, remove: (files: string[], removeFolder: boolean) => Promise<object>, openPage: (url: string) => void}} [deps.fonts]
+ *   Fuentes que la IA ofrece añadir al proyecto (RF-111): se instalan SOLO con el clic del usuario, y se pueden deshacer.
+ * @param {() => void} [deps.onFontsChanged] Se llama al instalar o quitar una fuente (para recompilar la vista previa).
  * @param {{info: (ids: string[]) => Promise<Array>, install: (id: string) => Promise<{ok: boolean, error?: object}>, openPage: (id: string) => void}} [deps.packages]
  *   Paquetes de Universe que la propuesta importa y no están instalados (RF-109.2): datos, descarga con confirmación y ficha.
  * @returns {HTMLElement}
  */
-export function createReviewCard({ proposal, check, setPreview, apply, onDone, openFile, packages = null }) {
+export function createReviewCard({ proposal, check, setPreview, apply, onDone, openFile, packages = null, fonts = null, onFontsChanged = () => {} }) {
   const card = el('div', 'ai-review');
   card.setAttribute('role', 'group');
   card.setAttribute('aria-label', t('ai.reviewTitle'));
@@ -55,7 +58,10 @@ export function createReviewCard({ proposal, check, setPreview, apply, onDone, o
   const packagesBox = el('div', 'ai-review__packages hidden');
   packagesBox.setAttribute('role', 'group');
   packagesBox.setAttribute('aria-label', t('ai.packagesTitle'));
-  card.append(head, status, packagesBox, list, actions);
+  const fontsBox = el('div', 'ai-review__packages hidden');
+  fontsBox.setAttribute('role', 'group');
+  fontsBox.setAttribute('aria-label', t('ai.fontsTitle'));
+  card.append(head, status, packagesBox, fontsBox, list, actions);
   let previewing = false;
   let checkTimer = null;
   /** Paquetes que el usuario decidió no descargar: se quedan sin comprobar. */
@@ -143,6 +149,68 @@ export function createReviewCard({ proposal, check, setPreview, apply, onDone, o
       status.append(details);
     }
   }
+  /** Estado de cada fuente ofrecida: la familia → `offered`, `installing`, `installed` (con lo instalado), `declined`, `failed`, `removed`. */
+  const fontState = new Map();
+  const formatSize = (bytes) => (bytes ? (bytes >= 1048576 ? `${(bytes / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`) : t('ai.fontsSizeUnknown'));
+
+  /**
+   * «Fuentes que se añadirán al proyecto» (RF-111.3): licencia, tamaño y ficheros a la vista y dos opciones.
+   * Nada se descarga sin el clic; son ficheros de terceros que irán a `fonts/` y, con él, a git (RF-111.7).
+   */
+  async function renderFonts() {
+    fontsBox.replaceChildren();
+    const offers = proposal.fonts ?? [];
+    fontsBox.classList.toggle('hidden', !offers.length || !fonts);
+    if (!offers.length || !fonts) return;
+    const folder = await fonts.status();
+    fontsBox.append(el('strong', '', t('ai.fontsTitle')), el('p', 'ai-review__packages-note', t('ai.fontsNote')));
+    for (const offer of offers) {
+      const state = fontState.get(offer.family) ?? { kind: 'offered' };
+      const row = el('div', 'ai-package');
+      row.append(el('code', 'ai-package__id', offer.family), el('span', 'ai-package__meta', `${offer.license} · ${t('ai.fontsFiles').replace('{n}', String(offer.files.length))} · ${formatSize(offer.totalBytes)}`));
+      row.append(button(t('ai.packagesPage'), () => fonts.openPage(offer.page), 'button button--compact button--ghost'));
+      fontsBox.append(row);
+      const names = offer.files.map((file) => file.name).join(', ');
+      fontsBox.append(el('p', 'ai-review__packages-note', names));
+      if (state.kind === 'offered' || state.kind === 'failed') {
+        if (state.kind === 'failed') fontsBox.append(el('p', 'ai-review__warn', state.message));
+        if (folder.shadowsEnvPaths) fontsBox.append(el('p', 'ai-review__warn', t('ai.fontsEnvPaths')));
+        const buttons = el('div', 'ai-review__packages-actions');
+        const add = button(t(folder.shadowsEnvPaths ? 'ai.fontsAddCreate' : 'ai.fontsAdd'), async () => {
+          add.disabled = true;
+          fontState.set(offer.family, { kind: 'installing' });
+          fontsBox.append(el('p', 'ai-review__packages-note', t('ai.fontsInstalling')));
+          const installed = await fonts.install(offer.family, Boolean(folder.shadowsEnvPaths));
+          if (installed.ok) {
+            fontState.set(offer.family, { kind: 'installed', report: installed.value });
+            onFontsChanged();
+          } else fontState.set(offer.family, { kind: 'failed', message: installed.error?.message ?? '' });
+          renderFonts();
+        }, 'button button--primary button--compact');
+        const decline = button(t('ai.fontsDecline'), () => {
+          fontState.set(offer.family, { kind: 'declined' });
+          renderFonts();
+        }, 'button button--compact');
+        buttons.append(add, decline);
+        fontsBox.append(buttons);
+      } else if (state.kind === 'installed') {
+        const { installed, skipped, createdFolder } = state.report;
+        fontsBox.append(el('p', 'ai-review__done', t('ai.fontsInstalled').replace('{n}', String(installed.length + skipped.length))));
+        if (installed.length) {
+          fontsBox.append(button(t('ai.undo'), async () => {
+            await fonts.remove(installed, createdFolder);
+            fontState.set(offer.family, { kind: 'removed' });
+            onFontsChanged();
+            renderFonts();
+          }, 'button button--compact'));
+        }
+      } else if (state.kind === 'declined' || state.kind === 'removed') {
+        fontsBox.append(el('p', 'ai-review__done', t(state.kind === 'removed' ? 'ai.fontsRemoved' : 'ai.fontsDeclined')));
+      }
+    }
+  }
+  renderFonts();
+
   const recheck = () => {
     clearTimeout(checkTimer);
     checkTimer = setTimeout(() => {
@@ -270,6 +338,12 @@ export function createReviewCard({ proposal, check, setPreview, apply, onDone, o
   }
 
   renderFiles();
-  runCheck();
+  // Una propuesta que solo ofrece fuentes no tiene cambios que aplicar ni comprobar.
+  if (proposal.files.size) runCheck();
+  else {
+    list.classList.add('hidden');
+    actions.classList.add('hidden');
+    status.classList.add('hidden');
+  }
   return card;
 }

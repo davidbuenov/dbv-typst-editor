@@ -11,7 +11,7 @@ import { createProposal, resultText } from './proposal.js';
 import { detectStyleFiles, importedFiles, separationChecks } from './styleFiles.js';
 import { estimateTokens } from './context.js';
 import { TOOL_SPEC_TOKENS } from './modelFit.js';
-import { createTools, describeCheck, describePackageCheck, formatBibliography, formatCitationStyles, formatUniverseResult, MAX_FIX_ATTEMPTS, newErrors, newPackageIds, parsePageSpec } from './tools.js';
+import { createTools, describeCheck, describePackageCheck, formatBibliography, formatCitationStyles, formatUniverseResult, MAX_FIX_ATTEMPTS, newErrors, newPackageIds, parsePageSpec, formatBytes, formatFonts } from './tools.js';
 
 const err = (file, message) => ({ level: 'error', file, line: 1, message });
 
@@ -546,5 +546,57 @@ describe('render_page: la IA ve las páginas (RF-114)', () => {
     const { callModel } = { callModel: vi.fn(async () => ({ text: '', toolCalls: [{ id: 'r1', name: 'render_page', arguments: '{}' }] })) };
     const result = await runAgent({ callModel, tools: Object.values(tools), messages: [], maxSteps: 2 });
     expect(result.messages.find((m) => m.role === 'tool').content).toContain('unknown variable');
+  });
+});
+
+describe('fuentes en el proyecto (RF-111)', () => {
+  const INTER = { family: 'Inter', slug: 'inter', license: 'OFL', files: [{ name: 'Inter[opsz,wght].ttf', size: 876576 }, { name: 'Inter-Italic[opsz,wght].ttf', size: 906596 }], totalBytes: 1783172, page: 'https://github.com/google/fonts/tree/main/ofl/inter' };
+
+  it('solo se ofrecen con las dependencias de fuentes (es decir, con una IA en la nube)', () => {
+    const none = setup().tools;
+    expect(none.list_fonts).toBeUndefined();
+    expect(none.add_font).toBeUndefined();
+    const some = setup({ universe: { listFonts: async () => [], offerFont: async () => INTER } }).tools;
+    expect(some.list_fonts).toBeDefined();
+    expect(some.add_font).toBeDefined();
+  });
+
+  it('formatBytes y formatFonts: tamaños legibles, las del proyecto marcadas y la advertencia del aviso del compilador', () => {
+    expect(formatBytes(1783172)).toBe('1.7 MB');
+    expect(formatBytes(420 * 1024)).toBe('420 KB');
+    expect(formatBytes(0)).toBe('size unknown');
+    const text = formatFonts([{ name: 'Libertinus Serif', project: false }, { name: 'Inter', project: true }]);
+    expect(text).toContain('Libertinus Serif, Inter (in the project\'s fonts/)');
+    expect(text).toContain('unknown font family');
+    expect(formatFonts([], 'zz')).toContain('call add_font');
+    const many = Array.from({ length: 90 }, (_, i) => ({ name: `Fuente ${i}`, project: false }));
+    expect(formatFonts(many)).toContain('30 more; pass `query` to filter');
+  });
+
+  it('list_fonts pasa la consulta y devuelve las familias', async () => {
+    const listFonts = vi.fn(async () => [{ name: 'Inter', project: false }]);
+    const { tools } = setup({ universe: { listFonts } });
+    expect(await tools.list_fonts.run({ query: 'int' })).toContain('Inter');
+    expect(listFonts).toHaveBeenCalledWith('int');
+  });
+
+  it('add_font añade la oferta a la propuesta UNA vez y NO dice que esté instalada', async () => {
+    const offerFont = vi.fn(async () => INTER);
+    const { tools, proposal } = setup({ universe: { offerFont } });
+    const first = await tools.add_font.run({ family: ' Inter ' });
+    expect(offerFont).toHaveBeenCalledWith('Inter');
+    expect(proposal.fonts).toEqual([INTER]);
+    expect(first).toContain('Font "Inter" (OFL, 2 file(s), 1.7 MB)');
+    expect(first).toContain('#set text(font: "Inter")');
+    expect(first).toContain('Do not tell the user it is installed');
+    await tools.add_font.run({ family: 'inter' });
+    expect(proposal.fonts).toHaveLength(1);
+  });
+
+  it('una familia que no existe o con licencia no admitida vuelve al modelo como error y no entra en la propuesta', async () => {
+    const { tools, proposal } = setup({ universe: { offerFont: vi.fn(async () => { throw new Error('«Cerrada» no está en Google Fonts con una licencia libre'); }) } });
+    const result = await runAgent({ callModel: vi.fn(async () => ({ text: '', toolCalls: [{ id: 'f1', name: 'add_font', arguments: '{"family":"Cerrada"}' }] })), tools: Object.values(tools), messages: [], maxSteps: 2 });
+    expect(result.messages.find((m) => m.role === 'tool').content).toContain('licencia libre');
+    expect(proposal.fonts).toEqual([]);
   });
 });

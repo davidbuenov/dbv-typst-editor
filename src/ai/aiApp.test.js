@@ -65,6 +65,7 @@ function setup({ connections, script = [], agent = null, modelInfo = null } = {}
     aiUniverseSearch: vi.fn(async () => ok({ status: 'noCatalog', hits: [], fetchedAt: null, unavailable: [] })),
     aiUniverseRefresh: vi.fn(async () => ok(null)),
     aiUniverseCheck: vi.fn(async () => ok([])),
+    aiUniversePackageDocs: vi.fn(async (id) => ok(`# ${id} — README`)),
     docsSearch: vi.fn(async () => ok([])),
     docsPage: vi.fn(async () => ok({ markdown: '# x' })),
     docsExportDir: vi.fn(async () => ok('C:/datos/typst-docs/0.15.1')),
@@ -681,6 +682,24 @@ describe('Typst Universe para la IA (RF-108, RNF-IA.9)', () => {
     await app.onProjectOpened({ root: 'D:/p' });
     await app.ask('corrige la ortografía del primer párrafo');
     expect(backend.aiUniverseSearch).not.toHaveBeenCalled();
+  });
+
+  it('leer la documentación de un paquete: con una nube puede descargar; con una local, solo lo ya instalado (RNF-IA.9.3)', async () => {
+    const read = { toolCalls: [{ id: 'd1', name: 'read_package_docs', arguments: JSON.stringify({ id: '@preview/cetz:0.5.2' }) }] };
+    const cloud = setup({ connections: [claudeApi], script: [read, { text: 'ok' }] });
+    cloud.backend.aiUniverseCheck.mockResolvedValue(ok([{ id: '@preview/cetz:0.5.2', status: 'ok' }]));
+    await cloud.app.onProjectOpened({ root: 'D:/p' });
+    await cloud.app.ask('usa cetz');
+    expect(cloud.backend.aiUniversePackageDocs).toHaveBeenCalledWith('@preview/cetz:0.5.2', true);
+    expect(toolMessages(cloud.backend)[0]).toContain('README');
+
+    const local = setup({ connections: [ollama], script: [read, { text: 'ok' }] });
+    local.backend.aiUniverseCheck.mockResolvedValue(ok([{ id: '@preview/cetz:0.5.2', status: 'ok' }]));
+    local.backend.aiUniversePackageDocs.mockResolvedValue({ ok: false, error: { kind: 'notFound', message: 'no está instalado y esta conexión no descarga nada' } });
+    await local.app.onProjectOpened({ root: 'D:/p' });
+    await local.app.ask('usa cetz');
+    expect(local.backend.aiUniversePackageDocs).toHaveBeenCalledWith('@preview/cetz:0.5.2', false);
+    expect(toolMessages(local.backend)[0]).toMatch(/^error: .*no descarga nada/);
   });
 
   it('un paquete inventado en una propuesta vuelve al modelo con el aviso y la propuesta sigue siendo revisable', async () => {

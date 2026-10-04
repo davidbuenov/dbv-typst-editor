@@ -404,6 +404,12 @@ export const aiUniverseSearch = (query, kind = 'any', limit = 8) => call('ai_uni
 export const aiUniverseRefresh = () => call('ai_universe_refresh');
 /** Comprueba identificadores `@preview/nombre:versión` contra el catálogo descargado. */
 export const aiUniverseCheck = (ids) => call('ai_universe_check', { ids });
+/** README, manifiesto y plantilla de un paquete. `allowDownload` solo con una conexión en la nube (RNF-IA.9.3). */
+export const aiUniversePackageDocs = (id, allowDownload) => call('ai_universe_package_docs', { id, allowDownload });
+/** ¿Cuáles de estos paquetes ya están en la caché del compilador? → `[[id, instalado]]`. */
+export const aiUniverseInstalled = (ids) => call('ai_universe_installed', { ids });
+/** Instala un paquete en la caché del compilador. SOLO tras la confirmación del usuario (RNF-IA.9.4). */
+export const aiUniverseInstall = (id) => call('ai_universe_install', { id });
 
 // ─── Agentes por ACP (RF-91) ─────────────────────────────────────────────────
 // Transporte: Rust lanza el agente y reenvía sus mensajes como `acp-message`.

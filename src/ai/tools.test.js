@@ -49,7 +49,8 @@ describe('herramientas', () => {
   });
 
   it('TOOL_SPEC_TOKENS cubre lo que ocupan las definiciones de las herramientas (RF-103)', () => {
-    const { deps } = setup();
+    // Todas las que se ofrecen en la aplicación: las del proyecto y las de Typst Universe.
+    const { deps } = setup({ universe: { universeSearch: async () => ({ status: 'ok', hits: [] }), universeDocs: async () => '' } });
     const specs = createTools(deps).map(({ name, description, parameters }) => ({ name, description, parameters }));
     const real = estimateTokens(JSON.stringify(specs));
     // Si las herramientas crecen, hay que subir la constante: el presupuesto de contexto depende de ella.
@@ -265,9 +266,65 @@ describe('search_universe (RF-108.2)', () => {
   });
 
   it('las definiciones de las herramientas, con ésta incluida, caben en el presupuesto de contexto (RF-103)', () => {
-    const { deps } = setup({ universe: { universeSearch: async () => ({ status: 'ok', hits: [] }) } });
+    const { deps } = setup({ universe: { universeSearch: async () => ({ status: 'ok', hits: [] }), universeDocs: async () => '' } });
     const specs = createTools(deps).map(({ name, description, parameters }) => ({ name, description, parameters }));
     expect(estimateTokens(JSON.stringify(specs))).toBeLessThanOrEqual(TOOL_SPEC_TOKENS);
+  });
+});
+
+describe('read_package_docs (RF-108.3, RNF-IA.9)', () => {
+  const OK = { id: '@preview/charged-ieee:0.1.4', status: 'ok' };
+  const docsSetup = ({ universeCheck = async () => [OK], universeDocs = vi.fn(async (id) => `# ${id} — README…`) } = {}) => ({ universeDocs, ...setup({ universe: { universeCheck, universeDocs } }) });
+
+  it('solo se ofrece si hay de dónde leer', () => {
+    expect(setup().tools.read_package_docs).toBeUndefined();
+    expect(docsSetup().tools.read_package_docs).toBeDefined();
+  });
+
+  it('lee la documentación de un paquete que existe en el catálogo', async () => {
+    const { tools, universeDocs } = docsSetup();
+    expect(await tools.read_package_docs.run({ id: ' @preview/charged-ieee:0.1.4 ' })).toContain('README');
+    expect(universeDocs).toHaveBeenCalledWith('@preview/charged-ieee:0.1.4');
+  });
+
+  it('un identificador inventado NO llega a la red: se rechaza con el motivo y sin llamar a la descarga', async () => {
+    const universeCheck = vi.fn(async (ids) => [{ id: ids[0], status: 'unknownPackage' }]);
+    const { tools, universeDocs } = docsSetup({ universeCheck });
+    const result = await tools.read_package_docs.run({ id: '@preview/inventado:1.0.0' });
+    expect(result).toMatch(/^error: .*no such package exists/);
+    expect(universeDocs).not.toHaveBeenCalled();
+  });
+
+  it('una versión que no existe, una ruta rota o algo que no es un identificador tampoco', async () => {
+    for (const status of ['unknownVersion', 'notAnId', 'unavailable']) {
+      const { tools, universeDocs } = docsSetup({ universeCheck: async (ids) => [{ id: ids[0], status, latest: '0.5.2', compiler: '0.16.0' }] });
+      expect(await tools.read_package_docs.run({ id: '@preview/x:1.0.0' }), status).toMatch(/^error:/);
+      expect(universeDocs).not.toHaveBeenCalled();
+    }
+  });
+
+  it('una versión antigua que existe se puede leer (el proyecto puede usarla)', async () => {
+    const { tools, universeDocs } = docsSetup({ universeCheck: async (ids) => [{ id: ids[0], status: 'outdated', latest: '0.5.2' }] });
+    expect(await tools.read_package_docs.run({ id: '@preview/cetz:0.4.2' })).toContain('README');
+    expect(universeDocs).toHaveBeenCalled();
+  });
+
+  it('sin catálogo no se puede verificar, así que no se lee ni se adivina', async () => {
+    const { tools, universeDocs } = docsSetup({ universeCheck: async () => [] });
+    expect(await tools.read_package_docs.run({ id: '@preview/cetz:0.5.2' })).toMatch(/catalog is not available/);
+    expect(universeDocs).not.toHaveBeenCalled();
+  });
+
+  it('como mucho 4 lecturas por petición: un modelo no encadena descargas', async () => {
+    const { tools, universeDocs } = docsSetup();
+    for (let i = 0; i < 4; i += 1) await tools.read_package_docs.run({ id: '@preview/charged-ieee:0.1.4' });
+    expect(await tools.read_package_docs.run({ id: '@preview/charged-ieee:0.1.4' })).toMatch(/at most 4 package documentation reads/);
+    expect(universeDocs).toHaveBeenCalledTimes(4);
+  });
+
+  it('un fallo de la lectura vuelve al modelo como error, no tumba el turno', async () => {
+    const { tools } = docsSetup({ universeDocs: vi.fn(async () => { throw new Error('sin red'); }) });
+    expect(await tools.read_package_docs.run({ id: '@preview/charged-ieee:0.1.4' })).toBe('error: sin red');
   });
 });
 

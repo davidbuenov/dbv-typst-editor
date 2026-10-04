@@ -675,6 +675,12 @@ export function createAiApp(deps) {
           return checked.ok ? checked.value : [];
         },
         universeSeen: seenIdentifiers(current.id),
+        // Con una nube, leer un paquete que no está instalado lo baja a memoria (6–213 KB, nada se instala); con una local, solo lo ya instalado.
+        universeDocs: async (id) => {
+          const docs = await backend.aiUniversePackageDocs(id, isCloud(connection));
+          if (!docs.ok) throw new Error(docs.error.message);
+          return docs.value;
+        },
       });
       const result = await runAgent({
         tools: toolset,

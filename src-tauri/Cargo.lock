@@ -1145,6 +1145,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sys-locale",
+ "tar",
  "tauri",
  "tauri-build",
  "tauri-plugin-dialog",

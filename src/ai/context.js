@@ -50,7 +50,7 @@ function universeRule() {
   return [
     'To use or recommend a Typst package or a document template, call `search_universe` and use ONLY the exact identifiers (`@preview/name:version`) it returns.',
     'NEVER write a package name or a version from memory: versions change and an old one may not work with this compiler.',
-    'When a Universe package already does what the user needs (drawing, tables, a journal format…), prefer it to writing the feature yourself.',
+    'When a Universe package already does what the user needs (drawing, tables, a journal format…), prefer it to writing the feature yourself, and read its usage with `read_package_docs` before you write code that uses it.',
     'A "template" is a package that ships a whole document layout (a journal or a thesis format): to adapt an existing document to it, import it like any package and follow its documentation.',
     'You cannot download anything: if a package is not installed yet, DBV asks the user to approve its download when they review your proposal.',
   ].join(' ');

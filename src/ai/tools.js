@@ -20,6 +20,8 @@ import { applyChange, normalizePath } from './proposal.js';
 
 /** Reintentos de corrección tras una propuesta que no compila (ADR-V0130-002). */
 export const MAX_FIX_ATTEMPTS = 2;
+/** Lecturas de documentación de paquetes por turno (RNF-IA.9: un modelo no encadena descargas). */
+export const MAX_PACKAGE_READS = 4;
 /** Tope de lo que devuelve una lectura (caracteres). */
 const READ_LIMIT = 24000;
 const LIST_LIMIT = 400;
@@ -110,6 +112,7 @@ export function describeCheck(baseline, checked) {
  * @param {(query: string, kind: string) => Promise<object>} [deps.universeSearch] Búsqueda en el catálogo de Typst Universe (RF-108); si falta, la herramienta no se ofrece.
  * @param {(ids: string[]) => Promise<Array<{id: string, status: string, latest: string|null, compiler: string|null}>>} [deps.universeCheck] Comprueba los identificadores de paquete de una propuesta.
  * @param {Set<string>} [deps.universeSeen] Identificadores que la búsqueda ya devolvió en esta conversación.
+ * @param {(id: string) => Promise<string>} [deps.universeDocs] README, manifiesto y plantilla de un paquete (RF-108.3); si falta, la herramienta no se ofrece.
  */
 export function createTools(deps) {
   let fixAttempts = 0;
@@ -131,6 +134,32 @@ export function createTools(deps) {
     if (!isSafeRelativePath(relative)) throw new Error(`path outside the project: ${path}`);
     return relative;
   };
+
+  let packageReads = 0;
+  const packageDocsTool = deps.universeDocs
+    ? [
+        {
+          name: 'read_package_docs',
+          description: 'Read the README, manifest and template example of a Typst Universe package, e.g. "@preview/charged-ieee:0.1.4". Only identifiers from search_universe.',
+          parameters: object({ id: { type: 'string' } }, ['id']),
+          label: (args) => `Leyendo la documentación del paquete ${args.id ?? ''}`,
+          run: async ({ id }) => {
+            const wanted = String(id ?? '').trim();
+            if (packageReads >= MAX_PACKAGE_READS) return `error: at most ${MAX_PACKAGE_READS} package documentation reads per request; answer with what you already have.`;
+            // Un identificador inventado no llega a la red: se comprueba contra el catálogo antes (RNF-IA.9.1).
+            const [verdict] = deps.universeCheck ? await deps.universeCheck([wanted]) : [];
+            if (!verdict) return 'error: the Typst Universe catalog is not available, so this identifier cannot be verified. Tell the user to open the Typst Universe gallery once; do not guess.';
+            if (!['ok', 'outdated', 'needsNewerCompiler'].includes(verdict.status)) return `error: ${describePackageCheck(verdict) ?? `${wanted} is not a valid package identifier`}`;
+            packageReads += 1;
+            try {
+              return await deps.universeDocs(wanted);
+            } catch (error) {
+              return `error: ${error?.message ?? error}`;
+            }
+          },
+        },
+      ]
+    : [];
 
   const universeTools = deps.universeSearch
     ? [
@@ -298,5 +327,6 @@ export function createTools(deps) {
       },
     },
     ...universeTools,
+    ...packageDocsTool,
   ];
 }

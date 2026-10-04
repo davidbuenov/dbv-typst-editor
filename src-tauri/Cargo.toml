@@ -70,6 +70,9 @@ hayagriva = "0.10.1"
 # v0.13.0: documentación de Typst offline (RF-96), empaquetada comprimida. Ya
 # estaba en `Cargo.lock` (dependencia de `zip`): pasa a directa sin descarga.
 flate2 = "1"
+# v0.14.0 (RF-108.3): leer el README y la plantilla de un paquete de Universe sin instalarlo.
+# Ya estaba en `Cargo.lock` (la usa `typst-kit`): pasa a directa sin descarga.
+tar = "0.4"
 
 # v0.9.0 (ADR-MOTOR-001): motor de vista previa EN PROCESO. Typst como librería, con
 # versiones EXACTAS iguales a las del sidecar vendorizado (`scripts/vendor-typst.mjs`):

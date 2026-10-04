@@ -28,6 +28,10 @@ describe('funciones puras', () => {
     expect(inlinePrompt({ explain: true, typstVersion: '0.15.1' })).toContain('explanation');
   });
 
+  it('piden no meter formato dentro del texto que reescriben (RF-105.6)', () => {
+    expect(inlinePrompt({ explain: false, typstVersion: '0.15.1' })).toContain('Do NOT add presentation the user did not ask for');
+  });
+
   it('el mensaje lleva la tarea, el fragmento y el contexto', () => {
     const message = inlineUserMessage({ instruction: 'Traduce', fragment: 'Según @smith, $x^2$', before: 'Antes', after: 'Después', path: 'cap.typ' });
     expect(message).toContain('FRAGMENT:\nSegún @smith, $x^2$');

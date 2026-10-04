@@ -13,6 +13,9 @@
 
 import { RESPONSE_RESERVE } from './context.js';
 
+/** Contexto que se supone cuando ni la conexión ni el proveedor lo dicen (el prudente de ADR-V0130-002). */
+export const DEFAULT_CONTEXT_TOKENS = 8192;
+
 /** Por debajo de esto (en miles de millones de parámetros) un modelo suele fallar al proponer cambios. */
 export const SMALL_MODEL_BILLIONS = 7;
 

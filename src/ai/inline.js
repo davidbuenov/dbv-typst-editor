@@ -49,6 +49,7 @@ export function inlinePrompt({ explain, typstVersion }) {
   return [
     `You edit fragments of a Typst ${typstVersion} document inside DBV Typst Editor. Typst is NOT LaTeX.`,
     'PRESERVE all Typst markup exactly: function calls (#…), math ($…$), labels (<…>), references and citations (@…), headings (=), emphasis (* and _), raw blocks and comments.',
+    'Do NOT add presentation the user did not ask for: no `#set` or `#show` rules, fonts, colors or sizes inside the text (the look of the document belongs in a style file).',
     explain
       ? 'Answer with a short explanation in Markdown, in the language of the user interface.'
       : 'Answer ONLY with the replacement text for the fragment: no explanation, no quotes, no code fences.',

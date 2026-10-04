@@ -146,6 +146,14 @@ export function errorMessage(text, status) {
   return detail ?? (String(text ?? '').trim().slice(0, 500) || `HTTP ${status}`);
 }
 
+/**
+ * Quita la clave de un texto (el mensaje de error de un proveedor puede repetirla, entera o enmascarada) antes
+ * de imprimirlo o guardarlo en un resultado. Sin clave no cambia nada.
+ */
+export function redact(text, secret) {
+  return secret ? String(text).split(secret).join('***') : String(text);
+}
+
 /** Suma el uso de varias respuestas. */
 export function sumUsage(list) {
   return list.reduce((total, usage) => ({ input: total.input + (usage?.input ?? 0), output: total.output + (usage?.output ?? 0) }), { input: 0, output: 0 });

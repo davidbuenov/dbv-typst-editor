@@ -6,7 +6,7 @@
 // =============================================================================
 
 import { describe, expect, it } from 'vitest';
-import { anthropicBody, CLOUD, errorMessage, headersFor, openAiBody, parseAnthropic, parseOpenAi, requestFor, sumUsage } from '../../scripts/evalProviders.mjs';
+import { anthropicBody, CLOUD, errorMessage, headersFor, redact, openAiBody, parseAnthropic, parseOpenAi, requestFor, sumUsage } from '../../scripts/evalProviders.mjs';
 
 const TOOLS = [{ name: 'read_file', description: 'Lee', parameters: { type: 'object', properties: { path: { type: 'string' } } } }];
 const CONVERSATION = [
@@ -136,5 +136,18 @@ describe('la clave de API', () => {
     expect(url).toBe('http://127.0.0.1:8080/v1/chat/completions');
     expect(headersFor('compatible', undefined)).toEqual({ 'Content-Type': 'application/json' });
     expect(CLOUD.compatible.keyOptional).toBe(true);
+  });
+});
+
+describe('la clave en los mensajes de error', () => {
+  it('se quita de lo que se imprime o se guarda, entera y repetida', () => {
+    const text = 'Incorrect API key provided: sk-SUPER-SECRETA. Check sk-SUPER-SECRETA again';
+    expect(redact(text, 'sk-SUPER-SECRETA')).toBe('Incorrect API key provided: ***. Check *** again');
+  });
+
+  it('sin clave (un servidor propio) o sin coincidencia, el texto queda igual', () => {
+    expect(redact('HTTP 400: modelo inexistente', undefined)).toBe('HTTP 400: modelo inexistente');
+    expect(redact('HTTP 400: modelo inexistente', '')).toBe('HTTP 400: modelo inexistente');
+    expect(redact('HTTP 400: modelo inexistente', 'sk-otra')).toBe('HTTP 400: modelo inexistente');
   });
 });

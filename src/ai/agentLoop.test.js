@@ -7,7 +7,7 @@
 
 import { describe, expect, it, vi } from 'vitest';
 import { extractTextToolCalls, parseArguments, proposeNudge, runAgent } from './agentLoop.js';
-import { buildContext, estimateTokens, systemPrompt, windowAround } from './context.js';
+import { buildContext, estimateTokens, separationPrinciple, systemPrompt, windowAround } from './context.js';
 
 /** Modelo simulado con guion: devuelve las respuestas en orden. */
 function scripted(...responses) {
@@ -191,6 +191,13 @@ describe('contexto con presupuesto (RF-94.5)', () => {
     }
     expect(systemPrompt({ lang: 'es' })).toContain('#import "estilos.typ": estilo');
     expect(systemPrompt({ lang: 'en' })).toContain('#import "style.typ": style');
+  });
+
+  it('el principio de separación se puede pedir suelto, en cada idioma (agentes ACP, RF-105.6)', () => {
+    expect(separationPrinciple('es')).toContain('estilos.typ');
+    expect(separationPrinciple('en')).toContain('style.typ');
+    expect(separationPrinciple('xx')).toBe(separationPrinciple('es'));
+    expect(separationPrinciple()).toContain('Keep presentation separate from content');
   });
 
   it('el contexto dice qué ficheros de estilo hay, o que no hay ninguno (RF-105.2-.3)', () => {

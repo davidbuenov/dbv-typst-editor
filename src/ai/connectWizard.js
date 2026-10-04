@@ -13,9 +13,8 @@
 // conexión, el campo queda vacío y «sin cambios» conserva la guardada.
 
 import { getLanguage, t } from '../i18n/i18n.js';
-import { estimateTokens, systemPrompt } from './context.js';
-import { describeAdvice } from './modelAdvice.js';
-import { modelAdvice, reasoningControl } from './modelFit.js';
+import { adviceMessages, createModelInfoLookup } from './modelAdvice.js';
+import { DEFAULT_CONTEXT_TOKENS, reasoningControl } from './modelFit.js';
 
 /** Enlaces de instalación de lo que no se encuentra (RF-90.1). */
 export const INSTALL_LINKS = {
@@ -243,7 +242,7 @@ export function createConnectWizard({ host, backend, onChanged, onAgent, notify 
     const sync = () => {
       const info = providers.find((p) => p.provider === providerSelect.value);
       if (!editing || url.value === '') url.value = editing?.baseUrl ?? info?.baseUrl ?? '';
-      context.placeholder = String(info?.contextTokens ?? 8192);
+      context.placeholder = String(info?.contextTokens ?? DEFAULT_CONTEXT_TOKENS);
       keyRow.classList.toggle('hidden', !(info?.cloud || providerSelect.value === 'openAiCompatible'));
     };
     providerSelect.addEventListener('change', () => {
@@ -273,32 +272,22 @@ export function createConnectWizard({ host, backend, onChanged, onAgent, notify 
 
     // Avisos del modelo (RF-103) y control del razonamiento (RF-101): con Ollama se pregunta
     // a `/api/show`; con el resto no hay datos y solo se avisa del contexto.
-    const infoCache = new Map();
+    const lookupModelInfo = createModelInfoLookup((connection) => backend.aiModelInfo(connection));
     let adviceRun = 0;
     const refreshAdvice = async () => {
       const run = (adviceRun += 1);
       const connection = draft();
-      const cacheKey = `${connection.provider}|${connection.baseUrl}|${connection.model}`;
-      if (connection.provider === 'ollama' && connection.model && !infoCache.has(cacheKey)) {
-        const result = await backend.aiModelInfo(connection);
-        infoCache.set(cacheKey, result.ok ? result.value : null);
-      }
+      const info = connection.provider === 'ollama' && connection.model ? await lookupModelInfo(connection) : null;
       if (run !== adviceRun) return;
-      const info = infoCache.get(cacheKey) ?? null;
       const control = reasoningControl({ provider: connection.provider, info });
       reasoning.disabled = control !== 'available';
       if (reasoning.disabled) reasoning.value = 'false';
       const hints = { available: 'ai.reasoningHint', unsupported: 'ai.reasoningUnsupported', unavailable: 'ai.reasoningUnavailable' };
       reasoningRow.querySelector('.ai-form__hint').textContent = t(hints[control]);
       const providerInfo = providers.find((p) => p.provider === connection.provider);
-      const advised = modelAdvice({
-        info,
-        contextTokens: connection.contextTokens ?? providerInfo?.contextTokens ?? 8192,
-        tools: connection.supportsTools !== false,
-        reasoning: reasoning.value === 'true',
-        systemTokens: estimateTokens(systemPrompt({ lang: getLanguage(), tools: true })),
-      });
-      advice.replaceChildren(...describeAdvice(advised, t).map((text) => el('p', 'ai-advice', text)));
+      // El razonamiento que cuenta es el del interruptor tal como ha quedado, no el del borrador de antes de evaluarlo.
+      const messages = adviceMessages({ info, connection: { ...connection, reasoning: reasoning.value === 'true' }, providerInfo, lang: getLanguage() }, t);
+      advice.replaceChildren(...messages.map((text) => el('p', 'ai-advice', text)));
     };
     for (const control of [model, context, tools, reasoning]) control.addEventListener('change', refreshAdvice);
     providerSelect.addEventListener('change', refreshAdvice);

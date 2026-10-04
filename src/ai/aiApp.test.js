@@ -15,7 +15,7 @@ import { setLanguage } from '../i18n/i18n.js';
 
 const ok = (value) => ({ ok: true, value });
 
-function setup({ connections, script = [], agent = null } = {}) {
+function setup({ connections, script = [], agent = null, modelInfo = null } = {}) {
   document.body.innerHTML = `
     <main class="app-body"><section id="ws"></section><div id="split" class="hidden"></div><aside id="panel" class="hidden"></aside></main>
     <button id="toggle" class="hidden"></button>
@@ -51,7 +51,8 @@ function setup({ connections, script = [], agent = null } = {}) {
       saved.push(JSON.parse(JSON.stringify(value)));
       return ok(null);
     }),
-    aiModelInfo: vi.fn(async () => ok(null)),
+    // Lo que sabe Ollama del modelo. Se pasa a `setup` porque la app lo pregunta al construirse, antes de que un test pueda cambiarlo.
+    aiModelInfo: vi.fn(typeof modelInfo === 'function' ? modelInfo : async () => ok(modelInfo)),
     aiProviders: vi.fn(async () => ok([{ provider: 'ollama', contextTokens: 4096, cloud: false, baseUrl: 'http://localhost:11434/v1' }])),
     aiRelease: vi.fn(async () => ok(null)),
     aiSaveConnection: vi.fn(async (connection) => {
@@ -291,16 +292,14 @@ describe('modelo directo con herramientas (RF-92, RF-93, RF-94)', () => {
   });
 
   it('avisa en el panel de un modelo local pequeño con el contexto corto, y no de uno grande (RF-103.1)', async () => {
-    const small = setup({ connections: [ollama] });
-    small.backend.aiModelInfo.mockResolvedValue(ok({ parameterSize: '3.1B', contextLength: 32768, capabilities: ['completion', 'tools'] }));
+    const small = setup({ connections: [ollama], modelInfo: { parameterSize: '3.1B', contextLength: 32768, capabilities: ['completion', 'tools'] } });
     await small.app.onProjectOpened({ root: 'D:/p' });
     const warnings = () => [...document.querySelectorAll('#panel .ai-advice')].map((node) => node.textContent);
     await vi.waitFor(() => expect(warnings()).toHaveLength(2));
     expect(warnings()[0]).toContain('modelo pequeño (3.1B)');
     expect(warnings()[1]).toMatch(/4[. ]?096 tokens/);
 
-    const big = setup({ connections: [{ ...ollama, contextTokens: 16384 }] });
-    big.backend.aiModelInfo.mockResolvedValue(ok({ parameterSize: '14.8B', contextLength: 40960, capabilities: ['completion', 'tools', 'thinking'] }));
+    const big = setup({ connections: [{ ...ollama, contextTokens: 16384 }], modelInfo: { parameterSize: '14.8B', contextLength: 40960, capabilities: ['completion', 'tools', 'thinking'] } });
     await big.app.onProjectOpened({ root: 'D:/p' });
     await vi.waitFor(() => expect(big.backend.aiModelInfo).toHaveBeenCalled());
     await new Promise((resolve) => setTimeout(resolve, 0));
@@ -462,6 +461,8 @@ describe('agente por ACP (RF-91)', () => {
     expect(agent.acpStart).toHaveBeenCalledWith({ id: 'claude', command: null }, 'D:/p');
     const prompt = agent.acpRequest.mock.calls.find(([method]) => method === 'session/prompt')[1];
     expect(prompt.prompt[0].text).toContain('C:/datos/typst-docs/0.15.1');
+    // El principio de separar presentación y contenido también llega al agente (RF-105.6).
+    expect(prompt.prompt[0].text).toContain('Keep presentation separate from content');
     expect(document.querySelector('.ai-permission .ai-hunk__add').textContent).toContain('Uno, agente.');
     expect(agent.acpRespond).toHaveBeenCalledWith(0, { outcome: { outcome: 'selected', optionId: 'allow' } }, null);
     expect(document.getElementById('panel').textContent).toContain('Hecho.');
@@ -487,5 +488,74 @@ describe('avisos del modo conversación (RF-94.4)', () => {
     const panel = document.getElementById('panel');
     expect(panel.textContent).toContain('#strong[texto]');
     expect(panel.textContent).not.toContain('formato que DBV no entiende');
+  });
+});
+
+describe('documento suelto: falla cerrado y no recorre la carpeta (RF-106.7)', () => {
+  it('si por lo que sea no se sabe el nombre del fichero, la IA no ve ni puede cambiar NADA', async () => {
+    const script = [
+      { toolCalls: [{ id: 't1', name: 'list_files', arguments: '{}' }] },
+      { toolCalls: [{ id: 't2', name: 'read_file', arguments: '{"path":"main.typ"}' }] },
+      { toolCalls: [{ id: 't3', name: 'propose_changes', arguments: JSON.stringify({ changes: [{ path: 'main.typ', action: 'edit', search: 'Uno.', replace: 'x' }] }) }] },
+      { text: 'Listo.', toolCalls: [] },
+    ];
+    const { app, backend } = setup({ connections: [ollama], script });
+    await app.onProjectOpened({ root: 'D:/p', isSingleFile: true });
+    await app.ask('hola');
+    const results = backend.aiChat.mock.calls.at(-1)[2].messages.filter((m) => m.role === 'tool').map((m) => m.content);
+    expect(results[0]).not.toContain('main.typ');
+    expect(results[1]).toMatch(/does not exist/);
+    expect(results[2]).toMatch(/single loose document/);
+    expect(document.querySelector('.ai-review')).toBeNull();
+  });
+
+  it('la búsqueda se pide solo para su fichero, no para toda la carpeta', async () => {
+    const script = [{ toolCalls: [{ id: 't1', name: 'search_project', arguments: '{"query":"Uno"}' }] }, { text: 'Listo.', toolCalls: [] }];
+    const { app, backend } = setup({ connections: [ollama], script });
+    await app.onProjectOpened({ root: 'D:/p', name: 'main.typ', entrypoint: 'main.typ', isSingleFile: true });
+    await app.ask('busca');
+    expect(backend.searchProject).toHaveBeenCalled();
+    expect(backend.searchProject.mock.calls[0][2].include).toBe('main.typ');
+  });
+
+  it('en un proyecto normal la búsqueda sigue siendo de todo el proyecto', async () => {
+    const script = [{ toolCalls: [{ id: 't1', name: 'search_project', arguments: '{"query":"Uno"}' }] }, { text: 'Listo.', toolCalls: [] }];
+    const { app, backend } = setup({ connections: [ollama], script });
+    await app.onProjectOpened({ root: 'D:/p' });
+    await app.ask('busca');
+    expect(backend.searchProject.mock.calls[0][2].include).toBe('');
+  });
+});
+
+describe('avisos del modelo en el panel: no se recuerdan los fallos (RF-103.1)', () => {
+  it('si Ollama estaba apagado, no se recuerda el fallo: al volver a abrir se pregunta de nuevo y avisa', async () => {
+    let encendido = false;
+    const info = { parameterSize: '3.1B', contextLength: 32768, capabilities: ['completion', 'tools'] };
+    const modelInfo = async () => (encendido ? ok(info) : { ok: false, error: { kind: 'network', message: 'sin conexión' } });
+    const { app, backend } = setup({ connections: [ollama], modelInfo });
+    await app.onProjectOpened({ root: 'D:/p' });
+    const warnings = () => [...document.querySelectorAll('#panel .ai-advice')].map((node) => node.textContent);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    // Sin respuesta de Ollama no se sabe el tamaño (el aviso de contexto corto sí sale, no depende de ella).
+    expect(warnings().some((text) => text.includes('modelo pequeño'))).toBe(false);
+
+    encendido = true;
+    await app.onProjectOpened({ root: 'D:/p' });
+    await vi.waitFor(() => expect(warnings().some((text) => text.includes('modelo pequeño (3.1B)'))).toBe(true));
+    const asked = backend.aiModelInfo.mock.calls.length;
+
+    // Ya se supo: no se vuelve a preguntar.
+    await app.onProjectOpened({ root: 'D:/p' });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(backend.aiModelInfo).toHaveBeenCalledTimes(asked);
+  });
+
+  it('una respuesta buena se recuerda: no se vuelve a preguntar', async () => {
+    const { app, backend } = setup({ connections: [ollama], modelInfo: { parameterSize: '14.8B', contextLength: 40960, capabilities: ['completion'] } });
+    await app.onProjectOpened({ root: 'D:/p' });
+    await app.onProjectOpened({ root: 'D:/p' });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    // Una sola pregunta aunque haya varios refrescos (al construir la app, al abrir el proyecto, al llegar los proveedores).
+    expect(backend.aiModelInfo).toHaveBeenCalledTimes(1);
   });
 });

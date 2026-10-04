@@ -765,6 +765,19 @@ Principio común: **una sola maquinaria de edición en varios ficheros** para re
 | Frontend | `ai/entry.js` (eager, pocas líneas), `ai/aiApp.js` + resto **perezosos** (`import()`), `ai/translations.js` | Las traducciones de la IA viajan con ella (`registerTranslations`). Bucle `agentLoop.js` puro, reutilizado por `scripts/eval-ai.mjs`. Propuestas: `proposal.js` (búsqueda exacta y, si no, por líneas sin sangría con coincidencia única), `diff.js` (`rebase` sobre el texto actual), `applyProposal.js` (sobre `multiFileEdit`). |
 | Maquetación | `assist.css`, `.app-body--ai` | El panel va a la derecha con `.app-body` en fila solo cuando está abierto; las 7 combinaciones de P/E/V no cambian (`verify:layout` 20/20). |
 
+**Lo que añadió v0.13.1 (slices 136 a 144; `SPECIFICATIONS.md` §5o, `ADR-V0130-005` y `-006`):**
+
+| Pieza | Dónde | Qué decide |
+| --- | --- | --- |
+| Razonamiento (RF-100, RF-101) | `ai/providers.rs` (`StreamEvent::Thinking`, `apply_reasoning`), `ai/modelClient.js`, `ai/chatPanel.js` | El razonamiento viaja como un evento aparte (`thinking` de Ollama, `reasoning_content`/`reasoning` de los compatibles) y llega al frontend por un **callback**, NUNCA en la respuesta que consume el bucle: no entra en el historial ni en disco. Se pinta como texto plano en un `<details>` con `aria-live="off"`. El interruptor por conexión (`Connection.reasoning`, desactivado por defecto) fija `think` en Ollama y `chat_template_kwargs.enable_thinking` solo en compatibles genéricos; un 400 que lo menciona se reintenta una vez sin el campo. |
+| Firma de pensamiento (Gemini 3) | `ai/providers.rs` (`ToolCall.thought_signature`), `modelClient.js` | Opaca: se recoge de `extra_content.google.thought_signature`, viaja con la llamada por todo el bucle y se devuelve tal cual en el historial; sin firma no se inventa ni se envía. |
+| Lo que sabe el modelo (RF-103) | `ai_model_info` (Ollama `/api/show`), `ai/modelFit.js` (puro), `ai/modelAdvice.js` | Tamaño, contexto máximo y capacidades; avisos de modelo pequeño (< 7B) y de contexto corto; `createModelInfoLookup` recuerda la petición en vuelo y las respuestas buenas (un fallo no se recuerda). El presupuesto de contexto (`contextBudget`) descuenta las herramientas. |
+| Velocidad (RF-102) | `ai/speed.js` (puro), `aiApp.streamIntoBubble` | `evalMs` del servidor si lo da; si no, del primer al último dato (aproximado). |
+| Documento suelto (RF-106.7) | `aiApp.js` (`singleFile`, `inScope`) | Un `.typ` suelto tiene como raíz su carpeta: la IA solo ve y cambia su fichero (lista, lectura, búsqueda con `include`, propuesta). **Falla cerrado**: sin nombre de fichero no ve nada. Los agentes por ACP siguen trabajando en la carpeta (es su directorio de trabajo): límite declarado. |
+| Estilo (RF-105) | `ai/context.js` (`separationRule`/`separationPrinciple`), `ai/styleFiles.js` (puro) | El principio va en las instrucciones del sistema, en el mensaje inicial de los agentes ACP y en la IA en línea; el contexto lista los ficheros de estilo. `separationChecks` es la métrica del eval. |
+| Nuevo .typ vacío (RF-106) | `create_empty_document` y `directory` en los diálogos (`commands/file_io.rs`), `app/newDocument.js`, `app/lastDocumentDir.js` | `create_new` (nunca pisa contenido); la última carpeta es una preferencia de interfaz en `localStorage`. |
+| Evaluación en la nube (RF-104) | `scripts/eval-ai.mjs`, `scripts/evalProviders.mjs` (puro) | `--provider anthropic\|openai\|gemini\|openrouter\|compatible`; la clave se lee de una variable de entorno, viaja solo en la cabecera y se **redacta** de cualquier mensaje de error que se imprima o guarde. Guardado tras cada tarea, tiempo límite por petición y parada tras tres fallos de conexión seguidos. |
+
 ## 🔑 Decisiones Técnicas Clave (resumen)
 
 ### Seguridad

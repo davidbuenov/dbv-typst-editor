@@ -20,11 +20,11 @@ import { createConnectWizard } from './connectWizard.js';
 import { createInlineAi } from './inline.js';
 import { createAcpSession, insideProject } from './acpSession.js';
 import { createChangesCard, createPermissionCard } from './acpView.js';
-import { buildContext, estimateTokens, systemPrompt } from './context.js';
-import { describeAdvice } from './modelAdvice.js';
+import { buildContext, estimateTokens, separationPrinciple, systemPrompt } from './context.js';
+import { adviceMessages, createModelInfoLookup, effectiveContext } from './modelAdvice.js';
 import { looksLikeEdit } from './proposal.js';
 import { detectStyleFiles, importedFiles } from './styleFiles.js';
-import { contextBudget as contextBudgetFor, modelAdvice } from './modelFit.js';
+import { contextBudget as contextBudgetFor } from './modelFit.js';
 import { computeSpeed, formatSpeed, shouldHintSlow } from './speed.js';
 import { createModelClient } from './modelClient.js';
 import { applyChange, createProposal, normalizePath, overrides, parseChangeBlocks } from './proposal.js';
@@ -94,7 +94,10 @@ export function createAiApp(deps) {
   let file = deps.initialFile;
   let projectState = null;
   let projectRoot = null;
-  /** Documento suelto (`.typ` sin proyecto): su raíz es SU CARPETA, pero la IA solo ve ese fichero (RF-106.7). */
+  /**
+   * Documento suelto (`.typ` sin proyecto): su raíz es SU CARPETA, pero la IA solo ve ese fichero (RF-106.7).
+   * `null` = es un proyecto. Si es suelto pero sin nombre de fichero queda `''`: no coincide con nada (falla cerrado).
+   */
   let singleFile = null;
   let files = [];
   let excluded = new Set();
@@ -220,25 +223,15 @@ export function createAiApp(deps) {
   }
 
   /** Avisos del modelo activo (RF-103.1): con Ollama, tamaño pequeño y contexto corto; con el resto no hay datos del modelo. */
-  const modelInfoCache = new Map();
+  const lookupModelInfo = createModelInfoLookup((connection) => backend.aiModelInfo(connection));
   async function refreshModelWarnings() {
     const connection = activeConnection();
     let warnings = [];
     if (connection?.provider === 'ollama' && connection.model) {
-      const key = `${connection.id}|${connection.baseUrl}|${connection.model}`;
-      if (!modelInfoCache.has(key)) {
-        const result = await backend.aiModelInfo(connection);
-        modelInfoCache.set(key, result.ok ? result.value : null);
-      }
+      const info = await lookupModelInfo(connection);
       if (activeConnection()?.id !== connection.id) return;
-      const advised = modelAdvice({
-        info: modelInfoCache.get(key),
-        contextTokens: connection.contextTokens ?? providerInfo.find((p) => p.provider === connection.provider)?.contextTokens ?? 8192,
-        tools: connection.supportsTools !== false,
-        reasoning: connection.reasoning === true,
-        systemTokens: estimateTokens(systemPrompt({ lang: getLanguage(), tools: true })),
-      });
-      warnings = describeAdvice(advised, t);
+      const providerInfoOf = providerInfo.find((p) => p.provider === connection.provider);
+      warnings = adviceMessages({ info, connection, providerInfo: providerInfoOf, lang: getLanguage() }, t);
     }
     panel.setWarnings(warnings);
   }
@@ -276,10 +269,10 @@ export function createAiApp(deps) {
   }
 
   /** ¿Puede la IA leer o cambiar este fichero? Un documento suelto solo admite el suyo. */
-  const inScope = (relative) => !singleFile || normalizePath(relative) === singleFile;
+  const inScope = (relative) => singleFile === null || normalizePath(relative) === singleFile;
 
   async function listProjectFiles(root) {
-    if (singleFile) return [singleFile];
+    if (singleFile !== null) return singleFile ? [singleFile] : [];
     const found = [];
     const queue = [root];
     while (queue.length && found.length < FILE_LIMIT) {
@@ -300,7 +293,7 @@ export function createAiApp(deps) {
     if (busy) stop();
     if (acp.sessionId) acp.stop();
     projectRoot = project?.root ?? null;
-    singleFile = project?.isSingleFile ? (project.entrypoint ?? null) : null;
+    singleFile = project?.isSingleFile ? (project.entrypoint ?? '') : null;
     refreshVisibility();
     if (!projectRoot) return;
     const loaded = await backend.aiProjectStateLoad(projectRoot);
@@ -357,7 +350,7 @@ export function createAiApp(deps) {
 
   /** Ficheros de estilo del proyecto (RF-105.2); `undefined` en un documento suelto, que no tiene más ficheros. */
   function styleFilesOf() {
-    if (singleFile || !projectRoot) return undefined;
+    if (singleFile !== null || !projectRoot) return undefined;
     const entry = workspace.state.project?.entrypoint;
     const entrypointText = entry ? workspace.getTabContent(joinPath(projectRoot, entry)) : null;
     const texts = {};
@@ -370,7 +363,7 @@ export function createAiApp(deps) {
     return {
       projectName: project?.name ?? '',
       entrypoint: project?.entrypoint ?? null,
-      singleFile: Boolean(singleFile),
+      singleFile: singleFile !== null,
       styleFiles: styleFilesOf(),
       files,
       active: activeSource(),
@@ -380,6 +373,40 @@ export function createAiApp(deps) {
       docs,
       excluded: [...excluded],
     };
+  }
+
+  /**
+   * Una llamada al modelo con su burbuja en el panel: indicador de actividad, razonamiento plegable, texto en
+   * streaming y, al acabar, la velocidad. Si falla, la burbuja se cierra y el error sigue su camino.
+   */
+  async function streamIntoBubble({ connection, request, conversationId, register }) {
+    const bubble = panel.addAssistant();
+    bubble.activity('waiting');
+    let firstAt = 0;
+    let response = null;
+    try {
+      response = await client.call(connection.id, request, {
+        onThinking: (chunk) => {
+          firstAt ||= Date.now();
+          bubble.activity('thinking');
+          bubble.thinking(chunk);
+        },
+        onText: (chunk) => {
+          firstAt ||= Date.now();
+          bubble.endThinking();
+          bubble.activity('writing');
+          bubble.append(chunk);
+        },
+        register,
+      });
+      bubble.finish(response.text);
+    } catch (error) {
+      bubble.finish('');
+      throw error;
+    }
+    // Fuera del `try`: no poder pintar la velocidad no debe convertir una respuesta correcta en un error.
+    reportSpeed(response, firstAt ? Date.now() - firstAt : 0, connection, conversationId);
+    return response;
   }
 
   /** Tokens por segundo de la última respuesta, y una sola sugerencia por conversación si un modelo local va lento (RF-102). */
@@ -396,7 +423,7 @@ export function createAiApp(deps) {
   }
 
   function contextBudget(connection) {
-    const total = connection?.contextTokens ?? providerInfo.find((p) => p.provider === connection?.provider)?.contextTokens ?? 8192;
+    const total = effectiveContext(connection, providerInfo.find((p) => p.provider === connection?.provider));
     return contextBudgetFor({ contextTokens: total, tools: connection?.supportsTools !== false });
   }
 
@@ -591,7 +618,7 @@ export function createAiApp(deps) {
         allowPath: inScope,
         listFiles: async () => files,
         search: async (query, regex) => {
-          const result = await backend.searchProject(projectRoot, query, { caseSensitive: false, wholeWord: false, regex, include: '', exclude: '', includeHidden: false }, { openDocuments: workspace.getOpenTexts() });
+          const result = await backend.searchProject(projectRoot, query, { caseSensitive: false, wholeWord: false, regex, include: singleFile ?? '', exclude: '', includeHidden: false }, { openDocuments: workspace.getOpenTexts() });
           return result.ok ? result.value.files.filter((f) => inScope(f.relative)).flatMap((f) => f.matches.map((m) => ({ relative: f.relative, line: m.start.line + 1, text: m.preview }))) : [];
         },
         diagnostics: async () => deps.getProblems(),
@@ -607,7 +634,6 @@ export function createAiApp(deps) {
         checkProposal: check,
         getProposal: () => proposal,
       });
-      let bubble = null;
       const result = await runAgent({
         tools: toolset,
         messages,
@@ -615,33 +641,7 @@ export function createAiApp(deps) {
         isCancelled: () => cancelled,
         followUp: (reply) => (tools && proposal.files.size === 0 ? proposeNudge(reply) : null),
         onStep: (step) => panel.addStep(step.label),
-        callModel: async (request) => {
-          bubble = panel.addAssistant();
-          bubble.activity('waiting');
-          let firstAt = 0;
-          try {
-            const response = await client.call(connection.id, request, {
-              onThinking: (chunk) => {
-                firstAt ||= Date.now();
-                bubble.activity('thinking');
-                bubble.thinking(chunk);
-              },
-              onText: (chunk) => {
-                firstAt ||= Date.now();
-                bubble.endThinking();
-                bubble.activity('writing');
-                bubble.append(chunk);
-              },
-              register: (fn) => (cancel = fn),
-            });
-            bubble.finish(response.text);
-            reportSpeed(response, firstAt ? Date.now() - firstAt : 0, connection, current.id);
-            return response;
-          } catch (error) {
-            bubble.finish('');
-            throw error;
-          }
-        },
+        callModel: (request) => streamIntoBubble({ connection, request, conversationId: current.id, register: (fn) => (cancel = fn) }),
       });
       return { result, proposal, check };
     };
@@ -814,6 +814,7 @@ export function createAiApp(deps) {
       `You are helping inside DBV Typst Editor with a Typst ${deps.typstVersion()} project (Typst is NOT LaTeX).`,
       docs.ok ? `The official Typst ${deps.typstVersion()} documentation, as Markdown files, is in: ${docs.value} — read it when unsure about a function or its syntax.` : '',
       'The user reviews every edit before it is written, and DBV compiles the project to check it. Keep changes minimal and inside the project folder. Do not run commands unless asked.',
+      separationPrinciple(getLanguage()),
       getLanguage() === 'es' ? 'Responde en español.' : 'Answer in English.',
     ];
     return lines.filter(Boolean).join('\n');

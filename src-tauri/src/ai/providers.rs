@@ -528,7 +528,7 @@ pub fn error_message(body: &str) -> String {
         .ok()
         .and_then(|value| {
             // Gemini responde a veces con una LISTA: `[{"error": {"message": …}}]`.
-            let first = if value.is_array() { value[0].clone() } else { value };
+            let first = if value.is_array() { &value[0] } else { &value };
             first["error"]["message"].as_str().or_else(|| first["error"].as_str()).map(str::to_string)
         })
         .unwrap_or_else(|| body.chars().take(400).collect())

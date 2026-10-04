@@ -45,6 +45,11 @@ function separationRule({ styleFile, styleFunction }) {
   ].join(' ');
 }
 
+/** El principio de separar presentación de contenido, en el idioma que fija los nombres (RF-105.1); también para agentes ACP. */
+export function separationPrinciple(lang = 'es') {
+  return separationRule(PROMPTS[lang] ?? PROMPTS.es);
+}
+
 /**
  * Instrucciones del sistema (RF-94.6). Versionadas aquí, en el repositorio.
  * @param {{lang: 'es'|'en', tools: boolean, typstVersion: string}} options

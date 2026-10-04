@@ -34,7 +34,7 @@ import { proposeNudge, runAgent } from '../src/ai/agentLoop.js';
 import { buildContext, systemPrompt } from '../src/ai/context.js';
 import { applyChange, createProposal, parseChangeBlocks, resultText } from '../src/ai/proposal.js';
 import { separationChecks } from '../src/ai/styleFiles.js';
-import { CLOUD, errorMessage, headersFor, parseResponse, requestFor, sumUsage } from './evalProviders.mjs';
+import { CLOUD, errorMessage, headersFor, parseResponse, redact, requestFor, sumUsage } from './evalProviders.mjs';
 import { createTools, describeCheck } from '../src/ai/tools.js';
 
 const ROOT = new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
@@ -149,7 +149,7 @@ async function callCloud({ messages, tools }) {
       continue;
     }
     const text = await response.text();
-    if (!response.ok) throw Object.assign(new Error(`HTTP ${response.status}: ${errorMessage(text, response.status)}`), { kind: response.status === 400 ? 'badRequest' : 'server' });
+    if (!response.ok) throw Object.assign(new Error(redact(`HTTP ${response.status}: ${errorMessage(text, response.status)}`, API_KEY)), { kind: response.status === 400 ? 'badRequest' : 'server' });
     return parseResponse(PROVIDER, JSON.parse(text));
   }
 }

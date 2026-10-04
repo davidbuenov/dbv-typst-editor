@@ -1484,7 +1484,7 @@ Se mantienen todos los principios de RNF-IA. Esta versión **no añade proveedor
 
 ### RF-102 — Velocidad y tiempo de respuesta en el panel
 1. **Tokens por segundo y tiempo transcurrido**, durante la respuesta y al terminar, junto al consumo de RF-92.8. Los toma de lo que informa el proveedor (Ollama da `eval_count` y `eval_duration`) y, si no, los calcula con los datos del streaming.
-2. **Orientación cuando va lento.** Si la velocidad es muy baja (umbral orientativo: menos de 5 tokens/s, fijado en `/plan`) y la conexión es local, el panel añade una sugerencia no bloqueante: comprobar si el modelo cabe en la GPU (`ollama ps` debe decir «100 % GPU») o probar un modelo más pequeño. Se puede descartar y no se repite en la misma conversación.
+2. **Orientación cuando va lento.** Si la velocidad es muy baja (umbral orientativo: menos de 5 tokens/s, fijado en `/plan`) y la conexión es local, el panel añade una sugerencia no bloqueante: comprobar si el modelo cabe en la GPU (`ollama ps` debe decir «100 % GPU») o probar un modelo más pequeño. Aparece como una nota de la conversación y no se repite en la misma conversación.
 3. **No sustituye al indicador de RF-100.3:** saber los tokens/s no dice si el modelo está vivo; el indicador de actividad sí.
 4. **Criterios de aceptación:** tests del cálculo con y sin datos del proveedor, y de que la sugerencia aparece una sola vez.
 
@@ -1497,7 +1497,7 @@ Se mantienen todos los principios de RNF-IA. Esta versión **no añade proveedor
 
 ### RF-104 — Medir los modelos locales y recomendar solo los que lo merecen
 1. **Evaluación con modelos actuales.** Se ejecuta `npm run eval:ai` contra `qwen3:8b` y `qwen3:14b` (Ollama) y, si el usuario lo aporta, contra Gemma 4 y un modelo en la nube, **con y sin** el razonamiento y con y sin la documentación de RF-96. Los resultados se guardan en `testfiles/ai-evals/results/` con fecha y modelo, como los de la 0.13.0.
-2. **Recomendación con datos.** La guía incluye una tabla con modelo, tamaño en disco, memoria de GPU aproximada, tareas superadas y tiempo, y **solo recomienda los que superan un umbral** fijado en `/plan` a partir de la línea base medida (`qwen2.5:3b`: 2/32; `llama3`: 5/32). Los que no lo superan se indican como «no recomendado para proponer cambios».
+2. **Recomendación con datos.** La guía incluye una tabla con modelo, tamaño en disco, herramientas y tareas superadas (sin y con documentación), con el tiempo y la memoria de GPU en el texto cuando se midieron, y **solo recomienda los que superan un umbral** fijado en `/plan` a partir de la línea base medida (`qwen2.5:3b`: 2/32; `llama3`: 5/32). Los que no lo superan se indican como «no recomendado para proponer cambios».
 3. **El script respeta el interruptor:** `eval:ai` admite fijar el razonamiento del modelo para comparar ambos modos con la misma tarea.
 4. **Criterios de aceptación:** resultados guardados y enlazados desde la guía; la tabla de la guía coincide con los ficheros de resultados.
 

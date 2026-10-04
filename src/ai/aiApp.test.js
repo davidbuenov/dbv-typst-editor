@@ -221,6 +221,20 @@ describe('modelo directo con herramientas (RF-92, RF-93, RF-94)', () => {
     expect(JSON.stringify(saved)).not.toContain('otro pensamiento');
   });
 
+  it('devuelve al modelo la firma de pensamiento de Gemini 3 con su llamada a la herramienta (si no, la API da un 400)', async () => {
+    const script = [
+      { toolCalls: [{ id: 't1', name: 'read_file', arguments: '{"path":"main.typ"}', thoughtSignature: 'FIRMA-OPACA' }, { id: 't2', name: 'list_files', arguments: '{}' }] },
+      { text: 'Listo.', toolCalls: [] },
+    ];
+    const { app, backend } = setup({ connections: [{ ...ollama, id: 'g1', provider: 'gemini', baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai' }], script });
+    await app.onProjectOpened({ root: 'D:/p' });
+    await app.ask('mira');
+    expect(backend.aiChat).toHaveBeenCalledTimes(2);
+    const assistant = backend.aiChat.mock.calls[1][2].messages.find((m) => m.role === 'assistant' && m.toolCalls.length);
+    expect(assistant.toolCalls[0]).toMatchObject({ id: 't1', name: 'read_file', thoughtSignature: 'FIRMA-OPACA' });
+    expect(assistant.toolCalls[1].thoughtSignature).toBeUndefined();
+  });
+
   it('muestra los tokens por segundo y sugiere mirar la GPU una sola vez con un modelo local lento (RF-102)', async () => {
     const slow = { usage: { input: 10, output: 100, evalMs: 50000 } };
     const script = [{ text: 'Uno.', ...slow }, { text: 'Dos.', ...slow }];

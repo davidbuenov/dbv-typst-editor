@@ -74,6 +74,20 @@ describe('respuestas', () => {
   });
 });
 
+describe('firma de pensamiento de Gemini 3', () => {
+  const SIGNATURE = 'FIRMA-OPACA-123';
+
+  it('se lee de la respuesta, se devuelve con la llamada en el historial y no se inventa si no hay', () => {
+    const data = { choices: [{ message: { tool_calls: [{ id: 'c1', function: { name: 'read_file', arguments: '{}' }, extra_content: { google: { thought_signature: SIGNATURE } } }, { id: 'c2', function: { name: 'list_files', arguments: '{}' } }] } }] };
+    const parsed = parseOpenAi(data);
+    expect(parsed.toolCalls[0].thoughtSignature).toBe(SIGNATURE);
+    expect('thoughtSignature' in parsed.toolCalls[1]).toBe(false);
+    const body = openAiBody({ messages: [{ role: 'assistant', content: '', toolCalls: parsed.toolCalls }], tools: [], model: 'gemini-3' });
+    expect(body.messages[0].tool_calls[0].extra_content).toEqual({ google: { thought_signature: SIGNATURE } });
+    expect(body.messages[0].tool_calls[1].extra_content).toBeUndefined();
+  });
+});
+
 describe('motivo de un error HTTP', () => {
   it('lee los tres formatos: objeto, texto y la lista que usa Gemini', () => {
     expect(errorMessage('{"error":{"message":"clave no válida"}}', 401)).toBe('clave no válida');

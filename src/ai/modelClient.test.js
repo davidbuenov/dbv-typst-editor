@@ -48,6 +48,17 @@ describe('razonamiento (RF-100)', () => {
     await expect(client.call('c1', { messages: [], tools: [] })).resolves.toMatchObject({ text: 'Hola' });
   });
 
+  it('la firma de pensamiento de una llamada a herramienta (Gemini 3) llega con la llamada y no se inventa', async () => {
+    const { client } = setup([
+      { type: 'toolCall', id: 'c1', name: 'read_file', arguments: '{}', thoughtSignature: 'FIRMA-OPACA' },
+      { type: 'toolCall', id: 'c2', name: 'list_files', arguments: '{}' },
+      { type: 'done', stopReason: 'toolCalls' },
+    ]);
+    const response = await client.call('c1', { messages: [], tools: [] });
+    expect(response.toolCalls[0]).toEqual({ id: 'c1', name: 'read_file', arguments: '{}', thoughtSignature: 'FIRMA-OPACA' });
+    expect(response.toolCalls[1]).toEqual({ id: 'c2', name: 'list_files', arguments: '{}' });
+  });
+
   it('el uso lleva los milisegundos de generación (RF-102.1) y 0 si el servidor no los da', () => {
     const state = { text: '', toolCalls: [], usage: null };
     reduceEvent(state, { type: 'usage', input: 1, output: 2, evalMs: 900 });

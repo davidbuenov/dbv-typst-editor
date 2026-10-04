@@ -35,7 +35,10 @@ export function reduceEvent(state, payload) {
     // El razonamiento SOLO se muestra (RF-100.4): va por su callback y nunca se
     // acumula en la respuesta, que es lo que consume el bucle y acaba en el historial.
     state.onThinking?.(payload.text);
-  } else if (payload.type === 'toolCall') state.toolCalls.push({ id: payload.id, name: payload.name, arguments: payload.arguments });
+  } else if (payload.type === 'toolCall') {
+    // `thoughtSignature` (Gemini 3) es opaca y hay que devolverla tal cual con la llamada, o la API rechaza el turno siguiente.
+    state.toolCalls.push({ id: payload.id, name: payload.name, arguments: payload.arguments, ...(payload.thoughtSignature ? { thoughtSignature: payload.thoughtSignature } : {}) });
+  }
   else if (payload.type === 'usage') state.usage = { input: payload.input, output: payload.output, evalMs: payload.evalMs ?? 0 };
   else if (payload.type === 'done') state.done = { stopReason: payload.stopReason };
   else if (payload.type === 'error') state.error = payload.error;

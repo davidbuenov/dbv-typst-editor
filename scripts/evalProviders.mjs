@@ -53,7 +53,13 @@ export function openAiBody({ messages, tools, model, temperature = 0.2 }) {
         return {
           role: 'assistant',
           content: message.content || null,
-          tool_calls: message.toolCalls.map((call) => ({ id: call.id, type: 'function', function: { name: call.name, arguments: call.arguments } })),
+          tool_calls: message.toolCalls.map((call) => ({
+            id: call.id,
+            type: 'function',
+            function: { name: call.name, arguments: call.arguments },
+            // Gemini 3 exige recibir de vuelta su firma de pensamiento con la llamada (si no, 400).
+            ...(call.thoughtSignature ? { extra_content: { google: { thought_signature: call.thoughtSignature } } } : {}),
+          })),
         };
       }
       return { role: message.role, content: message.content ?? '' };
@@ -92,7 +98,12 @@ export function parseOpenAi(data) {
   const message = data.choices?.[0]?.message ?? {};
   return {
     text: message.content ?? '',
-    toolCalls: (message.tool_calls ?? []).map((call, index) => ({ id: call.id ?? `call_${index}`, name: call.function.name, arguments: call.function.arguments || '{}' })),
+    toolCalls: (message.tool_calls ?? []).map((call, index) => ({
+      id: call.id ?? `call_${index}`,
+      name: call.function.name,
+      arguments: call.function.arguments || '{}',
+      ...(call.extra_content?.google?.thought_signature ? { thoughtSignature: call.extra_content.google.thought_signature } : {}),
+    })),
     usage: { input: data.usage?.prompt_tokens ?? 0, output: data.usage?.completion_tokens ?? 0 },
   };
 }

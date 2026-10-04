@@ -45,6 +45,10 @@ pub struct ToolCall {
     pub name: String,
     /// JSON de los argumentos, tal cual lo generó el modelo.
     pub arguments: String,
+    /// «Firma de pensamiento» de Gemini 3 (`extra_content.google.thought_signature`): opaca. Hay que
+    /// devolverla tal cual con la llamada o la API rechaza el turno siguiente con un 400.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub thought_signature: Option<String>,
 }
 
 /// Un mensaje de la conversación, normalizado.
@@ -93,7 +97,13 @@ pub enum StreamEvent {
     Text { text: String },
     /// Razonamiento del modelo (RF-100): solo se muestra, nunca vuelve al modelo.
     Thinking { text: String },
-    ToolCall { id: String, name: String, arguments: String },
+    ToolCall {
+        id: String,
+        name: String,
+        arguments: String,
+        #[serde(rename = "thoughtSignature", skip_serializing_if = "Option::is_none")]
+        thought_signature: Option<String>,
+    },
     Usage {
         input: u64,
         output: u64,
@@ -125,11 +135,17 @@ pub fn openai_body(request: &ChatRequest, model: &str) -> Value {
             "assistant" if !message.tool_calls.is_empty() => json!({
                 "role": "assistant",
                 "content": if message.content.is_empty() { Value::Null } else { Value::String(message.content.clone()) },
-                "tool_calls": message.tool_calls.iter().map(|call| json!({
-                    "id": call.id,
-                    "type": "function",
-                    "function": { "name": call.name, "arguments": call.arguments },
-                })).collect::<Vec<_>>(),
+                "tool_calls": message.tool_calls.iter().map(|call| {
+                    let mut entry = json!({
+                        "id": call.id,
+                        "type": "function",
+                        "function": { "name": call.name, "arguments": call.arguments },
+                    });
+                    if let Some(signature) = &call.thought_signature {
+                        entry["extra_content"] = json!({ "google": { "thought_signature": signature } });
+                    }
+                    entry
+                }).collect::<Vec<_>>(),
             }),
             role if !message.images.is_empty() => {
                 let mut parts = vec![json!({ "type": "text", "text": message.content })];
@@ -274,7 +290,8 @@ pub fn ollama_body(request: &ChatRequest, model: &str, context: u32) -> Value {
 /// herramienta llegan troceadas por `index` y se emiten enteras al final.
 #[derive(Default)]
 pub struct OpenAiStream {
-    calls: BTreeMap<u64, (String, String, String)>,
+    /// (id, nombre, argumentos, firma de pensamiento de Gemini 3).
+    calls: BTreeMap<u64, (String, String, String, Option<String>)>,
     stop: Option<String>,
 }
 
@@ -314,6 +331,9 @@ impl OpenAiStream {
             if let Some(arguments) = call["function"]["arguments"].as_str() {
                 entry.2.push_str(arguments);
             }
+            if let Some(signature) = call["extra_content"]["google"]["thought_signature"].as_str() {
+                entry.3 = Some(signature.to_string());
+            }
         }
         if let Some(reason) = choice["finish_reason"].as_str() {
             self.stop = Some(reason.to_string());
@@ -323,9 +343,9 @@ impl OpenAiStream {
     /// Fin del stream: emite las llamadas acumuladas y el motivo de parada.
     pub fn finish(self, emit: &mut dyn FnMut(StreamEvent)) {
         let has_calls = !self.calls.is_empty();
-        for (index, (id, name, arguments)) in self.calls {
+        for (index, (id, name, arguments, thought_signature)) in self.calls {
             let id = if id.is_empty() { format!("call_{index}") } else { id };
-            emit(StreamEvent::ToolCall { id, name, arguments: if arguments.is_empty() { "{}".into() } else { arguments } });
+            emit(StreamEvent::ToolCall { id, name, arguments: if arguments.is_empty() { "{}".into() } else { arguments }, thought_signature });
         }
         let stop = self.stop.unwrap_or_else(|| if has_calls { "tool_calls".into() } else { "stop".into() });
         emit(StreamEvent::Done { stop_reason: normalize_stop(&stop) });
@@ -378,7 +398,7 @@ impl AnthropicStream {
 
     pub fn finish(self, emit: &mut dyn FnMut(StreamEvent)) {
         for (_, (id, name, arguments)) in self.blocks {
-            emit(StreamEvent::ToolCall { id, name, arguments: if arguments.is_empty() { "{}".into() } else { arguments } });
+            emit(StreamEvent::ToolCall { id, name, arguments: if arguments.is_empty() { "{}".into() } else { arguments }, thought_signature: None });
         }
         emit(StreamEvent::Usage { input: self.input, output: self.output, eval_ms: 0 });
         emit(StreamEvent::Done { stop_reason: normalize_stop(&self.stop.unwrap_or_else(|| "end_turn".into())) });
@@ -424,7 +444,7 @@ impl OllamaStream {
     pub fn finish(self, emit: &mut dyn FnMut(StreamEvent)) {
         let has_calls = !self.calls.is_empty();
         for (index, (name, arguments)) in self.calls.into_iter().enumerate() {
-            emit(StreamEvent::ToolCall { id: format!("call_{index}"), name, arguments: if arguments.is_empty() { "{}".into() } else { arguments } });
+            emit(StreamEvent::ToolCall { id: format!("call_{index}"), name, arguments: if arguments.is_empty() { "{}".into() } else { arguments }, thought_signature: None });
         }
         emit(StreamEvent::Usage { input: self.input, output: self.output, eval_ms: self.eval_ms });
         let stop = if has_calls { "tool_calls".to_string() } else { self.stop.unwrap_or_else(|| "stop".into()) };
@@ -728,7 +748,7 @@ mod tests {
                     role: "assistant".into(),
                     content: String::new(),
                     images: vec![],
-                    tool_calls: vec![ToolCall { id: "c1".into(), name: "read_file".into(), arguments: r#"{"path":"main.typ"}"#.into() }],
+                    tool_calls: vec![ToolCall { id: "c1".into(), name: "read_file".into(), arguments: r#"{"path":"main.typ"}"#.into(), thought_signature: None }],
                     tool_call_id: None,
                 },
                 ChatMessage { role: "tool".into(), content: "= Hola".into(), images: vec![], tool_calls: vec![], tool_call_id: Some("c1".into()) },
@@ -811,7 +831,7 @@ data: [DONE]\n\n";
                 StreamEvent::Text { text: "Ho".into() },
                 StreamEvent::Text { text: "la".into() },
                 StreamEvent::Usage { input: 12, output: 5, eval_ms: 0 },
-                StreamEvent::ToolCall { id: "call_1".into(), name: "read_file".into(), arguments: r#"{"path":"a.typ"}"#.into() },
+                StreamEvent::ToolCall { id: "call_1".into(), name: "read_file".into(), arguments: r#"{"path":"a.typ"}"#.into(), thought_signature: None },
                 StreamEvent::Done { stop_reason: "toolCalls".into() },
             ]
         );
@@ -829,7 +849,7 @@ event: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason
             events,
             vec![
                 StreamEvent::Text { text: "Vale".into() },
-                StreamEvent::ToolCall { id: "tu_1".into(), name: "search_docs".into(), arguments: r#"{"query":"table"}"#.into() },
+                StreamEvent::ToolCall { id: "tu_1".into(), name: "search_docs".into(), arguments: r#"{"query":"table"}"#.into(), thought_signature: None },
                 StreamEvent::Usage { input: 30, output: 9, eval_ms: 0 },
                 StreamEvent::Done { stop_reason: "toolCalls".into() },
             ]
@@ -864,7 +884,7 @@ event: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason
             events,
             vec![
                 StreamEvent::Text { text: "Ho".into() },
-                StreamEvent::ToolCall { id: "call_0".into(), name: "read_file".into(), arguments: r#"{"path":"a.typ"}"#.into() },
+                StreamEvent::ToolCall { id: "call_0".into(), name: "read_file".into(), arguments: r#"{"path":"a.typ"}"#.into(), thought_signature: None },
                 StreamEvent::Usage { input: 40, output: 7, eval_ms: 2500 },
                 StreamEvent::Done { stop_reason: "toolCalls".into() },
             ]
@@ -899,8 +919,53 @@ event: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason
     fn los_eventos_viajan_en_camel_case() {
         let raw = serde_json::to_value(StreamEvent::Done { stop_reason: "stop".into() }).unwrap();
         assert_eq!(raw, json!({"type": "done", "stopReason": "stop"}));
-        let call = serde_json::to_value(StreamEvent::ToolCall { id: "1".into(), name: "n".into(), arguments: "{}".into() }).unwrap();
+        let call = serde_json::to_value(StreamEvent::ToolCall { id: "1".into(), name: "n".into(), arguments: "{}".into(), thought_signature: None }).unwrap();
         assert_eq!(call["type"], "toolCall");
+    }
+
+    #[test]
+    fn la_firma_de_pensamiento_de_gemini_3_se_recoge_y_se_devuelve_con_la_llamada() {
+        // Gemini 3 manda la firma en la llamada a la herramienta y exige recibirla de vuelta en el turno siguiente.
+        let sse = concat!(
+            "data: {\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"c1\",\"extra_content\":{\"google\":{\"thought_signature\":\"FIRMA-OPACA\"}},\"function\":{\"name\":\"read_file\",\"arguments\":\"{\\\"path\\\":\\\"a.typ\\\"}\"}}]},\"finish_reason\":\"tool_calls\"}]}\n\n",
+            "data: [DONE]\n\n",
+        );
+        let events = collect(Protocol::OpenAi, sse);
+        let call = events.iter().find_map(|e| match e {
+            StreamEvent::ToolCall { thought_signature, .. } => Some(thought_signature.clone()),
+            _ => None,
+        });
+        assert_eq!(call, Some(Some("FIRMA-OPACA".to_string())));
+        // Viaja al frontend como `thoughtSignature`…
+        let wire = serde_json::to_value(events.iter().find(|e| matches!(e, StreamEvent::ToolCall { .. })).unwrap()).unwrap();
+        assert_eq!(wire["thoughtSignature"], "FIRMA-OPACA");
+        // …y vuelve a la API en el historial, dentro de `extra_content.google`.
+        let mut req = request();
+        req.messages = vec![ChatMessage {
+            role: "assistant".into(),
+            content: String::new(),
+            images: vec![],
+            tool_calls: vec![ToolCall { id: "c1".into(), name: "read_file".into(), arguments: "{}".into(), thought_signature: Some("FIRMA-OPACA".into()) }],
+            tool_call_id: None,
+        }];
+        let body = openai_body(&req, "gemini-3");
+        assert_eq!(body["messages"][0]["tool_calls"][0]["extra_content"]["google"]["thought_signature"], "FIRMA-OPACA");
+    }
+
+    #[test]
+    fn sin_firma_el_historial_no_lleva_extra_content_y_los_demas_proveedores_no_la_ven() {
+        let mut req = request();
+        req.messages = vec![ChatMessage {
+            role: "assistant".into(),
+            content: String::new(),
+            images: vec![],
+            tool_calls: vec![ToolCall { id: "c1".into(), name: "f".into(), arguments: "{}".into(), thought_signature: None }],
+            tool_call_id: None,
+        }];
+        assert!(openai_body(&req, "m")["messages"][0]["tool_calls"][0].get("extra_content").is_none());
+        // Un evento sin firma tampoco la manda al frontend.
+        let call = serde_json::to_value(StreamEvent::ToolCall { id: "1".into(), name: "n".into(), arguments: "{}".into(), thought_signature: None }).unwrap();
+        assert!(call.get("thoughtSignature").is_none());
     }
 
     #[test]

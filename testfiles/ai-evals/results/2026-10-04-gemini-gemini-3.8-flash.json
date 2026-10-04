@@ -1,0 +1,57 @@
+{
+  "summary": {
+    "provider": "gemini",
+    "model": "gemini-3.8-flash",
+    "context": null,
+    "think": null,
+    "tokens": {
+      "input": 710,
+      "output": 18
+    },
+    "tools": true,
+    "date": "2026-10-04T05:03:08.620Z",
+    "complete": true,
+    "tasks": 1,
+    "withoutDocs": {
+      "passed": 0,
+      "total": 1,
+      "compiled": 1,
+      "compileTasks": 1
+    },
+    "withDocs": {
+      "passed": 0,
+      "total": 0,
+      "compiled": 0,
+      "compileTasks": 0
+    }
+  },
+  "results": [
+    {
+      "id": "style-content-only",
+      "category": "style",
+      "withDocs": false,
+      "tools": true,
+      "pass": false,
+      "checks": {
+        "compiles": true,
+        "mustContain": false,
+        "mustNotContain": true,
+        "files": true,
+        "changed": false,
+        "confined": true,
+        "separated": true
+      },
+      "steps": 1,
+      "outcome": "error",
+      "modelError": "HTTP 400: Function call is missing a thought_signature in functionCall parts. This is required for tools to work correctly, and missing thought_signature may lead to degraded model performance. Additional data, function call `default_api:read_file` , position 2. Please refer to https://ai.google.dev/gemini-api/docs/thought-signatures for more details.",
+      "formatErrors": [],
+      "errorsAfter": [],
+      "seconds": 1.6,
+      "tokens": {
+        "input": 710,
+        "output": 18
+      },
+      "answer": ""
+    }
+  ]
+}

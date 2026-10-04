@@ -28,7 +28,7 @@ export function selectionToBody(text) {
  * Añade `{prefix, body, description}` con el nombre `name` (o `name 2`, `name
  * 3`… si ya existe) al texto de un fichero de snippets.
  * @param {string} text
- * @param {{name: string, prefix: string, description: string, body: string | string[]}} entry
+ * @param {{name: string, prefix: string, description: string, body: string | string[], scope?: string}} entry
  * @returns {{ok: true, text: string, name: string} | {ok: false, reason: 'invalid'}}
  */
 export function addSnippetToText(text, entry) {
@@ -38,7 +38,8 @@ export function addSnippetToText(text, entry) {
   if (errors.length > 0 || !data || typeof data !== 'object' || Array.isArray(data)) return { ok: false, reason: 'invalid' };
   let name = entry.name;
   for (let n = 2; Object.prototype.hasOwnProperty.call(data, name); n += 1) name = `${entry.name} ${n}`;
-  const edits = modify(source, [name], { prefix: entry.prefix, body: entry.body, description: entry.description }, {
+  const value = { prefix: entry.prefix, body: entry.body, description: entry.description, ...(entry.scope ? { scope: entry.scope } : {}) };
+  const edits = modify(source, [name], value, {
     formattingOptions: { insertSpaces: true, tabSize: 2, eol: '\n' },
   });
   return { ok: true, text: applyEdits(source, edits), name };

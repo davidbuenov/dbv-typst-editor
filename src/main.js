@@ -59,7 +59,11 @@ import {
   snippetsEnsureGlobal,
   snippetsEnsureProject,
   snippetsGlobalPath,
+  snippetsImportTarget,
+  snippetsPickSublime,
   snippetsProjectFiles,
+  snippetsReadSublime,
+  snippetsWriteImported,
   gitAdd,
   gitClone,
   getAppInfo,
@@ -1448,6 +1452,32 @@ async function bootstrap() {
     }
     const path = await editSnippets(() => snippetsEnsureProject(project.root));
     if (path) await tree.refresh();
+  });
+
+  // RF-112: importar snippets de Sublime Text. El módulo (conversor y diálogo) se carga al pulsar la entrada.
+  const sublimePanel = registerPanel(el('sublime-import-panel'), { toggle: false });
+  el('btn-sublime-import-close').addEventListener('click', sublimePanel.close);
+  let sublimeDialog = null;
+  el('btn-snippets-sublime').addEventListener('click', async () => {
+    const { createSublimeImportDialog } = await import('./snippets/sublimeImportDialog.js');
+    sublimeDialog ??= createSublimeImportDialog({
+      elements: { panel: el('sublime-import-panel'), body: el('sublime-import-body') },
+      backend: { snippetsPickSublime, snippetsReadSublime, snippetsImportTarget, snippetsWriteImported },
+      t,
+      // Con un documento suelto no hay `.vscode/` del proyecto donde compartirlos: solo el destino global.
+      getProjectRoot: () => {
+        const project = workspace.state.project;
+        return project && !project.isSingleFile ? project.root : null;
+      },
+      close: sublimePanel.close,
+      notify: (message, tone) => toast.show(message, tone),
+      onImported: async (path, text) => {
+        await snippetLoader.handleChanged(path, text);
+        await tree.refresh();
+      },
+    });
+    sublimePanel.open();
+    sublimeDialog.open();
   });
 
   // RF-81.7: «Guardar selección como snippet…» (menú contextual del editor).

@@ -127,6 +127,11 @@ export const snippetsGlobalPath = () => call('snippets_global_path');
 export const snippetsEnsureGlobal = () => call('snippets_ensure_global');
 export const snippetsProjectFiles = (root) => call('snippets_project_files', { root });
 export const snippetsEnsureProject = (root) => call('snippets_ensure_project', { root });
+// Importar snippets de Sublime Text (RF-112).
+export const snippetsPickSublime = (folder) => call('snippets_pick_sublime', { folder });
+export const snippetsReadSublime = (paths) => call('snippets_read_sublime', { paths });
+export const snippetsImportTarget = (destination, root) => call('snippets_import_target', { destination, root });
+export const snippetsWriteImported = (destination, root, text, overwrite) => call('snippets_write_imported', { destination, root, text, overwrite });
 
 /** RF-70 con pestañas (R-T3): `openDocuments` son TODAS las pestañas con su contenido del editor. */
 export const refsPlan = (root, moved, openDocuments) => call('refs_plan', { root, moved, openDocuments: openDocuments ?? [] });

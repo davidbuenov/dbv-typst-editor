@@ -373,6 +373,7 @@ export const HELP_SECTIONS = [
             'Formato de VS Code: prefix, body (texto o lista de líneas), description y, si quieres, scope. Puedes pegar snippets copiados de VS Code. Se admiten comentarios.',
             'Variables: $TM_SELECTED_TEXT, $TM_FILENAME, $TM_FILENAME_BASE, $CURRENT_YEAR, $CURRENT_MONTH, $CURRENT_DATE.',
             'Guardar selección como snippet… (botón derecho en el editor): crea uno a partir del texto seleccionado, sin tocar el resto del fichero.',
+            'Herramientas › Importar snippets de Sublime…: convierte tus .sublime-snippet (ficheros sueltos o la carpeta Packages/User) al formato de VS Code y los guarda en el proyecto o en tus snippets globales, con un resumen antes de escribir nada.',
             'Si el fichero tiene un error, se avisa con la línea y se siguen usando los snippets anteriores.',
           ],
           en: [
@@ -381,6 +382,7 @@ export const HELP_SECTIONS = [
             'VS Code format: prefix, body (text or list of lines), description and, optionally, scope. You can paste snippets copied from VS Code. Comments are allowed.',
             'Variables: $TM_SELECTED_TEXT, $TM_FILENAME, $TM_FILENAME_BASE, $CURRENT_YEAR, $CURRENT_MONTH, $CURRENT_DATE.',
             'Save selection as snippet… (right-click in the editor): creates one from the selected text, without touching the rest of the file.',
+            'Tools › Import Sublime snippets…: converts your .sublime-snippet files (loose files or the Packages/User folder) to the VS Code format and saves them in the project or in your global snippets, with a summary before anything is written.',
             'If the file has an error, you are told the line and the previous snippets are still used.',
           ],
         },

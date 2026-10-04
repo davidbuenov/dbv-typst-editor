@@ -694,6 +694,8 @@
   - **Pendiente del usuario:** el alias de ejecución del MSIX (criterio (c) del spike, `dbv-typst-editor.exe --mcp` desde una terminal ajena).
   - **Siguiente:** `/code-simplify` (clippy necesita la app de desarrollo cerrada: el script de `tauri-build` falla con «Acceso denegado» si `dbv-typst-editor.exe` está en marcha) y `/ship` 0.14.0 con push.
 
+- [x] **Fase 70: `/code-simplify` de v0.14.0 — 2026-10-04.** 0 críticos; importantes resueltos y registrados en el changelog: paquete inicial 1 114,75 → **1 086,91 KB** (ayuda cargada al abrirla), 22 cadenas de traducción sin uso, alias de la Store duplicado, 4 avisos de `clippy`. Tests: Rust 622, Vitest **1 524**, `verify:frontend` 12/12, `verify:layout` 20/20. Siguiente: `/ship` 0.14.0 con push.
+
 ## 🔄 Context Snapshot / Snapshot de Contexto
 
 > ### 👉 RETOMAR AQUÍ (2026-10-04, noche): v0.14.0 `/build` y `/test` HECHOS — siguiente: `/code-simplify` y `/ship` (con push)

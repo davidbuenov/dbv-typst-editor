@@ -26,25 +26,37 @@ describe('createHelp', () => {
     document.body.replaceChildren(contentEl, navEl);
   });
 
-  it('pinta una cabecera por sección, con su índice a juego', () => {
-    createHelp({ contentEl, navEl });
+  it('pinta una cabecera por sección, con su índice a juego', async () => {
+    await createHelp({ contentEl, navEl }).ensureRendered();
 
     expect(contentEl.querySelectorAll('.help__heading').length).toBe(HELP_SECTIONS.length);
     expect(navEl.querySelectorAll('.help__nav-item').length).toBe(HELP_SECTIONS.length);
   });
 
-  it('scrollToSection desplaza hasta la cabecera de esa sección', () => {
+  it('no carga ni pinta el contenido hasta que se necesita, y lo carga una sola vez', async () => {
+    const loadSections = vi.fn(async () => HELP_SECTIONS);
+    const help = createHelp({ contentEl, navEl, loadSections });
+    expect(loadSections).not.toHaveBeenCalled();
+    expect(contentEl.children.length).toBe(0);
+    await help.ensureRendered();
+    await help.ensureRendered();
+    expect(loadSections).toHaveBeenCalledTimes(1);
+    expect(contentEl.children.length).toBeGreaterThan(0);
+  });
+
+  it('scrollToSection desplaza hasta la cabecera de esa sección', async () => {
     const help = createHelp({ contentEl, navEl });
+    await help.ensureRendered();
     const heading = document.getElementById('help-section-dot');
     heading.scrollIntoView = vi.fn();
 
-    help.scrollToSection('dot');
+    await help.scrollToSection('dot');
 
     expect(heading.scrollIntoView).toHaveBeenCalled();
   });
 
-  it('la sección «Atajos de teclado» se genera desde el registro, agrupada por ámbito (RF-80)', () => {
-    createHelp({ contentEl, navEl });
+  it('la sección «Atajos de teclado» se genera desde el registro, agrupada por ámbito (RF-80)', async () => {
+    await createHelp({ contentEl, navEl }).ensureRendered();
 
     const heading = document.getElementById('help-section-atajos');
     expect(heading).not.toBeNull();
@@ -56,8 +68,8 @@ describe('createHelp', () => {
     expect(combos).toContain('Alt + ↑');
   });
 
-  it('un enlace de documentación externa abre el navegador del sistema, no el propio WebView', () => {
-    createHelp({ contentEl, navEl });
+  it('un enlace de documentación externa abre el navegador del sistema, no el propio WebView', async () => {
+    await createHelp({ contentEl, navEl }).ensureRendered();
 
     const link = contentEl.querySelector('.help__doc-link');
     expect(link).not.toBeNull();
@@ -70,12 +82,12 @@ describe('createHelp', () => {
     expect(openExternalUrl).toHaveBeenCalledWith(link.getAttribute('href'));
   });
 
-  it('la guía de la IA enlaza a su versión en el idioma de la interfaz', () => {
+  it('la guía de la IA enlaza a su versión en el idioma de la interfaz', async () => {
     const previous = getLanguage();
     try {
       for (const [language, file] of [['es', 'IA.md'], ['en', 'IA.en.md']]) {
         setLanguage(language);
-        createHelp({ contentEl, navEl });
+        await createHelp({ contentEl, navEl }).ensureRendered();
         const hrefs = [...contentEl.querySelectorAll('.help__doc-link')].map((node) => node.getAttribute('href'));
         expect(hrefs.some((href) => href.endsWith(`/docs/${file}`)), `${language}: falta el enlace a ${file}`).toBe(true);
       }

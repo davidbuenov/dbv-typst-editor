@@ -113,7 +113,7 @@ pub fn build_catalog(entries: &[UniverseIndexEntry], compiler: PackageVersion) -
 
     let mut catalog = Catalog { skipped, ..Catalog::default() };
     for (name, mut versions) in by_name {
-        versions.sort_by(|a, b| b.0.cmp(&a.0));
+        versions.sort_by_key(|version| std::cmp::Reverse(version.0.clone()));
         let newest = versions[0].1;
         match versions.iter().find(|(_, entry)| fits(entry, compiler)) {
             Some((_, chosen)) => {

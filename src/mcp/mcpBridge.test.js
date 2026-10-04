@@ -1,3 +1,10 @@
+// =============================================================================
+// DBV Typst Editor — Tests del estado del editor para agentes MCP (RF-117)
+// Copyright (c) 2026 David Bueno Vallejo
+// Licensed under the MIT License. See LICENSE for details.
+// Built with dbv-specs-ops · https://github.com/davidbuenov/dbv-specs-ops
+// =============================================================================
+
 import { describe, expect, it, vi } from 'vitest';
 import { buildEditorState, initMcpBridge } from './mcpBridge.js';
 

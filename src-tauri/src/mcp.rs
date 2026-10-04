@@ -260,7 +260,7 @@ impl McpEnv {
         if project.single_file {
             return Err("a loose document has no project bibliography".into());
         }
-        Ok(serde_json::to_value(collect_ai_bibliography(&project.root, query)).map_err(|error| error.to_string())?)
+        serde_json::to_value(collect_ai_bibliography(&project.root, query)).map_err(|error| error.to_string())
     }
 
     /// Estilos de cita incluidos en Typst, de la documentación vendorizada.
@@ -487,9 +487,7 @@ impl ServerHandler for DbvMcp {
 /// En una instalación de la Store el ejecutable vive en `WindowsApps`, donde otro proceso no puede lanzarlo por su
 /// ruta: se usa el alias de ejecución del manifiesto (ADR-V0140-003).
 pub fn server_spec(exe: &Path, root: &str) -> Value {
-    let packaged = exe.to_string_lossy().to_lowercase().contains(r"\windowsapps\");
-    let command = if packaged { "dbv-typst-editor.exe".to_string() } else { exe.to_string_lossy().into_owned() };
-    json!({ "name": "dbv", "command": command, "args": ["--mcp", "--project", root], "env": [] })
+    json!({ "name": "dbv", "command": launch_info(exe, None).command, "args": ["--mcp", "--project", root], "env": [] })
 }
 
 /// Cómo se invoca este ejecutable desde FUERA de la aplicación (la configuración que se copia a Claude Code, Claude

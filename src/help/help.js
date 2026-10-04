@@ -12,7 +12,6 @@
 
 import { getLanguage } from '../i18n/i18n.js';
 import { openExternalUrl } from '../services/backend.js';
-import { HELP_SECTIONS } from './helpContent.js';
 import { detectMac, shortcutHelpGroups } from '../editor/shortcuts.js';
 
 /** Devuelve la variante del idioma activo, con castellano como respaldo. */
@@ -25,8 +24,14 @@ function pick(bilingual) {
  * @param {object} deps
  * @param {HTMLElement} deps.contentEl Contenedor donde se pinta la ayuda.
  * @param {HTMLElement} deps.navEl Índice de secciones.
+ * @param {() => Promise<object[]>} [deps.loadSections] El contenido; por defecto se importa al abrir la ayuda por primera vez:
+ *   son ~70 KB de texto que casi nadie necesita al arrancar, y no deben engordar el paquete inicial.
  */
-export function createHelp({ contentEl, navEl }) {
+export function createHelp({ contentEl, navEl, loadSections = () => import('./helpContent.js').then((module) => module.HELP_SECTIONS) }) {
+  /** @type {Promise<object[]>|null} */
+  let sections = null;
+  let rendered = false;
+
   function renderShortcuts(rows) {
     const table = document.createElement('dl');
     table.className = 'help__shortcuts';
@@ -103,14 +108,17 @@ export function createHelp({ contentEl, navEl }) {
     return paragraph;
   }
 
-  function render() {
+  async function render() {
+    sections ??= loadSections();
+    const list = await sections;
+    rendered = true;
     contentEl.replaceChildren();
     navEl.replaceChildren();
 
     const content = document.createDocumentFragment();
     const nav = document.createDocumentFragment();
 
-    for (const section of HELP_SECTIONS) {
+    for (const section of list) {
       const heading = document.createElement('h3');
       heading.className = 'help__heading';
       heading.id = `help-section-${section.id}`;
@@ -133,13 +141,21 @@ export function createHelp({ contentEl, navEl }) {
     navEl.append(nav);
   }
 
+  /** Pinta la ayuda la primera vez que se necesita (cargando su contenido) y no antes. */
+  async function ensureRendered() {
+    if (!rendered) await render();
+  }
+
   /** Usado también por los botones "?" de cada asistente (RF-52, `helpTrigger.js`). */
-  function scrollToSection(sectionId) {
+  async function scrollToSection(sectionId) {
+    await ensureRendered();
     document.getElementById(`help-section-${sectionId}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  render();
-  document.addEventListener('dbv-lang-changed', render);
+  // Un cambio de idioma solo repinta si la ayuda ya se había pintado: si no, se pintará ya en el idioma nuevo.
+  document.addEventListener('dbv-lang-changed', () => {
+    if (rendered) render();
+  });
 
-  return { render, scrollToSection };
+  return { render, ensureRendered, scrollToSection };
 }

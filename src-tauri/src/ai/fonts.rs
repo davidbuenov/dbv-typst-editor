@@ -307,7 +307,7 @@ pub fn list_families(root: &Path, query: &str) -> Vec<FontFamily> {
         .map(|(name, _)| FontFamily { name: name.to_string(), project: project.contains(&name.to_lowercase()) })
         .filter(|family| needle.is_empty() || family.name.to_lowercase().contains(&needle))
         .collect();
-    families.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+    families.sort_by_key(|family| family.name.to_lowercase());
     families.dedup_by(|a, b| a.name.eq_ignore_ascii_case(&b.name));
     families
 }

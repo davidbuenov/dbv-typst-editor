@@ -429,6 +429,8 @@ function wireLanguageSwitcher() {
 function wireHelpPanel(docsViewer) {
   const help = createHelp({ contentEl: el('help-content'), navEl: el('help-nav') });
   el('btn-help-docs').addEventListener('click', () => docsViewer.open());
+  // El contenido de la ayuda se importa y se pinta al abrirla, no al arrancar (ver `help/help.js`).
+  el('btn-help').addEventListener('click', () => help.ensureRendered());
   const { open, close } = registerPanel(el('help-panel'), {
     trigger: el('btn-help'),
     toggle: true,

@@ -102,6 +102,11 @@ impl Bridge {
         *self.install_root.lock().unwrap() = root.map(normalize_root);
     }
 
+    /// ¿Ya escucha el canal del sistema? (lo usan los tests para esperar a que esté listo).
+    pub fn is_listening(&self) -> bool {
+        self.listening.load(Ordering::Relaxed)
+    }
+
     pub fn shared_root(&self) -> Option<String> {
         self.shared_root.lock().unwrap().clone()
     }
@@ -386,12 +391,6 @@ pub async fn listen(endpoint: String, bridge: Arc<Bridge>, hooks: Arc<Hooks>) ->
         let (stream, _) = listener.accept().await?;
         let (bridge, hooks) = (bridge.clone(), hooks.clone());
         tokio::spawn(async move { serve_connection(stream, &bridge, &hooks).await });
-    }
-}
-
-impl Bridge {
-    pub fn is_listening(&self) -> bool {
-        self.listening.load(Ordering::Relaxed)
     }
 }
 

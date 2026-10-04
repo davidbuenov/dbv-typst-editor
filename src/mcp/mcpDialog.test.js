@@ -1,3 +1,10 @@
+// =============================================================================
+// DBV Typst Editor — Tests del diálogo «Servidor MCP…» (RF-113.6)
+// Copyright (c) 2026 David Bueno Vallejo
+// Licensed under the MIT License. See LICENSE for details.
+// Built with dbv-specs-ops · https://github.com/davidbuenov/dbv-specs-ops
+// =============================================================================
+
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildConfigs, createMcpDialog, shellQuote } from './mcpDialog.js';
 

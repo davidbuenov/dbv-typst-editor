@@ -455,7 +455,7 @@ mod tests {
     fn el_glosario_lleva_el_espanol_al_ingles_del_indice() {
         assert_eq!(search(&catalog(), "plantilla de tesis", Kind::Template, 8)[0].name, "clean-thesis");
         assert_eq!(search(&catalog(), "una tabla", Kind::Any, 8)[0].name, "tablex");
-        assert_eq!(search(&catalog(), "artículo", Kind::Template, 8).iter().map(|h| h.name.as_str()).collect::<Vec<_>>().len() >= 2, true);
+        assert!(search(&catalog(), "artículo", Kind::Template, 8).len() >= 2);
     }
 
     #[test]

@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Sin publicar] / [Unreleased]
 
+### Added
+
+- **Vídeos demostrativos en la web del proyecto (GitHub Pages).** Se añaden dos demostraciones en vídeo (español e inglés) en un lugar destacado de la página principal (`docs/index.html` y `docs/en/index.html`), con reproducción adaptativa 16:9 y contenedor estilizado de ventana, mostrando la integración de la IA y el flujo de trabajo en tiempo real con DBV Typst Editor. Se añaden además accesos directos desde la navegación superior, los botones de acción del Hero y la sección de IA, así como enlaces destacados en los README.
+
 ---
 
 ## [0.14.0] - 2026-10-04

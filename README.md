@@ -25,6 +25,10 @@
   </a>
 </p>
 
+> 📺 **Vídeos de presentación e IA en acción:**
+> - [🇪🇸 DBV TypstEditor. Probando la integración con la IA (YouTube)](https://www.youtube.com/watch?v=yWIsSKrDb0s)
+> - [🇬🇧 DBV TypstEditor. Example of Integration with AI (YouTube)](https://www.youtube.com/watch?v=XYceZqRL9TI)
+
 ---
 
 ## 📑 Índice

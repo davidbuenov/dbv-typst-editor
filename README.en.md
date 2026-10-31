@@ -25,6 +25,10 @@
   </a>
 </p>
 
+> 📺 **Presentation & AI in action videos:**
+> - [🇬🇧 DBV TypstEditor. Example of Integration with AI (YouTube)](https://www.youtube.com/watch?v=XYceZqRL9TI)
+> - [🇪🇸 DBV TypstEditor. Testing AI Integration (YouTube)](https://www.youtube.com/watch?v=yWIsSKrDb0s)
+
 ---
 
 ## 📑 Table of Contents

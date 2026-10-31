@@ -934,6 +934,30 @@ Los cuatro primeros se ejecutan también en CI (`.github/workflows/ci.yml`) en c
   para migrar es que **Markdown da muy poca libertad con las imágenes**, así que la conversión no debe
   limitarse a preservar sino a mejorar el tratamiento de figuras (tamaño, posición, pies, rejillas).
 
+## 📌 Próximos Slices / Backlog: Sincronización del Subsistema Canónico de IA (desde `dbv-tauri-starter` `template-v0.4.0`)
+
+- [ ] **Sincronización del Subsistema Canónico de Conexión a IA de Escritorio (`dbv-tauri-starter` `template-v0.4.0` / `dbv-unreal-ai` `v0.2.2`)**
+  - **Regla de arquitectura**: **NO reimplementar a mano ni divergir.** La implementación canónica única vive en `dbv-tauri-starter` (`d:\Programacion\github-davidbuenov\dbv-tauri-starter`).
+  - **Procedimiento automatizado de sincronización**:
+    1. Ejecutar desde `dbv-tauri-starter`:
+       ```bash
+       node scripts/sync-ai.mjs --check ../dbv-typst-editor
+       node scripts/sync-ai.mjs --apply ../dbv-typst-editor
+       ```
+       *(Esto sincroniza de forma idéntica los 9 ficheros canónicos: `src-tauri/src/ai/detect.rs`, `src-tauri/src/ai/connections.rs`, `src-tauri/src/ai/acp.rs`, `src-tauri/src/ai/commands.rs`, `src/ai/connectWizard.js`, `src/ai/acpSession.js`, `src/ai/backend.js`, y mapea automáticamente los tests a `src/ai/connectWizard.test.js` y `src/ai/acp.test.js` preservando las cabeceras de copyright de `dbv-typst-editor`).*
+    2. Registrar el comando Tauri `ai::commands::ai_list_agent_models` en `src-tauri/src/lib.rs` (dentro de `tauri::generate_handler![...]`).
+    3. Sincronizar los 3 ficheros de adaptación de UI tomando como referencia `dbv-tauri-starter`:
+       - `src/ai/aiApp.js`: pasar `listAgentModels: backend.listAgentModels` y `onConfigureAgent` al `createConnectWizard(...)`.
+       - `src/ai/translations.js`: añadir las claves i18n nuevas (`ai.cat.subscription*`, `ai.agent.antigravity*`, `ai.agent.configure*`, `ai.agent.refreshModels`, `ai.agent.loadingModels`, `ai.agent.effort.*`, `ai.agent.ConnectedBadge`, `ai.agent.ActiveBadge`) manteniendo las claves específicas de Typst (`ai.quick.*`, etc.).
+       - `src/ai/ai.css`: añadir las reglas `.ai-cat-card`, `.ai-badge`, `.ai-agent-model-summary`, `.ai-agent-config-panel`, `.ai-btn-icon` de `dbv-tauri-starter/src/ai/ai.css`.
+  - **Qué incluye esta actualización canónica (`v0.2.2`)**:
+    - UI tripartita de conexiones (IAs Locales, IAs por Suscripción CLI vía ACP, IAs en la nube con API Key).
+    - Soporte completo de Google Antigravity CLI (`agy`), Claude Code (vía JSON-RPC `initialize`), Codex (`debug clear-memories`), Gemini CLI y Copilot CLI.
+    - Descubrimiento en vivo de modelos y niveles de razonamiento desde el CLI con caché de sesión en memoria y botón manual de refresco (`🔄`).
+    - Resumen visual estilo Visual Studio junto al nombre del agente (`"Gemini 4 Argon Medium"`, `"Claude Sonnet 4.6 Medium"`) y propagación de `--model` / `--effort` a la sesión ACP.
+
+---
+
 ### 🧭 Pasos siguientes acordados (orden recomendado)
 
 1. ~~**Crear el repositorio remoto y empujar.**~~ ✅ **HECHO el 2026-09-05.**

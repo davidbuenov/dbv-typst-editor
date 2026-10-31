@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **Demo videos on the project website (GitHub Pages).** Added two video demonstrations (Spanish and English) prominently on the landing page (`docs/index.html` and `docs/en/index.html`) with responsive 16:9 styled window players, showcasing AI integration and real-time editing workflow with DBV Typst Editor. Also added direct shortcuts in the top navigation, Hero CTA buttons, and the AI section, along with prominent video links in the project READMEs.
+
 ---
 
 ## [0.14.0] - 2026-10-04

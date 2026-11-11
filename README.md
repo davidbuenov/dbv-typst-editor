@@ -309,13 +309,13 @@ stop.cmd
 │                                   # ai/ (IA, Universe, renderizado, fuentes), mcp.rs y mcp_bridge.rs
 │                                   # (servidor MCP), commands/, project.rs, templates.rs, watcher.rs…
 ├── templates/local/              # Plantillas propias, como paquetes `@local`
-├── docs/                         # Web del proyecto (GitHub Pages) y guía de IA
+├── docs/                         # Web del proyecto (GitHub Pages), guía de IA y manuales en PDF
 ├── testfiles/                    # Documento y proyecto de prueba, y evaluación de la IA
 ├── scripts/                      # Vendorizado y verificaciones sin dependencias
 ├── dbv-specs-ops/                # Documentación SDD (specs, arquitectura, memoria, changelog)
 ├── start.cmd / start.sh          # Scripts de arranque
 ├── stop.cmd / stop.sh            # Scripts de parada
-└── README.md                     # Este fichero
+└── README.md / README.en.md      # Documentación bilingüe del proyecto
 ```
 
 ---
@@ -419,7 +419,7 @@ Esta aplicación no existiría sin el trabajo de un buen número de proyectos de
 - [Hayagriva](https://github.com/typst/hayagriva) — el mismo motor de bibliografía BibTeX/Hayagriva que usa el propio compilador Typst para `#bibliography()`.
 - [Vite](https://vite.dev) — empaquetado y servidor de desarrollo del frontend.
 - [jsonc-parser](https://github.com/microsoft/node-jsonc-parser) — lectura y edición de los ficheros de snippets en el formato de VS Code, conservando los comentarios.
-- Crates de Rust: [serde](https://serde.rs)/serde_json, [tokio](https://tokio.rs), [notify](https://github.com/notify-rs/notify), [toml](https://github.com/toml-rs/toml), [tempfile](https://github.com/Stebalien/tempfile), [zip](https://github.com/zip-rs/zip2), [dunce](https://gitlab.com/kornelski/dunce), [base64](https://github.com/marshallpierce/rust-base64), [toml_edit](https://github.com/toml-rs/toml), [regex](https://github.com/rust-lang/regex), [walkdir](https://github.com/BurntSushi/walkdir), [ureq](https://github.com/algesten/ureq) y [sys-locale](https://github.com/1Password/sys-locale) (macOS).
+- Crates de Rust: [serde](https://serde.rs)/serde_json, [tokio](https://tokio.rs), [notify](https://github.com/notify-rs/notify), [toml](https://github.com/toml-rs/toml), [tempfile](https://github.com/Stebalien/tempfile), [zip](https://github.com/zip-rs/zip2), [dunce](https://gitlab.com/kornelski/dunce), [base64](https://github.com/marshallpierce/rust-base64), [toml_edit](https://github.com/toml-rs/toml), [regex](https://github.com/rust-lang/regex), [walkdir](https://github.com/BurntSushi/walkdir), [ureq](https://github.com/algesten/ureq), [tar](https://github.com/alexcrichton/tar-rs), [flate2](https://github.com/rust-lang/flate2-rs), [rmcp](https://github.com/modelcontextprotocol/rust-sdk), [keyring](https://github.com/hwchen/keyring-rs), [trash](https://github.com/Byron/trash-rs), [dirs](https://github.com/dirs-dev/dirs-rs), [getrandom](https://github.com/rust-random/getrandom) y [sys-locale](https://github.com/1Password/sys-locale) (macOS).
 
 Gracias también a los mantenedores de todos los paquetes curados en el Universe Browser de la aplicación (ver [`src/universe/curatedCatalog.js`](./src/universe/curatedCatalog.js)) — plantillas de IEEE/ACM/Springer, `fletcher`, `touying`, `quick-maths`, `physica`, `codly`, `zebraw`, `showybox`, `tablem`, `subpar`, `lovelace`, `glossarium`, `unify`, `wordometer` y el resto — por su trabajo, aunque no todos quepan uno a uno en esta lista.
 

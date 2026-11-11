@@ -45,6 +45,8 @@
 - [How to run](#-how-to-run)
 - [How to stop](#-how-to-stop)
 - [Project structure](#-project-structure)
+- [Testing the application](#-testing-the-application)
+- [Packaging and publishing](#-packaging-and-publishing)
 - [Changelog](#-changelog)
 - [References](#-references)
 - [License](#-license)
@@ -145,11 +147,19 @@ If the app is already running, `typs` reuses the same window. `brew uninstall --
 
 **[⬇️ Download the `.deb` or `.AppImage` from Releases](https://github.com/davidbuenov/dbv-typst-editor/releases)** — built automatically on every version via CI.
 
-> Since `v0.12.0`, the `.AppImage` carries update information: [AppImageUpdate](https://github.com/AppImageCommunity/AppImageUpdate) and compatible tools download only what changed between versions (`.zsync`).
+- **`.deb` (Debian, Ubuntu, Linux Mint and derivatives):** `sudo dpkg -i "DBV Typst Editor_x.y.z_amd64.deb"` (or double-click from the file manager).
+- **`.AppImage` (any distribution):** `chmod +x "DBV Typst Editor_x.y.z_amd64.AppImage"` and run it directly. Portable, no installation needed.
+
+> The Linux channel has no built-in update check — download the new version from Releases whenever you want to update. Since `v0.12.0`, the `.AppImage` carries update information: [AppImageUpdate](https://github.com/AppImageCommunity/AppImageUpdate) and compatible tools download only what changed between versions (`.zsync`).
 
 ### 🍎 macOS
 
-**[⬇️ Download the `.dmg` from Releases](https://github.com/davidbuenov/dbv-typst-editor/releases)** — universal build (Apple Silicon + Intel), built automatically via CI. Unsigned and unnotarized: right-click the app → **Open** to bypass Gatekeeper the first time, or run `xattr -cr "DBV Typst Editor.app"` from Terminal.
+**[⬇️ Download the `.dmg` from Releases](https://github.com/davidbuenov/dbv-typst-editor/releases)** — universal build (Apple Silicon + Intel), built automatically via CI.
+
+It is not signed or notarized (that would require a paid Apple Developer account). macOS will block it the first time:
+
+- Right-click on `DBV Typst Editor.app` → **Open** → confirm in the dialog.
+- Or from Terminal: `xattr -cr "DBV Typst Editor.app"` before opening it.
 
 ---
 
@@ -214,7 +224,7 @@ Full requirements and acceptance criteria live in [`dbv-specs-ops/docs/SPECIFICA
 
 - [Rust](https://www.rust-lang.org/) 1.76+ and the [Tauri v2](https://v2.tauri.app/start/prerequisites/) toolchain
 - Node.js 20+ (if the frontend uses a bundler)
-- [Typst](https://github.com/typst/typst) (CLI or embedded crate — decision pending in `ARCHITECTURE.md`)
+- Official [Typst](https://github.com/typst/typst) CLI, vendored as a sidecar (see `npm run vendor:typst` below) — no separate installation needed
 
 ---
 
@@ -234,6 +244,13 @@ npm run vendor:typst
 
 # (optional) Verify the sidecar against the real binary: 8 checks
 npm run verify:typst
+
+# (optional) Verify the template catalog: instantiate each template with the
+# real compiler, substitute sample data and check that it compiles to PDF
+npm run verify:templates
+
+# Tests: frontend logic (Vitest) and Rust backend (cargo test)
+npm test
 ```
 
 The Typst binary is **not committed to the repository**: it is downloaded from the official release pinned in `scripts/vendor-typst.mjs`. The same step runs in CI before packaging.
@@ -292,14 +309,59 @@ stop.cmd
 │                                   # ai/ (AI, Universe, rendering, fonts), mcp.rs and mcp_bridge.rs
 │                                   # (MCP server), commands/, project.rs, templates.rs, watcher.rs…
 ├── templates/local/              # Own templates, as `@local` packages
-├── docs/                         # Project website (GitHub Pages) and AI guide
+├── docs/                         # Project website (GitHub Pages), AI guide & PDF manuals
 ├── testfiles/                    # Test document and project, and the AI evaluation
 ├── scripts/                      # Vendoring and dependency-free checks
 ├── dbv-specs-ops/                # SDD documentation (specs, architecture, memory, changelog)
 ├── start.cmd / start.sh          # Startup scripts
 ├── stop.cmd / stop.sh            # Stop scripts
-└── README.md                     # This file
+└── README.md / README.en.md      # Bilingual project documentation
 ```
+
+---
+
+## 🧪 Testing the application
+
+If you just launched the app and want something to open right away, there are two test fixtures in [`testfiles/`](./testfiles/):
+
+| Item | How to open it | What it checks |
+| --- | --- | --- |
+| `testfiles/demo-suelto.typ` | **Open .typ document** | A standalone `.typ` opened as a single-file project: editing, live preview, error banner, and export |
+| `testfiles/demo-proyecto/` | **Open project folder** | A real multi-file project: file explorer, chapters with `#include`, image from `images/`, bibliography, and cross-references |
+
+`demo-proyecto` **intentionally has no DBV manifest**: it behaves like a cloned repository or a hand-crafted Typst project, so the header marks it as an *external project* and the application must write nothing inside its folder (RF-02b).
+
+Each file contains an inline checklist of things to try. Alternatively, if you prefer starting from scratch, use the launcher itself: **Blank project** → choose a folder → *Create project*.
+
+---
+
+## 📦 Packaging and publishing
+
+```bash
+# Installer for the current platform (Windows: ~18 MB NSIS)
+npm run build
+
+# Windows only: variant with the WebView2 installer embedded (~268 MB), for
+# computers without WebView2 and without internet access — isolated classrooms, for instance
+npm run build:win:offline
+
+# Windows only: builds the .msixbundle for Microsoft Store (the sole Windows channel
+# since v0.8.0). No personal signing certificate required: the Store re-signs the
+# package with its own certificate on submission
+npm run tauri:windows:build
+```
+
+Windows Store build steps: [`dbv-specs-ops/docs/WINDOWS_RELEASE.md`](./dbv-specs-ops/docs/WINDOWS_RELEASE.md).
+
+| Platform | Who builds | Release |
+| --- | --- | --- |
+| **Windows** | Maintainer locally (`npm run tauri:windows:build`); no signing key required | Microsoft Store only: `.msixbundle` is uploaded to Partner Center. No `.exe` installer is uploaded to GitHub Releases anymore |
+| **Linux** | GitHub Actions (`release-linux.yml`) when pushing a `vX.Y.Z` tag | Automatically attaches AppImage, `.AppImage.zsync`, and `.deb` to the draft release |
+| **macOS** | GitHub Actions (`release-macos.yml`), universal build | Automatically attaches `.dmg` to the draft release |
+
+The release workflow vendors the Typst compiler before packaging and **explicitly fails if it is missing**: an installer without the compiler inside would be useless. Every push also runs `ci.yml` with tests, frontend build, layout verification, and real-compiler checks.
+
+Microsoft Store preparation checklist documented in [`dbv-specs-ops/docs/MICROSOFT_STORE.md`](./dbv-specs-ops/docs/MICROSOFT_STORE.md).
 
 ---
 
@@ -357,7 +419,7 @@ This app wouldn't exist without a good number of open-source projects. Thanks to
 - [Hayagriva](https://github.com/typst/hayagriva) — the very same BibTeX/Hayagriva bibliography engine the Typst compiler itself uses for `#bibliography()`.
 - [Vite](https://vite.dev) — frontend bundling and dev server.
 - [jsonc-parser](https://github.com/microsoft/node-jsonc-parser) — reading and editing snippet files in VS Code format while keeping their comments.
-- Rust crates: [serde](https://serde.rs)/serde_json, [tokio](https://tokio.rs), [notify](https://github.com/notify-rs/notify), [toml](https://github.com/toml-rs/toml), [tempfile](https://github.com/Stebalien/tempfile), [zip](https://github.com/zip-rs/zip2), [dunce](https://gitlab.com/kornelski/dunce), [base64](https://github.com/marshallpierce/rust-base64), [toml_edit](https://github.com/toml-rs/toml), [regex](https://github.com/rust-lang/regex), [walkdir](https://github.com/BurntSushi/walkdir), [ureq](https://github.com/algesten/ureq) and [sys-locale](https://github.com/1Password/sys-locale) (macOS).
+- Rust crates: [serde](https://serde.rs)/serde_json, [tokio](https://tokio.rs), [notify](https://github.com/notify-rs/notify), [toml](https://github.com/toml-rs/toml), [tempfile](https://github.com/Stebalien/tempfile), [zip](https://github.com/zip-rs/zip2), [dunce](https://gitlab.com/kornelski/dunce), [base64](https://github.com/marshallpierce/rust-base64), [toml_edit](https://github.com/toml-rs/toml), [regex](https://github.com/rust-lang/regex), [walkdir](https://github.com/BurntSushi/walkdir), [ureq](https://github.com/algesten/ureq), [tar](https://github.com/alexcrichton/tar-rs), [flate2](https://github.com/rust-lang/flate2-rs), [rmcp](https://github.com/modelcontextprotocol/rust-sdk), [keyring](https://github.com/hwchen/keyring-rs), [trash](https://github.com/Byron/trash-rs), [dirs](https://github.com/dirs-dev/dirs-rs), [getrandom](https://github.com/rust-random/getrandom) and [sys-locale](https://github.com/1Password/sys-locale) (macOS).
 
 Thanks also to the maintainers of every package curated in the app's Universe Browser (see [`src/universe/curatedCatalog.js`](./src/universe/curatedCatalog.js)) — IEEE/ACM/Springer templates, `fletcher`, `touying`, `quick-maths`, `physica`, `codly`, `zebraw`, `showybox`, `tablem`, `subpar`, `lovelace`, `glossarium`, `unify`, `wordometer` and the rest — for their work, even where this list doesn't name every one individually.
 

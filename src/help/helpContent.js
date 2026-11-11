@@ -49,6 +49,13 @@ export const HELP_SECTIONS = [
         es: 'Un proyecto creado aquí es un proyecto Typst normal y corriente: compila con el compilador oficial sin necesidad de esta aplicación. No hay ataduras.',
         en: 'A project created here is an ordinary Typst project: it compiles with the official compiler without this application. There is no lock-in.',
       },
+      {
+        docLink: {
+          url: 'https://davidbuenov.github.io/dbv-typst-editor/manual/manual-es.pdf',
+          urlEn: 'https://davidbuenov.github.io/dbv-typst-editor/manual/manual-en.pdf',
+          label: { es: 'Manual de usuario completo (PDF)', en: 'Complete user manual (PDF)' },
+        },
+      },
     ],
   },
   {
@@ -67,6 +74,7 @@ export const HELP_SECTIONS = [
             'V — Vista previa: el documento compuesto, página a página.',
             'IA — Asistente: la conversación con la IA, a la derecha. El botón solo aparece cuando hay un proyecto abierto y una IA conectada (ver «Asistente de IA»).',
             'Las divisiones entre paneles se arrastran con el ratón; doble clic sobre una devuelve el reparto por defecto.',
+            'Ventanas y menús flotantes: cuando abres varios popups a la vez (Git, Buscar en vista previa, Universe, Documentación, Símbolos…), el que acabas de abrir o pulsar pasa delante automáticamente. Los menús Archivo, Herramientas y Preferencias alternan entre sí con un solo clic y se recorren con teclado (↑, ↓, Inicio, Fin, Escape); el panel de Git se cierra también haciendo clic fuera.',
             'La combinación elegida se recuerda al cerrar la aplicación.',
           ],
           en: [
@@ -75,7 +83,32 @@ export const HELP_SECTIONS = [
             'V — Preview: the typeset document, page by page.',
             'AI — Assistant: the conversation with the AI, on the right. The button only appears when a project is open and an AI is connected (see "AI assistant").',
             'The dividers between panels can be dragged; double-clicking one restores the default split.',
+            'Floating panels and menus: when several popups are open at once (Git, Preview search, Universe, Docs, Symbols…), clicking or focusing one brings it to the front automatically. The File, Tools and Preferences menus switch directly in one click and support keyboard navigation (↑, ↓, Home, End, Escape); the Git popover also closes on outside clicks.',
             'Your chosen combination is remembered when you close the app.',
+          ],
+        },
+      },
+    ],
+  },
+  {
+    id: 'menus',
+    title: { es: 'Menús: Archivo, Herramientas y Preferencias', en: 'Menus: File, Tools and Preferences' },
+    blocks: [
+      {
+        es: 'Los tres menús de la cabecera agrupan todas las operaciones del espacio de trabajo. Cambian entre sí con un clic y admiten navegación por teclado (↑, ↓, Inicio, Fin y Escape).',
+        en: 'The three header menus group every workspace command. They switch between each other in one click and support full keyboard navigation (↑, ↓, Home, End, and Escape).',
+      },
+      {
+        list: {
+          es: [
+            'Archivo (14 acciones): Nuevo proyecto en blanco, Nuevo documento… (plantillas locales y Typst Universe), Guardar, Guardar como…, Exportar PDF…, Exportar PNG…, Fijar como documento principal (guarda el raíz en settings/dbv-project.toml), Añadir capítulo…, Abrir carpeta de proyecto…, Abrir documento .typ…, Importar proyecto (.dbvt)…, Exportar proyecto (.dbvt)…, Mostrar en el Explorador / Finder y Cerrar proyecto.',
+            'Herramientas (17 acciones): Conectar una IA…, Aplicar plantilla…, Servidor MCP…, Terminal de Typst…, Ejecutar script Python…, Editor de diagramas…, Editor de ecuaciones…, Diagrama de secuencia…, Diagrama de Gantt…, Tablero Kanban…, Visor de datos (CSV/TSV)…, DOT / Graphviz…, Editar snippets globales…, Importar snippets de Sublime…, Editar snippets del proyecto…, Insertar script JS (jogs)… y Clonar repositorio Git….',
+            'Preferencias (11 acciones): Mostrar ficheros ocultos, Números de línea, Números de línea relativos, Modo Vim, Guardado automático, Mostrar ruta completa, Preguntar antes de actualizar referencias, Historial local de versiones, Compartir el estado del editor con agentes MCP, Temas y colores… y Vaciar historial local….',
+          ],
+          en: [
+            'File (14 actions): New blank project, New document… (local and Typst Universe templates), Save, Save as…, Export PDF…, Export PNG…, Set as main document (persists entrypoint in settings/dbv-project.toml), Add chapter…, Open project folder…, Open .typ document…, Import project (.dbvt)…, Export project (.dbvt)…, Reveal in Explorer / Finder and Close project.',
+            'Tools (17 actions): Connect an AI…, Apply template…, MCP server…, Typst terminal…, Run Python script…, Diagram editor…, Equation editor…, Sequence diagram…, Gantt chart…, Kanban board…, Data viewer (CSV/TSV)…, DOT / Graphviz…, Edit global snippets…, Import Sublime snippets…, Edit project snippets…, Insert JS script (jogs)… and Clone Git repository….',
+            'Preferences (11 actions): Show hidden files, Line numbers, Relative line numbers, Vim mode, Auto-save, Show full path, Ask before updating references, Local version history, Share editor state with MCP agents, Themes & colors… and Clear local history….',
           ],
         },
       },
@@ -97,6 +130,8 @@ export const HELP_SECTIONS = [
             'Sensibilidad al contexto: dentro de una ecuación ($...$) los botones de formato de texto se atenúan y el grupo de Typst pasa al frente.',
             'Buscar y reemplazar: el botón ⌕ abre el panel de búsqueda (también con Ctrl/Cmd + F), con reemplazo uno a uno o de todas las coincidencias a la vez.',
             'Referencias con @: al escribir @ dentro del documento aparece un listado con las figuras, tablas, ecuaciones y secciones ya etiquetadas del proyecto, filtrable mientras sigues escribiendo.',
+            'Barra inferior de estado y números relativos: al pie del editor ves siempre la línea y columna actuales («Lín. X, Col. Y») más los caracteres seleccionados («(N sel.)»). Desde Preferencias puedes activar «Números de línea relativos» para medir distancias al cursor al instante.',
+            'Modo Vim opcional (Preferencias › Modo Vim, desactivado por defecto): carga la edición modal de Vim sin ralentizar el arranque si no lo usas. Enseña en la barra inferior el modo activo (NORMAL, INSERT, VISUAL, V-LINE, V-BLOCK o REPLACE), guarda con :w y coordina Escape para salir de Inserción o Visual sin cerrar los paneles flotantes abiertos.',
           ],
           en: [
             'Formatting: bold, italic, strikethrough, code, superscript and subscript. Pressing twice removes the markup instead of nesting it.',
@@ -104,6 +139,8 @@ export const HELP_SECTIONS = [
             'Context aware: inside an equation ($...$) the text-formatting buttons dim and the Typst group moves to the front.',
             'Find and replace: the ⌕ button opens the search panel (also with Ctrl/Cmd + F), with one-at-a-time or replace-all.',
             'References with @: typing @ anywhere in the document brings up a list of the project’s already-labelled figures, tables, equations and sections, filterable as you keep typing.',
+            'Bottom status bar and relative line numbers: the editor footer always shows the live cursor line and column ("Ln X, Col Y") plus selection length ("(N sel.)"). Enable Preferences › "Relative line numbers" to show distances relative to the cursor line.',
+            'Optional Vim mode (Preferences › Vim mode, off by default): loads modal Vim editing on demand with zero startup cost when off. Displays the active mode badge in the status bar (NORMAL, INSERT, VISUAL, V-LINE, V-BLOCK or REPLACE), maps :w to save, and coordinates Escape so leaving Insert/Visual never closes open floating panels.',
           ],
         },
       },
@@ -270,6 +307,28 @@ export const HELP_SECTIONS = [
         es: 'Herramientas › «Visor de datos…», o el botón «Tabla» con un .csv abierto, enseñan el fichero como tabla: detecta el separador y la cabecera, ordena al pulsar una columna (como número si lo es) y filtra. «Insertar como tabla» escribe en el documento Typst activo el código que lee el fichero con csv(), así la tabla sigue al fichero; «Copiar como tabla Typst» copia la vista con los datos incrustados. Un fichero de fuera del proyecto se puede copiar a data/.',
         en: 'Tools › "Data viewer…", or the "Table" button with a .csv open, show the file as a table: it detects the delimiter and the header, sorts when you click a column (numerically if it is a number) and filters. "Insert as table" writes into the active Typst document code that reads the file with csv(), so the table follows the file; "Copy as Typst table" copies the view with the data embedded. A file outside the project can be copied into data/.',
       },
+      {
+        es: 'Ejemplo generado al insertar una tabla viva: #let filas = csv("data/mediciones.csv") seguido de table(columns: N, table.header(..filas.first().map(h => [*#h*])), ..filas.slice(1).flatten()). También puedes pulsar «Preguntar a la IA sobre estos datos» para analizar columnas o generar gráficas.',
+        en: 'Example generated for a live table: #let rows = csv("data/measurements.csv") followed by table(columns: N, table.header(..rows.first().map(h => [*#h*])), ..rows.slice(1).flatten()). You can also click "Ask the AI about this data" to analyze columns or generate charts.',
+      },
+    ],
+  },
+  {
+    id: 'python-jogs',
+    title: { es: 'Scripts Python y JavaScript embebido (jogs)', en: 'Python scripts & embedded JavaScript (jogs)' },
+    blocks: [
+      {
+        list: {
+          es: [
+            'Herramientas › «Ejecutar script Python…»: selecciona y ejecuta un fichero .py del proyecto (por ejemplo scripts con Matplotlib/Pandas que generan figuras PNG/SVG en images/ o actualizan tablas .csv en data/), viendo stdout/stderr y refrescando la vista previa al instante.',
+            'Herramientas › «Insertar script JS (jogs)…»: inserta un bloque listo con el paquete @preview/jogs para ejecutar lógica JavaScript determinista dentro de la compilación Typst (cálculos auxiliares o formateo de series numéricas).',
+          ],
+          en: [
+            'Tools › "Run Python script…": select and execute a project .py script (e.g., Matplotlib/Pandas pipelines writing PNG/SVG figures to images/ or updating data/*.csv files), viewing stdout/stderr live while refreshing the preview.',
+            'Tools › "Insert JS script (jogs)…": inserts a ready-to-run @preview/jogs snippet for deterministic JavaScript calculations or tabular series formatting inside Typst compilation.',
+          ],
+        },
+      },
     ],
   },
   {
@@ -277,20 +336,20 @@ export const HELP_SECTIONS = [
     title: { es: 'Asistente de IA: conectar una IA (opcional)', en: 'AI assistant: connecting an AI (optional)' },
     blocks: [
       {
-        es: 'La IA es opcional: sin conectar ninguna, el editor funciona igual que siempre. Herramientas › «Conectar una IA…» detecta lo que hay en el equipo y lo conecta con un botón:',
-        en: 'AI is optional: without one, the editor works exactly as before. Tools › "Connect an AI…" detects what is on your computer and connects it with one button:',
+        es: 'La IA es opcional: sin conectar ninguna, el editor funciona igual que siempre. Herramientas › «Conectar una IA…» agrupa la configuración en tres categorías (IA local, Agentes locales y Nube) e incluye un enlace directo a la guía integrada de instalación:',
+        en: 'AI is optional: without one, the editor works exactly as before. Tools › "Connect an AI…" groups setup into three clear categories (Local AI, Local agents and Cloud) and includes a direct link to the built-in installation guide:',
       },
       {
         list: {
           es: [
-            'Local: Ollama o LM Studio, o cualquier servidor compatible con OpenAI. Nada sale de tu equipo.',
+            'IA local en tu equipo: Ollama, LM Studio o cualquier servidor compatible con OpenAI. Nada sale de tu equipo.',
+            'Agentes locales (por suscripción): Claude Code, Gemini CLI, Codex, Copilot CLI y Antigravity (requiere servidor ACP compatible). Usan tu suscripción a través del propio agente; cada agente incluye selector de modelo y esfuerzo de razonamiento (⚙) y mantiene su sesión ACP independiente por conversación.',
             'En la nube, con clave de API: Anthropic (Claude), OpenAI, Google Gemini u OpenRouter. La clave se guarda en el almacén de credenciales del sistema, nunca en un fichero.',
-            'Agentes instalados: Claude Code, Gemini CLI, Codex o Copilot CLI. Usan tu suscripción a través del propio agente (una suscripción no da clave de API).',
           ],
           en: [
-            'Local: Ollama or LM Studio, or any OpenAI-compatible server. Nothing leaves your computer.',
+            'Local AI on your computer: Ollama, LM Studio, or any OpenAI-compatible server. Nothing leaves your computer.',
+            'Local agents (subscription): Claude Code, Gemini CLI, Codex, Copilot CLI and Antigravity (requires a compatible ACP server). They use your subscription through the agent itself; each CLI agent includes a model and reasoning-effort selector (⚙) and keeps its own independent ACP session per conversation.',
             'In the cloud, with an API key: Anthropic (Claude), OpenAI, Google Gemini or OpenRouter. The key is stored in the system credential store, never in a file.',
-            'Installed agents: Claude Code, Gemini CLI, Codex or Copilot CLI. They use your subscription through the agent itself (a subscription does not give an API key).',
           ],
         },
       },
@@ -495,31 +554,35 @@ export const HELP_SECTIONS = [
   },
   {
     id: 'snippets',
-    title: { es: 'Snippets', en: 'Snippets' },
+    title: { es: 'Snippets: atajos y menú contextual', en: 'Snippets: shortcuts and context menu' },
     blocks: [
       {
-        es: 'Un snippet es un trozo de texto con huecos que se inserta al escribir su prefijo y elegirlo en la lista de sugerencias; Tab salta de un hueco al siguiente. Funcionan también con Tinymist apagado.',
-        en: 'A snippet is a piece of text with placeholders that is inserted by typing its prefix and choosing it from the suggestion list; Tab jumps from one placeholder to the next. They also work with Tinymist off.',
+        es: 'Un snippet es un trozo de texto con huecos que se inserta al escribir su prefijo y elegirlo en la lista de sugerencias; Tab salta de un hueco al siguiente. Funcionan también con Tinymist apagado, y además puedes lanzarlos con atajos de teclado o desde el menú contextual.',
+        en: 'A snippet is a piece of text with placeholders that is inserted by typing its prefix and choosing it from the suggestion list; Tab jumps from one placeholder to the next. They also work with Tinymist off, and you can trigger them with keyboard shortcuts or from the context menu.',
       },
       {
         list: {
           es: [
             'Herramientas › Editar snippets globales: los tuyos, para todos los proyectos.',
             'Herramientas › Editar snippets del proyecto: se guardan en .vscode/*.code-snippets, igual que en VS Code, para compartirlos con quien trabaje en el proyecto.',
-            'Formato de VS Code: prefix, body (texto o lista de líneas), description y, si quieres, scope. Puedes pegar snippets copiados de VS Code. Se admiten comentarios.',
+            'Formato de VS Code: prefix, body (texto o lista de líneas), description y, opcionalmente, scope, "key" (atajo de teclado, p. ej. "Ctrl+Alt+N") y "contextMenu": true. Puedes pegar snippets copiados de VS Code; se admiten comentarios.',
+            'Keybindings compatibles con VS Code: DBV también lee .vscode/keybindings.json del proyecto y tu keybindings.json global (JSONC) con command: "editor.action.insertSnippet" y args: { "name": "Nombre" }. Los cambios se recargan al guardar y aparecen en «Atajos de teclado».',
+            'Menú contextual («Insertar snippet ›»): los snippets con "contextMenu": true aparecen con clic derecho sobre el editor y envuelven la selección mediante $TM_SELECTED_TEXT.',
             'Variables: $TM_SELECTED_TEXT, $TM_FILENAME, $TM_FILENAME_BASE, $CURRENT_YEAR, $CURRENT_MONTH, $CURRENT_DATE.',
             'Guardar selección como snippet… (botón derecho en el editor): crea uno a partir del texto seleccionado, sin tocar el resto del fichero.',
             'Herramientas › Importar snippets de Sublime…: convierte tus .sublime-snippet (ficheros sueltos o la carpeta Packages/User) al formato de VS Code y los guarda en el proyecto o en tus snippets globales, con un resumen antes de escribir nada.',
-            'Si el fichero tiene un error, se avisa con la línea y se siguen usando los snippets anteriores.',
+            'Prioridad y avisos: los atajos de la aplicación (Ctrl+S, Ctrl+O…) prevalecen siempre; si un snippet choca o hay un error en .code-snippets o keybindings.json, se avisa con detalle y se mantienen los anteriores.',
           ],
           en: [
             'Tools › Edit global snippets: your own, for every project.',
             'Tools › Edit project snippets: stored in .vscode/*.code-snippets, as in VS Code, to share them with whoever works on the project.',
-            'VS Code format: prefix, body (text or list of lines), description and, optionally, scope. You can paste snippets copied from VS Code. Comments are allowed.',
+            'VS Code format: prefix, body (text or list of lines), description and, optionally, scope, "key" (keyboard shortcut, e.g. "Ctrl+Alt+N"), and "contextMenu": true. You can paste snippets copied from VS Code; comments are allowed.',
+            'VS Code-compatible keybindings: DBV also reads .vscode/keybindings.json and global keybindings.json (JSONC) with command: "editor.action.insertSnippet" and args: { "name": "Name" }. Changes reload on save and appear in "Keyboard shortcuts".',
+            'Context menu ("Insert snippet ›"): snippets with "contextMenu": true appear on editor right-click and wrap selected text using $TM_SELECTED_TEXT.',
             'Variables: $TM_SELECTED_TEXT, $TM_FILENAME, $TM_FILENAME_BASE, $CURRENT_YEAR, $CURRENT_MONTH, $CURRENT_DATE.',
             'Save selection as snippet… (right-click in the editor): creates one from the selected text, without touching the rest of the file.',
             'Tools › Import Sublime snippets…: converts your .sublime-snippet files (loose files or the Packages/User folder) to the VS Code format and saves them in the project or in your global snippets, with a summary before anything is written.',
-            'If the file has an error, you are told the line and the previous snippets are still used.',
+            'Priority and warnings: built-in application shortcuts (Ctrl+S, Ctrl+O…) always win; if a shortcut collides or .code-snippets / keybindings.json has a syntax error, DBV warns cleanly and keeps previous snippets.',
           ],
         },
       },
@@ -558,6 +621,10 @@ export const HELP_SECTIONS = [
       {
         es: 'En el menú Herramientas → Editor de diagramas (✎, también accesible desde el icono de la barra del editor): un lienzo donde arrastrar y conectar nodos (rectángulo, redondeado, elipse, rombo de decisión, triángulo, hexágono), con seis colores, zoom con rueda y botones, y paneo arrastrando el fondo. Las plantillas de siembra ("Flujo", "Bloques", "Flujo con decisión"...) dan un punto de partida ya conectado. Al insertar, se genera con el paquete cetz y se añade su import si hace falta.',
         en: 'In the Tools menu → Diagram editor (✎, also reachable from the editor toolbar icon): a canvas where you drag and connect nodes (rectangle, rounded, ellipse, decision diamond, triangle, hexagon), with six colors, wheel/button zoom, and panning by dragging the background. The seed templates ("Flowchart", "Blocks", "Flow with decision"...) give an already-connected starting point. Inserting generates the diagram with the cetz package, adding its import if needed.',
+      },
+      {
+        es: 'Ejemplo generado: #import "@preview/cetz:0.5.2" seguido de cetz.canvas({ import cetz.draw: *; rect((0,0), (3,1), name: "n1"); content("n1", [Inicio]) }).',
+        en: 'Generated example: #import "@preview/cetz:0.5.2" followed by cetz.canvas({ import cetz.draw: *; rect((0,0), (3,1), name: "n1"); content("n1", [Start]) }).',
       },
       {
         docLink: {
@@ -606,6 +673,10 @@ export const HELP_SECTIONS = [
         en: 'In the Tools menu → Sequence diagram (⇄): add participants and, between them, the messages in the order they happen (with optional text and a dashed stroke for replies). Inserting generates the diagram with the chronos package, adding its import if needed.',
       },
       {
+        es: 'Ejemplo generado: #import "@preview/chronos:0.2.1" y chronos.diagram({ import chronos: *; _par("A"); _par("B"); _seq("A", "B", "petición") }).',
+        en: 'Generated example: #import "@preview/chronos:0.2.1" and chronos.diagram({ import chronos: *; _par("A"); _par("B"); _seq("A", "B", "request") }).',
+      },
+      {
         docLink: {
           url: 'https://typst.app/universe/package/chronos',
           label: { es: 'Documentación del paquete chronos', en: 'chronos package documentation' },
@@ -622,6 +693,10 @@ export const HELP_SECTIONS = [
         en: 'In the Tools menu → Gantt chart (▤): add tasks with their name and their real start and end dates. Inserting generates the diagram with the gantty package, adding its import if needed.',
       },
       {
+        es: 'Ejemplo generado: #gantty.gantt((tasks: ((name: "Fase 1", start: "2026-09-01", end: "2026-09-18"),))).',
+        en: 'Generated example: #gantty.gantt((tasks: ((name: "Phase 1", start: "2026-09-01", end: "2026-09-18"),))).',
+      },
+      {
         docLink: {
           url: 'https://typst.app/universe/package/gantty',
           label: { es: 'Documentación del paquete gantty', en: 'gantty package documentation' },
@@ -636,6 +711,10 @@ export const HELP_SECTIONS = [
       {
         es: 'En el menú Herramientas → Tablero Kanban (▥): añade columnas y, dentro de cada una, sus tarjetas (nombre, asignado opcional, dificultad y prioridad). Al insertar, se genera con el paquete kantan (licencia AGPL-3.0-only) y se añade su import si hace falta.',
         en: 'In the Tools menu → Kanban board (▥): add columns and, inside each one, its cards (name, optional assignee, hardness and priority). Inserting generates the board with the kantan package (AGPL-3.0-only license), adding its import if needed.',
+      },
+      {
+        es: 'Ejemplo generado: #kanban(columns: ((title: "En curso", cards: ((title: "Revisión"),)),)).',
+        en: 'Generated example: #kanban(columns: ((title: "In progress", cards: ((title: "Review"),)),)).',
       },
       {
         docLink: {
@@ -695,7 +774,7 @@ export const HELP_SECTIONS = [
         list: {
           es: [
             'Ámbito de compilación (Doc / Fich): compila el documento raíz (main.typ) o únicamente el archivo abierto. Compilar el documento completo mantiene el contexto de capítulos, etiquetas y referencias bibliográficas mientras editas módulos sueltos.',
-            'Modo de refresco (Automático / Manual): el modo automático recompila mientras escribes; el modo manual (botón Refrescar) ahorra CPU y batería en documentos muy extensos.',
+            'Modo de refresco (Automático / Manual): el modo automático recompila mientras escribes; el modo manual (botón Refrescar) ahorra CPU y batería en documentos muy extensos y evita trabajo redundante en cada pulsación (LSP agrupado y actualización incremental de pestañas) para escribir sin latencia.',
             'Sincronización bidireccional: haz doble clic en cualquier punto de la vista previa para navegar de inmediato a ese archivo y línea en el editor. El botón con icono de chincheta (Llevar la vista previa al cursor) desplaza la vista previa a la página donde se encuentra el cursor de edición.',
             'Indicador de carga: al abrir un proyecto o desplazarte velozmente por documentos extensos, un indicador animado señala que la página se está componiendo.',
             'Zoom: los botones − y + recorren pasos fijos; el porcentaje del centro vuelve al 100%. Con el ratón sobre la vista previa, Ctrl + +/-/0 o Ctrl + rueda hacen lo mismo sin soltar el teclado.',
@@ -708,7 +787,7 @@ export const HELP_SECTIONS = [
           ],
           en: [
             'Compilation scope (Doc / File): compiles either the root document (main.typ) or only the currently open file. Compiling the full document preserves cross-references, chapters, and bibliography context while editing modular files.',
-            'Refresh mode (Automatic / Manual): automatic mode recompiles as you type; manual mode (Refresh button) saves CPU and battery on very long documents.',
+            'Refresh mode (Automatic / Manual): automatic mode recompiles as you type; manual mode (Refresh button) saves CPU and battery on very long documents and defers background work per keystroke (debounced LSP sync and incremental tab updates) for zero typing latency.',
             'Bidirectional sync: double-click anywhere on the preview to jump straight to that file and line in the editor. The pin button (Take preview to cursor) scrolls the preview to the current cursor position.',
             'Loading indicator: when opening a project or scrolling rapidly through long documents, an animated spinner indicates that pages are being rendered.',
             'Zoom: the − and + buttons step through fixed levels; the percentage in the middle resets to 100%. With the mouse over the preview, Ctrl + +/-/0 or Ctrl + wheel do the same without leaving the keyboard.',
@@ -740,6 +819,32 @@ export const HELP_SECTIONS = [
             'Export PDF: the final document, with its outline and internal links.',
             'Export PNG: exports the page you are currently reading in the preview, not necessarily the first one.',
             'Export project (.dbvt): packs the whole project — chapters, images, bibliography and its own fonts — into a single file to share or keep as a backup. Restore it with "Import project" from the launcher.',
+          ],
+        },
+      },
+    ],
+  },
+  {
+    id: 'git',
+    title: { es: 'Trabajo colaborativo con Git', en: 'Collaborative work with Git' },
+    blocks: [
+      {
+        es: 'Cuando el proyecto es un repositorio Git, la cabecera muestra una píldora interactiva con la rama actual, conflictos pendientes y commits por subir o bajar (↑/↓). También puedes iniciar proyectos remotos con Herramientas › «Clonar repositorio Git…».',
+        en: 'When the project is a Git repository, the header displays an interactive pill showing the active branch, pending conflicts, and commits ahead/behind (↑/↓). You can also start from a remote repo via Tools › "Clone Git repository…".',
+      },
+      {
+        list: {
+          es: [
+            'Popover de Git: agrupa los cambios por insignia — U (en conflicto, con botón Resolver en primer lugar), M (modificado) y ? (sin seguimiento) — junto al campo de mensaje y los botones Commit, Pull y Push.',
+            'Protección en Pull: si hay cambios locales sin commit en ficheros tocados en el remoto, DBV detiene el Pull y avisa para evitar sobrescrituras accidentales.',
+            'Resolvedor visual bloque a bloque: al pulsar Resolver sobre un archivo U, comparas visualmente Mío frente a Remoto por cada bloque conservando el resto del documento intacto antes de pulsar Aplicar resolución.',
+            'Comparador en disco y coordinación en equipo: si un fichero abierto cambia en disco, al guardar se abre el comparador lado a lado; Archivo › Fijar como documento principal comparte el raíz común mediante settings/dbv-project.toml y Preferencias › Preguntar antes de actualizar referencias mantiene #include, #import e image() al día al mover ficheros.',
+          ],
+          en: [
+            'Git popover: groups changes by badge — U (conflicted, prioritized with a Resolve button), M (modified) and ? (untracked) — alongside a commit message box and Commit, Pull and Push actions.',
+            'Pre-pull overwrite guard: if uncommitted local changes collide with incoming remote edits, DBV stops the pull and warns you to commit first.',
+            'Visual block-by-block conflict resolver: clicking Resolve on any U file opens side-by-side Mine vs Theirs choices per hunk while preserving surrounding Typst code until Apply resolution.',
+            'Disk diff & team conventions: external disk edits open a side-by-side diff before saving; File › Set as main document persists the shared root in settings/dbv-project.toml and Preferences › Ask before updating references updates #include, #import and image() paths when moving files.',
           ],
         },
       },
@@ -821,20 +926,31 @@ export const HELP_SECTIONS = [
   },
   {
     id: 'apariencia',
-    title: { es: 'Apariencia e idioma', en: 'Appearance and language' },
+    title: { es: 'Apariencia, temas e idioma', en: 'Appearance, themes and language' },
     blocks: [
       {
         list: {
           es: [
-            'El selector Claro/Oscuro/Sepia cambia el tema visual al instante.',
+            '10 temas curados y sintaxis adaptada: Claro, Oscuro (con contraste de sintaxis revisado), Sepia, Alto contraste, Nord, Dracula, Catppuccin Mocha, Catppuccin Latte, Solarized Dark y Gruvbox Dark.',
+            '3 botones rápidos configurables: la cabecera mantiene tres botones directos. Desde Preferencias › «Temas y colores…» puedes probar los 10 temas y asignar cualquiera de ellos (o tu tema personalizado) a Botón 1, Botón 2 y Botón 3.',
+            'Tema personalizado y contraste WCAG: en Preferencias › «Temas y colores…» puedes copiar la paleta de cualquier tema curado y ajustar fondos, textos, acento, bordes y colores de sintaxis Typst viendo en directo si el contraste supera el umbral WCAG AA.',
             'El selector ES/EN cambia el idioma de toda la interfaz, incluida esta ayuda.',
-            'Tema, idioma, anchos de panel, nivel de zoom y proyectos recientes se recuerdan entre sesiones.',
+            'Tema, asignación de botones rápidos, paleta personalizada, modo Vim, números relativos, idioma, anchos de panel, nivel de zoom y proyectos recientes se recuerdan entre sesiones.',
           ],
           en: [
-            'The Light/Dark/Sepia selector switches the visual theme instantly.',
+            '10 curated themes and adaptive syntax highlighting: Light, Dark (improved syntax contrast), Sepia, High contrast, Nord, Dracula, Catppuccin Mocha, Catppuccin Latte, Solarized Dark and Gruvbox Dark.',
+            '3 configurable quick-switch buttons: the header keeps three fast buttons. In Preferences › "Themes & colors…" you can preview all 10 themes and assign any of them (or your Custom theme) to Button 1, Button 2 and Button 3.',
+            'Custom theme and WCAG contrast check: in Preferences › "Themes & colors…" you can copy any curated palette and tune backgrounds, text, accent, borders and Typst syntax colors with a live WCAG AA contrast indicator.',
             'The ES/EN selector switches the language of the whole interface, including this help.',
-            'Theme, language, panel widths, zoom level and recent projects are remembered between sessions.',
+            'Theme, quick-button assignments, custom palette, Vim mode, relative line numbers, language, panel widths, zoom level and recent projects are remembered between sessions.',
           ],
+        },
+      },
+      {
+        docLink: {
+          url: 'https://davidbuenov.github.io/dbv-typst-editor/manual/manual-es.pdf',
+          urlEn: 'https://davidbuenov.github.io/dbv-typst-editor/manual/manual-en.pdf',
+          label: { es: 'Abrir el manual de usuario completo (PDF)', en: 'Open complete user manual (PDF)' },
         },
       },
     ],

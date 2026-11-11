@@ -3,9 +3,9 @@
 **[🇪🇸 Español](./README.md) · 🇬🇧 English**
 
 [![Website](https://img.shields.io/badge/Website-davidbuenov.github.io%2Fdbv--typst--editor-2563eb?style=flat&logo=googlechrome&logoColor=white)](https://davidbuenov.github.io/dbv-typst-editor/en/)
-[![Releases](https://img.shields.io/badge/Releases-v0.14.0-brightgreen?logo=github)](https://github.com/davidbuenov/dbv-typst-editor/releases)
+[![Releases](https://img.shields.io/badge/Releases-v0.15.0-brightgreen?logo=github)](https://github.com/davidbuenov/dbv-typst-editor/releases)
 [![Microsoft Store](https://img.shields.io/badge/Microsoft%20Store-9PCPSVTNJMP0-0078D6?logo=microsoft&logoColor=white)](https://apps.microsoft.com/store/detail/9PCPSVTNJMP0?cid=DevShareMCLPCB)
-![Status](https://img.shields.io/badge/status-stable%20%7C%20v0.14.0-success)
+![Status](https://img.shields.io/badge/status-stable%20%7C%20v0.15.0-success)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
 ![Windows](https://img.shields.io/badge/Windows-10%20%2F%2011%20(Microsoft%20Store)-0078D6?logo=windows&logoColor=white)
 ![macOS](https://img.shields.io/badge/macOS-Universal%20(.dmg)-000000?logo=apple&logoColor=white)
@@ -40,6 +40,7 @@
 - [What it can do](#-what-it-can-do)
 - [Requirements](#-requirements)
 - [Using an AI (guide)](./docs/IA.en.md)
+- [User Manual PDF (EN)](./docs/manual/manual-en.pdf) · [(ES)](./docs/manual/manual-es.pdf)
 - [Installation (development)](#-installation-development)
 - [How to run](#-how-to-run)
 - [How to stop](#-how-to-stop)
@@ -64,16 +65,18 @@ It follows the same philosophy as its sibling project [DBV Markdown Reader](http
 
 ## 🚦 Current status
 
-**Current version:** `v0.14.0` · **Status:** 🟢 Stable and production ready
+**Current version:** `v0.15.0` · **Status:** 🟢 Stable and production ready
 
 - 🌐 **Official Website:** [https://davidbuenov.github.io/dbv-typst-editor/en/](https://davidbuenov.github.io/dbv-typst-editor/en/) (featuring full-resolution interactive screenshot gallery and bilingual ES/EN switch).
+- 📘 **Typst-typeset User Manual (PDF):** [English](./docs/manual/manual-en.pdf) · [Español](./docs/manual/manual-es.pdf) (source files in [`docs/manual/`](./docs/manual/)).
 - 📦 **Installers available on Releases:** [GitHub Releases](https://github.com/davidbuenov/dbv-typst-editor/releases):
   - 🪟 **Windows**: only through the [Microsoft Store](https://apps.microsoft.com/store/detail/9PCPSVTNJMP0?cid=DevShareMCLPCB) (there is no `.exe` installer on Releases since `v0.8.0`).
   - 🍎 **macOS**: Universal `.dmg` (compatible with Apple Silicon & Intel).
   - 🐧 **Linux**: `.AppImage` (portable) and `.deb` (Debian/Ubuntu/Mint) packages.
 - 🏬 **Microsoft Store:** published on the official store. [🛒 Get it from Microsoft Store (ID 9PCPSVTNJMP0)](https://apps.microsoft.com/store/detail/9PCPSVTNJMP0?cid=DevShareMCLPCB). If you installed an earlier Store package, make sure you get `v0.3.1` or later (see [`CHANGELOG.en.md`](./dbv-specs-ops/CHANGELOG.en.md)).
-- 🧪 **Quality & Stability:** 2,149 automated tests passing at 100% (1,527 frontend tests + 622 Rust backend tests), AI evaluation with real local models and layout verification in real rendering engines.
+- 🧪 **Quality & Stability:** 2,209 automated tests passing at 100% (1,580 frontend tests + 629 Rust backend tests), AI evaluation with real local models and layout verification in real rendering engines.
 - 🚀 **Key Highlights:**
+  - **Polished editing, 10 WCAG themes, Vim mode, snippet keybindings & refreshed AI UI (v0.15.0):** full dark-mode syntax contrast fix and **10 curated themes + WCAG custom theme** (with 3 customizable quick-switch slots); optional **Vim mode** (lazy-loaded `@replit/codemirror-vim`, bottom `Ln/Col` + mode badge status bar, relative line numbers); **zero typing latency** in Manual Refresh mode; VS Code snippet keybindings (`"key"` / `keybindings.json`) and **"Insert snippet ›"** context submenu; dynamic floating-panel stacking and keyboard navigation across header menus; **tripartite AI connect dialog** with `⚙️` model/reasoning selector and **Google Antigravity** (`agy`) support; plus a complete **bilingual Typst-typeset PDF User Manual** and expanded in-app Help.
   - **AI Native: the AI knows Typst Universe, sees your pages and connects to other agents (v0.14.0):** "Apply template…" turns a document into IEEE or Springer from the same gallery as "New document"; the AI searches **real** templates and packages (it never invents a name or version), looks at the **rendered pages**, cites only references from your `.bib` and, with the cloud, offers a missing typeface (you confirm); an **MCP server** lends Claude Code, Cursor or Codex DBV's exact compiler (read-only, no network; installing a package asks you first); local models gain an output cap, visible progress and retry; and Sublime Text snippets can be imported. Fonts you add to `fonts/` are picked up without a restart.
   - **The AI with local models and with Gemini, more honest (v0.13.1):** the assistant no longer announces proposals that do not exist, shows **what the model is thinking** (collapsible block), **what it is doing and how fast**, and warns about a **model that is too small or a context that is too short**; reasoning ships **off** and is turned on per connection; when it writes it **separates presentation from content** (the look goes in style files); **Gemini 3 can use tools again**. New **"New empty .typ…"** to create a loose document without creating a project (the AI only sees its own file). The guide finally includes **measured numbers** for local models (`qwen3:8b` solves a little over 1 in 3 tasks: always review what it proposes) and a cloud reference, and `eval:ai` also measures cloud AIs.
   - **Built-in, optional AI assistant (v0.13.0):** connect a local AI (Ollama, LM Studio), a cloud one with your API key (Anthropic, OpenAI, Gemini, OpenRouter) or your installed agent with your subscription (Claude Code, Gemini CLI, Codex, Copilot). Chat with the project as context; it proposes multi-file changes that DBV **compiles in memory** before showing them and that you review hunk by hunk before applying (with Undo); inline AI on the selection (Ctrl+Shift+I) and "Explain and fix" on errors. With nothing configured, the editor works exactly as before; with a local AI nothing leaves your computer; keys go to the system credential store. **[📖 Guide: what you need to install to use each AI](./docs/IA.en.md).** Plus: **offline official Typst documentation** (for the exact compiler version, searchable), a **Problems panel** with the full error list and a **CSV/TSV data viewer** with "Insert as table".
@@ -100,7 +103,7 @@ It follows the same philosophy as its sibling project [DBV Markdown Reader](http
   - Paste an image straight from the clipboard, in addition to universal drag-and-drop.
   - 8 pre-configured academic templates with self-contained embedded fonts.
   - Self-contained project archives in `.dbvt` format.
-  - 3 visual themes (Light, Dark, and warm Sepia) plus an integrated advanced Typst terminal.
+  - 10 curated visual themes, WCAG custom theme, and an integrated advanced Typst terminal.
 
 ---
 
@@ -166,9 +169,9 @@ Grouped by what you want to do. Each version’s detail is in the [`CHANGELOG`](
 
 
 ### ✍️ Writing
-- **A real Typst editor** (CodeMirror 6): Typst 0.15 syntax highlighting, autocompletion of functions and symbols, folding, multiple cursors, find and replace, and **one tab per file** that keeps changes, cursor and undo history.
+- **A real Typst editor** (CodeMirror 6): Typst 0.15 syntax highlighting mapped to theme tokens, autocompletion of functions and symbols, folding, multiple cursors, find and replace, bottom `Ln/Col` status bar, relative line numbers, and optional **Vim mode** (`@replit/codemirror-vim`), with **one tab per file** that keeps changes, cursor and undo history.
 - **Insertion toolbar and assistants**: formatting, headings, lists, tables, figures (also by pasting an image from the clipboard), citations from the project’s real bibliography and a gallery of maths symbols.
-- Your own and per-project **snippets**, with import from VS Code and from Sublime Text.
+- Your own and per-project **snippets** with keybindings (`"key"` / `keybindings.json`), **"Insert snippet ›"** context submenu, and import from VS Code and from Sublime Text.
 - With **Tinymist** (on demand): semantic completion, go to definition, find references, rename symbols and format.
 - **Find and replace across the whole project**, with regular expressions, and a **file explorer** that rewrites `#include`, `image()`… when you move or rename, with local version history.
 
@@ -188,7 +191,7 @@ Grouped by what you want to do. Each version’s detail is in the [`CHANGELOG`](
 - **Data viewer** for CSV/TSV, and running **Python** and **JavaScript** (jogs) for figures and dynamic data.
 
 ### 🤖 Optional AI: local, cloud or your subscription
-- **You choose where it lives**: a local model (Ollama, LM Studio, llama.cpp…) with nothing leaving your computer, a provider with your API key (Anthropic, OpenAI, Gemini, OpenRouter) or your installed agent with your subscription (Claude Code, Gemini CLI, Codex, Copilot). With no AI connected, the editor works the same.
+- **You choose where it lives**: a local model (Ollama, LM Studio, llama.cpp…) with nothing leaving your computer, a provider with your API key (Anthropic, OpenAI, Gemini, OpenRouter) or your installed agent with your subscription (**Claude Code, Gemini CLI, Codex, GitHub Copilot CLI, Google Antigravity**) via a unified three-track dialog with `⚙️` model and reasoning-effort selector. With no AI connected, the editor works the same.
 - **It never writes without you seeing it**: it proposes changes in one or several files, DBV **compiles them in memory**, and you accept or reject each hunk, with Undo.
 - **It works on your project**: it reads the files, looks up the Typst documentation, searches **real** Universe templates and packages (it never invents a name or version), cites only references that exist in your `.bib`, **sees the rendered pages** to judge the layout and, with the cloud, offers a missing typeface (you confirm).
 - Inline actions on the selection (Ctrl+Shift+I), "Explain and fix" for an error, and an evaluation with real local models published with its numbers: see the [AI guide](./docs/IA.en.md).
@@ -200,7 +203,7 @@ Grouped by what you want to do. Each version’s detail is in the [`CHANGELOG`](
 ### 📦 Project and distribution
 - A DBV project is a **standard Typst project**: it compiles with plain `typst`, with no lock-in and nothing odd written in your folder. Built-in **Git** (commit, push, pull, clone and conflict resolution).
 - Export **PDF** and **PNG**, and pack everything into a `.dbvt`.
-- **No telemetry, no accounts**; light, dark and sepia themes; Spanish and English interface.
+- **No telemetry, no accounts**; **10 curated themes** + WCAG custom theme (with 3 customizable quick-switch slots); Spanish/English interface and full bilingual PDF manual typeset in Typst.
 - **Windows** (Microsoft Store), **macOS** (`.dmg` and Homebrew) and **Linux** (AppImage, `.deb` and Homebrew).
 
 Full requirements and acceptance criteria live in [`dbv-specs-ops/docs/SPECIFICATIONS.md`](./dbv-specs-ops/docs/SPECIFICATIONS.md).
@@ -302,7 +305,7 @@ stop.cmd
 
 ## 📋 Changelog
 
-`v0.8.0` documented in [`dbv-specs-ops/CHANGELOG.en.md`](./dbv-specs-ops/CHANGELOG.en.md) — performance with large documents (preview page release, bounded temporary replica, adaptive typing pause), a main document selectable from the tree, Tinymist on demand, and a Homebrew channel for macOS and Linux with the `typs` command. `v0.7.0` added: a visual, interactive equation editor, five new diagramming assistants (sequence, Gantt, Kanban, DOT/Graphviz and flowcharts with decisions), a contextual help button linking to each assistant's original documentation, contextual zoom with keyboard/wheel, and a batch of UX fixes (stuck splitter, `ResizeObserver` warning, home screen redesign) found using the app on a real project.
+`v0.15.0` and the full version history since `v0.1.0` are documented in [`dbv-specs-ops/CHANGELOG.en.md`](./dbv-specs-ops/CHANGELOG.en.md) (dark contrast + 10 WCAG themes, optional Vim mode, zero typing latency in Manual Refresh, snippet keybindings & context menu, floating panel stacking & keyboard navigation, tripartite AI UI with Google Antigravity, and bilingual Typst-typeset PDF User Manual).
 
 The changelog is maintained in both languages: [English](./dbv-specs-ops/CHANGELOG.en.md) · [Español](./dbv-specs-ops/CHANGELOG.md).
 
@@ -326,6 +329,11 @@ Copyright (c) 2026 David Bueno Vallejo
 
 This app wouldn't exist without a good number of open-source projects. Thanks to their authors and maintainers:
 
+### Community & Feedback (v0.15.0)
+
+- **[@rgranc](https://github.com/rgranc)** (Issues [#3](https://github.com/davidbuenov/dbv-typst-editor/issues/3) and [#4](https://github.com/davidbuenov/dbv-typst-editor/issues/4)) — detailed workflow proposals covering floating-panel stacking order, header menu exclusivity, snippet keybindings, and project export/file flows.
+- **Víctor Buendía** (Fediscience) — real-world testing and suggestions that drove zero-latency typing in Manual Refresh mode, optional Vim mode, dark syntax contrast improvements, and the expanded theme & custom palette system.
+
 ### Engine and language
 
 - [Typst](https://typst.app) — the typesetting engine the whole app is built around (vendored as a compilation sidecar binary and, since v0.9.0, its `typst`, `typst-ide`, `typst-layout`, `typst-svg` and `typst-kit` crates linked into the app for the in-process preview engine; Apache-2.0 licensed).
@@ -345,7 +353,7 @@ This app wouldn't exist without a good number of open-source projects. Thanks to
 ### Core pieces of the application
 
 - [Tauri](https://tauri.app) — the desktop framework (Rust + native WebView) the whole app runs on, along with its `shell`, `dialog`, `updater`, `process` and `single-instance` plugins.
-- [CodeMirror 6](https://codemirror.net) and [codemirror-lang-typst](https://github.com/kxxt/codemirror-lang-typst) — the code editor and its Typst syntax highlighting.
+- [CodeMirror 6](https://codemirror.net), [codemirror-lang-typst](https://github.com/kxxt/codemirror-lang-typst), and [@replit/codemirror-vim](https://github.com/replit/codemirror-vim) — the code editor, its Typst syntax highlighting, and optional lazy-loaded Vim mode.
 - [Hayagriva](https://github.com/typst/hayagriva) — the very same BibTeX/Hayagriva bibliography engine the Typst compiler itself uses for `#bibliography()`.
 - [Vite](https://vite.dev) — frontend bundling and dev server.
 - [jsonc-parser](https://github.com/microsoft/node-jsonc-parser) — reading and editing snippet files in VS Code format while keeping their comments.

@@ -27,10 +27,16 @@ function pick(bilingual) {
  * @param {() => Promise<object[]>} [deps.loadSections] El contenido; por defecto se importa al abrir la ayuda por primera vez:
  *   son ~70 KB de texto que casi nadie necesita al arrancar, y no deben engordar el paquete inicial.
  */
-export function createHelp({ contentEl, navEl, loadSections = () => import('./helpContent.js').then((module) => module.HELP_SECTIONS) }) {
+export function createHelp({
+  contentEl,
+  navEl,
+  loadSections = () => import('./helpContent.js').then((module) => module.HELP_SECTIONS),
+  getSnippetKeybindings = () => [],
+}) {
   /** @type {Promise<object[]>|null} */
   let sections = null;
   let rendered = false;
+  let shortcutHostEl = null;
 
   function renderShortcuts(rows) {
     const table = document.createElement('dl');
@@ -45,10 +51,11 @@ export function createHelp({ contentEl, navEl, loadSections = () => import('./he
     return table;
   }
 
-  /** RF-80: tabla completa generada desde el registro único de atajos. */
-  function renderShortcutRegistry() {
-    const fragment = document.createDocumentFragment();
-    for (const group of shortcutHelpGroups(getLanguage() === 'en' ? 'en' : 'es', detectMac())) {
+  /** RF-80 / RF-119: tabla completa generada desde el registro único + atajos de snippets. */
+  function fillShortcutRegistry(target) {
+    target.replaceChildren();
+    const extra = getSnippetKeybindings?.() ?? [];
+    for (const group of shortcutHelpGroups(getLanguage() === 'en' ? 'en' : 'es', detectMac(), extra)) {
       const title = document.createElement('h4');
       title.className = 'help__subheading';
       title.textContent = group.title;
@@ -61,9 +68,15 @@ export function createHelp({ contentEl, navEl, loadSections = () => import('./he
         value.textContent = description;
         table.append(key, value);
       }
-      fragment.append(title, table);
+      target.append(title, table);
     }
-    return fragment;
+  }
+
+  function renderShortcutRegistry() {
+    shortcutHostEl = document.createElement('div');
+    shortcutHostEl.className = 'help__shortcut-registry';
+    fillShortcutRegistry(shortcutHostEl);
+    return shortcutHostEl;
   }
 
   function renderBlock(block) {
@@ -144,6 +157,7 @@ export function createHelp({ contentEl, navEl, loadSections = () => import('./he
   /** Pinta la ayuda la primera vez que se necesita (cargando su contenido) y no antes. */
   async function ensureRendered() {
     if (!rendered) await render();
+    else if (shortcutHostEl) fillShortcutRegistry(shortcutHostEl);
   }
 
   /** Usado también por los botones "?" de cada asistente (RF-52, `helpTrigger.js`). */

@@ -40,6 +40,7 @@
         <a href="#videos">Vídeos</a>
         <a href="#gallery">Galería</a>
         <a href="#templates">Plantillas</a>
+        <a href="#manual">Manual</a>
         <a href="#download">Descargar</a>
         <a href="https://github.com/davidbuenov/dbv-typst-editor" class="nav-github" target="_blank" rel="noopener">
           <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
@@ -73,11 +74,14 @@
           <a href="#videos" class="btn btn-ghost btn-lg">
             ▶️ Ver vídeos
           </a>
+          <a href="manual/manual-es.pdf" class="btn btn-ghost btn-lg" target="_blank" rel="noopener">
+            📘 Manual de usuario (PDF)
+          </a>
           <a href="https://github.com/davidbuenov/dbv-typst-editor" class="btn btn-ghost btn-lg" target="_blank" rel="noopener">
             Ver código en GitHub
           </a>
         </div>
-        <p class="hero-note">Recomendado en Windows: Microsoft Store (con auto-actualización) o instalador .exe · macOS (.dmg universal) · Linux (.AppImage, .deb) · Sin cuentas, sin publicidad, sin telemetría · Un proyecto creado aquí es un proyecto Typst normal, sin ataduras</p>
+        <p class="hero-note">Windows: Microsoft Store (con auto-actualización oficial) · macOS (.dmg universal y Homebrew) · Linux (.AppImage, .deb y Homebrew) · Sin cuentas, sin publicidad, sin telemetría · Un proyecto creado aquí es un proyecto Typst normal, sin ataduras</p>
       </div>
 
       <div class="hero-shot">
@@ -279,14 +283,26 @@
 
           <article class="feature-card">
             <div class="feature-icon">🎨</div>
-            <h3>Tres temas visuales</h3>
-            <p>Claro, Oscuro y Sepia para sesiones largas de escritura — se recuerda tu elección.</p>
+            <h3>10 temas y paleta personalizada</h3>
+            <p>Claro, Oscuro mejorado, Sepia, Alto contraste, Nord, Dracula, Catppuccin y más — con 3 botones asignables y tema propio con contraste WCAG.</p>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-icon">⌨️</div>
+            <h3>Modo Vim y barra de estado</h3>
+            <p>Edición modal Vim opcional bajo demanda, barra inferior <code>Lín/Col</code>, números relativos y <code>Escape</code> respetuoso con paneles.</p>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-icon">⚡</div>
+            <h3>Snippets con atajos y clic derecho</h3>
+            <p>Lee <code>.vscode/*.code-snippets</code> y <code>keybindings.json</code>, envuelve selecciones con <code>$TM_SELECTED_TEXT</code> e inserta desde el menú contextual.</p>
           </article>
 
           <article class="feature-card">
             <div class="feature-icon">🌍</div>
             <h3>Español e inglés</h3>
-            <p>Interfaz completa en los dos idiomas, incluida la ayuda integrada.</p>
+            <p>Interfaz completa en los dos idiomas, incluida la ayuda integrada y el manual PDF compuesto en Typst.</p>
           </article>
 
         </div>
@@ -307,8 +323,8 @@
           </article>
           <article class="feature-card">
             <div class="feature-icon">🤖</div>
-            <h3>Usa tu suscripción</h3>
-            <p>Conecta el agente que ya tienes instalado (Claude Code, Codex, Gemini CLI o Copilot) y usa tu cuenta. DBV nunca ve tus credenciales y cada permiso del agente se te pide con su diff.</p>
+            <h3>Usa tu suscripción y elige modelo</h3>
+            <p>Conecta Claude Code, Codex, Gemini CLI, Copilot o Antigravity desde el panel tripartito, ajusta su modelo y esfuerzo de razonamiento y aprueba cada cambio con su diff.</p>
           </article>
           <article class="feature-card">
             <div class="feature-icon">✅</div>
@@ -436,10 +452,74 @@
           </article>
 
           <article class="showcase-card">
-            <img src="screenshots/09-typst-cli-terminal.png" alt="Terminal flotante integrado ejecutando el compilador Typst 0.15" class="zoomable" loading="lazy" />
+            <img src="screenshots/09-typst-cli-terminal.png" alt="Terminal flotante integrado ejecutando el compilador Typst" class="zoomable" loading="lazy" />
             <div class="showcase-body">
               <h3>Terminal integrado de Typst</h3>
-              <p>Vía de escape opcional para usuarios avanzados que deseen ejecutar subcomandos directos del compilador Typst 0.15 sin salir de la ventana.</p>
+              <p>Vía de escape opcional para usuarios avanzados que deseen ejecutar subcomandos directos del compilador oficial Typst sin salir de la ventana.</p>
+            </div>
+          </article>
+
+          <article class="showcase-card">
+            <img src="screenshots/10-themes-colors-dialog.png" alt="Selector de 10 temas curados, 3 botones rápidos y editor de tema personalizado WCAG AA" class="zoomable" loading="lazy" />
+            <div class="showcase-body">
+              <h3>10 temas curados y tema personalizado WCAG</h3>
+              <p>Elige entre Claro, Oscuro, Sepia, Alto contraste, Nord, Dracula, Catppuccin, Solarized o Gruvbox, asigna 3 botones rápidos y valida el contraste WCAG AA en vivo.</p>
+            </div>
+          </article>
+
+          <article class="showcase-card">
+            <img src="screenshots/11-ai-connect-modal.png" alt="Asistente para conectar IA local (Ollama/LM Studio), agentes CLI o proveedores en la nube" class="zoomable" loading="lazy" />
+            <div class="showcase-body">
+              <h3>Asistente de IA flexible y opcional</h3>
+              <p>Conecta modelos locales con Ollama/LM Studio, agentes por suscripción (Claude Code, Gemini CLI, Codex, Copilot) o APIs en la nube guardadas en el llavero del sistema.</p>
+            </div>
+          </article>
+
+          <article class="showcase-card">
+            <img src="screenshots/12-ai-assistant-panel.png" alt="Panel lateral de IA con propuesta de cambios verificada por el compilador Typst" class="zoomable" loading="lazy" />
+            <div class="showcase-body">
+              <h3>Propuestas verificadas antes de tocar archivos</h3>
+              <p>La IA comprueba cada cambio propuesto con el compilador Typst antes de mostrar el árbol de revisión para aplicar, inspeccionar o rechazar sin riesgos.</p>
+            </div>
+          </article>
+
+          <article class="showcase-card">
+            <img src="screenshots/13-git-collaboration.png" alt="Popover de estado Git con archivos en conflicto, modificados, Commit, Pull y Push" class="zoomable" loading="lazy" />
+            <div class="showcase-body">
+              <h3>Trabajo colaborativo integrado con Git</h3>
+              <p>Consulta la rama, commits por subir/bajar, archivos modificados y conflictos desde la cabecera, con protección automática en Pull ante cambios locales sin guardar.</p>
+            </div>
+          </article>
+
+          <article class="showcase-card">
+            <img src="screenshots/14-git-merge-conflict.png" alt="Resolvedor visual de conflictos Git bloque a bloque eligiendo Mío o Remoto" class="zoomable" loading="lazy" />
+            <div class="showcase-body">
+              <h3>Resolvedor visual bloque a bloque</h3>
+              <p>Resuelve conflictos de fusión comparando <em>Mío</em> frente a <em>Remoto</em> bloque a bloque sin tocar marcas manuales ni dañar el código Typst alrededor.</p>
+            </div>
+          </article>
+
+          <article class="showcase-card">
+            <img src="screenshots/15-diagram-editor.png" alt="Editor visual de diagramas generando código Typst con el paquete cetz" class="zoomable" loading="lazy" />
+            <div class="showcase-body">
+              <h3>Editor visual de diagramas (CeTZ)</h3>
+              <p>Dibuja diagramas de flujo, ecuaciones LaTeX, secuencias, Gantt, Kanban o grafos DOT e inserta código Typst limpio listo para editar.</p>
+            </div>
+          </article>
+
+          <article class="showcase-card">
+            <img src="screenshots/16-csv-data-viewer.png" alt="Visor interactivo de archivos CSV/TSV conectado a tablas vivas csv() en Typst" class="zoomable" loading="lazy" />
+            <div class="showcase-body">
+              <h3>Visor CSV / TSV y ejecución Python</h3>
+              <p>Ordena y filtra tablas científicas, enlázalas con <code>csv()</code> o ejecuta scripts Python para regenerar gráficas y datos sin salir del editor.</p>
+            </div>
+          </article>
+
+          <article class="showcase-card">
+            <img src="screenshots/17-vim-statusbar-preferences.png" alt="Modo Vim opcional, números de línea relativos e insignia NORMAL en barra inferior" class="zoomable" loading="lazy" />
+            <div class="showcase-body">
+              <h3>Modo Vim, números relativos y refresco manual</h3>
+              <p>Activa la edición modal Vim bajo demanda, muestra distancias relativas al cursor y usa el refresco manual para teclear con latencia cero en tesis extensas.</p>
             </div>
           </article>
 
@@ -474,7 +554,7 @@
           <div class="step">
             <span class="step-num">1</span>
             <h3>Descarga e instala</h3>
-            <p>Consíguelo en Microsoft Store o descarga los instaladores para Windows (.exe), macOS (.dmg universal) y Linux (.AppImage, .deb) desde GitHub Releases. Sin compilar ni configurar dependencias.</p>
+            <p>Consíguelo en Microsoft Store para Windows o descarga los paquetes para macOS (.dmg universal) y Linux (.AppImage, .deb) desde GitHub Releases o Homebrew. Sin compilar ni configurar dependencias.</p>
           </div>
           <div class="step">
             <span class="step-num">2</span>
@@ -486,6 +566,34 @@
             <h3>Escribe</h3>
             <p>El PDF se compone solo mientras escribes. Guarda con <kbd>Ctrl</kbd> + <kbd>S</kbd>, exporta cuando quieras.</p>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── Manual de usuario ─────────────────────────────────────────────── -->
+    <section class="features" id="manual">
+      <div class="features-inner">
+        <h2>Manual de usuario completo — compuesto en el propio Typst</h2>
+        <p class="section-sub">Consulta toda la referencia de DBV Typst Editor paso a paso en español o inglés, o descarga los ficheros <code>.typ</code> para compilarlos y explorarlos dentro de la aplicación.</p>
+        <div class="feature-grid">
+          <article class="feature-card">
+            <div class="feature-icon">📘</div>
+            <h3>Manual de Usuario (Español · PDF)</h3>
+            <p>Menús completos (Archivo, Herramientas y Preferencias), trabajo colaborativo con Git, herramientas visuales con ejemplos, Modo Vim, 10 temas WCAG, Python, IA y MCP.</p>
+            <p><a href="manual/manual-es.pdf" class="btn btn-primary" target="_blank" rel="noopener">Abrir manual en español (PDF)</a></p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon">📗</div>
+            <h3>User Manual (English · PDF)</h3>
+            <p>Complete English guide covering every menu item, Git conflict resolution, visual assistants with Typst examples, Vim mode, 10 WCAG themes, AI, and MCP.</p>
+            <p><a href="manual/manual-en.pdf" class="btn btn-ghost" target="_blank" rel="noopener">Open English manual (PDF)</a></p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon">📝</div>
+            <h3>Código fuente en Typst (<code>.typ</code>)</h3>
+            <p>Maquetado con el propio compilador integrado de Typst. Puedes inspeccionar la plantilla y abrirla como ejemplo real en DBV.</p>
+            <p><a href="https://github.com/davidbuenov/dbv-typst-editor/tree/master/docs/manual" class="btn btn-ghost" target="_blank" rel="noopener">Ver fuente Typst en GitHub</a></p>
+          </article>
         </div>
       </div>
     </section>
@@ -525,6 +633,7 @@
           <a href="https://github.com/davidbuenov/dbv-typst-editor" target="_blank" rel="noopener">Código fuente</a>
           <a href="https://github.com/davidbuenov/dbv-typst-editor/releases" target="_blank" rel="noopener">Versiones</a>
           <a href="https://github.com/davidbuenov/dbv-typst-editor/issues" target="_blank" rel="noopener">Reportar un problema</a>
+          <a href="manual/manual-es.pdf" target="_blank" rel="noopener">Manual de usuario (PDF)</a>
           <a href="https://github.com/davidbuenov/dbv-typst-editor/blob/master/dbv-specs-ops/CHANGELOG.md" target="_blank" rel="noopener">Changelog</a>
         </div>
         <div class="footer-col">
@@ -592,3 +701,4 @@
 
 </body>
 </html>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     

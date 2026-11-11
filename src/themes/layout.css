@@ -1358,6 +1358,40 @@
   background: var(--border);
 }
 
+.editor-context-submenu-wrap {
+  position: relative;
+}
+
+.editor-context-submenu-trigger,
+.editor-context-snippet-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.editor-context-submenu {
+  position: absolute;
+  top: -6px;
+  left: 100%;
+  margin-left: 2px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.editor-context-submenu--left {
+  left: auto;
+  right: 100%;
+  margin-left: 0;
+  margin-right: 2px;
+}
+
+.menu-item__shortcut {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
 /* ─── Separadores redimensionables ────────────────────────────────────────── */
 .splitter {
   background: var(--border);
@@ -1373,7 +1407,7 @@
 /* ─── Documento y editor ──────────────────────────────────────────────────── */
 .document {
   display: grid;
-  grid-template-rows: auto auto 1fr;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
   /* Mismo motivo que en `.preview`: la columna implícita `auto` no debe crecer
      con el contenido de las barras. */
   grid-template-columns: minmax(0, 1fr);
@@ -1633,6 +1667,33 @@ button.document__lsp-badge {
 .editor .cm-editor {
   flex: 1 1 auto;
   min-width: 0;
+}
+
+.editor-statusbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 2px 12px;
+  min-height: 22px;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.editor-statusbar__badge {
+  padding: 0 6px;
+  border-radius: 3px;
+  background: var(--accent-subtle);
+  color: var(--accent);
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.editor-statusbar__pos {
+  white-space: nowrap;
 }
 
 /* El resto del aspecto del editor vive en `editor/editor.js` (EditorView.theme),

@@ -22,7 +22,7 @@ import { openSearchPanel } from '@codemirror/search';
 import { createBibEntryPanel } from '../bibliography/bibEntryPanel.js';
 import { createCitationPicker } from '../editor/citationPicker.js';
 import { createImagePicker } from '../editor/imagePicker.js';
-import { createEditor } from '../editor/editor.js';
+import { createEditor, formatCursorStatus } from '../editor/editor.js';
 import { createSymbolPicker } from '../editor/symbolPicker.js';
 import { createTableDialog } from '../editor/tableDialog.js';
 import { createCetzAssistant } from '../editor/cetzAssistant.js';
@@ -169,19 +169,48 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     autoSaveAll();
   }
 
+  const TOOLBAR_REFRESH_DEBOUNCE_MS = 60;
+  let toolbarRefreshTimer = null;
+  let lastCursorStatusText = '';
+  function updateCursorStatusBar(view, force = false) {
+    if (!elements.editorCursorPos) return;
+    const text = state.document && view ? formatCursorStatus(view.state, t) : '';
+    if (force || text !== lastCursorStatusText) {
+      lastCursorStatusText = text;
+      elements.editorCursorPos.textContent = text;
+    }
+  }
+  document.addEventListener('dbv-lang-changed', () => updateCursorStatusBar(editor.getView(), true));
+  function updateVimStatusBadge(mode) {
+    if (!elements.editorVimBadge) return;
+    const label = state.document && mode ? mode : '';
+    elements.editorVimBadge.textContent = label;
+    elements.editorVimBadge.classList.toggle('hidden', !label);
+  }
+  function scheduleToolbarRefresh(view) {
+    updateCursorStatusBar(view);
+    if (toolbarRefreshTimer) return;
+    toolbarRefreshTimer = setTimeout(() => {
+      toolbarRefreshTimer = null;
+      toolbar?.refresh();
+    }, TOOLBAR_REFRESH_DEBOUNCE_MS);
+  }
+
   const editor = createEditor(elements.editorHost, {
     theme: getTheme(),
     lspClient,
-    onChange: (content) => {
+    onVimModeChange: updateVimStatusBadge,
+    onModified: () => {
+      const becameDirty = !state.dirty;
       state.dirty = true;
-      renderDocumentBar();
+      if (becameDirty && state.document) tabBar.setTabDirty(state.document.path, true);
       scheduleAutoSave();
       // La vista previa solo se alimenta en vivo si lo que se está editando es
       // el documento que ella compila. Al editar `refs.bib` o un `.toml`, ese
       // contenido no es un documento Typst: mandarlo compilaría la bibliografía
       // como si fuera el documento. Esos ficheros llegan a la vista previa por
       // la vía normal — al guardarlos, el observador dispara la recompilación.
-      if (isTypstPath(state.document?.path)) listeners.documentChanged?.(content);
+      if (isTypstPath(state.document?.path)) listeners.documentChanged?.();
       // Un `.cpp`, `.csv`… sin guardar que el documento incrusta con `read()`
       // (RF-60.4): el motor en proceso lo sustituye en memoria, así que la vista
       // previa puede seguir lo que se escribe. Quién decide si recompilar es main.js.
@@ -189,12 +218,24 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     },
     onChanges: (changes) => listeners.editorChanges?.(changes),
     onSave: () => listeners.saveRequested?.(),
-    onSelectionChange: () => toolbar?.refresh(),
+    onSelectionChange: (view) => scheduleToolbarRefresh(view),
     onBlur: flushAutoSaveOnBlur,
-    onGoToDefinition: (view) => listeners.goToDefinition?.(view),
-    onFindReferences: (view) => listeners.findReferences?.(view),
-    onRenameSymbol: (view) => listeners.renameSymbol?.(view),
-    onCodeActions: (view) => listeners.codeActions?.(view),
+    onGoToDefinition: (view) => {
+      editor.flush?.();
+      listeners.goToDefinition?.(view);
+    },
+    onFindReferences: (view) => {
+      editor.flush?.();
+      listeners.findReferences?.(view);
+    },
+    onRenameSymbol: (view) => {
+      editor.flush?.();
+      listeners.renameSymbol?.(view);
+    },
+    onCodeActions: (view) => {
+      editor.flush?.();
+      listeners.codeActions?.(view);
+    },
   });
 
   // Diagnósticos (RF-59): los de Tinymist y los del motor en proceso se
@@ -476,6 +517,8 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
   function renderDocumentBar() {
     const hasDocument = Boolean(state.document);
     renderTabs();
+    updateCursorStatusBar(editor.getView());
+    if (!hasDocument) updateVimStatusBadge(null);
     elements.documentPath.textContent = hasDocument && getPref('showFullPath') ? state.document.path : '';
 
     // Insignia del lenguaje (RF-60.5): solo para lo que no es Typst, que es
@@ -1465,6 +1508,7 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
    */
   async function save({ auto = false } = {}) {
     if (!state.document) return false;
+    editor.flush?.();
     // Reentrada (encontrado en /code-simplify): un guardado manual que abre
     // el diálogo de conflicto le quita el foco al editor — eso dispara el
     // `blur` de RF-64.1 y, con el guardado automático encendido, arrancaría
@@ -1904,6 +1948,8 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
       listeners[name] = handler;
     },
     renderDocumentBar,
+    getEditorView: () => editor.getView(),
+    setSnippetKeybindings: (bindings) => editor.setSnippetKeybindings?.(bindings),
     formatDocument: () => editor.formatDocument?.(),
     insertFigureForPath(path) {
       const view = editor.getView();

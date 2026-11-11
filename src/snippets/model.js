@@ -24,6 +24,8 @@ import { parse, printParseErrorCode } from 'jsonc-parser';
  * @property {string} description
  * @property {string} name
  * @property {'project' | 'global'} origin
+ * @property {string} [key] Atajo de teclado opcional (RF-119).
+ * @property {boolean} [contextMenu] Mostrar en el menú contextual «Insertar snippet» (RF-119).
  */
 
 /** Línea (desde 1) de un desplazamiento en `text`. */
@@ -63,9 +65,19 @@ export function parseSnippetFile(text, origin) {
         continue;
       }
       if (!appliesToTypst(entry.scope)) continue;
+      const key = typeof entry.key === 'string' && entry.key.trim() ? entry.key.trim() : undefined;
+      const contextMenu = entry.contextMenu === true;
       for (const prefix of prefixes) {
         if (typeof prefix !== 'string' || !prefix) continue;
-        snippets.push({ prefix, body, description: typeof entry.description === 'string' ? entry.description : name, name, origin });
+        snippets.push({
+          prefix,
+          body,
+          description: typeof entry.description === 'string' ? entry.description : name,
+          name,
+          origin,
+          ...(key ? { key } : {}),
+          ...(contextMenu ? { contextMenu: true } : {}),
+        });
       }
     }
   }

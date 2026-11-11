@@ -250,6 +250,12 @@
             <button id="pref-line-numbers" class="menu-item" type="button" role="menuitemcheckbox" aria-checked="true">
               <span class="menu-item__check" aria-hidden="true"></span><span data-i18n="prefs.showLineNumbers"></span>
             </button>
+            <button id="pref-relative-lines" class="menu-item" type="button" role="menuitemcheckbox" aria-checked="false">
+              <span class="menu-item__check" aria-hidden="true"></span><span data-i18n="prefs.relativeLineNumbers"></span>
+            </button>
+            <button id="pref-vim-mode" class="menu-item" type="button" role="menuitemcheckbox" aria-checked="false">
+              <span class="menu-item__check" aria-hidden="true"></span><span data-i18n="prefs.vimMode"></span>
+            </button>
             <button id="pref-auto-save" class="menu-item" type="button" role="menuitemcheckbox" aria-checked="false">
               <span class="menu-item__check" aria-hidden="true"></span><span data-i18n="prefs.autoSave"></span>
             </button>
@@ -266,6 +272,9 @@
               <span class="menu-item__check" aria-hidden="true"></span><span data-i18n="prefs.mcpShareState"></span>
             </button>
             <div class="menu-separator" role="separator"></div>
+            <button id="pref-theme-dialog" class="menu-item" type="button" role="menuitem">
+              <span class="menu-item__check" aria-hidden="true">🎨</span><span data-i18n="prefs.themes"></span>
+            </button>
             <button id="pref-clear-history" class="menu-item" type="button" role="menuitem">
               <span class="menu-item__check" aria-hidden="true"></span><span data-i18n="prefs.clearHistory"></span>
             </button>
@@ -473,6 +482,10 @@
           </div>
           <div class="toolbar" id="editor-toolbar"></div>
           <div class="editor" id="editor-host"></div>
+          <div id="editor-statusbar" class="editor-statusbar" aria-live="off">
+            <span id="editor-vim-mode" class="editor-statusbar__badge hidden">NORMAL</span>
+            <span id="editor-cursor-pos" class="editor-statusbar__pos"></span>
+          </div>
         </div>
 
         <div class="splitter" id="splitter-preview" role="separator" aria-orientation="vertical"></div>
@@ -1371,6 +1384,16 @@
         <button id="clone-submit" class="button button--primary button--compact" type="submit" data-i18n="clone.action"></button>
       </form>
       <p class="form__error hidden" id="clone-error"></p>
+    </div>
+
+    <!-- Preferencias de tema (RF-122): 10 temas curados, asignación de los
+         3 botones rápidos de cabecera y editor del tema personalizado. -->
+    <div id="theme-panel" class="floating-panel floating-panel--theme hidden" role="dialog" aria-modal="false">
+      <div class="panel__header">
+        <h2 class="floating-panel__title" data-i18n="theme.dialogTitle"></h2>
+        <button id="btn-theme-close" class="icon-button icon-button--small" type="button" data-i18n-title="action.close">✕</button>
+      </div>
+      <div id="theme-dialog-body" class="theme-dialog__body"></div>
     </div>
 
     <script type="module" src="./main.js"></script>

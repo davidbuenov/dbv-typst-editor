@@ -16,12 +16,44 @@ import { makeDraggable } from './draggablePanel.js';
 /** @type {Array<() => void>} Cierres registrados, para "cerrar todo" (p. ej. Escape). */
 const panelClosers = [];
 
-/**
- * Cabeceras que ya existían en el HTML antes de que esto fuera automático.
- * Cada panel las traía con su propio nombre de clase porque se fueron
- * añadiendo una a una; se reconocen todas para no duplicar cabecera en los
- * que ya tenían.
- */
+/** Banda z-index reservada a paneles flotantes (`.toast` = 20, `.modal` = 30). */
+const FLOATING_Z_MIN = 11;
+const FLOATING_Z_MAX = 19;
+const FLOATING_Z_CAPACITY = FLOATING_Z_MAX - FLOATING_Z_MIN + 1;
+
+/** @type {HTMLElement[]} Paneles abiertos actualmente, en orden ascendente de apilamiento. */
+const openFloatingPanels = [];
+
+/** @type {Map<string, Array<{ panelEl: HTMLElement, close: () => void }>>} */
+const exclusiveGroups = new Map();
+
+const isTargetWithin = (container, target) =>
+  Boolean(container && target && (container === target || (target instanceof Node && container.contains(target))));
+
+function syncFloatingZIndices() {
+  const overflow = Math.max(0, openFloatingPanels.length - FLOATING_Z_CAPACITY);
+  for (let i = 0; i < openFloatingPanels.length; i++) {
+    const slot = Math.max(0, i - overflow);
+    openFloatingPanels[i].style.zIndex = String(FLOATING_Z_MIN + slot);
+  }
+}
+
+function bringToFront(panelEl) {
+  if (!panelEl || panelEl.classList.contains('modal')) return;
+  const idx = openFloatingPanels.indexOf(panelEl);
+  if (idx !== -1) openFloatingPanels.splice(idx, 1);
+  openFloatingPanels.push(panelEl);
+  syncFloatingZIndices();
+}
+
+function removeFromFloatingOrder(panelEl) {
+  const idx = openFloatingPanels.indexOf(panelEl);
+  if (idx !== -1) openFloatingPanels.splice(idx, 1);
+  panelEl.style.removeProperty('z-index');
+  syncFloatingZIndices();
+}
+
+/** Cabeceras que ya existían en el HTML antes de que esto fuera automático. */
 const HEADER_SELECTOR = '.panel__header, .git-popover__header, .terminal__header, .python__header';
 
 /**
@@ -103,6 +135,51 @@ function ensurePanelChrome(panelEl, close) {
   makeDraggable(panelEl, headerEl);
 }
 
+function getMenuItems(menuEl) {
+  return [...menuEl.querySelectorAll('[role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"], .menu-item')]
+    .filter((item) => !item.disabled && !item.hidden && item.getAttribute('aria-disabled') !== 'true');
+}
+
+function ensureMenuKeyboardNavigation(panelEl, triggers, open, close) {
+  panelEl.addEventListener('keydown', (event) => {
+    if (panelEl.classList.contains('hidden')) return;
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      event.stopPropagation();
+      close();
+      triggers[0]?.focus?.();
+      return;
+    }
+    const items = getMenuItems(panelEl);
+    if (items.length === 0) return;
+    const currentIndex = items.indexOf(document.activeElement);
+    let nextIndex = -1;
+    if (event.key === 'ArrowDown') nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % items.length;
+    else if (event.key === 'ArrowUp') nextIndex = currentIndex <= 0 ? items.length - 1 : currentIndex - 1;
+    else if (event.key === 'Home') nextIndex = 0;
+    else if (event.key === 'End') nextIndex = items.length - 1;
+    if (nextIndex === -1) return;
+    event.preventDefault();
+    items[nextIndex].focus();
+  });
+
+  panelEl.addEventListener('focusout', (event) => {
+    if (panelEl.classList.contains('hidden') || !event.relatedTarget) return;
+    const staysInsideMenu = isTargetWithin(panelEl, event.relatedTarget);
+    const movesToTrigger = triggers.some((trigger) => isTargetWithin(trigger, event.relatedTarget));
+    if (!staysInsideMenu && !movesToTrigger) close();
+  });
+
+  for (const trigger of triggers) {
+    trigger.addEventListener('keydown', (event) => {
+      if (event.key !== 'ArrowDown') return;
+      event.preventDefault();
+      if (panelEl.classList.contains('hidden')) open();
+      getMenuItems(panelEl)[0]?.focus();
+    });
+  }
+}
+
 /**
  * Registra un panel y devuelve sus controles de apertura/cierre.
  *
@@ -111,6 +188,7 @@ function ensurePanelChrome(panelEl, close) {
  * @param {HTMLElement|HTMLElement[]} [opts.trigger] Botón(es) que lo abren.
  * @param {boolean} [opts.toggle] El trigger alterna abrir/cerrar.
  * @param {boolean} [opts.closeOnOutsideClick] Cierra al hacer clic fuera.
+ * @param {string} [opts.exclusiveGroup] Grupo de menús/paneles mutuamente excluyentes.
  * @param {() => void} [opts.onOpen] Efecto al abrir (foco, carga de datos...).
  * @param {() => void} [opts.onClose] Efecto al cerrar.
  * @returns {{ open: () => void, close: () => void }}
@@ -127,43 +205,69 @@ export function registerPanel(panelEl, opts = {}) {
   // retirar `#btn-launcher-universe` en RF-25.
   const triggers = opts.trigger ? [].concat(opts.trigger).filter(Boolean) : [];
 
+  const setTriggersExpanded = (expanded) => {
+    for (const trigger of triggers) {
+      if (trigger.hasAttribute('aria-expanded')) trigger.setAttribute('aria-expanded', String(expanded));
+    }
+  };
+
   const close = () => {
     panelEl.classList.add('hidden');
+    removeFromFloatingOrder(panelEl);
+    setTriggersExpanded(false);
     opts.onClose?.();
   };
 
   const open = () => {
+    if (opts.exclusiveGroup) {
+      for (const entry of exclusiveGroups.get(opts.exclusiveGroup) ?? []) {
+        if (entry.panelEl !== panelEl && !entry.panelEl.classList.contains('hidden')) entry.close();
+      }
+    }
     panelEl.classList.remove('hidden');
+    setTriggersExpanded(true);
+    bringToFront(panelEl);
     opts.onOpen?.();
   };
 
+  if (opts.exclusiveGroup) {
+    const group = exclusiveGroups.get(opts.exclusiveGroup) ?? [];
+    group.push({ panelEl, close });
+    exclusiveGroups.set(opts.exclusiveGroup, group);
+  }
+
   for (const trigger of triggers) {
-    trigger.addEventListener('click', (event) => {
+    trigger.addEventListener('click', () => {
       if (!opts.toggle) {
         open();
         return;
       }
-      // Con toggle hay que frenar la propagación: si no, el mismo clic que abre
-      // el panel llega al listener de "clic fuera" y lo vuelve a cerrar.
-      event.stopPropagation();
       if (panelEl.classList.contains('hidden')) open();
       else close();
     });
   }
 
+  panelEl.addEventListener('pointerdown', () => {
+    if (!panelEl.classList.contains('hidden')) bringToFront(panelEl);
+  });
+  panelEl.addEventListener('focusin', () => {
+    if (!panelEl.classList.contains('hidden')) bringToFront(panelEl);
+  });
+
   if (opts.closeOnOutsideClick) {
     document.addEventListener('click', (event) => {
       const isOpen = !panelEl.classList.contains('hidden');
-      const clickedInside = panelEl.contains(event.target);
-      const clickedTrigger = triggers.includes(event.target);
+      const clickedInside = isTargetWithin(panelEl, event.target);
+      const clickedTrigger = triggers.some((trigger) => isTargetWithin(trigger, event.target));
       if (isOpen && !clickedInside && !clickedTrigger) close();
     });
   }
 
-  // Los menús desplegables (`role="menu"`) quedan fuera a propósito: se
-  // cierran solos al elegir o al pulsar fuera, y una cabecera con "✕" encima
-  // de un menú de tres opciones estorba más de lo que ayuda.
-  if (panelEl.getAttribute('role') === 'dialog') ensurePanelChrome(panelEl, close);
+  // Los menús desplegables (`role="menu"`) quedan fuera de cabecera a propósito,
+  // pero ganan navegación por teclado (RF-118) y cierre al salir con Tab.
+  const role = panelEl.getAttribute('role');
+  if (role === 'dialog') ensurePanelChrome(panelEl, close);
+  else if (role === 'menu') ensureMenuKeyboardNavigation(panelEl, triggers, open, close);
 
   panelClosers.push(close);
   return { open, close };

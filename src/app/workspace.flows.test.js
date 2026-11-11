@@ -75,10 +75,13 @@ const fakeView = {
     for (const change of [...list].sort((a, b) => b.from - a.from)) {
       fake.content = fake.content.slice(0, change.from) + change.insert + fake.content.slice(change.to ?? change.from);
     }
-    fake.options.onChange(fake.content);
+    fake.options.onChange?.(fake.content);
+    fake.options.onModified?.();
   },
 };
 vi.mock('../editor/editor.js', () => ({
+  formatCursorStatus: vi.fn(() => ''),
+  formatVimModeBadge: vi.fn(() => ''),
   createEditor: (host, options) => {
     fake.options = options;
     const editor = stub();

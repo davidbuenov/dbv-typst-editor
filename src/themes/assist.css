@@ -291,7 +291,7 @@
 .ai-step { font-size: 11px; color: var(--text-muted); font-style: italic; }
 .ai-form__advice { display: grid; gap: 6px; margin: 4px 0; }
 .ai-form__advice:empty, .ai-panel__warning:empty { display: none; }
-.ai-advice { font-size: 12px; padding: 6px 8px; border-radius: var(--radius); background: var(--bg-tertiary); color: var(--text-secondary); border-left: 3px solid var(--status-warning, #b8860b); }
+.ai-advice { font-size: 12px; padding: 6px 8px; border-radius: var(--radius); background: var(--bg-tertiary); color: var(--text-secondary); border-left: 3px solid var(--status-warn); }
 .ai-panel__warning { display: grid; gap: 4px; padding: 0 10px; }
 .ai-activity-row { display: flex; align-items: center; gap: 6px; }
 .ai-activity__time { font-size: 11px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
@@ -356,12 +356,12 @@
 .snippet-import__summary { font-weight: 600; font-size: 12px; }
 .snippet-import__skipped { font-size: 12px; color: var(--text-secondary); }
 .snippet-import__list { margin: 4px 0 0; padding-left: 18px; max-height: 160px; overflow: auto; }
-.snippet-import__warn { margin: 0; font-size: 12px; color: var(--status-warning, var(--text-secondary)); }
+.snippet-import__warn { margin: 0; font-size: 12px; color: var(--status-warn); }
 .snippet-import__destination, .snippet-import__mode { border: 1px solid var(--border); border-radius: var(--radius); padding: 6px 8px; display: grid; gap: 4px; font-size: 12px; }
 .snippet-import__option { display: flex; gap: 6px; align-items: flex-start; }
 .snippet-import__message { margin: 0; font-size: 12px; color: var(--text-secondary); }
 .snippet-import__message.is-error { color: var(--status-error); }
-.snippet-import__message.is-warning { color: var(--status-warning, var(--text-secondary)); }
+.snippet-import__message.is-warning { color: var(--status-warn); }
 .ai-template { display: grid; gap: 8px; }
 .ai-template__intro { margin: 0; font-size: 12px; color: var(--text-secondary); }
 .ai-template__search { display: flex; gap: 6px; }
@@ -386,7 +386,7 @@
 .mcp__share { display: flex; gap: 8px; align-items: flex-start; font-size: 12px; color: var(--text-secondary); }
 .ai-template__actions { display: flex; gap: 6px; flex-wrap: wrap; }
 .ai-review__notes { display: grid; gap: 4px; }
-.ai-review__status--warn { color: var(--status-warning, var(--text-secondary)); }
+.ai-review__status--warn { color: var(--status-warn); }
 .ai-review__packages { display: grid; gap: 6px; padding: 8px; border-radius: var(--radius); background: var(--bg-tertiary); border: 1px solid var(--border); }
 .ai-review__packages-note { margin: 0; font-size: 12px; color: var(--text-muted); }
 .ai-review__packages-actions { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -471,3 +471,175 @@
 .ai-inline-bar { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
 .ai-inline-bar__input { flex: 1 1 200px; min-width: 160px; padding-block: 3px; }
 .ai-inline-explain { max-height: 50vh; overflow: auto; padding: 8px 12px; font-size: 13px; }
+
+/* ─── Tarjetas por categoría y badges semánticos (RF-123) ──────────────────── */
+.ai-cat-card {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--border);
+  border-radius: var(--radius);
+}
+.ai-cat-card--agent { border-left-color: var(--code-keyword); }
+.ai-cat-card--cloud { border-left-color: var(--status-warn); }
+.ai-cat-card--local { border-left-color: var(--status-ok); }
+.ai-cat-card__header { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.ai-cat-card__title { margin: 0; font-size: 13px; font-weight: 600; }
+.ai-cat-card--agent .ai-cat-card__title { color: var(--code-keyword); }
+.ai-cat-card--cloud .ai-cat-card__title { color: var(--status-warn); }
+.ai-cat-card--local .ai-cat-card__title { color: var(--status-ok); }
+.ai-cat-card__hint { margin: 0; font-size: 11px; color: var(--text-muted); }
+.ai-help-link { font-size: 12px; color: var(--accent); cursor: pointer; text-decoration: underline; background: none; border: none; padding: 0; text-align: left; }
+.ai-help-link:hover { color: var(--accent-hover); }
+
+.ai-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+.ai-badge--agent {
+  background: color-mix(in srgb, var(--code-keyword) 16%, transparent);
+  color: var(--code-keyword);
+  border: 1px solid color-mix(in srgb, var(--code-keyword) 35%, transparent);
+}
+.ai-badge--cloud {
+  background: var(--status-warn-bg);
+  color: var(--status-warn);
+  border: 1px solid color-mix(in srgb, var(--status-warn) 35%, transparent);
+}
+.ai-badge--local {
+  background: var(--status-ok-bg);
+  color: var(--status-ok);
+  border: 1px solid color-mix(in srgb, var(--status-ok) 35%, transparent);
+}
+.ai-badge--connected {
+  background: var(--status-ok-bg);
+  color: var(--status-ok);
+  border: 1px solid color-mix(in srgb, var(--status-ok) 35%, transparent);
+  text-transform: none;
+  font-weight: 500;
+  font-size: 11px;
+}
+.ai-badge--active {
+  background: var(--accent);
+  color: var(--bg-primary);
+  border: 1px solid var(--accent);
+  text-transform: none;
+  font-weight: 600;
+  font-size: 11px;
+}
+
+/* ─── Ajustes inline de agentes ACP (modelo y razonamiento) ────────────────── */
+.ai-agent-gear { padding: 2px 6px; font-size: 13px; cursor: pointer; border-radius: var(--radius); }
+.ai-agent-gear:hover { background: var(--bg-tertiary); }
+.ai-agent-summary {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: var(--accent-subtle);
+  border: 1px solid color-mix(in srgb, var(--accent) 32%, transparent);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.ai-agent-settings {
+  display: grid;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-top: 2px;
+  margin-bottom: 6px;
+  width: 100%;
+  box-sizing: border-box;
+}
+.ai-agent-settings__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.ai-agent-settings__label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  min-width: 130px;
+}
+.ai-agent-settings__control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 auto;
+  max-width: 340px;
+}
+.ai-agent-settings__select {
+  flex: 1 1 auto;
+  max-width: 320px;
+  padding: 4px 8px;
+  font-size: 12px;
+  background: var(--code-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+.ai-agent-refresh {
+  padding: 3px 7px;
+  font-size: 12px;
+  line-height: 1.2;
+}
+.ai-agent-settings__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* ─── Guía de conexión de IAs dentro de la app (`guide.js`) ────────────────── */
+.ai-guide {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.45);
+}
+.ai-guide__card {
+  display: flex;
+  flex-direction: column;
+  width: min(880px, 100%);
+  max-height: 100%;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 40px var(--shadow);
+}
+.ai-guide__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.ai-guide__title { margin: 0; font-size: 15px; }
+.ai-guide__content { overflow: auto; padding: 4px 20px 20px; }
+.ai-guide__body { font-size: 13px; line-height: 1.55; }
+.ai-guide__body .md-heading { scroll-margin-top: 8px; }
+.ai-guide__body h2.md-heading { font-size: 19px; margin-top: 0.6em; }
+.ai-guide__body h3.md-heading { font-size: 16px; margin-top: 1.2em; padding-top: 0.6em; border-top: 1px solid var(--border); }
+.ai-guide__body h4.md-heading { font-size: 14px; margin-top: 1em; }
+.ai-guide__body .md-table { font-size: 12px; margin: 0.5em 0; }
+.ai-guide__body .md-table th { background: var(--bg-secondary); text-align: left; }
+.ai-guide__copy { position: relative; }

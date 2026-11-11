@@ -361,4 +361,18 @@ describe('gitManager', () => {
     expect(summaryEl.textContent).toContain('1');
     expect(summaryEl.textContent).not.toContain('Limpio');
   });
+
+  it('closes the git popover when clicking outside (RF-118)', () => {
+    document.body.append(indicatorEl, triggerBtn, panelEl);
+    const outside = document.createElement('button');
+    document.body.append(outside);
+    vi.spyOn(backend, 'gitStatus').mockResolvedValue({ ok: false, error: 'no' });
+
+    setup();
+    triggerBtn.click();
+    expect(panelEl.classList.contains('hidden')).toBe(false);
+
+    outside.click();
+    expect(panelEl.classList.contains('hidden')).toBe(true);
+  });
 });

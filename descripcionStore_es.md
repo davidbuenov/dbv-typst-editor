@@ -21,7 +21,7 @@ Características principales:
 • Panel de navegación estructural (esquema) con clic para saltar a esa página
 • Typst Universe integrado: plantillas y paquetes de la comunidad, con licencia visible antes de instalar
 • Exportación a PDF y PNG, y empaquetado del proyecto completo en un solo fichero (.dbvt) para compartirlo
-• Asistente de IA opcional: local (Ollama, LM Studio u otro servidor compatible con OpenAI), en la nube con tu clave de API (Anthropic, OpenAI, Gemini, OpenRouter) o con tu suscripción mediante tu agente instalado (Claude Code, Codex, Gemini CLI, Copilot)
+• Asistente de IA opcional: local (Ollama, LM Studio u otro servidor compatible con OpenAI), en la nube con tu clave de API (Anthropic, OpenAI, Gemini, OpenRouter) o con tu suscripción mediante tu agente instalado (Claude Code, Codex, Gemini CLI, Copilot CLI, Google Antigravity) y selector de modelo/esfuerzo
 • La IA propone cambios, también en varios ficheros; la aplicación comprueba que compilan antes de enseñártelos y los revisas trozo a trozo, con Deshacer
 • IA sobre la selección (Ctrl+Mayús+I) y «Explicar y arreglar» en cada error de compilación
 • Documentación oficial de Typst sin conexión, con buscador también en español
@@ -29,8 +29,9 @@ Características principales:
 • La IA busca plantillas y paquetes reales de Typst Universe, ve las páginas renderizadas y presta sus herramientas a otros agentes (servidor MCP, solo lectura)
 • Panel de Problemas con todos los errores del proyecto y visor de datos CSV/TSV con «Insertar como tabla»
 • Terminal avanzado opcional para quien prefiera el CLI de Typst directamente
-• Tres temas: Claro, Oscuro y Sepia
-• Interfaz disponible en español e inglés
+• 10 temas visuales curados y tema personalizado WCAG con 3 botones rápidos asignables en la cabecera
+• Modo Vim opcional, micro-barra inferior (Ln/Col), números de línea relativos y snippets con atajos de teclado y menú contextual
+• Interfaz disponible en español e inglés, con ayuda integrada completa
 • Instancia única: abrir un segundo documento enfoca la ventana existente
 
 Sin conexión a internet requerida para compilar ni editar. Typst Universe, la comprobación manual de actualizaciones y la IA que tú conectes son las únicas conexiones, y solo cuando tú las pides. Con una IA local, nada sale de tu equipo; si conectas una IA en la nube o un agente, lo que envíes va directamente de tu equipo al proveedor que elijas y se te pregunta antes. Las claves de API se guardan en el Administrador de credenciales de Windows, nunca en un fichero.
@@ -39,15 +40,14 @@ Sin conexión a internet requerida para compilar ni editar. Typst Universe, la c
 
 ## Novedades de esta versión
 
-Versión 0.14.0 — «AI Native»: la IA conoce Typst Universe, ve tus páginas y se conecta con otros agentes.
+Versión 0.15.0: edición más cómoda y veloz, 10 temas WCAG, Modo Vim opcional, snippets con atajos y nueva interfaz de IA.
 
-• Aplicar plantilla…: pasa un documento que ya tienes al formato IEEE, Springer o el que elijas desde la galería de plantillas; revisas la propuesta antes de aplicar nada.
-• La IA usa Typst Universe de verdad: busca plantillas y paquetes reales con su versión exacta, sin inventar nombres. Si falta un paquete, te pregunta antes de descargarlo.
-• Ve el resultado: con un modelo que admite imágenes mira las páginas renderizadas; con la nube puede ofrecerte una tipografía que falte (tú confirmas).
-• Servidor MCP (Herramientas › Servidor MCP…): Claude Code, Cursor o Codex usan el compilador exacto de DBV, ven las páginas y consultan Universe. Solo lectura y sin red.
-• Modelos locales más útiles: tope de respuesta configurable, progreso visible y reintento cuando no contestan.
-• Importar snippets de Sublime Text; las fuentes que añades a fonts/ se recogen sin reiniciar.
-• Ayuda y guía de IA ampliadas.
+• 10 temas curados + tema personalizado: contraste sintáctico corregido en modo oscuro y catálogo ampliado (Nord, Dracula, Catppuccin, Solarized Dark, Gruvbox Dark, Alto contraste…), con 3 botones rápidos asignables y editor de colores propio con comprobación WCAG.
+• Modo Vim opcional (Preferencias): edición modal con @replit/codemirror-vim, insignia en la nueva micro-barra inferior (Ln/Col y selección), números de línea relativos y Escape respetuoso con los paneles.
+• Refresco manual con latencia cero: escribir documentos largos con vista previa manual ya no recalcula ni reconstruye la interfaz por tecla.
+• Snippets con atajos y menú contextual: admite "key" en .vscode/*.code-snippets y keybindings.json (también $TM_SELECTED_TEXT) y añade «Insertar snippet ›» en el clic derecho.
+• Ventanas y menús pulidos: paneles flotantes con apilamiento dinámico al frente y navegación por teclado en menús.
+• IA unificada y ayuda ampliada: nueva vista tripartita de conexión con selector de modelo/esfuerzo y soporte para Google Antigravity, más manual de usuario bilingüe y ayuda ampliada.
 
 ---
 
@@ -69,11 +69,11 @@ Versión 0.14.0 — «AI Native»: la IA conoce Typst Universe, ve tus páginas 
 13. Paneles de esquema y de Problemas con navegación directa a la vista previa y al error
 14. Sincronización bidireccional editor↔vista previa y chincheta para mantener la ventana encima
 15. Exportación a PDF y PNG, y empaquetado del proyecto en un solo fichero (.dbvt)
-16. Tres temas (Claro, Oscuro, Sepia) e interfaz en español e inglés
-17. IA opcional: local (Ollama, LM Studio), en la nube con tu clave de API o con tu suscripción mediante un agente (Claude Code, Codex, Gemini CLI, Copilot)
-18. La IA propone, la aplicación comprueba que compila y tú decides trozo a trozo, con Deshacer
-19. IA sobre la selección (Ctrl+Mayús+I), «Explicar y arreglar» en cada error, documentación de Typst sin conexión y visor CSV/TSV
-20. «Aplicar plantilla…» (IEEE, Springer…), IA que usa Typst Universe y ve las páginas, y servidor MCP para otros agentes
+16. 10 temas curados y tema personalizado WCAG, con 3 botones rápidos configurables
+17. Modo Vim opcional, micro-barra inferior (Ln/Col), números relativos y snippets con atajos de teclado y menú contextual
+18. IA opcional (local, nube o tu suscripción: Claude Code, Codex, Gemini CLI, Copilot CLI, Antigravity) con selector de modelo y esfuerzo
+19. La IA propone, la aplicación comprueba que compila y tú decides trozo a trozo (Ctrl+Mayús+I y «Explicar y arreglar»)
+20. Documentación Typst offline, visor CSV/TSV, «Aplicar plantilla…», IA con Universe/páginas renderizadas y servidor MCP
 
 ---
 
@@ -87,7 +87,7 @@ DBV Typst Editor
 ### Descripción corta
 *(máx. recomendado 270 caracteres)*
 
-Editor de escritorio nativo para Typst: rápido, ligero y local por defecto. Plantillas académicas, vista previa PDF en tiempo real, barra de inserción y compilación sin conexión. Asistente de IA opcional (local, nube o tu suscripción). Sin telemetría.
+Editor de escritorio nativo para Typst: rápido, ligero y local por defecto. Plantillas académicas, vista previa PDF en tiempo real, 10 temas WCAG, Modo Vim opcional e IA configurable (local, nube o tu suscripción). Sin telemetría.
 
 ---
 

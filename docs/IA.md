@@ -2,7 +2,7 @@
 
 > 🌐 **Español** · [English](./IA.en.md) · [← Volver al README](../README.md)
 
-El asistente de IA de DBV Typst Editor es **opcional**. Sin configurar nada, el editor funciona exactamente igual que siempre: compila, previsualiza y exporta sin conexión. Esta guía explica **qué necesitas tener en tu ordenador** según la IA que quieras usar.
+El asistente de IA de **DBV Typst Editor** es **opcional**. Sin configurar nada, la aplicación funciona exactamente igual, de forma local. Esta guía explica **qué necesitas tener en tu ordenador** según la IA que quieras usar.
 
 ## Lo esencial en una tabla
 
@@ -10,41 +10,41 @@ El asistente de IA de DBV Typst Editor es **opcional**. Sin configurar nada, el 
 | --- | --- | --- | --- |
 | **Una IA local** (Ollama, LM Studio, llama.cpp…) | El programa servidor y al menos un modelo descargado | No | No (gasta tu CPU/GPU y disco) |
 | **Claude, ChatGPT, Gemini u OpenRouter con clave de API** | Una clave de API de ese proveedor | Sí, al proveedor | Sí, por uso, según la tarifa del proveedor |
-| **Mi suscripción** (Claude Pro/Max, ChatGPT Plus, Gemini, Copilot) | El **agente** de ese servicio instalado y con la sesión iniciada: Claude Code, Codex, Gemini CLI o GitHub Copilot CLI | Sí, al servicio del agente | Lo cubre tu suscripción |
+| **Mi suscripción** (Claude Pro/Max, ChatGPT Plus, Gemini / Google One, Copilot) | El **agente** de ese servicio instalado y con la sesión iniciada: Claude Code, Codex, Gemini CLI, Google Antigravity o GitHub Copilot CLI | Sí, al servicio del agente | Lo cubre tu suscripción |
 
 > ⚠️ **Una suscripción no es una clave de API.** Pagar Claude Pro, ChatGPT Plus o Gemini no te da una clave de API (se contratan por separado). Con una suscripción, la vía es el **agente instalado** (tercera fila).
 
-Para abrir el asistente de conexión: **Herramientas → Conectar una IA**. Al abrirlo, el editor **detecta lo que ya tienes** (Ollama, LM Studio y los agentes) y lo marca con ✓; lo que no encuentra aparece con un enlace de instalación. Esta detección solo ocurre al abrir esa pantalla, nunca al arrancar la aplicación.
+Todo se configura en la pantalla **Conectar una IA**, que se abre con el botón de IA de la aplicación. Al abrirla, DBV Typst Editor **detecta lo que ya tienes** (Ollama, LM Studio y los agentes) y lo marca con ✓; lo que no encuentra aparece con un botón **Cómo instalarlo**. Esta detección solo ocurre al abrir esa pantalla, nunca al arrancar la aplicación.
 
-Una vez conectada, el panel de la IA se abre con el botón **IA**, junto a P/E/V. Para saber **qué hace la IA por tu documento**, ve a la sección 4; para **cambiar el formato** de un documento (IEEE, Springer…), a la 5; y para usar las herramientas de DBV desde **otro agente** (Claude Code en tu terminal, Cursor…), a la 6.
+La pantalla tiene tres bloques, uno por cada fila de la tabla: **IAs Locales**, **IAs por Suscripción (Agentes CLI)** e **IAs en la nube con clave de API**.
 
 ---
 
 ## 1. Una IA local (nada sale de tu equipo)
 
-Es la opción más privada: los documentos no abandonan tu ordenador y no hay coste por uso. A cambio, la calidad depende del tamaño del modelo y de tu hardware.
+Es la opción más privada: tus documentos no abandonan tu ordenador y no hay coste por uso. A cambio, la calidad depende del tamaño del modelo y de tu hardware.
 
 ### Ollama
 
 1. Instala [Ollama](https://ollama.com/download).
-2. Descarga un modelo, por ejemplo: `ollama pull qwen3:8b` (el mejor de los que hemos medido; ver [Qué modelo local elegir](#qué-modelo-local-elegir-con-números)).
+2. Descarga un modelo, por ejemplo: `ollama pull qwen2.5:3b` (o `llama3`).
 3. Comprueba qué tienes instalado con `ollama list`.
-4. En el editor: **Herramientas → Conectar una IA**. Si Ollama está en marcha, aparece con ✓ y un botón **Usar**. Elige el modelo de la lista, pulsa **Probar conexión** y **Guardar**.
+4. Abre **Conectar una IA**. Si Ollama está en marcha, aparece con ✓ y un botón **Usar**. Elige el modelo de la lista, pulsa **Probar conexión** y **Guardar**.
 
-Ollama escucha en `http://localhost:11434`. El editor habla con él por su **API nativa** (`/api/chat`) y le indica él mismo el tamaño de contexto, porque Ollama usa por defecto uno pequeño (2 048–4 096 tokens) y recorta en silencio lo que no cabe. El ajuste «Context length» de la aplicación de Ollama **no se aplica a DBV**.
+Ollama escucha en `http://localhost:11434`. La aplicación habla con él por su **API nativa** (`/api/chat`) y le indica ella misma el tamaño de contexto, porque Ollama usa por defecto uno pequeño (2 048–4 096 tokens) y recorta en silencio lo que no cabe.
 
 ### LM Studio
 
 1. Instala [LM Studio](https://lmstudio.ai), descarga un modelo y **arranca su servidor local** (pestaña *Developer / Local Server*).
-2. Escucha en `http://localhost:1234`; el editor lo detecta igual que a Ollama.
+2. Escucha en `http://localhost:1234`; la aplicación lo detecta igual que a Ollama.
 
 ### Tu propio servidor compatible con OpenAI (llama.cpp, vLLM, Jan…)
 
-Cualquier servidor que ofrezca la API de OpenAI sirve. El caso típico es `llama-server` de [llama.cpp](https://github.com/ggml-org/llama.cpp) con un modelo `.gguf` que tú mismo has descargado. **Este servidor no lo detecta el asistente: hay que añadirlo a mano.**
+Cualquier servidor que ofrezca la API de OpenAI sirve. El caso típico es `llama-server` de [llama.cpp](https://github.com/ggml-org/llama.cpp) con un modelo `.gguf` que tú mismo has descargado. **Este servidor no se detecta solo: hay que añadirlo a mano.**
 
-1. **Herramientas → Conectar una IA → Añadir una IA en la nube (clave de API)…** *(el botón se llama así, pero abre un formulario nuevo con todos los proveedores)*.
+1. **Conectar una IA → Añadir una IA en la nube (clave de API)…** *(el botón se llama así, pero abre un formulario con todos los proveedores)*.
 2. En **Proveedor**, elige **Servidor compatible con OpenAI (local o propio)**.
-   - ⚠️ **No elijas «Ollama»** para un servidor que no es Ollama: ese modo usa un protocolo distinto y el editor no entenderá la respuesta. Y al **editar** una conexión el proveedor no se puede cambiar: hay que crear una nueva.
+   - ⚠️ **No elijas «Ollama»** para un servidor que no es Ollama: ese modo usa un protocolo distinto y la aplicación no entenderá la respuesta. Y al **editar** una conexión el proveedor no se puede cambiar: hay que crear una nueva.
 3. Rellena el formulario:
 
    | Campo | Valor |
@@ -64,7 +64,7 @@ Los datos del formulario (modelo, contexto, herramientas) se consultan con unos 
 
 - **El contexto no es `n_ctx_train`.** `/v1/models` muestra `n_ctx_train`, el máximo con el que se entrenó el modelo, no el que tiene tu servidor. El valor real es el flag `-c` con el que arrancaste.
 - **Los *slots* reparten el contexto.** Con varios slots (`-np`), el contexto se divide entre ellos; con `-np 4` y `-c 32768`, cada petición dispone de 8 192. Para dárselo entero a una conversación: `-np 1`.
-- **Los modelos que «piensan» tardan mucho.** Algunos modelos (Gemma 4, Qwen3…) escriben primero su razonamiento (`reasoning_content`) y dejan la respuesta vacía hasta terminar, con cientos o miles de tokens por el camino. El panel lo enseña como «Pensando…» con un bloque plegable, pero la espera es larga. Arranca el servidor con `--reasoning-budget 0` para desactivarlo; DBV también manda `enable_thinking: false` a un servidor compatible genérico mientras el interruptor *Razonamiento* de la conexión esté desactivado (que es el valor por defecto).
+- **Los modelos que «piensan» pueden parecer mudos.** Algunos modelos escriben primero su razonamiento en un campo aparte (`reasoning_content`) y dejan la respuesta (`content`) vacía hasta terminar. La aplicación muestra `content`, así que ves una respuesta vacía mientras el modelo consume cientos o miles de tokens. Arranca el servidor con `--reasoning-budget 0` para desactivar el razonamiento.
 
 Ejemplo de arranque razonable:
 
@@ -74,41 +74,10 @@ llama-server -m modelo.gguf -c 32768 -np 1 --reasoning-budget 0 --port 8080
 
 ### Qué esperar de un modelo local
 
-- **Herramientas.** Con un modelo que las admite, la IA lee el proyecto por su cuenta, consulta la documentación de Typst y propone cambios que DBV **compila en memoria** antes de enseñártelos. Sin herramientas, el asistente sigue sirviendo para conversar y para trabajar sobre el contexto que se le envía, pero hace menos por sí mismo. El campo *Herramientas* del formulario las detecta; si falla la detección, puedes forzarlas a *Sí* o *No*.
-- **Tamaño.** Los modelos de menos de 7 000 millones de parámetros (2–3 GB en disco) responden rápido en un portátil, pero **suelen fallar al proponer cambios** y al decidir cuándo consultar la documentación: el editor te avisa en el formulario y en el panel. Con los números de abajo, para editar con soltura conviene uno de 8B como mínimo, uno mayor o una IA en la nube.
-- **Contexto.** DBV calcula el **mínimo con el que el asistente funciona**: **8 192 tokens** con herramientas (más con el razonamiento activado) y **16 384 recomendados**. Ollama arranca con 4 096, que se queda corto: DBV pide **8 192** por defecto y, si escribes un valor menor, te avisa con el número («con 4 096 tokens el asistente tiene que recortar casi todo lo que le envías»); puedes subirlo en el campo *Contexto* de la conexión.
-- **Razonamiento.** Algunos modelos (Qwen3, Gemma 4…) «piensan» antes de responder. Tarda **mucho más** y se ve en el panel como «Pensando…», con un bloque plegable con lo que piensa. Cada conexión tiene un interruptor **Razonamiento**, desactivado por defecto: ver [Qué modelo local elegir](#qué-modelo-local-elegir-con-números).
-- **Memoria.** Un modelo más grande o un contexto mayor necesitan más RAM o VRAM. Con una GPU de 12 GB, un modelo de 8B (5 GB) cabe holgado; uno de 14B (9 GB) cabe justo y, si la GPU está ocupada, desborda a la RAM y va mucho más lento (en Ollama, `ollama ps` debe decir «100% GPU»).
-
-### Qué modelo local elegir (con números)
-
-Medimos los modelos con el mismo bucle que usa la aplicación sobre un **corpus de 32 tareas reales de Typst** (arreglar errores del compilador, pasar de LaTeX, tablas, figuras, varios ficheros, preguntas de documentación…), con y sin la documentación de Typst que trae el editor. Una tarea se da por superada si la propuesta **compila sin errores**, hace lo que se pedía y no sale del proyecto. Equipo: RTX 4070 Ti de 12 GB, Ollama; 2–3 de octubre de 2026. Los resultados completos están en [`testfiles/ai-evals/results/`](../testfiles/ai-evals/results/).
-
-| Modelo | En disco | Herramientas | Sin documentación | Con documentación | Veredicto |
-| --- | --- | --- | --- | --- | --- |
-| `qwen3:8b` | 5,2 GB | sí | 10 / 32 (31 %) | **12 / 32 (38 %)** | El mejor que hemos medido. Aun así acierta poco más de 1 de cada 3: **revisa siempre lo que propone**. |
-| `llama3` (8B, 2024) | 4,7 GB | no (modo conversación) | 5 / 32 | 6 / 32 | Para conversar; no para proponer cambios. |
-| `qwen2.5:3b` | 1,9 GB | sí | 2 / 32 | 1 / 32 | **No recomendado** para proponer cambios. |
-| `gemma-4-E2B-it` (Q4_K_M, por `llama-server` con `--jinja`) | — | sí | 5 / 32 (16 %) | 8 / 32 (25 %) | **No recomendado** para proponer cambios: en 2 de cada 3 ejecuciones ni llega a proponer nada (dice «lo propondré otra vez» sin llamar a la herramienta). |
-
-**Cómo leerlo, sin adornos:**
-
-- **Ningún modelo local de los que hemos medido llega al 40 %** que nos pusimos como mínimo para recomendarlo para proponer cambios sin vigilancia. Sirven para borradores y para que les pidas el siguiente paso, **pero hay que revisar cada propuesta** (DBV te la enseña compilada y por trozos precisamente por eso).
-- **La documentación ayuda:** con ella, `qwen3:8b` pasa de 10 a 12 y `llama3` de 1 a 5 de 5 en las preguntas de documentación.
-- **No hemos medido todavía** modelos locales de 14B o más. De la nube solo hay **una referencia** (abajo). El script de evaluación puede medir más (`npm run eval:ai -- --provider …`): ver [`testfiles/ai-evals/README.md`](../testfiles/ai-evals/README.md).
-- **Son pocas tareas y una sola pasada:** una diferencia de uno o dos aciertos es ruido.
-
-**Como referencia, una IA en la nube.** Con **Gemini 3.8 Flash** (clave de API de Google) y la misma evaluación, **sin** documentación: **31 de 32** tareas originales superadas (97 %) y 4 de 6 en las de estilo (35 de 38 en total); gastó unos 321 000 tokens de entrada en 42 ejecuciones (unos 7 600 por tarea, céntimos con la tarifa de un modelo «flash»). Con documentación solo se midieron 4 tareas, así que no hay dato. Para el mismo trabajo, `qwen3:8b` en tu equipo supera 10 de 32: **una IA en la nube es, hoy, claramente más fiable para proponer cambios**, a cambio de que lo que envías salga de tu equipo. Los únicos fallos de Gemini fueron una tarea en la que el propio compilador de Typst dio un error interno (`equation-numbering`) y dos en las que puso el cambio de aspecto en el documento principal en vez de crear un fichero de estilo; con un fichero de estilo ya existente lo hizo bien las tres veces. Es **un solo modelo en una sola pasada**: no lo tomes como un ranking.
-
-**¿Merece la pena activar el razonamiento?** Medimos `qwen3:8b` con y sin él sobre 20 tareas representativas, con documentación:
-
-| | Sin razonamiento | Con razonamiento |
-| --- | --- | --- |
-| Tareas superadas | 8 / 20 | 10 / 20 |
-| Tiempo medio por tarea | 4,9 s | **82,7 s** |
-
-Dos aciertos más, que están dentro del ruido, a cambio de esperar **unas 17 veces más** (y tres tareas se pasaron del límite de 4 minutos). Por eso **viene desactivado**. Actívalo solo si no te importa esperar, con un contexto de 16 384 o más, y para tareas difíciles.
-
+- **Herramientas.** Con un modelo que las admite, la IA consulta por su cuenta los documentos de la carpeta y propone cambios que tú revisas antes de aplicarlos. Sin herramientas, el asistente sigue sirviendo para conversar y para trabajar sobre el contexto que se le envía, pero hace menos por sí mismo. El campo *Herramientas* del formulario las detecta; si falla la detección, puedes forzarlas a *Sí* o *No*.
+- **Tamaño.** Los modelos de 2–3 mil millones de parámetros (que ocupan unos 2–3 GB) responden rápido en un portátil, pero se quedan cortos en propuestas largas o complejas. Si las respuestas salen flojas, prueba antes con un modelo mayor que tocar la configuración.
+- **Contexto.** Un contexto de 4 096 tokens es el mínimo y se queda corto con documentos largos o imágenes. 8 192 es cómodo para trabajar; 32 768, holgado.
+- **Memoria.** Un modelo más grande o un contexto mayor necesitan más RAM o VRAM. Empieza pequeño y sube.
 
 ---
 
@@ -122,13 +91,13 @@ Para conectar una IA local el formulario pide tres cosas: **modelo**, **contexto
 
 | Quiero saber… | Comando | Campo del formulario |
 | --- | --- | --- |
-| Qué modelos tengo descargados | `ollama list` | **Modelo**: la columna `NAME`, completa (por ejemplo `qwen3:8b`; `llama3:latest` también vale como `llama3`) |
+| Qué modelos tengo descargados | `ollama list` | **Modelo**: la columna `NAME`, completa (por ejemplo `qwen2.5:3b`; `llama3:latest` también vale como `llama3`) |
 | Lo mismo, por la API | `curl http://localhost:11434/api/tags` | — |
 | Qué modelos están cargados en memoria ahora | `ollama ps` | — |
-| Detalles de un modelo (arquitectura, parámetros, contexto máximo, cuantización) | `ollama show qwen3:8b` | **Contexto**: el máximo que muestra es el del modelo; elige un valor igual o menor que quepa en tu memoria |
-| Descargar un modelo nuevo | `ollama pull qwen3:8b` | — |
+| Detalles de un modelo (arquitectura, parámetros, contexto máximo, cuantización) | `ollama show qwen2.5:3b` | **Contexto**: el máximo que muestra es el del modelo; elige un valor igual o menor que quepa en tu memoria |
+| Descargar un modelo nuevo | `ollama pull qwen2.5:3b` | — |
 
-El editor **fija el contexto por su cuenta** en Ollama, así que el campo *Contexto* es el que tú decides, no el que tenga Ollama configurado. Si lo dejas vacío, usa 8 192. El campo *Máximo por respuesta* (8 192 por defecto en modelos locales) corta a un modelo que se desboca antes de que llene el contexto: una propuesta larga de ~1 200 palabras ocupa unos 1 400 tokens.
+La aplicación **fija el contexto por su cuenta** en Ollama, así que el campo *Contexto* es el que tú decides, no el que tenga Ollama configurado. Si lo dejas vacío, usa un valor prudente (4 096).
 
 ### LM Studio (puerto 1234)
 
@@ -187,39 +156,128 @@ Para usar un modelo de un proveedor con **clave de API**:
 | Google (Gemini) | Google AI Studio | `https://generativelanguage.googleapis.com/v1beta/openai` |
 | OpenRouter | openrouter.ai | `https://openrouter.ai/api/v1` |
 
-**Herramientas → Conectar una IA → Añadir una IA en la nube (clave de API)…** → elige el proveedor → pega la clave → **Probar conexión** → elige el modelo de la lista que devuelve el propio proveedor → **Guardar**.
+**Conectar una IA → Añadir una IA en la nube (clave de API)…** → elige el proveedor → pega la clave → **Probar conexión** → elige el modelo de la lista que devuelve el propio proveedor → **Guardar**.
 
 - **La clave** se guarda en el **almacén de credenciales del sistema** (Administrador de credenciales de Windows, Llavero de macOS, Secret Service en Linux), nunca en un fichero ni en `localStorage`. Al editar una conexión el campo de la clave queda vacío: dejarlo así conserva la guardada. Eliminar la conexión borra también la clave.
-- **Privacidad:** para responder, se envía al proveedor el contexto del proyecto (fichero abierto, selección, errores y lo que adjuntes). **La primera vez por proyecto y proveedor, el editor te pregunta** antes de enviar nada. Puedes quitar cualquier elemento del contexto desde el propio panel.
+- **Privacidad:** para responder, se envía al proveedor el contexto (documento abierto, selección y lo que adjuntes). **La primera vez por proyecto y proveedor, la aplicación te pregunta** antes de enviar nada. Puedes quitar cualquier elemento del contexto desde el propio panel.
 - **Coste:** lo factura el proveedor por uso.
 
 ---
 
 ## 3. Con tu suscripción: agentes instalados
 
-Si pagas **Claude Pro/Max, ChatGPT Plus, Gemini o GitHub Copilot**, no necesitas clave de API: DBV puede hablar con el **agente de línea de comandos** de ese servicio, que usa tu cuenta. DBV **no ve ni guarda tus credenciales**: el inicio de sesión lo hace el propio agente.
+Si pagas **Claude Pro/Max, ChatGPT Plus, Gemini / Google One o GitHub Copilot**, no necesitas clave de API: DBV Typst Editor puede hablar con el **agente de línea de comandos** de ese servicio, que usa tu cuenta. La aplicación **no ve ni guarda tus credenciales**: el inicio de sesión lo hace el propio agente. La conexión usa el protocolo abierto [ACP (Agent Client Protocol)](https://agentclientprotocol.com).
 
-| Agente | Qué debe estar instalado | Cómo lo lanza DBV |
+| Agente | Qué debe estar instalado | Cómo lo lanza la aplicación |
 | --- | --- | --- |
 | **Claude Code** | Claude Code y **Node.js** (incluye `npx`) | `npx -y @agentclientprotocol/claude-agent-acp` |
-| **Codex** (OpenAI) | Codex y **Node.js** (incluye `npx`) | `npx -y @zed-industries/codex-acp` |
-| **Gemini CLI** | Gemini CLI | `gemini --experimental-acp` |
-| **GitHub Copilot CLI** | Copilot CLI | `copilot --acp` |
+| **Codex** (OpenAI) | Codex y **Node.js** (incluye `npx`) | `npx -y @agentclientprotocol/codex-acp` |
+| **Gemini CLI** | Gemini CLI | `gemini --acp` |
+| **Google Antigravity** | Antigravity CLI (`agy`) **y su servidor ACP** (`agy_acp_server`, se instala aparte: [ver abajo](#google-antigravity-instalar-su-servidor-acp)) | `agy_acp_server` |
+| **GitHub Copilot CLI** | Copilot CLI (**no basta** el comando `copilot` que trae VS Code: [ver abajo](#github-copilot-el-comando-copilot-de-vs-code-no-es-la-cli)) | `copilot --acp` |
 
-Enlaces de instalación: [Claude Code](https://docs.anthropic.com/en/docs/claude-code/setup) · [Codex](https://github.com/openai/codex) · [Gemini CLI](https://github.com/google-gemini/gemini-cli) · [Copilot CLI](https://docs.github.com/copilot/how-tos/set-up/install-copilot-cli) · [Node.js](https://nodejs.org).
+Enlaces de instalación: [Claude Code](https://docs.anthropic.com/en/docs/claude-code/setup) · [Codex](https://github.com/openai/codex) · [Gemini CLI](https://github.com/google-gemini/gemini-cli) · [Antigravity CLI](https://antigravity.google/product/antigravity-cli) · [Copilot CLI](https://docs.github.com/en/copilot/how-tos/copilot-cli/set-up-copilot-cli/install-copilot-cli) · [Node.js](https://nodejs.org).
 
 **Pasos:**
 
 1. Instala el agente (y Node.js si lo necesita) para que quede en el `PATH` de tu sistema.
-2. **Ábrelo una vez en una terminal** e inicia sesión con tu cuenta. DBV no puede iniciar sesión por ti.
-3. En el editor: **Herramientas → Conectar una IA**. El agente aparece con ✓ *instalado* y un botón **Conectar**.
+2. **Ábrelo una vez en una terminal** e inicia sesión con tu cuenta. La aplicación no puede iniciar sesión por ti.
+3. Abre **Conectar una IA**. El agente aparece en **IAs por Suscripción** con ✓ *instalado* y un botón **Conectar**.
 4. La primera vez puede tardar: para Claude Code y Codex se descarga su adaptador con `npx`.
+5. Si el agente pide **iniciar sesión** al conectarse (Antigravity y Codex pueden pedirlo la primera vez), la aplicación se lo solicita con el método habitual del agente (por ejemplo, *Log in with Google* o *Login with ChatGPT*): si se abre el navegador, complétalo allí. La sesión la guarda el propio agente.
+6. Opcional: con el agente conectado, el botón **⚙️** te deja elegir **modelo** y **nivel de razonamiento**. La lista se pide al propio agente la primera vez que abres la pantalla; **🔄** la vuelve a pedir. Junto al nombre del agente verás un resumen del modelo y el nivel elegidos.
+
+### GitHub Copilot: el comando `copilot` de VS Code no es la CLI
+
+VS Code con Copilot pone en el `PATH` un comando `copilot` que **solo es un lanzador**: ejecuta la CLI de Copilot si está instalada y, si no, avisa *«GitHub Copilot CLI was not found»*. La aplicación lo sabe y, si detrás no hay CLI, muestra Copilot como *no instalado*. Instala la CLI de verdad con cualquiera de estas vías ([guía oficial](https://docs.github.com/en/copilot/how-tos/copilot-cli/set-up-copilot-cli/install-copilot-cli)):
+
+| Sistema | Orden |
+| --- | --- |
+| Windows | `winget install GitHub.Copilot` |
+| macOS y Linux | `brew install --cask copilot-cli` |
+| Cualquiera (Node.js 22 o posterior) | `npm install -g @github/copilot` |
+
+Después ábrela una vez con `copilot` en una terminal, inicia sesión con tu cuenta de GitHub y vuelve a abrir **Conectar una IA**.
+
+### Google Antigravity: instalar su servidor ACP
+
+La CLI de Antigravity (`agy`) **no habla ACP por sí sola**: lo hace un programa aparte, **`agy_acp_server`**, que Google publica en el [registro ACP](https://github.com/agentclientprotocol/registry/blob/main/antigravity-acp/agent.json). Si solo tienes `agy`, la aplicación muestra Antigravity como *instalado, pero sin su servidor ACP* y no se puede conectar.
+
+1. **Instala [Antigravity CLI](https://antigravity.google/product/antigravity-cli)**, ábrelo una vez con `agy` en una terminal e inicia sesión con tu cuenta de Google.
+2. **Descarga el servidor ACP** para tu sistema (versión 1.4.4; la más reciente siempre está en el [registro](https://github.com/agentclientprotocol/registry/blob/main/antigravity-acp/agent.json)):
+
+   | Sistema | Descarga |
+   | --- | --- |
+   | Windows x64 | [agy-acp-server-1.4.4-windows-x86_64.zip](https://dl.google.com/agy-extensions/releases/windows/agy-acp-server-1.4.4-windows-x86_64.zip) |
+   | Windows ARM | [agy-acp-server-1.4.4-windows-arm64.zip](https://dl.google.com/agy-extensions/releases/windows/agy-acp-server-1.4.4-windows-arm64.zip) |
+   | macOS Apple Silicon | [agy-acp-server-1.4.4-darwin-arm64.zip](https://dl.google.com/agy-extensions/releases/macos/agy-acp-server-1.4.4-darwin-arm64.zip) |
+   | macOS Intel | [agy-acp-server-1.4.4-darwin-x86_64.zip](https://dl.google.com/agy-extensions/releases/macos/agy-acp-server-1.4.4-darwin-x86_64.zip) |
+   | Linux x64 | [agy-acp-server-1.4.4-linux-x86_64.zip](https://dl.google.com/agy-extensions/releases/linux/agy-acp-server-1.4.4-linux-x86_64.zip) |
+   | Linux ARM | [agy-acp-server-1.4.4-linux-arm64.zip](https://dl.google.com/agy-extensions/releases/linux/agy-acp-server-1.4.4-linux-arm64.zip) |
+
+3. **Descomprime todo el zip** (trae más de un fichero y deben quedar juntos) en esta carpeta, donde la aplicación lo busca:
+
+   | Sistema | Carpeta |
+   | --- | --- |
+   | Windows | `%LOCALAPPDATA%\agy\acp-server` |
+   | macOS y Linux | `~/.local/share/agy-acp-server` |
+
+   En **Windows**, desde PowerShell (Windows x64; para ARM cambia `x86_64` por `arm64`):
+
+   ```powershell
+   $zip = "$env:TEMP\agy-acp-server.zip"
+   Invoke-WebRequest https://dl.google.com/agy-extensions/releases/windows/agy-acp-server-1.4.4-windows-x86_64.zip -OutFile $zip
+   Expand-Archive $zip -DestinationPath "$env:LOCALAPPDATA\agy\acp-server" -Force
+   ```
+
+   En **macOS o Linux** (cambia el nombre del zip por el de tu sistema):
+
+   ```bash
+   mkdir -p ~/.local/share/agy-acp-server && cd ~/.local/share/agy-acp-server
+   curl -LO https://dl.google.com/agy-extensions/releases/macos/agy-acp-server-1.4.4-darwin-arm64.zip
+   unzip -o agy-acp-server-*.zip && chmod +x agy_acp_server.par
+   ```
+
+4. Vuelve a abrir **Conectar una IA**: Antigravity aparece con ✓ *instalado* y el botón **Conectar**.
+5. La primera vez que le escribas, el servidor pide **iniciar sesión** y la aplicación se lo solicita con tu cuenta de Google (*Log in with Google*): si se abre el navegador, complétalo allí.
+
+> Si prefieres otra carpeta, vale cualquiera que esté en el `PATH`. Los adaptadores de terceros que «envuelven» `agy` no se admiten: usan un modo de `agy` sin documentar y Google no ha aclarado si sus condiciones lo permiten.
 
 **Cómo funciona:**
 
-- DBV lanza el agente **con la carpeta del proyecto como directorio de trabajo**; se cierra al cerrar el proyecto o la aplicación.
-- **Permisos:** cada vez que el agente pide permiso para algo (ejecutar una orden, editar, leer), DBV te lo muestra con lo que pide. Puedes **Permitir una vez**, **Permitir siempre en esta conversación** o **Denegar**. Nada se aprueba solo, y lo que quede fuera de la carpeta del proyecto se deniega.
-- **Seguridad de tus ficheros:** antes de cada turno, DBV guarda un **punto de restauración** de los ficheros de texto del proyecto. Lo que el agente cambie directamente en disco aparece al terminar bajo el título **«El agente cambió N ficheros en disco»**, con sus diferencias y **Deshacer** por fichero o en bloque.
+- La aplicación lanza el agente **con la carpeta del documento como directorio de trabajo**; se cierra al cerrar el documento o la aplicación.
+- **Permisos:** cada vez que el agente pide permiso para algo (ejecutar una orden, editar, leer), la aplicación te lo muestra con lo que pide. Puedes **Permitir una vez**, **Permitir siempre en esta conversación** o **Denegar**. Nada se aprueba solo, y lo que quede fuera de la carpeta se deniega.
+- **Seguridad de tus ficheros:** antes de cada turno, la aplicación guarda un **punto de restauración** de los ficheros de texto de la carpeta. Lo que el agente cambie directamente en disco aparece al terminar bajo el título **«El agente cambió N documentos en disco»**, con sus diferencias y **Deshacer** por fichero o en bloque.
+
+---
+
+## Privacidad de un vistazo
+
+| Vía | Qué sale de tu equipo |
+| --- | --- |
+| IA local | Nada. La conversación no abandona tu ordenador. |
+| API en la nube | El contexto que se envía, al proveedor. Se pregunta la primera vez por proyecto. |
+| Agente con suscripción | Lo que el agente envíe a su servicio. La aplicación no controla su red; los permisos sí pasan por ella. |
+
+Las herramientas de los modelos directos (local y API) **no acceden a la red ni ejecutan programas**: solo leen la carpeta y proponen cambios que tú revisas trozo a trozo antes de aplicarlos, con **Deshacer**.
+
+## Problemas frecuentes
+
+| Síntoma | Causa probable | Solución |
+| --- | --- | --- |
+| Escribo y **no responde nada** (servidor propio) | Proveedor en *Ollama* en lugar de *compatible con OpenAI* | Crea una conexión nueva con el proveedor correcto |
+| Respuesta vacía y muchos tokens «recibidos» | El modelo razona y no llega a escribir `content` | Arranca el servidor con `--reasoning-budget 0` |
+| «Servidor local apagado» | Ollama, LM Studio o tu servidor no están en marcha | Arráncalo y vuelve a **Probar conexión** |
+| Error de dirección o 404 con un servidor propio | Falta `/v1` al final de la dirección | `http://127.0.0.1:PUERTO/v1` |
+| Clave no válida | Clave mal pegada o de otro proveedor | Vuelve a pegarla; una suscripción no sirve como clave |
+| Un agente no aparece o no conecta | No está en el `PATH`, falta Node.js o no has iniciado sesión | Instálalo, ábrelo una vez en una terminal y abre de nuevo **Conectar una IA** |
+| El agente dice que necesita Node.js | Claude Code y Codex usan `npx` | Instala [Node.js](https://nodejs.org) |
+| Copilot aparece *no instalado* aunque `copilot` existe, o «GitHub Copilot CLI was not found» | Solo está el lanzador `copilot` de VS Code, sin la CLI | Instala la CLI: [instrucciones](#github-copilot-el-comando-copilot-de-vs-code-no-es-la-cli) |
+| Antigravity aparece *sin su servidor ACP*, o «Antigravity necesita su servidor ACP» | Solo está instalada la CLI `agy` | Instala `agy_acp_server`: [instrucciones](#google-antigravity-instalar-su-servidor-acp) |
+| Codex responde «Internal error» | Una versión antigua de la aplicación, con el adaptador `@zed-industries/codex-acp`, que no entiende los modelos actuales | Actualiza la aplicación: la versión actual usa `@agentclientprotocol/codex-acp` |
+| El modelo olvida el principio del documento | Contexto demasiado pequeño | Sube el contexto del servidor y el campo **Contexto (tokens)** |
+
+<!-- dbv-ia:fin-guia-comun · Todo lo anterior sale de dbv-specs-ops/docs/templates/IA.template.md (no lo edites aquí: cambia la plantilla y sincroniza con scripts/sync-ai.mjs). Lo que pongas debajo es propio de esta aplicación y se conserva. -->
 
 ---
 
@@ -335,32 +393,3 @@ Con **Preferencias → Compartir el estado del editor con agentes MCP** (**desac
 - El canal entre el servidor y la ventana de DBV es **local** (tubería con nombre en Windows, socket de Unix en macOS y Linux), con un **testigo aleatorio de 256 bits** que cambia en cada ejecución y solo lee el usuario que ejecuta DBV.
 - Solo ve **la carpeta del proyecto** con el que se lanzó; ninguna herramienta recibe rutas.
 - Instalar un paquete **siempre** pasa por el diálogo de DBV.
-
----
-
-## Privacidad de un vistazo
-
-| Vía | Qué sale de tu equipo |
-| --- | --- |
-| IA local | Nada. La conversación no abandona tu ordenador. |
-| API en la nube | El contexto que se envía, al proveedor. Se pregunta la primera vez por proyecto. |
-| Agente con suscripción | Lo que el agente envíe a su servicio. DBV no controla su red; los permisos sí pasan por DBV. |
-
-Las herramientas de los modelos directos **no abren conexiones ni ejecutan programas**: el modelo solo le pide cosas a DBV, que lee el proyecto y propone cambios que tú revisas trozo a trozo antes de aplicarlos, con **Deshacer**. Lo que DBV descarga **en nombre de una IA en la nube** (el catálogo público de Typst Universe, sin enviar nada tuyo) se avisa en el panel, y **instalar un paquete o añadir una tipografía exige siempre tu confirmación**. Con una IA local, DBV no descarga nada: solo lee lo que ya hay en tu equipo.
-
-## Problemas frecuentes
-
-| Síntoma | Causa probable | Solución |
-| --- | --- | --- |
-| Escribo y **no responde nada** (servidor propio) | Proveedor en *Ollama* en lugar de *compatible con OpenAI* | Crea una conexión nueva con el proveedor correcto |
-| Respuesta vacía y muchos tokens «recibidos» | El modelo razona y no llega a escribir `content` | Arranca el servidor con `--reasoning-budget 0` |
-| «Servidor local apagado» | Ollama, LM Studio o tu servidor no están en marcha | Arráncalo y vuelve a **Probar conexión** |
-| Error de dirección o 404 con un servidor propio | Falta `/v1` al final de la dirección | `http://127.0.0.1:PUERTO/v1` |
-| Clave no válida | Clave mal pegada o de otro proveedor | Vuelve a pegarla; una suscripción no sirve como clave |
-| Un agente no aparece o no conecta | No está en el `PATH`, falta Node.js o no has iniciado sesión | Instálalo, ábrelo una vez en una terminal y abre de nuevo **Conectar una IA** |
-| El agente dice que necesita Node.js | Claude Code y Codex usan `npx` | Instala [Node.js](https://nodejs.org) |
-| El modelo olvida el principio del documento | Contexto demasiado pequeño | Sube el contexto del servidor y el campo **Contexto (tokens)** |
-
----
-
-> Esta guía describe la versión **0.14.0**. La ayuda dentro de la aplicación (**?** → *Asistente de IA*, *Servidor MCP*) resume lo esencial; la especificación completa está en [`RF-90`–`RF-96` de SPECIFICATIONS.md](../dbv-specs-ops/docs/SPECIFICATIONS.md).

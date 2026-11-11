@@ -3,9 +3,9 @@
 **🇪🇸 Español · [🇬🇧 English](./README.en.md)**
 
 [![Sitio Web](https://img.shields.io/badge/Sitio%20Web-davidbuenov.github.io%2Fdbv--typst--editor-2563eb?style=flat&logo=googlechrome&logoColor=white)](https://davidbuenov.github.io/dbv-typst-editor/)
-[![Releases](https://img.shields.io/badge/Releases-v0.14.0-brightgreen?logo=github)](https://github.com/davidbuenov/dbv-typst-editor/releases)
+[![Releases](https://img.shields.io/badge/Releases-v0.15.0-brightgreen?logo=github)](https://github.com/davidbuenov/dbv-typst-editor/releases)
 [![Microsoft Store](https://img.shields.io/badge/Microsoft%20Store-9PCPSVTNJMP0-0078D6?logo=microsoft&logoColor=white)](https://apps.microsoft.com/store/detail/9PCPSVTNJMP0?cid=DevShareMCLPCB)
-![Status](https://img.shields.io/badge/status-estable%20%7C%20v0.14.0-success)
+![Status](https://img.shields.io/badge/status-estable%20%7C%20v0.15.0-success)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
 ![Windows](https://img.shields.io/badge/Windows-10%20%2F%2011%20(Microsoft%20Store)-0078D6?logo=windows&logoColor=white)
 ![macOS](https://img.shields.io/badge/macOS-Universal%20(.dmg)-000000?logo=apple&logoColor=white)
@@ -40,6 +40,7 @@
 - [Qué puede hacer](#-qué-puede-hacer)
 - [Requisitos](#-requisitos)
 - [Usar una IA (guía)](./docs/IA.md)
+- [Manual de usuario en PDF (ES)](./docs/manual/manual-es.pdf) · [(EN)](./docs/manual/manual-en.pdf)
 - [Instalación (desarrollo)](#-instalación-desarrollo)
 - [Cómo ejecutar](#-cómo-ejecutar)
 - [Cómo parar](#-cómo-parar)
@@ -66,16 +67,18 @@ Sigue la misma filosofía que su proyecto hermano [DBV Markdown Reader](https://
 
 ## 🚦 Estado actual
 
-**Versión actual:** `v0.14.0` · **Estado:** 🟢 Estable y listo para producción
+**Versión actual:** `v0.15.0` · **Estado:** 🟢 Estable y listo para producción
 
 - 🌐 **Sitio Web Oficial:** [https://davidbuenov.github.io/dbv-typst-editor/](https://davidbuenov.github.io/dbv-typst-editor/) (con galería interactiva de capturas en alta resolución y selector bilingüe ES/EN).
+- 📘 **Manual de Usuario en Typst (PDF):** [Español](./docs/manual/manual-es.pdf) · [English](./docs/manual/manual-en.pdf) (código fuente en [`docs/manual/`](./docs/manual/)).
 - 📦 **Instaladores disponibles en Releases:** [GitHub Releases](https://github.com/davidbuenov/dbv-typst-editor/releases):
   - 🪟 **Windows**: solo a través de la [Microsoft Store](https://apps.microsoft.com/store/detail/9PCPSVTNJMP0?cid=DevShareMCLPCB) (no hay instalador `.exe` en Releases desde `v0.8.0`).
   - 🍎 **macOS**: Archivo `.dmg` universal (compatible con Apple Silicon e Intel).
   - 🐧 **Linux**: Paquetes `.AppImage` (portable) y `.deb` (Debian/Ubuntu/Mint).
 - 🏬 **Microsoft Store:** disponible en la tienda oficial. [🛒 Consíguelo en Microsoft Store (ID 9PCPSVTNJMP0)](https://apps.microsoft.com/store/detail/9PCPSVTNJMP0?cid=DevShareMCLPCB). Si instalaste una versión previa desde la Store, asegúrate de contar con `v0.3.1` o superior (ver [`CHANGELOG.md`](./dbv-specs-ops/CHANGELOG.md)).
-- 🧪 **Calidad y estabilidad:** 2.149 pruebas automatizadas pasando al 100% (1.527 tests de frontend + 622 tests de backend en Rust), evaluación de la IA con modelos locales reales y validación de layout en motor Chromium/WebKit real.
+- 🧪 **Calidad y estabilidad:** 2.209 pruebas automatizadas pasando al 100% (1.580 tests de frontend + 629 tests de backend en Rust), evaluación de la IA con modelos locales reales y validación de layout en motor Chromium/WebKit real.
 - 🚀 **Novedades de las últimas versiones** (lo que hace la aplicación, agrupado por temas, está en [«Qué puede hacer»](#-qué-puede-hacer)):
+  - **Edición profesional, 10 temas WCAG, Modo Vim, snippets con atajos y nueva UI de IA (v0.15.0):** corrección completa del contraste sintáctico en modo oscuro y catálogo ampliado a **10 temas curados + tema personalizado** (con 3 botones rápidos configurables); **Modo Vim** opcional (con carga diferida, insignia de modo en la micro-barra `Ln/Col` y números de línea relativos); **cero latencia de tecleo** en refresco manual; atajos de teclado en **snippets** (`.vscode/*.code-snippets` + `keybindings.json`) y submenú **«Insertar snippet ›»**; apilamiento dinámico de paneles flotantes y navegación por teclado en menús de cabecera; **nueva interfaz tripartita de IA** con selector `⚙️` de modelo y esfuerzo de razonamiento y soporte para **Google Antigravity** (`agy`); y **manual de usuario bilingüe compuesto en Typst** junto con ayuda integrada completa.
   - **AI Native: la IA conoce Typst Universe, ve tus páginas y se conecta con otros agentes (v0.14.0):** «Aplicar plantilla…» pasa un documento al formato IEEE o Springer desde la misma galería de «Nuevo documento»; la IA busca plantillas y paquetes **reales** (nunca inventa un nombre ni una versión), mira las **páginas renderizadas**, cita solo referencias de tu `.bib` y, con la nube, ofrece una tipografía que falte (tú confirmas); un **servidor MCP** presta a Claude Code, Cursor o Codex el compilador exacto de DBV (solo lectura, sin red; instalar un paquete te lo pregunta); los modelos locales ganan tope de salida, progreso visible y reintento; y se pueden importar snippets de Sublime Text. Las fuentes que añades a `fonts/` se recogen sin reiniciar.
   - **La IA con modelos locales y con Gemini, más honesta (v0.13.1):** el asistente ya no anuncia propuestas que no existen, enseña **lo que piensa el modelo** (bloque plegable), **qué está haciendo y a qué velocidad**, y avisa de un **modelo demasiado pequeño o un contexto demasiado corto**; el razonamiento viene **desactivado** y se activa por conexión; al escribir **separa presentación de contenido** (el estilo, en ficheros de estilo); **Gemini 3 vuelve a poder usar herramientas**. Nuevo **«Nuevo .typ vacío…»** para crear un documento suelto sin crear un proyecto (la IA solo ve su fichero). La guía incluye por fin **números medidos** de los modelos locales (`qwen3:8b` resuelve poco más de 1 de cada 3 tareas: revisa siempre lo que propone) y una referencia en la nube, y `eval:ai` mide también IAs en la nube.
   - **Asistente de IA integrado y opcional (v0.13.0):** conecta una IA local (Ollama, LM Studio), en la nube con tu clave (Anthropic, OpenAI, Gemini, OpenRouter) o tu agente instalado con tu suscripción (Claude Code, Gemini CLI, Codex, Copilot). Conversa con el proyecto como contexto, propone cambios en varios ficheros que DBV **compila en memoria** antes de enseñártelos y que revisas trozo a trozo antes de aplicar (con Deshacer); IA en línea sobre la selección (Ctrl+Mayús+I) y «Explicar y arreglar» en los errores. Sin configurar nada, el editor funciona igual que siempre; con una IA local, nada sale de tu equipo; las claves van al almacén de credenciales del sistema. **[📖 Guía: qué necesitas instalar para usar cada IA](./docs/IA.md).** Además: **documentación oficial de Typst sin conexión** (la de la versión exacta del compilador, con buscador también en español), **panel de Problemas** con la lista completa de errores y **visor de datos CSV/TSV** con «Insertar como tabla».
@@ -102,7 +105,7 @@ Sigue la misma filosofía que su proyecto hermano [DBV Markdown Reader](https://
   - Pegar una imagen directamente desde el portapapeles, además del arrastre universal de archivos.
   - 8 plantillas académicas oficiales preconfiguradas con fuentes incrustadas.
   - Empaquetado completo en un único archivo de proyecto `.dbvt`.
-  - 3 temas visuales (Claro, Oscuro y Sepia cálido) y terminal Typst avanzado integrado.
+  - 10 temas visuales curados, tema personalizado WCAG y terminal Typst avanzado integrado.
 
 ---
 
@@ -176,9 +179,9 @@ Agrupado por lo que quieres hacer. El detalle de cada versión está en el [`CHA
 
 
 ### ✍️ Escribir
-- **Editor Typst real** (CodeMirror 6): resaltado de la sintaxis de Typst 0.15, autocompletado de funciones y símbolos, plegado, multicursor, buscar y reemplazar, y una **pestaña por fichero** que conserva cambios, cursor y deshacer.
+- **Editor Typst real** (CodeMirror 6): resaltado de la sintaxis de Typst 0.15 conectado a los tokens del tema, autocompletado de funciones y símbolos, plegado, multicursor, buscar y reemplazar, micro-barra inferior (`Ln/Col`), números de línea relativos y **Modo Vim opcional** (`@replit/codemirror-vim`), con una **pestaña por fichero** que conserva cambios, cursor y deshacer.
 - **Barra de inserción y asistentes**: formato, encabezados, listas, tablas, figuras (también pegando una imagen del portapapeles), citas con la bibliografía real del proyecto y una galería de símbolos matemáticos.
-- **Snippets** propios y por proyecto, con importación desde VS Code y desde Sublime Text.
+- **Snippets** propios y por proyecto con atajos de teclado (`"key"` / `keybindings.json`), menú contextual **«Insertar snippet ›»** e importación desde VS Code y desde Sublime Text.
 - Con **Tinymist** (bajo demanda): autocompletado semántico, ir a la definición, buscar referencias, renombrar símbolos y formatear.
 - **Buscar y reemplazar en todo el proyecto**, con expresiones regulares, y un **explorador de archivos** que reescribe los `#include`, `image()`… al mover o renombrar, con historial local de versiones.
 
@@ -198,7 +201,7 @@ Agrupado por lo que quieres hacer. El detalle de cada versión está en el [`CHA
 - **Visor de datos** CSV/TSV, y ejecución de **Python** y **JavaScript** (jogs) para figuras y datos dinámicos.
 
 ### 🤖 IA opcional: local, en la nube o con tu suscripción
-- **Tú eliges dónde vive**: un modelo local (Ollama, LM Studio, llama.cpp…) sin que nada salga de tu equipo, un proveedor con tu clave de API (Anthropic, OpenAI, Gemini, OpenRouter) o tu agente instalado con tu suscripción (Claude Code, Gemini CLI, Codex, Copilot). Sin ninguna IA conectada, el editor funciona igual.
+- **Tú eliges dónde vive**: un modelo local (Ollama, LM Studio, llama.cpp…) sin que nada salga de tu equipo, un proveedor con tu clave de API (Anthropic, OpenAI, Gemini, OpenRouter) o tu agente instalado con tu suscripción (**Claude Code, Gemini CLI, Codex, GitHub Copilot CLI, Google Antigravity**) mediante un diálogo unificado por categorías con selector `⚙️` de modelo y esfuerzo de razonamiento. Sin ninguna IA conectada, el editor funciona igual.
 - **Nunca escribe sin que lo veas**: propone cambios en uno o varios ficheros, DBV los **compila en memoria**, y tú aceptas o rechazas cada trozo, con Deshacer.
 - **Trabaja sobre tu proyecto**: lee los ficheros, consulta la documentación de Typst, busca plantillas y paquetes **reales** de Universe (nunca inventa un nombre ni una versión), cita solo referencias que existen en tu `.bib`, **ve las páginas renderizadas** para juzgar el formato y, con la nube, te ofrece una tipografía que falte (tú confirmas).
 - Acciones en línea sobre la selección (Ctrl+Mayús+I), «Explicar y arreglar» un error y evaluación con modelos locales reales publicada con sus números: ver la [guía de IA](./docs/IA.md).
@@ -210,7 +213,7 @@ Agrupado por lo que quieres hacer. El detalle de cada versión está en el [`CHA
 ### 📦 Proyecto y publicación
 - Un proyecto de DBV es un **proyecto Typst estándar**: compila con `typst` a secas, sin ataduras ni escribir nada raro en tu carpeta. **Git** integrado (commit, push, pull, clonar y resolver conflictos).
 - Exportar **PDF** y **PNG**, y empaquetar todo en un `.dbvt`.
-- **Sin telemetría ni cuentas**; temas claro, oscuro y sepia; interfaz en español e inglés.
+- **Sin telemetría ni cuentas**; **10 temas curados** + tema personalizado WCAG (con 3 botones rápidos configurables en cabecera); interfaz en español e inglés y manual completo en PDF compuesto en Typst.
 - **Windows** (Microsoft Store), **macOS** (`.dmg` y Homebrew) y **Linux** (AppImage, `.deb` y Homebrew).
 
 El detalle completo de requisitos y criterios de aceptación vive en [`dbv-specs-ops/docs/SPECIFICATIONS.md`](./dbv-specs-ops/docs/SPECIFICATIONS.md).
@@ -364,7 +367,7 @@ Preparación para Microsoft Store documentada en [`dbv-specs-ops/docs/MICROSOFT_
 
 ## 📋 Changelog
 
-`v0.8.0` documentada en [`dbv-specs-ops/CHANGELOG.md`](./dbv-specs-ops/CHANGELOG.md) — rendimiento con documentos grandes (descarte de páginas de la vista previa, réplica temporal acotada, pausa de escritura adaptativa), documento principal elegible desde el árbol, Tinymist bajo demanda, y canal Homebrew para macOS y Linux con el comando `typs`. La `v0.7.0` añadió: editor visual e interactivo de ecuaciones matemáticas, cinco asistentes de diagramación nuevos (secuencia, Gantt, Kanban, DOT/Graphviz y flujogramas con decisiones), botón de ayuda contextual con enlace a la documentación original en cada asistente, zoom contextual con teclado/rueda, y una batería de correcciones de UX (separador bloqueable, aviso de `ResizeObserver`, rediseño de la pantalla de inicio) encontradas usando la aplicación con un proyecto real.
+`v0.15.0` y el historial completo desde la `v0.1.0` viven en [`dbv-specs-ops/CHANGELOG.md`](./dbv-specs-ops/CHANGELOG.md) (contraste oscuro + 10 temas WCAG, Modo Vim opcional, latencia cero en refresco manual, atajos y menú contextual para snippets, apilamiento de paneles y navegación por teclado, interfaz tripartita de IA con Google Antigravity y manual bilingüe en PDF compuesto en Typst).
 
 El changelog se mantiene en los dos idiomas: [Español](./dbv-specs-ops/CHANGELOG.md) · [English](./dbv-specs-ops/CHANGELOG.en.md).
 
@@ -388,6 +391,11 @@ Copyright (c) 2026 David Bueno Vallejo
 
 Esta aplicación no existiría sin el trabajo de un buen número de proyectos de código abierto. Gracias a sus autores y mantenedores:
 
+### Comunidad y feedback (v0.15.0)
+
+- **[@rgranc](https://github.com/rgranc)** (Issues [#3](https://github.com/davidbuenov/dbv-typst-editor/issues/3) y [#4](https://github.com/davidbuenov/dbv-typst-editor/issues/4)) — propuestas detalladas sobre apilamiento al frente de ventanas flotantes, exclusividad de menús de cabecera, atajos de teclado en snippets y flujo de exportación/gestión de archivos.
+- **Víctor Buendía** (Fediscience) — pruebas reales y sugerencias que impulsaron la eliminación de latencia al teclear en refresco manual, el Modo Vim opcional, la mejora del contraste sintáctico en modo oscuro y la galería ampliada de temas y colores.
+
 ### Motor y lenguaje
 
 - [Typst](https://typst.app) — el motor de composición tipográfica sobre el que se construye toda la aplicación (binario vendorizado como sidecar de compilación y, desde la v0.9.0, sus crates `typst`, `typst-ide`, `typst-layout`, `typst-svg` y `typst-kit` enlazados en la aplicación para el motor de vista previa en proceso; licencia Apache-2.0).
@@ -407,7 +415,7 @@ Esta aplicación no existiría sin el trabajo de un buen número de proyectos de
 ### Piezas centrales de la aplicación
 
 - [Tauri](https://tauri.app) — el framework de escritorio (Rust + WebView nativo) sobre el que corre toda la aplicación, junto con sus plugins `shell`, `dialog`, `updater`, `process` y `single-instance`.
-- [CodeMirror 6](https://codemirror.net) y [codemirror-lang-typst](https://github.com/kxxt/codemirror-lang-typst) — el editor de código y su resaltado de sintaxis Typst.
+- [CodeMirror 6](https://codemirror.net), [codemirror-lang-typst](https://github.com/kxxt/codemirror-lang-typst) y [@replit/codemirror-vim](https://github.com/replit/codemirror-vim) — el editor de código, su resaltado de sintaxis Typst y el modo Vim opcional cargado bajo demanda.
 - [Hayagriva](https://github.com/typst/hayagriva) — el mismo motor de bibliografía BibTeX/Hayagriva que usa el propio compilador Typst para `#bibliography()`.
 - [Vite](https://vite.dev) — empaquetado y servidor de desarrollo del frontend.
 - [jsonc-parser](https://github.com/microsoft/node-jsonc-parser) — lectura y edición de los ficheros de snippets en el formato de VS Code, conservando los comentarios.

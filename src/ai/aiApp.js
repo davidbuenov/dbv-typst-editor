@@ -16,7 +16,7 @@ import { AI_TRANSLATIONS } from './translations.js';
 import { proposeNudge, runAgent } from './agentLoop.js';
 import { createProposalApplier } from './applyProposal.js';
 import { createChatPanel, mentionedPaths } from './chatPanel.js';
-import { createConnectWizard } from './connectWizard.js';
+import { createConnectWizard, DEFAULT_AGENT_MODELS, resolveAgentModel } from './connectWizard.js';
 import { createInlineAi } from './inline.js';
 import { createAcpSession, insideProject } from './acpSession.js';
 import { createChangesCard, createPermissionCard } from './acpView.js';
@@ -930,6 +930,11 @@ export function createAiApp(deps) {
     backend,
     getRoot: () => projectRoot,
     readText,
+    mcpServers: async () => {
+      const mcp = projectRoot && backend.mcpServerSpec ? await backend.mcpServerSpec(projectRoot) : null;
+      return mcp?.ok ? [mcp.value] : [];
+    },
+    onAuthenticate: (method) => panel.addStep(t('ai.agentSigningIn').replace('{method}', method.name ?? method.id)),
     askPermission: async (params) => {
       const toRelative = (absolute) => insideProject(projectRoot, absolute);
       const permission = createPermissionCard(params, {
@@ -1012,6 +1017,17 @@ export function createAiApp(deps) {
     return lines.filter(Boolean).join('\n');
   }
 
+  /** Con qué arrancar el agente de una conexión. */
+  function agentSpec(connection) {
+    const id = agentId(connection);
+    return {
+      id,
+      command: id === 'custom' ? connection.model : null,
+      model: resolveAgentModel(id, connection.model) || undefined,
+      reasoningEffort: connection.reasoningEffort || 'medium',
+    };
+  }
+
   async function askAgent(connection, text, options, current) {
     busy = true;
     cancelled = false;
@@ -1024,9 +1040,9 @@ export function createAiApp(deps) {
     agentTurn = { proposal: createProposal(), bubble };
     let finalText = '';
     try {
-      const spec = { id: agentId(connection), command: agentId(connection) === 'custom' ? connection.model : null };
+      const spec = agentSpec(connection);
       panel.addStep(t('ai.agentStarting').replace('{agent}', providerName(connection)));
-      const session = await acp.ensureSession(spec);
+      const session = await acp.ensureSession(spec, current.id);
       const active = activeSource();
       const context = [
         await agentPreamble(session.fresh),
@@ -1078,7 +1094,8 @@ export function createAiApp(deps) {
       name: t(`ai.agent.${tool.name}`),
       provider: 'agent',
       baseUrl: `acp:${tool.name}`,
-      model: tool.name,
+      model: DEFAULT_AGENT_MODELS[tool.name] ?? tool.name,
+      reasoningEffort: 'medium',
       hasKey: false,
       contextTokens: null,
       supportsTools: true,
@@ -1183,4 +1200,4 @@ export function createAiApp(deps) {
     client,
     refreshContext: () => projectRoot && renderContextPreview(),
   };
-}
+}

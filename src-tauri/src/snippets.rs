@@ -26,6 +26,8 @@ pub const GLOBAL_RELATIVE: &str = "snippets/typst.json";
 /// Carpeta y fichero por defecto de los snippets del proyecto.
 pub const PROJECT_DIR: &str = ".vscode";
 pub const PROJECT_DEFAULT: &str = "typst.code-snippets";
+/// Fichero opcional de atajos de teclado de estilo VS Code (RF-119).
+pub const KEYBINDINGS_FILE: &str = "keybindings.json";
 
 /// Plantilla de un fichero nuevo: dos ejemplos comentados que sirven de guía
 /// (RF-81.4). Solo lleva comentarios de línea completa y es JSON válido una
@@ -132,6 +134,29 @@ pub fn snippets_project_files(root: String) -> Vec<String> {
 #[tauri::command]
 pub fn snippets_ensure_project(root: String) -> Result<String, AppError> {
     Ok(path_to_string(&ensure_project(Path::new(&root))?))
+}
+
+/// Rutas candidatas para `keybindings.json` (global y `.vscode/` del proyecto).
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct KeybindingsPaths {
+    pub global: String,
+    pub project: Option<String>,
+}
+
+/// Resuelve de forma pura las rutas de `keybindings.json` global y de proyecto.
+pub fn keybindings_paths(config_dir: &Path, root: Option<&Path>) -> KeybindingsPaths {
+    KeybindingsPaths {
+        global: path_to_string(&config_dir.join(KEYBINDINGS_FILE)),
+        project: root.map(|r| path_to_string(&r.join(PROJECT_DIR).join(KEYBINDINGS_FILE))),
+    }
+}
+
+/// Devuelve las rutas donde buscar `keybindings.json` (RF-119).
+#[tauri::command]
+pub fn snippets_keybindings_paths(app: tauri::AppHandle, root: Option<String>) -> Result<KeybindingsPaths, AppError> {
+    let config = app.path().app_config_dir().map_err(|error| AppError::Io(error.to_string()))?;
+    Ok(keybindings_paths(&config, root.as_deref().map(Path::new)))
 }
 
 
@@ -417,5 +442,17 @@ mod tests {
         assert_eq!(fs::read_to_string(&target).unwrap(), "{ }", "no se tocó");
         write_imported(&target, "{ \"x\": 1 }", true).unwrap();
         assert_eq!(fs::read_to_string(&target).unwrap(), "{ \"x\": 1 }");
+    }
+
+    #[test]
+    fn resuelve_rutas_de_keybindings_global_y_de_proyecto() {
+        let cfg = Path::new("/cfg/dbv");
+        let without_project = keybindings_paths(cfg, None);
+        assert_eq!(without_project.global, path_to_string(&cfg.join("keybindings.json")));
+        assert_eq!(without_project.project, None);
+
+        let proj = Path::new("/docs/tesis");
+        let with_project = keybindings_paths(cfg, Some(proj));
+        assert_eq!(with_project.project, Some(path_to_string(&proj.join(".vscode").join("keybindings.json"))));
     }
 }

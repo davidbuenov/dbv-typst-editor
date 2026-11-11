@@ -5,6 +5,7 @@
 // Built with dbv-specs-ops · https://github.com/davidbuenov/dbv-specs-ops
 // =============================================================================
 //
+//
 // Lista de conexiones configuradas (`ai-connections.json` en la carpeta de
 // configuración): proveedor, URL, modelo y capacidades. NUNCA la clave: esa
 // vive en el almacén de credenciales del sistema (`secrets.rs`) y aquí solo
@@ -16,7 +17,7 @@ use serde::{Deserialize, Serialize};
 
 use super::AiError;
 
-/// Proveedor de una conexión directa (RF-90.2).
+/// Proveedor de una conexión directa.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum ProviderKind {
@@ -27,7 +28,7 @@ pub enum ProviderKind {
     Anthropic,
     Gemini,
     OpenRouter,
-    /// Agente instalado por ACP (RF-91): `base_url` = `acp:<agente>` y, si es
+    /// Agente instalado por ACP: `base_url` = `acp:<agente>` y, si es
     /// `acp:custom`, `model` lleva la orden completa.
     Agent,
 }
@@ -58,16 +59,14 @@ impl ProviderKind {
         }
     }
 
-    /// ¿Los datos salen del equipo? (aviso de RNF-IA.4).
+    /// ¿Los datos salen del equipo? (aviso).
     pub fn is_cloud(self) -> bool {
         // Un agente (Claude Code, Gemini CLI…) habla con su nube.
         matches!(self, Self::OpenAi | Self::Anthropic | Self::Gemini | Self::OpenRouter | Self::Agent)
     }
 
-    /// Contexto prudente si el proveedor no lo informa (ADR-V0130-002). Ollama
-    /// arranca con 4 096, que deja un presupuesto útil de ≈1 600 tokens
-    /// (RF-103.2): DBV pide 8 192, el mínimo con el que el asistente funciona
-    /// (ADR-V0140-002, D2).
+    /// Contexto prudente si el proveedor no lo informa. Ollama arranca con 4 096, que deja un
+    /// presupuesto útil de ≈1 600 tokens: la app pide 8 192, el mínimo con el que el asistente funciona.
     pub fn default_context(self) -> u32 {
         match self {
             Self::Ollama | Self::LmStudio | Self::OpenAiCompatible => 8192,
@@ -75,7 +74,7 @@ impl ProviderKind {
         }
     }
 
-    /// Tope de tokens por respuesta si la conexión no fija uno (RF-107.1): un
+    /// Tope de tokens por respuesta si la conexión no fija uno: un
     /// modelo local que se desboca no debe generar hasta llenar el contexto
     /// (la prueba de `qwen3:8b` del 2026-10-04 gastó ≈7 000 tokens en 4 min 17 s
     /// sin mostrar nada). 8 192 cubre ≈14 páginas de una sola llamada y corta un
@@ -106,11 +105,15 @@ pub struct Connection {
     pub supports_tools: Option<bool>,
     #[serde(default)]
     pub supports_images: Option<bool>,
-    /// El modelo «piensa» antes de responder (RF-101). `None` = desactivado: más
+    /// El modelo «piensa» antes de responder. `None` = desactivado: más
     /// rápido, y es lo que ya hacían las conexiones anteriores a la 0.13.1.
     #[serde(default)]
     pub reasoning: Option<bool>,
-    /// Máximo de tokens que el modelo puede generar en una respuesta (RF-107.1).
+    /// Nivel de esfuerzo de razonamiento / pensamiento para agentes CLI
+    /// ("off", "low", "medium", "high").
+    #[serde(default)]
+    pub reasoning_effort: Option<String>,
+    /// Máximo de tokens que el modelo puede generar en una respuesta.
     /// `None` = el de su proveedor (`default_max_output`).
     #[serde(default)]
     pub max_output_tokens: Option<u32>,
@@ -131,7 +134,7 @@ impl Connection {
     }
 
     /// Tope de tokens por respuesta (el configurado o el de su proveedor), nunca
-    /// mayor que el contexto: generar más no cabría (RF-107.1).
+    /// mayor que el contexto: generar más no cabría.
     pub fn output_cap(&self) -> Option<u32> {
         self.max_output_tokens.or_else(|| self.provider.default_max_output()).map(|cap| cap.min(self.context()))
     }
@@ -140,7 +143,7 @@ impl Connection {
     pub fn validate(&self) -> Result<(), AiError> {
         let url = self.base_url.trim();
         if self.provider == ProviderKind::Agent {
-            let known = ["acp:claude", "acp:gemini", "acp:codex", "acp:copilot", "acp:custom"];
+            let known = ["acp:claude", "acp:gemini", "acp:codex", "acp:copilot", "acp:antigravity", "acp:agy", "acp:custom"];
             if !known.contains(&url) {
                 return Err(AiError::Config(format!("agente no reconocido ({url})")));
             }
@@ -162,7 +165,7 @@ pub struct ConnectionsFile {
     pub connections: Vec<Connection>,
     #[serde(default)]
     pub active: Option<String>,
-    /// RNF-IA.1: «Mostrar las funciones de IA». Por defecto, sí (si hay conexión).
+    /// «Mostrar las funciones de IA». Por defecto, sí (si hay conexión).
     #[serde(default = "yes")]
     pub show_ai: bool,
 }
@@ -210,6 +213,7 @@ mod tests {
             supports_tools: Some(true),
             supports_images: Some(true),
             reasoning: None,
+            reasoning_effort: None,
             max_output_tokens: None,
         }
     }
@@ -243,7 +247,7 @@ mod tests {
 
     #[test]
     fn el_tope_de_salida_es_de_8192_en_locales_y_no_existe_en_la_nube() {
-        // RF-107.1 / D1: lo que se midió (una propuesta de ~1 200 palabras son 1 409 tokens) cabe de sobra.
+        // / D1: lo que se midió (una propuesta de ~1 200 palabras son 1 409 tokens) cabe de sobra.
         for local in [ProviderKind::Ollama, ProviderKind::LmStudio, ProviderKind::OpenAiCompatible] {
             assert_eq!(with(local, None, None).output_cap(), Some(8192), "{local:?}");
         }
@@ -263,7 +267,7 @@ mod tests {
 
     #[test]
     fn ollama_pide_8192_de_contexto_por_defecto() {
-        // ADR-V0140-002 D2: con 4 096 el presupuesto útil era de ≈1 600 tokens.
+        // Con 4 096 el presupuesto útil era de ≈1 600 tokens.
         assert_eq!(with(ProviderKind::Ollama, None, None).context(), 8192);
         assert_eq!(with(ProviderKind::Ollama, Some(32768), None).context(), 32768);
     }
@@ -288,6 +292,8 @@ mod tests {
         connection.id = "a1".into();
         connection.provider = ProviderKind::Agent;
         connection.base_url = "acp:claude".into();
+        assert!(connection.validate().is_ok());
+        connection.base_url = "acp:antigravity".into();
         assert!(connection.validate().is_ok());
         connection.base_url = "acp:../../x".into();
         assert!(connection.validate().is_err());

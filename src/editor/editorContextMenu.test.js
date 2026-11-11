@@ -205,4 +205,32 @@ describe('createEditorContextMenu', () => {
 
     expect(onGoToPreview).not.toHaveBeenCalled();
   });
+
+  it('muestra submenú «Insertar snippet» con $TM_SELECTED_TEXT cuando hay snippets marcados (RF-119b)', () => {
+    menu.close();
+    const snippetMenu = createEditorContextMenu({
+      hostEl: host,
+      getView: () => view,
+      canGoToPreview: () => true,
+      onGoToPreview,
+      notify,
+      t: labels,
+      getDocumentPath: () => '/p/main.typ',
+      getContextSnippets: () => [
+        { name: 'Nota', prefix: 'nota', body: '#footnote[$TM_SELECTED_TEXT]$0', key: 'Ctrl+Alt+J', contextMenu: true },
+      ],
+    });
+    view.dispatch({ selection: { anchor: 5, head: 10 } });
+    rightClick();
+
+    const trigger = document.querySelector('[data-action="insertSnippetSubmenu"]');
+    expect(trigger).not.toBeNull();
+    trigger.click();
+    const entryBtn = document.querySelector('[data-snippet-name="Nota"]');
+    expect(entryBtn).not.toBeNull();
+    entryBtn.click();
+
+    expect(view.state.doc.toString()).toBe('hola #footnote[mundo]');
+    expect(snippetMenu.isOpen()).toBe(false);
+  });
 });

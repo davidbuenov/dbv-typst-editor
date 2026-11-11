@@ -5,6 +5,7 @@
 // Built with dbv-specs-ops · https://github.com/davidbuenov/dbv-specs-ops
 // =============================================================================
 //
+//
 // El Agent Client Protocol es JSON-RPC 2.0, una línea por mensaje, por la
 // entrada y salida estándar del agente. Este módulo es solo TRANSPORTE:
 //   · lanza el agente con la carpeta del proyecto como directorio de trabajo;
@@ -17,8 +18,8 @@
 //     cuenta (spike S-ACP: Claude Code escribe así tras pedir permiso).
 // Lo que se decide —qué se permite, qué se enseña— lo decide el frontend.
 //
-// DBV no instala nada: si falta el programa o Node.js, se dice (RF-91.4). Las
-// credenciales son las del propio agente; DBV no las ve (RF-91.3).
+// La app no instala nada: si falta el programa o Node.js, se dice. Las
+// credenciales son las del propio agente; la app no las ve.
 
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Read, Write};
@@ -35,74 +36,160 @@ use tokio::sync::oneshot;
 use super::detect::{launcher, which};
 use super::AiError;
 
-/// Paquetes de npm de los adaptadores ACP (comprobados en npm el 2026-10-02).
-pub const CLAUDE_ADAPTER: &str = "@agentclientprotocol/claude-agent-acp";
-pub const CODEX_ADAPTER: &str = "@zed-industries/codex-acp";
+fn is_skipped_dir(name: &str) -> bool {
+    name.starts_with('.') || matches!(name, "node_modules" | "target" | "dist" | "build")
+}
 
-/// Tamaño máximo de un fichero del punto de restauración (los de texto de un
-/// proyecto Typst son pequeños; un CSV enorme no se vigila).
+/// Paquetes de npm de los adaptadores ACP (los del registro ACP, comprobados el 2026-10-29: el de Codex
+/// se mudó de `@zed-industries/codex-acp`, parado en la 0.16.0, a `@agentclientprotocol/codex-acp`).
+pub const CLAUDE_ADAPTER: &str = "@agentclientprotocol/claude-agent-acp";
+pub const CODEX_ADAPTER: &str = "@agentclientprotocol/codex-acp";
+
+/// Tamaño máximo de un fichero del punto de restauración (los .md son pequeños;
+/// uno enorme no se vigila).
 const SNAPSHOT_MAX_BYTES: u64 = 2 * 1024 * 1024;
 const SNAPSHOT_MAX_FILES: usize = 4000;
+/// La carpeta de un documento puede ser cualquiera (Documentos, una descarga…):
+/// la foto no baja más de estos niveles ni mira más entradas que estas.
+const SNAPSHOT_MAX_DEPTH: usize = 8;
+const SNAPSHOT_MAX_ENTRIES: usize = 50_000;
 /// Memoria total del punto de restauración.
 const SNAPSHOT_MAX_TOTAL: u64 = 64 * 1024 * 1024;
 
-/// Qué agente lanzar. `custom` lleva su orden completa.
+/// Qué agente lanzar: uno de los cuatro reconocidos. No hay agente «a medida» con una orden libre:
+/// una app que muestra documentos de terceros no debe aceptar una orden arbitraria recibida por IPC:
+/// sería ejecución de código si algún día se colara una inyección en la interfaz.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct AgentSpec {
     pub id: String,
     #[serde(default)]
-    pub command: Option<String>,
+    pub model: Option<String>,
+    #[serde(default)]
+    pub reasoning_effort: Option<String>,
 }
 
-/// Programa y argumentos para lanzar un agente reconocido (RF-91.1).
+impl AgentSpec {
+    pub fn new(id: impl Into<String>) -> Self {
+        Self {
+            id: id.into(),
+            model: None,
+            reasoning_effort: None,
+        }
+    }
+}
+
+/// Programa y argumentos para lanzar un agente reconocido.
 pub fn agent_command(spec: &AgentSpec) -> Result<(PathBuf, Vec<String>), AiError> {
     let need = |name: &str| which(name).ok_or_else(|| AiError::Config(format!("no se encuentra «{name}» en el PATH")));
-    let (program, args): (PathBuf, Vec<String>) = match spec.id.as_str() {
+    let (program, mut args): (PathBuf, Vec<String>) = match spec.id.as_str() {
         "claude" => (need("npx")?, vec!["-y".into(), CLAUDE_ADAPTER.into()]),
         "codex" => (need("npx")?, vec!["-y".into(), CODEX_ADAPTER.into()]),
-        "gemini" => (need("gemini")?, vec!["--experimental-acp".into()]),
+        // `--acp` es el flag actual (registro ACP, Gemini CLI 0.65); `--experimental-acp` era el de las primeras versiones.
+        "gemini" => (need("gemini")?, vec!["--acp".into()]),
+        // Antigravity: la CLI `agy` no habla ACP (no tiene `--acp`); lo hace su servidor `agy_acp_server`,
+        // que se instala aparte desde el registro ACP. En Linux el registro lo lanza con `--uid=`.
+        "antigravity" | "agy" => (
+            which("agy_acp_server").ok_or_else(|| {
+                AiError::Config("Antigravity necesita su servidor ACP «agy_acp_server» (registro ACP): la CLI «agy» no habla ACP".into())
+            })?,
+            if cfg!(target_os = "linux") { vec!["--uid=".into()] } else { Vec::new() },
+        ),
         "copilot" => (need("copilot")?, vec!["--acp".into()]),
-        "custom" => {
-            let words = split_command(spec.command.as_deref().unwrap_or_default());
-            let (first, rest) = words.split_first().ok_or_else(|| AiError::Config("falta la orden del agente".into()))?;
-            let program = which(first).unwrap_or_else(|| PathBuf::from(first));
-            (program, rest.to_vec())
-        }
         other => return Err(AiError::Config(format!("agente desconocido: {other}"))),
     };
+
+    let clean_model = resolve_clean_model(spec);
+
+    match spec.id.as_str() {
+        "claude" => {
+            // @agentclientprotocol/claude-agent-acp recibe el modelo y el esfuerzo por variable de entorno y session/set_config_option.
+        }
+        "codex" | "antigravity" | "agy" => {
+            // Sin flags: un flag desconocido hace que el adaptador imprima la ayuda y termine. El modelo
+            // llega por entorno (`agent_env`) y por `session/set_config_option`.
+        }
+        _ => {
+            if let Some(model) = clean_model {
+                args.push("--model".into());
+                args.push(model.into());
+            }
+        }
+    }
+
     let (program, mut prefix) = launcher(&program);
     prefix.extend(args);
     Ok((program, prefix))
 }
 
-/// Parte una orden en palabras, respetando comillas dobles y simples.
-pub fn split_command(command: &str) -> Vec<String> {
-    let mut words = Vec::new();
-    let mut current = String::new();
-    let mut quote: Option<char> = None;
-    let mut started = false;
-    for c in command.chars() {
-        match (quote, c) {
-            (Some(q), c) if c == q => quote = None,
-            (Some(_), c) => current.push(c),
-            (None, '"' | '\'') => {
-                quote = Some(c);
-                started = true;
+fn resolve_clean_model(spec: &AgentSpec) -> Option<&str> {
+    let raw = spec.model.as_deref().map(str::trim).filter(|m| !m.is_empty())?;
+    if spec.id == "claude" && matches!(raw, "claude" | "claude-sonnet" | "default") {
+        return Some("claude-sonnet-5-5");
+    }
+    if raw == spec.id || raw == "antigravity" || raw == "agy" {
+        return None;
+    }
+    Some(raw)
+}
+
+/// Variables de entorno adicionales para configurar el modelo y esfuerzo al lanzar el agente ACP.
+pub fn agent_env(spec: &AgentSpec) -> Vec<(String, String)> {
+    agent_env_with_bin(spec, which("claude").as_deref())
+}
+
+/// Variables de entorno adicionales permitiendo inyectar la ruta al binario de Claude para tests deterministas.
+pub fn agent_env_with_bin(spec: &AgentSpec, claude_bin: Option<&Path>) -> Vec<(String, String)> {
+    let mut envs = Vec::new();
+    let clean_model = resolve_clean_model(spec);
+    let clean_effort = spec
+        .reasoning_effort
+        .as_deref()
+        .map(str::trim)
+        .filter(|e| !e.is_empty() && *e != "off");
+
+    match spec.id.as_str() {
+        "claude" => {
+            if let Some(bin) = claude_bin {
+                envs.push(("CLAUDE_CODE_EXECUTABLE".into(), bin.to_string_lossy().to_string()));
             }
-            (None, c) if c.is_whitespace() => {
-                if started || !current.is_empty() {
-                    words.push(std::mem::take(&mut current));
-                    started = false;
-                }
+            if let Some(model) = clean_model {
+                envs.push(("ANTHROPIC_MODEL".into(), model.into()));
             }
-            (None, c) => current.push(c),
+            if spec.reasoning_effort.as_deref() == Some("off") {
+                envs.push(("MAX_THINKING_TOKENS".into(), "0".into()));
+            }
         }
+        "codex" => {
+            // @agentclientprotocol/codex-acp: `CODEX_CONFIG` es un JSON que se mezcla con la configuración de la sesión.
+            let mut config = serde_json::Map::new();
+            if let Some(model) = clean_model {
+                config.insert("model".into(), json!(model));
+            }
+            if let Some(effort) = clean_effort {
+                config.insert("model_reasoning_effort".into(), json!(effort));
+            }
+            if !config.is_empty() {
+                envs.push(("CODEX_CONFIG".into(), Value::Object(config).to_string()));
+            }
+        }
+        "antigravity" | "agy" => {
+            if let Some(model) = clean_model {
+                let resolved = if let Some(effort) = clean_effort.filter(|e| matches!(*e, "low" | "medium" | "high")) {
+                    if model.ends_with("-low") || model.ends_with("-medium") || model.ends_with("-high") {
+                        model.to_string()
+                    } else {
+                        format!("{model}-{effort}")
+                    }
+                } else {
+                    model.to_string()
+                };
+                envs.push(("AGY_ACP_DEFAULT_MODEL".into(), resolved));
+            }
+        }
+        _ => {}
     }
-    if started || !current.is_empty() {
-        words.push(current);
-    }
-    words
+    envs
 }
 
 type Pending = Arc<Mutex<HashMap<u64, oneshot::Sender<Result<Value, Value>>>>>;
@@ -121,7 +208,7 @@ impl Drop for Running {
     }
 }
 
-/// Mata al agente Y a todo lo que lanzó (`npx` → `node` → el servidor MCP de DBV…). `Child::kill` solo alcanza al hijo
+/// Mata al agente Y a todo lo que lanzó (`npx` → `node` → el servidor MCP de la app…). `Child::kill` solo alcanza al hijo
 /// directo: los nietos quedaban vivos y uno bloqueaba el ejecutable de debug al volver a compilar.
 fn kill_tree(child: &mut Child) {
     #[cfg(windows)]
@@ -202,9 +289,9 @@ pub fn classify(line: &str) -> Incoming {
 pub type Sink = Arc<dyn Fn(&str, Value) + Send + Sync>;
 
 /// Lanza `program args` en `cwd` y empieza a leer su salida.
-fn spawn_agent(program: &Path, args: &[String], cwd: &str, sink: Sink) -> Result<Running, AiError> {
+fn spawn_agent_with_env(program: &Path, args: &[String], envs: &[(String, String)], cwd: &str, sink: Sink) -> Result<Running, AiError> {
     let mut command = Command::new(program);
-    command.args(args).current_dir(cwd).stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped());
+    command.args(args).envs(envs.iter().map(|(k, v)| (k.as_str(), v.as_str()))).current_dir(cwd).stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped());
     #[cfg(unix)]
     {
         use std::os::unix::process::CommandExt;
@@ -276,7 +363,16 @@ fn send_request(running: &Running, method: &str, params: Value) -> Result<onesho
 async fn await_response(receiver: oneshot::Receiver<Result<Value, Value>>) -> Result<Value, AiError> {
     match receiver.await {
         Ok(Ok(value)) => Ok(value),
-        Ok(Err(error)) => Err(AiError::BadRequest(error["message"].as_str().map(str::to_string).unwrap_or_else(|| error.to_string()))),
+        Ok(Err(error)) => {
+            let detail = error.get("data").and_then(|d| d.get("details")).and_then(Value::as_str);
+            let msg = match (error["message"].as_str(), detail) {
+                (Some(m), Some(d)) => format!("{m}: {d}"),
+                (Some(m), None) => m.to_string(),
+                (None, Some(d)) => d.to_string(),
+                (None, None) => error.to_string(),
+            };
+            Err(AiError::BadRequest(msg))
+        }
         Err(_) => Err(AiError::Network("el agente se cerró".into())),
     }
 }
@@ -294,10 +390,11 @@ fn response_message(id: Value, result: Option<Value>, error: Option<String>) -> 
 pub fn acp_start(app: AppHandle, state: State<'_, AcpState>, spec: AgentSpec, cwd: String) -> Result<(), AiError> {
     *lock(&state.running) = None;
     let (program, args) = agent_command(&spec)?;
+    let envs = agent_env(&spec);
     let sink: Sink = Arc::new(move |event, payload| {
         let _ = app.emit(event, payload);
     });
-    *lock(&state.running) = Some(spawn_agent(&program, &args, &cwd, sink)?);
+    *lock(&state.running) = Some(spawn_agent_with_env(&program, &args, &envs, &cwd, sink)?);
     Ok(())
 }
 
@@ -335,13 +432,14 @@ pub fn acp_stop(state: State<'_, AcpState>) {
     *lock(&state.snapshot) = None;
 }
 
+/// Indica si hay un agente ACP vivo ahora mismo.
 #[tauri::command]
 pub fn acp_running(state: State<'_, AcpState>) -> bool {
     lock(&state.running).is_some()
 }
 
 // ---------------------------------------------------------------------------
-// Punto de restauración por turno (RF-91.6)
+// Punto de restauración por turno
 // ---------------------------------------------------------------------------
 
 /// ¿Parece texto? Sin NUL en los primeros bytes y UTF-8 válido.
@@ -357,18 +455,25 @@ fn read_text(path: &Path) -> Option<String> {
     String::from_utf8(bytes).ok()
 }
 
-/// Foto del proyecto: TODOS sus ficheros (sin carpetas ocultas), con el
-/// contenido de los de texto mientras quepa en los topes, y `None` para los
-/// demás. Saber que un fichero existía, aunque no se guarde su contenido,
-/// evita tomarlo después por «creado por el agente» (y que Deshacer lo borre).
+/// Foto de la carpeta del documento: sus ficheros de texto (sin carpetas ocultas
+/// ni dependencias), con el contenido mientras quepa en los topes, y `None` para
+/// los que no caben. Saber que un fichero existía, aunque no se guarde su
+/// contenido, evita tomarlo después por «creado por el agente» (y que Deshacer
+/// lo borre). Solo se vigilan los `.md`/`.markdown`/`.txt`.
 pub type Snapshot = HashMap<String, Option<String>>;
 
 pub fn snapshot_dir(root: &Path) -> Snapshot {
     let mut files = Snapshot::new();
     let mut captured = 0usize;
     let mut total = 0u64;
-    let walker = walkdir::WalkDir::new(root).into_iter().filter_entry(|entry| entry.depth() == 0 || !entry.file_name().to_string_lossy().starts_with('.'));
-    for entry in walker.flatten() {
+    let walker = walkdir::WalkDir::new(root)
+        .max_depth(SNAPSHOT_MAX_DEPTH)
+        .into_iter()
+        .filter_entry(|entry| entry.depth() == 0 || !is_skipped_dir(&entry.file_name().to_string_lossy()));
+    for (visited, entry) in walker.flatten().enumerate() {
+        if visited >= SNAPSHOT_MAX_ENTRIES {
+            break;
+        }
         if !entry.file_type().is_file() {
             continue;
         }
@@ -440,13 +545,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn parte_ordenes_con_comillas() {
-        assert_eq!(split_command(r#"npx -y "@scope/pkg" --flag 'a b'"#), vec!["npx", "-y", "@scope/pkg", "--flag", "a b"]);
-        assert_eq!(split_command("  "), Vec::<String>::new());
-        assert_eq!(split_command(r#"x """#), vec!["x", ""]);
-    }
-
-    #[test]
     fn clasifica_respuestas_peticiones_y_notificaciones() {
         assert!(matches!(classify(r#"{"jsonrpc":"2.0","id":3,"result":{"stopReason":"end_turn"}}"#), Incoming::Response { id: 3, result: Ok(_) }));
         assert!(matches!(classify(r#"{"jsonrpc":"2.0","id":4,"error":{"message":"x"}}"#), Incoming::Response { id: 4, result: Err(_) }));
@@ -490,15 +588,80 @@ mod tests {
         before.insert("grande.csv".into(), None);
         let mut after = Snapshot::new();
         after.insert("grande.csv".into(), Some("a,b".into()));
-        after.insert("nuevo.typ".into(), Some("= Nuevo".into()));
+        after.insert("nuevo.md".into(), Some("# Nuevo".into()));
         let changes = diff_snapshots(&before, &after);
-        assert_eq!(changes, vec![DiskChange { path: "nuevo.typ".into(), before: None, after: Some("= Nuevo".into()) }]);
+        assert_eq!(changes, vec![DiskChange { path: "nuevo.md".into(), before: None, after: Some("# Nuevo".into()) }]);
     }
 
     #[test]
-    fn un_agente_desconocido_o_sin_orden_es_un_error_claro() {
-        assert!(agent_command(&AgentSpec { id: "nada".into(), command: None }).is_err());
-        assert!(agent_command(&AgentSpec { id: "custom".into(), command: Some("  ".into()) }).is_err());
+    fn un_agente_desconocido_o_a_medida_es_un_error_claro() {
+        assert!(agent_command(&AgentSpec::new("nada")).is_err());
+        // No existe el agente «custom» con una orden libre: es ejecución arbitraria por IPC.
+        assert!(agent_command(&AgentSpec::new("custom")).is_err());
+    }
+
+    #[test]
+    fn agent_command_con_modelo_anade_flag() {
+        let spec = AgentSpec {
+            id: "gemini".into(),
+            model: Some("gemini-3.8-flash".into()),
+            reasoning_effort: Some("high".into()),
+        };
+        if let Ok((_bin, args)) = agent_command(&spec) {
+            assert!(args.contains(&"--model".to_string()));
+            assert!(args.contains(&"gemini-3.8-flash".to_string()));
+        }
+        let agy_spec = AgentSpec {
+            id: "antigravity".into(),
+            model: Some("gemini-4-argon".into()),
+            reasoning_effort: Some("medium".into()),
+        };
+        // Antigravity solo se lanza con `agy_acp_server`, sin flags; el modelo va por entorno.
+        match agent_command(&agy_spec) {
+            Ok((_bin, args)) => assert!(!args.iter().any(|a| a == "--acp" || a == "--model" || a == "--effort" || a == "medium")),
+            Err(error) => assert!(error.to_string().contains("agy_acp_server")),
+        }
+        assert_eq!(agent_env(&agy_spec), vec![("AGY_ACP_DEFAULT_MODEL".to_string(), "gemini-4-argon-medium".to_string())]);
+        // Codex: sin flags (el adaptador no documenta `-c`); modelo y esfuerzo van en `CODEX_CONFIG`.
+        let codex_spec = AgentSpec {
+            id: "codex".into(),
+            model: Some("gpt-6-luna".into()),
+            reasoning_effort: Some("high".into()),
+        };
+        if let Ok((_bin, args)) = agent_command(&codex_spec) {
+            assert_eq!(args.last().map(String::as_str), Some(CODEX_ADAPTER));
+        }
+        let env = agent_env(&codex_spec);
+        assert_eq!(env.len(), 1);
+        assert_eq!(env[0].0, "CODEX_CONFIG");
+        let config: Value = serde_json::from_str(&env[0].1).unwrap();
+        assert_eq!(config, json!({ "model": "gpt-6-luna", "model_reasoning_effort": "high" }));
+        assert!(agent_env(&AgentSpec::new("codex")).is_empty());
+        let claude_spec = AgentSpec {
+            id: "claude".into(),
+            model: Some("claude-sonnet-5-5".into()),
+            reasoning_effort: Some("high".into()),
+        };
+        assert_eq!(
+            agent_env_with_bin(&claude_spec, None),
+            vec![("ANTHROPIC_MODEL".to_string(), "claude-sonnet-5-5".to_string())]
+        );
+        assert_eq!(
+            agent_env_with_bin(&claude_spec, Some(Path::new("C:\\bin\\claude.exe"))),
+            vec![
+                ("CLAUDE_CODE_EXECUTABLE".to_string(), "C:\\bin\\claude.exe".to_string()),
+                ("ANTHROPIC_MODEL".to_string(), "claude-sonnet-5-5".to_string())
+            ]
+        );
+        let claude_generic_spec = AgentSpec {
+            id: "claude".into(),
+            model: Some("claude".into()),
+            reasoning_effort: Some("medium".into()),
+        };
+        assert_eq!(
+            agent_env_with_bin(&claude_generic_spec, None),
+            vec![("ANTHROPIC_MODEL".to_string(), "claude-sonnet-5-5".to_string())]
+        );
     }
 
     /// Agente falso en Node (`tests/fixtures/fake-acp-agent.mjs`): responde a
@@ -517,7 +680,7 @@ mod tests {
         let sink: Sink = Arc::new(move |event, payload| {
             let _ = tx.send((event.to_string(), payload));
         });
-        let running = spawn_agent(&node, &[script.to_string_lossy().to_string()], &dir.path().to_string_lossy(), sink).unwrap();
+        let running = spawn_agent_with_env(&node, &[script.to_string_lossy().to_string()], &[], &dir.path().to_string_lossy(), sink).unwrap();
         let runtime = tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap();
         let init = runtime.block_on(await_response(send_request(&running, "initialize", json!({ "protocolVersion": 1 })).unwrap())).unwrap();
         assert_eq!(init["agentInfo"]["name"], "falso");

@@ -23,6 +23,8 @@ const CHANGE_EVENT = 'dbv-prefs-changed';
  * @typedef {object} Prefs
  * @property {boolean} showHiddenFiles RF-63.1 — dotfiles en el panel Archivos.
  * @property {boolean} showLineNumbers RF-63.2 — números de línea del editor.
+ * @property {boolean} relativeLineNumbers RF-120 — números de línea relativos al cursor.
+ * @property {boolean} vimMode RF-120 — atajos y modos de Vim en el editor.
  * @property {boolean} autoSave RF-64.1 — guardado automático.
  * @property {boolean} showFullPath RF-65.2 — ruta completa en vez de solo el nombre.
  * @property {boolean} askBeforeUpdatingRefs RF-70.9 — revisar antes de reescribir referencias.
@@ -34,6 +36,8 @@ const CHANGE_EVENT = 'dbv-prefs-changed';
 const DEFAULTS = Object.freeze({
   showHiddenFiles: false,
   showLineNumbers: true,
+  relativeLineNumbers: false,
+  vimMode: false,
   autoSave: false,
   showFullPath: false,
   askBeforeUpdatingRefs: false,

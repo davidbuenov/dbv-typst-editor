@@ -21,6 +21,8 @@ describe('prefs', () => {
     expect(getPrefs()).toEqual({
       showHiddenFiles: false,
       showLineNumbers: true,
+      relativeLineNumbers: false,
+      vimMode: false,
       autoSave: false,
       showFullPath: false,
       askBeforeUpdatingRefs: false,
@@ -59,6 +61,8 @@ describe('prefs', () => {
     expect(getPrefs()).toEqual({
       showHiddenFiles: false,
       showLineNumbers: false,
+      relativeLineNumbers: false,
+      vimMode: false,
       autoSave: false,
       showFullPath: false,
       askBeforeUpdatingRefs: false,

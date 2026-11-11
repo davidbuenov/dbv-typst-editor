@@ -33,14 +33,20 @@ import {
   selectParentSyntax,
 } from '@codemirror/commands';
 import {
+  HighlightStyle,
+  Language,
+  LanguageSupport,
   bracketMatching,
   defaultHighlightStyle,
   foldGutter,
   foldKeymap,
   indentOnInput,
+  languageDataProp,
   syntaxHighlighting,
 } from '@codemirror/language';
+import { tags } from '@lezer/highlight';
 import { isTypstPath } from '../app/paths.js';
+import { isDarkTheme } from '../themes/theme.js';
 import { detectLanguage, loadLanguageExtension } from './languageSupport.js';
 import { highlightSelectionMatches, search, searchKeymap } from '@codemirror/search';
 import { Compartment, EditorState, Prec } from '@codemirror/state';
@@ -54,17 +60,64 @@ import {
   rectangularSelection,
 } from '@codemirror/view';
 import {
-  TypstHighlightSytle,
+  TypstLezerParser,
+  typstLezerFoldService,
+  typstLezerFolding,
+  typstLezerHighlighting,
+  typstLezerIndentService,
+  typstLezerIndentation,
+  typstLezerLanguageData,
   typstLezerListKeymap,
-  typst_lezer,
+  typstTags,
 } from 'codemirror-lang-typst/lezer';
 import { buildToolbarKeymap } from './toolbarActions.js';
 import { detectMac, shortcutKey } from './shortcuts.js';
-import { createSnippetCompletionSource } from '../snippets/completion.js';
+import { applySnippetTemplate, createSnippetCompletionSource } from '../snippets/completion.js';
 import { createLspCompletionSource, createLspHover, createLspSignatureHelp } from './lspClient.js';
 import { createUniverseHover } from './universeHover.js';
 import { syncFlashField } from './syncFlash.js';
 import { getPref, onPrefsChanged } from '../app/prefs.js';
+
+const LSP_CHANGE_DEBOUNCE_MS = 180;
+
+/**
+ * Construye el soporte de lenguaje Typst sobre el parser Lezer nativo SIN
+ * inyectar `TypstHighlightSytle` ni `typstLezerLinter` (RF-121): los diagnósticos
+ * reales ya llegan del motor Typst y Tinymist, evitando un recorrido extra del AST
+ * en cada pulsación.
+ */
+export function buildTypstLanguageSupport() {
+  const parser = new TypstLezerParser(
+    languageDataProp.add((type) => (type.isTop ? typstLezerLanguageData : undefined)),
+    typstLezerHighlighting,
+    typstLezerIndentation,
+    typstLezerFolding
+  );
+  return new LanguageSupport(
+    new Language(typstLezerLanguageData, parser, [], 'typst'),
+    [typstLezerIndentService, typstLezerFoldService]
+  );
+}
+
+/**
+ * Resaltado sintáctico conectado íntegramente a los tokens `--code-*` de
+ * `tokens.css` (RF-122): sustituye `TypstHighlightSytle` de claro fijo.
+ */
+export const typstTokenHighlightStyle = HighlightStyle.define([
+  { tag: [tags.keyword, tags.null, tags.atom], color: 'var(--code-keyword)' },
+  { tag: [tags.string, typstTags.mathDelimiter], color: 'var(--code-string)' },
+  { tag: tags.comment, color: 'var(--code-comment)', fontStyle: 'italic' },
+  { tag: [tags.function(tags.variableName), tags.link], color: 'var(--code-function)' },
+  { tag: [tags.number, tags.bool], color: 'var(--code-number)' },
+  { tag: [tags.tagName, tags.escape, tags.labelName], color: 'var(--code-tag)' },
+  { tag: [tags.className, tags.typeName, tags.propertyName, typstTags.interpolated, typstTags.listMarker], color: 'var(--code-class)' },
+  { tag: [tags.operator, tags.punctuation], color: 'var(--code-operator)' },
+  { tag: tags.heading, color: 'var(--accent)', fontWeight: '600' },
+  { tag: tags.strong, fontWeight: '700' },
+  { tag: tags.emphasis, fontStyle: 'italic' },
+  { tag: tags.monospace, color: 'var(--text-secondary)' },
+  { tag: tags.invalid, color: 'var(--status-error)', textDecoration: 'underline wavy' },
+]);
 
 /**
  * Tema del editor construido sobre los tokens CSS de la aplicación
@@ -170,16 +223,97 @@ function buildTheme(isDark) {
  * @param {(view: EditorView) => void} [deps.onRenameSymbol] F2 (RF-77.4).
  * @param {(view: EditorView) => void} [deps.onCodeActions] Ctrl+. (RF-77.5).
  */
+/** Construye la extensión de números de línea (absolutos o relativos, RF-120). */
+export function buildLineNumbersExtension(show, relative = false) {
+  if (!show) return [];
+  if (!relative) return lineNumbers();
+  return lineNumbers({
+    formatNumber(lineNo, state) {
+      const cursorLine = state.doc.lineAt(state.selection.main.head).number;
+      return String(lineNo === cursorLine ? lineNo : Math.abs(lineNo - cursorLine));
+    },
+  });
+}
+
+/** Formatea línea, columna y longitud seleccionada para `#editor-statusbar`. */
+export function formatCursorStatus(state, translate = (k) => k) {
+  const main = state.selection.main;
+  const line = state.doc.lineAt(main.head);
+  const base = translate('statusbar.cursor')
+    .replace('{line}', String(line.number))
+    .replace('{col}', String(main.head - line.from + 1));
+  const selectedChars = Math.abs(main.to - main.from);
+  if (selectedChars === 0) return base;
+  return `${base} ${translate('statusbar.selection').replace('{chars}', String(selectedChars))}`;
+}
+
+/**
+ * Devuelve la etiqueta corta del modo Vim actual (`NORMAL`, `INSERT`, `VISUAL`,
+ * `V-LINE`, `V-BLOCK`, `REPLACE`) o `null` si Vim no está activo.
+ */
+export function formatVimModeBadge(cm) {
+  const vim = cm?.state?.vim;
+  if (!vim) return null;
+  if (vim.insertMode) return 'INSERT';
+  if (vim.visualMode) {
+    if (vim.visualBlock) return 'V-BLOCK';
+    if (vim.visualLine) return 'V-LINE';
+    return 'VISUAL';
+  }
+  if (vim.mode === 'replace') return 'REPLACE';
+  return 'NORMAL';
+}
+
+/**
+ * Decide si una pulsación de `Escape` debe cerrar paneles flotantes globales.
+ * Evita cerrar paneles mientras Vim sale de modo Inserción/Visual/Reemplazo o
+ * cancela un cuadro `:` / `/`.
+ */
+export function shouldClosePanelsOnEscape(event, view) {
+  if (!event || event.defaultPrevented) return false;
+  if (!view?.dom) return true;
+  const target = event.target;
+  const insideEditor = target instanceof Node && view.dom.contains(target);
+  if (!insideEditor) return true;
+  const vimState = view.cm?.state?.vim;
+  if (!vimState) return true;
+  if (vimState.insertMode || vimState.visualMode || vimState.mode === 'replace' || vimState.exMode) {
+    return false;
+  }
+  if (view.dom.querySelector('.cm-vim-panel')) return false;
+  return true;
+}
+
+let vimModulePromise = null;
+let loadedVimModule = null;
+let vimSaveRegistered = false;
+const vimSaveHandlers = new WeakMap();
+
+async function loadVimModule() {
+  if (loadedVimModule) return loadedVimModule;
+  if (!vimModulePromise) {
+    vimModulePromise = import('@replit/codemirror-vim').then((mod) => {
+      loadedVimModule = mod;
+      return mod;
+    });
+  }
+  return vimModulePromise;
+}
+
 export function buildExtensions({
   themeCompartment,
   readOnlyCompartment,
   historyCompartment,
   languageCompartment,
   lineNumbersCompartment,
+  vimCompartment,
+  snippetKeymapCompartment,
   saveKeymap,
   updateListener,
   isDark,
   showLineNumbers,
+  relativeLineNumbers = false,
+  vimExtension = [],
   lspClient,
   getCurrentPath,
   onBlur,
@@ -219,11 +353,9 @@ export function buildExtensions({
   }
 
   return [
-    // RF-63.2: optativo, activado por defecto (el comportamiento de la 0.9.0
-    // no cambia salvo que el usuario lo apague). Un `Compartment` propio para
-    // poder alternarlo EN CALIENTE, sin recrear el editor ni perder cursor,
-    // selección o historial de deshacer.
-    lineNumbersCompartment.of(showLineNumbers ? lineNumbers() : []),
+    // RF-63.2 / RF-120: números de línea (absolutos o relativos) en un
+    // compartimento propio para alternarlos en caliente sin perder cursor.
+    lineNumbersCompartment.of(buildLineNumbersExtension(showLineNumbers, relativeLineNumbers)),
     highlightActiveLineGutter(),
     highlightActiveLine(),
     historyCompartment.of(history()),
@@ -243,10 +375,9 @@ export function buildExtensions({
     autocompleteExt,
     lintGutter(),
     EditorView.lineWrapping,
-    languageCompartment.of(typst_lezer()),
-    syntaxHighlighting(TypstHighlightSytle),
-    // Para los ficheros de código (RF-60): donde el estilo de Typst no define un
-    // color, se usa el de siempre.
+    languageCompartment.of(buildTypstLanguageSupport()),
+    syntaxHighlighting(typstTokenHighlightStyle),
+    // Para los ficheros de código (RF-60): donde no haya regla específica, fallback.
     syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
     // `typstLezerListKeymap` NO es un array de atajos: el paquete lo exporta ya
     // como extensión con su propia precedencia, así que va suelto en la lista y
@@ -264,6 +395,8 @@ export function buildExtensions({
     keymap.of([{ ...shortcutKey('expandSelection'), preventDefault: true, run: selectParentSyntax }]),
     ...navigationExtensions({ onGoToDefinition, onFindReferences, onRenameSymbol, onCodeActions }),
     ...extraExtensions,
+    snippetKeymapCompartment ? snippetKeymapCompartment.of([]) : [],
+    vimCompartment ? vimCompartment.of(vimExtension) : [],
     keymap.of([
       ...closeBracketsKeymap,
       ...searchKeymap,
@@ -327,6 +460,7 @@ function navigationExtensions({ onGoToDefinition, onFindReferences, onRenameSymb
  *   la sensibilidad al contexto (dentro/fuera de una ecuación, §7.7.3.3).
  * @param {() => void} [options.onBlur] El editor pierde el foco (RF-64.1: el
  *   guardado automático también se dispara aquí, no solo tras la pausa).
+ * @param {(mode: string | null) => void} [options.onVimModeChange] Cambio de modo Vim (`RF-120`).
  * @param {'dark'|'light'|'sepia'} [options.theme] Tema inicial.
  * @param {ReturnType<import('./lspClient.js').createLspClient>} [options.lspClient]
  * @param {(view: EditorView) => void} [options.onGoToDefinition]
@@ -338,12 +472,15 @@ export function createEditor(
   hostEl,
   {
     onChange,
+    onModified,
     onChanges,
     onSave,
     onSelectionChange,
     onBlur,
+    onVimModeChange,
     theme = 'dark',
     lspClient,
+    lspDebounceMs = LSP_CHANGE_DEBOUNCE_MS,
     onGoToDefinition,
     onFindReferences,
     onRenameSymbol,
@@ -364,8 +501,13 @@ export function createEditor(
   const languageCompartment = new Compartment();
   // Números de línea optativos (RF-63.2).
   const lineNumbersCompartment = new Compartment();
+  // Modo Vim optativo y bajo demanda (RF-120b).
+  const vimCompartment = new Compartment();
+  // Atajos dinámicos de snippets (RF-119b).
+  const snippetKeymapCompartment = new Compartment();
 
   let currentPath = null;
+  let currentSnippetBindings = [];
   // Valores vigentes de lo que es de la ventana y no del fichero (R-T2): al
   // volver a una pestaña, su `EditorState` guardado trae la configuración de
   // cuando se guardó, y hay que reponer la actual.
@@ -373,14 +515,68 @@ export function createEditor(
   // Cada apertura invalida la carga de lenguaje anterior: si el usuario cambia de
   // fichero antes de que llegue el paquete, el resaltado tardío no debe pisar al nuevo.
   let languageToken = 0;
-  // Tinymist solo entiende Typst: con un `.cpp` delante se le apaga el editor,
-  // o devolvería completados y hovers del documento Typst anterior.
-  const typstOnlyLsp = lspClient
-    ? { ...lspClient, isActive: () => lspClient.isActive() && isTypstPath(currentPath) }
-    : undefined;
+  let vimToken = 0;
+  let destroyed = false;
+  const boundVimCms = new WeakSet();
   // Distingue "el usuario ha escrito" de "hemos cargado un documento": sin esta
   // bandera, abrir un fichero lo marcaría inmediatamente como modificado.
   let loading = false;
+
+  let lspChangeTimer = null;
+  let lspPendingChange = false;
+  let view = null;
+
+  function cancelPendingLspChange() {
+    if (lspChangeTimer) {
+      clearTimeout(lspChangeTimer);
+      lspChangeTimer = null;
+    }
+    lspPendingChange = false;
+  }
+
+  function flushPendingLspChange() {
+    if (!lspPendingChange) return;
+    if (lspChangeTimer) {
+      clearTimeout(lspChangeTimer);
+      lspChangeTimer = null;
+    }
+    lspPendingChange = false;
+    if (view && isTypstPath(currentPath)) {
+      lspClient?.changeDocument?.(view.state.doc.toString());
+    }
+  }
+
+  function scheduleLspChange() {
+    if (!isTypstPath(currentPath) || !lspClient) return;
+    if (typeof lspClient.isActive === 'function' && !lspClient.isActive()) return;
+    if (lspDebounceMs <= 0) {
+      lspPendingChange = false;
+      lspClient.changeDocument?.(view.state.doc.toString());
+      return;
+    }
+    lspPendingChange = true;
+    if (lspChangeTimer) clearTimeout(lspChangeTimer);
+    lspChangeTimer = setTimeout(flushPendingLspChange, lspDebounceMs);
+  }
+
+  const withFlush = (fn) => (fn ? (...args) => {
+    flushPendingLspChange();
+    return fn(...args);
+  } : undefined);
+
+  // Tinymist solo entiende Typst: con un `.cpp` delante se le apaga el editor,
+  // o devolvería completados y hovers del documento Typst anterior. Toda consulta
+  // vacia antes los cambios pendientes debunceados para no responder con offsets viejos.
+  const typstOnlyLsp = lspClient
+    ? {
+        ...lspClient,
+        isActive: () => lspClient.isActive() && isTypstPath(currentPath),
+        getCompletions: withFlush(lspClient.getCompletions?.bind(lspClient)),
+        getHover: withFlush(lspClient.getHover?.bind(lspClient)),
+        getSignatureHelp: withFlush(lspClient.getSignatureHelp?.bind(lspClient)),
+        formatDocument: withFlush(lspClient.formatDocument?.bind(lspClient)),
+      }
+    : undefined;
 
   const saveKeymap = keymap.of([
     {
@@ -401,9 +597,13 @@ export function createEditor(
     historyCompartment,
     languageCompartment,
     lineNumbersCompartment,
+    vimCompartment,
+    snippetKeymapCompartment,
     saveKeymap,
-    isDark: theme === 'dark',
+    isDark: isDarkTheme(theme),
     showLineNumbers: getPref('showLineNumbers'),
+    relativeLineNumbers: getPref('relativeLineNumbers'),
+    vimExtension: getPref('vimMode') && loadedVimModule ? loadedVimModule.vim({ status: false }) : [],
     lspClient: typstOnlyLsp,
     getCurrentPath: () => currentPath,
     onBlur,
@@ -414,22 +614,89 @@ export function createEditor(
     updateListener: EditorView.updateListener.of((update) => {
       if (loading) return;
       if (update.docChanged) {
-        const text = update.state.doc.toString();
-        if (isTypstPath(currentPath)) lspClient?.changeDocument(text);
+        if (isTypstPath(currentPath)) scheduleLspChange();
         onChanges?.(update.changes);
-        onChange?.(text);
+        onModified?.();
+        if (onChange) onChange(update.state.doc.toString());
       }
       if (update.docChanged || update.selectionSet) onSelectionChange?.(update.view);
     }),
   });
-  const view = new EditorView({ parent: hostEl, state: EditorState.create({ doc: '', extensions }) });
+  view = new EditorView({ parent: hostEl, state: EditorState.create({ doc: '', extensions }) });
 
-  // Reacciona en caliente al menú Preferencias (RF-63.2): reconfigurar el
-  // compartimento no pierde ni el cursor ni el historial de deshacer.
-  const unsubscribeLineNumbers = onPrefsChanged(({ key, value }) => {
-    if (key !== 'showLineNumbers') return;
-    view.dispatch({ effects: lineNumbersCompartment.reconfigure(value ? lineNumbers() : []) });
+  function buildSnippetKeymapExtension(bindings) {
+    if (!bindings?.length) return [];
+    const specs = bindings.map((binding) => ({
+      key: binding.key,
+      preventDefault: true,
+      run: (targetView) => {
+        if (targetView.state.readOnly) return false;
+        applySnippetTemplate(targetView, binding.snippet, { path: currentPath });
+        return true;
+      },
+    }));
+    return keymap.of(specs);
+  }
+
+  function setSnippetKeybindings(bindings = []) {
+    currentSnippetBindings = bindings;
+    view.dispatch({
+      effects: snippetKeymapCompartment.reconfigure(buildSnippetKeymapExtension(currentSnippetBindings)),
+    });
+  }
+
+  // Reacciona en caliente al menú Preferencias (RF-63.2 / RF-120): reconfigurar
+  // el compartimento no pierde ni el cursor ni el historial de deshacer.
+  const unsubscribeLineNumbers = onPrefsChanged(({ key }) => {
+    if (key !== 'showLineNumbers' && key !== 'relativeLineNumbers') return;
+    view.dispatch({
+      effects: lineNumbersCompartment.reconfigure(
+        buildLineNumbersExtension(getPref('showLineNumbers'), getPref('relativeLineNumbers'))
+      ),
+    });
   });
+
+  function bindVimAdapter(vimMod) {
+    const cm = vimMod?.getCM(view);
+    if (!cm) {
+      onVimModeChange?.(null);
+      return;
+    }
+    if (!vimSaveRegistered && vimMod.Vim?.defineEx) {
+      vimSaveRegistered = true;
+      vimMod.Vim.defineEx('write', 'w', (targetCm) => vimSaveHandlers.get(targetCm)?.());
+    }
+    vimSaveHandlers.set(cm, () => onSave?.());
+    if (!boundVimCms.has(cm)) {
+      boundVimCms.add(cm);
+      cm.on('vim-mode-change', () => onVimModeChange?.(formatVimModeBadge(cm)));
+    }
+    onVimModeChange?.(formatVimModeBadge(cm));
+  }
+
+  async function syncVimMode(enabled) {
+    vimToken += 1;
+    const token = vimToken;
+    if (!enabled) {
+      view.dispatch({ effects: vimCompartment.reconfigure([]) });
+      onVimModeChange?.(null);
+      return;
+    }
+    const apply = (vimMod) => {
+      if (destroyed || token !== vimToken || !getPref('vimMode')) return;
+      view.dispatch({ effects: vimCompartment.reconfigure(vimMod.vim({ status: false })) });
+      bindVimAdapter(vimMod);
+    };
+    if (loadedVimModule) apply(loadedVimModule);
+    else apply(await loadVimModule());
+  }
+
+  const unsubscribeVimMode = onPrefsChanged(({ key, value }) => {
+    if (key === 'vimMode') syncVimMode(Boolean(value));
+  });
+  if (getPref('vimMode')) {
+    syncVimMode(true);
+  }
 
   /** Pone el resaltado del fichero: el de Typst al momento, el de código cuando llegue su paquete. */
   function applyLanguage(path) {
@@ -437,7 +704,7 @@ export function createEditor(
     const token = languageToken;
     const language = detectLanguage(path);
     if (language.kind === 'typst') {
-      view.dispatch({ effects: languageCompartment.reconfigure(typst_lezer()) });
+      view.dispatch({ effects: languageCompartment.reconfigure(buildTypstLanguageSupport()) });
       return;
     }
     view.dispatch({ effects: languageCompartment.reconfigure([]) });
@@ -458,15 +725,28 @@ export function createEditor(
    * @param {{readOnly?: boolean}} [options]
    */
   function activate(path, saved, { readOnly = false } = {}) {
+    flushPendingLspChange();
     loading = true;
     view.setState(saved.state);
     const effects = [
-      themeCompartment.reconfigure(buildTheme(currentTheme === 'dark')),
-      lineNumbersCompartment.reconfigure(getPref('showLineNumbers') ? lineNumbers() : []),
+      themeCompartment.reconfigure(buildTheme(isDarkTheme(currentTheme))),
+      lineNumbersCompartment.reconfigure(
+        buildLineNumbersExtension(getPref('showLineNumbers'), getPref('relativeLineNumbers'))
+      ),
+      vimCompartment.reconfigure(
+        getPref('vimMode') && loadedVimModule ? loadedVimModule.vim({ status: false }) : []
+      ),
+      snippetKeymapCompartment.reconfigure(buildSnippetKeymapExtension(currentSnippetBindings)),
       readOnlyCompartment.reconfigure(EditorState.readOnly.of(readOnly)),
     ];
     if (saved.scroll) effects.push(saved.scroll);
     view.dispatch({ effects });
+    if (getPref('vimMode')) {
+      if (loadedVimModule) bindVimAdapter(loadedVimModule);
+      else syncVimMode(true);
+    } else {
+      onVimModeChange?.(null);
+    }
     currentPath = path ?? null;
     if (isTypstPath(currentPath)) lspClient?.openDocument(currentPath, view.state.doc.toString());
     applyLanguage(currentPath);
@@ -494,6 +774,7 @@ export function createEditor(
      */
     setPath(path) {
       if (path === currentPath) return;
+      flushPendingLspChange();
       const previous = currentPath;
       currentPath = path ?? null;
       const text = view.state.doc.toString();
@@ -502,6 +783,8 @@ export function createEditor(
       else if (isTypstPath(currentPath)) lspClient?.openDocument(currentPath, text);
       applyLanguage(currentPath);
     },
+    /** Envía al LSP cualquier cambio pendiente del debounce (RF-121). */
+    flush: flushPendingLspChange,
     /**
      * Estado completo del documento que se está editando (texto, cursor,
      * selección, historial de deshacer, pliegues, diagnósticos) y su scroll,
@@ -514,9 +797,13 @@ export function createEditor(
     activate,
     /** La pestaña de `path` se cerró: Tinymist deja de tenerlo abierto. */
     closeDocument(path) {
+      if (path === currentPath) cancelPendingLspChange();
       if (isTypstPath(path)) lspClient?.closeDocument(path);
     },
-    formatDocument: () => lspClient?.formatDocument(view, currentPath),
+    formatDocument: () => {
+      flushPendingLspChange();
+      return lspClient?.formatDocument(view, currentPath);
+    },
     setDiagnostics(diagnostics) {
       view.dispatch(setDiagnostics(view.state, diagnostics));
     },
@@ -524,16 +811,20 @@ export function createEditor(
     getPath: () => currentPath,
     /** Acceso a la `EditorView` real, para la barra de herramientas (RF-13). */
     getView: () => view,
+    /** Indica si Vim está montado actualmente en la vista (RF-120b). */
+    isVimActive: () => Boolean(view?.cm?.state?.vim),
+    /** Actualiza los atajos de teclado asignados a snippets de usuario (RF-119b). */
+    setSnippetKeybindings,
     setReadOnly(readOnly) {
       view.dispatch({
         effects: readOnlyCompartment.reconfigure(EditorState.readOnly.of(readOnly)),
       });
     },
-    /** @param {'dark'|'light'|'sepia'} nextTheme */
+    /** @param {string} nextTheme */
     setTheme(nextTheme) {
       currentTheme = nextTheme;
       view.dispatch({
-        effects: themeCompartment.reconfigure(buildTheme(nextTheme === 'dark')),
+        effects: themeCompartment.reconfigure(buildTheme(isDarkTheme(nextTheme))),
       });
     },
     focus() {
@@ -549,7 +840,10 @@ export function createEditor(
       view.focus();
     },
     destroy() {
+      destroyed = true;
+      cancelPendingLspChange();
       unsubscribeLineNumbers();
+      unsubscribeVimMode();
       view.destroy();
     },
   };

@@ -364,7 +364,7 @@ export function formatCombo(combo, lang, isMac) {
  * @param {boolean} isMac
  * @returns {Array<{scope: string, title: string, rows: Array<[string, string]>}>}
  */
-export function shortcutHelpGroups(lang, isMac) {
+export function shortcutHelpGroups(lang, isMac, extraSnippetBindings = []) {
   const pick = (bilingual) => bilingual[lang] ?? bilingual.es;
   const rowsFor = (scope) => {
     const rows = [];
@@ -383,6 +383,16 @@ export function shortcutHelpGroups(lang, isMac) {
     return rows;
   };
   const groups = SHORTCUT_SCOPES.map((scope) => ({ scope: scope.id, title: pick(scope.title), rows: rowsFor(scope.id) }));
+  if (extraSnippetBindings.length > 0) {
+    groups.push({
+      scope: 'snippets',
+      title: lang === 'en' ? 'User snippets' : 'Snippets de usuario',
+      rows: extraSnippetBindings.map((binding) => [
+        formatCombo(binding.key, lang, isMac),
+        binding.snippet?.description || binding.snippet?.name || '',
+      ]),
+    });
+  }
   return groups.filter((group) => group.rows.length > 0);
 }
 

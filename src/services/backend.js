@@ -127,6 +127,7 @@ export const snippetsGlobalPath = () => call('snippets_global_path');
 export const snippetsEnsureGlobal = () => call('snippets_ensure_global');
 export const snippetsProjectFiles = (root) => call('snippets_project_files', { root });
 export const snippetsEnsureProject = (root) => call('snippets_ensure_project', { root });
+export const snippetsKeybindingsPaths = (root = null) => call('snippets_keybindings_paths', { root });
 // Importar snippets de Sublime Text (RF-112).
 export const snippetsPickSublime = (folder) => call('snippets_pick_sublime', { folder });
 export const snippetsReadSublime = (paths) => call('snippets_read_sublime', { paths });
@@ -400,6 +401,9 @@ export const mcpStateReply = (id, snapshot) => call('mcp_state_reply', { id, sna
 export const aiProviders = () => call('ai_providers');
 export const aiDetect = () => call('ai_detect');
 export const aiListModels = (connection, apiKey) => call('ai_list_models', { connection, apiKey: apiKey ?? null });
+/** Modelos disponibles para un agente CLI específico (antigravity, claude, codex, etc.). */
+export const aiListAgentModels = (agentId, forceRefresh = false) =>
+  call('ai_list_agent_models', { agentId, forceRefresh: Boolean(forceRefresh) });
 /** Tamaño, contexto máximo y capacidades del modelo (solo Ollama; `null` en el resto), RF-101 y RF-103. */
 export const aiModelInfo = (connection) => call('ai_model_info', { connection });
 /** Lanza una petición; la respuesta llega por el evento `ai-stream` con este `requestId`. */

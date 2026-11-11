@@ -1,9 +1,9 @@
 # 🎨 Sistema de Diseño: DBV Typst Editor
 
 > **Fase:** `/spec` — deuda documental consciente saldada el 2026-09-09
-> **Estado:** 📐 **DESCRIPTIVO v1.0** — este documento **no inventa** un sistema visual: describe el que ya existe y está en producción desde el MVP, leído de `src/themes/tokens.css`, `base.css` y `layout.css`. Todo valor de aquí está hoy en el código. Lo que aún no cumple el sistema está en §9, marcado como deuda.
-> **Fuente:** `src/themes/tokens.css` (74 declaraciones, 3 temas) · `base.css` (1417 líneas) · `layout.css` (1395 líneas)
-> **Última revisión:** 2026-09-09
+> **Estado:** 📐 **DESCRIPTIVO v1.1** — este documento **no inventa** un sistema visual: describe el que ya existe y está en producción desde el MVP (leído de `src/themes/tokens.css`, `base.css` y `layout.css`) y fija las reglas de extensión visual para v0.9.0 (§11) y v0.15.0 (§12). Todo valor base está en el código. Lo que aún no cumple el sistema está en §9, marcado como deuda.
+> **Fuente:** `src/themes/tokens.css` (74 declaraciones, 3 temas base → ampliado a 10 curados + personalizado en v0.15.0) · `base.css` (1417 líneas) · `layout.css` (1395 líneas)
+> **Última revisión:** 2026-11-11
 
 ---
 
@@ -193,4 +193,21 @@ Reglas para los cuatro componentes que trae `SPECIFICATIONS.md` §5i. Ninguno in
 - **Marca de sincronización (RF-57).** Palabra o frase resaltada con `--accent-subtle` y un trazo de `--accent`; **una caja por línea** cuando la selección ocupa varias. Se desvanece a los 2 s animando **solo el fondo** (nunca la opacidad de la línea del editor: haría desaparecer el texto) y respeta `prefers-reduced-motion`.
 - **Insignia de lenguaje (RF-60).** Junto al nombre del documento, con el estilo de la insignia de Tinymist (`.document__lsp-badge`) en su variante neutra (`--text-muted` sobre `--bg-tertiary`). Solo el nombre ("C++", "Python"…), sin icono de marca.
 - **Resaltado de código de otros lenguajes (RF-60).** Solo los tokens `--code-*` ya definidos para Typst, para que los tres temas (claro, oscuro y sepia) funcionen sin trabajo extra. `verify:layout` sigue prohibiendo los colores literales fuera de `tokens.css`.
+
+---
+
+## 12. v0.15.0: apilamiento de paneles, micro-barra del editor, 10 temas curados, tema personalizado y tarjetas de IA
+
+Reglas visuales y de tokens para los componentes incorporados o modificados en `SPECIFICATIONS.md` §5q (`RF-118` a `RF-123`):
+
+- **Jerarquía de `z-index` (RF-118).** La banda de `.floating-panel` deja de usar un único `z-index: 10` estático; los paneles flotantes rotan dinámicamente dentro de la banda `10..19` al abrirse o recibir foco, preservando intactas las bandas superiores: `.toast` (`20`), `.modal` (`30`), `.tree-context-menu` / `.inline-rename` (`60`) y `.tree-drag-ghost` (`70`). Los menús desplegables de cabecera (`#file-menu`, `#tools-menu`, `#preferences-menu`) se cierran de forma exclusiva al cambiar entre ellos o al abrir un panel.
+- **Micro-barra inferior del editor (RF-120).** Franja compacta (`22–24 px` de alto, borde superior `1px solid var(--border)`, fondo `--bg-secondary`, tipografía `11 px` en `--font-mono` sobre `--text-muted`), alineada a los extremos: izquierda para la insignia de modo Vim cuando está activo (`NORMAL`, `INSERT`, `VISUAL` usando tokens de acento/estado semánticos, nunca hex literales) e info auxiliar; derecha para `Ln X, Col Y` y selección.
+- **Submenú contextual de snippets (RF-119).** Reutiliza `.tree-context-menu` y `.menu-item` (§11), añadiendo indicador `›` a la derecha y submenú posicionado dentro del viewport con el atajo asignado alineado en `--text-muted`.
+- **10 temas curados y 3 botones rápidos configurables (RF-122).**
+  - Los **10 temas curados** (`dark`, `light`, `sepia` + 7 nuevos en `/plan`) se declaran íntegramente en `src/themes/tokens.css` bajo `[data-theme="<id>"]` con el juego completo de tokens semánticos, `--code-*` y `--status-*`.
+  - Se prohíbe seguir usando hexadecimales literales dentro de CodeMirror (`TypstHighlightSytle`); el resaltado lee siempre `var(--code-*)`.
+  - La cabecera mantiene la píldora `.segmented-control` de **3 botones** rápidos asignables desde Preferencias, sin añadir más botones a la barra superior.
+- **Tema personalizado (RF-122).** Cuando `[data-theme="custom"]` está activo, los overrides elegidos por el usuario se aplican en tiempo de ejecución como propiedades CSS en línea sobre `:root` (`document.documentElement.style.setProperty`), permitiendo partir de cualquier tema curado y restaurar con `removeProperty`. De este modo ninguna hoja CSS introduce colores literales fuera de `tokens.css`.
+- **Tarjetas e insignias de selección de IA (RF-123).** Las clases `.ai-cat-card` (`--local`, `--agent`, `--cloud`), `.ai-badge` (`--local`, `--agent`, `--cloud`, `--active`, `--connected`), `.ai-agent-summary` y `.ai-agent-settings` procedentes de `dbv-tauri-starter` / `dbv-unreal-ai` deben mapearse en `src/ai/ai.css` a tokens semánticos de `tokens.css` (`--bg-*`, `--border`, `--accent*`, `--status-*`, `--font-mono`), nunca con colores fijos.
+
 

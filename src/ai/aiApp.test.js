@@ -513,7 +513,10 @@ describe('agente por ACP (RF-91)', () => {
     await app.ask('Cambia el párrafo');
     observer.disconnect();
 
-    expect(agent.acpStart).toHaveBeenCalledWith({ id: 'claude', command: null }, 'D:/p');
+    expect(agent.acpStart).toHaveBeenCalledWith(
+      { id: 'claude', command: null, model: 'claude-sonnet-5-5', reasoningEffort: 'medium' },
+      'D:/p',
+    );
     const prompt = agent.acpRequest.mock.calls.find(([method]) => method === 'session/prompt')[1];
     expect(prompt.prompt[0].text).toContain('C:/datos/typst-docs/0.15.1');
     // El principio de separar presentación y contenido también llega al agente (RF-105.6).

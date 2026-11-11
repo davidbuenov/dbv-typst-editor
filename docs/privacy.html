@@ -37,7 +37,7 @@
   <main>
     <article class="legal">
       <h1>Privacy Policy</h1>
-      <p class="legal-updated">Last updated: October 2, 2026</p>
+      <p class="legal-updated">Last updated: November 11, 2026</p>
 
       <div class="legal-summary">
         <p><strong>Summary:</strong> DBV Typst Editor does not collect, store on its own servers, or share with third parties any personal data. It has no user accounts, no analytics, no advertising, and sends no telemetry of any kind. All processing of your documents happens on your own machine, unless you connect a cloud AI or an agent (an optional feature, explained below): then the context you choose to send goes directly from your machine to the service you chose, never to a server of ours.</p>
@@ -50,7 +50,7 @@
       <ul>
         <li><strong>Recent projects:</strong> the list of your most recently opened projects is saved to a <code>recent_projects.json</code> file inside the app's data folder on your machine. You can remove any entry from the launcher itself.</li>
         <li><strong>AI assistant (optional):</strong> the list of your connections (provider, address and model) is saved to an <code>ai-connections.json</code> file in the app's configuration folder, and each project's conversations in the app's data folder. Neither contains API keys: those are stored in the system credential store (Windows Credential Manager, macOS Keychain or Secret Service on Linux). You can delete a conversation or a connection from the panel itself; deleting a connection also removes its key.</li>
-        <li><strong>Preferences:</strong> the visual theme (light/dark/sepia), interface language, panel layout and preview zoom level are saved locally in the app's built-in browser storage (<code>localStorage</code>), without leaving your machine.</li>
+        <li><strong>Preferences:</strong> the visual theme (including custom colors), interface language, Vim mode and line-number settings, panel layout, and preview zoom level are saved locally in the app's built-in browser storage (<code>localStorage</code>), without leaving your machine.</li>
       </ul>
 
       <h2>The only internet connections the app makes</h2>
@@ -58,7 +58,7 @@
       <ul>
         <li><strong>Typst Universe:</strong> if you create a project or insert a package from the community catalogue (the ✦ button), the compiler downloads that specific package from Typst's official public registry and caches it so it isn't downloaded again. If you also click a package's link to view its page, that page opens in your default browser.</li>
         <li><strong>Checking for updates:</strong> only when you click "Check for updates" in the "About" panel — the app never checks for updates automatically on launch. This check reads the publicly available information about the latest release on GitHub.</li>
-        <li><strong>An AI assistant you connect (optional):</strong> the AI is optional and makes no connection until you connect one. With a <em>local</em> AI (Ollama, LM Studio, llama.cpp or another server of your own) the conversation goes only to that server on your machine or network. With a <em>cloud</em> AI using your API key (Anthropic, OpenAI, Google Gemini or OpenRouter), the app sends the conversation's context (for example the open file, the selection, the errors and whatever you attach) directly from your machine to the provider, and <strong>the first time per project and provider it asks you before sending anything</strong>. The panel shows what context is sent and you can remove any item. If you connect an installed <em>agent</em> (Claude Code, Codex, Gemini CLI or GitHub Copilot CLI), it is that program that talks to its service with your own account; the app does not see or store your credentials, and every permission the agent asks for is shown to you before it is granted. In every case, the data is received and handled by that provider under its own terms and privacy policy, not by us.</li>
+        <li><strong>An AI assistant you connect (optional):</strong> the AI is optional and makes no connection until you connect one. With a <em>local</em> AI (Ollama, LM Studio, llama.cpp or another server of your own) the conversation goes only to that server on your machine or network. With a <em>cloud</em> AI using your API key (Anthropic, OpenAI, Google Gemini or OpenRouter), the app sends the conversation's context (for example the open file, the selection, the errors and whatever you attach) directly from your machine to the provider, and <strong>the first time per project and provider it asks you before sending anything</strong>. The panel shows what context is sent and you can remove any item. If you connect an installed <em>agent</em> (Claude Code, Codex, Gemini CLI, GitHub Copilot CLI, or Google Antigravity), it is that program that talks to its service with your own account; the app does not see or store your credentials, and every permission the agent asks for is shown to you before it is granted. In every case, the data is received and handled by that provider under its own terms and privacy policy, not by us.</li>
         <li><strong>Links you write yourself:</strong> if your document contains a remote link or image and the preview loads it, that request goes directly from your machine to that address — never through a server of ours.</li>
       </ul>
 

@@ -192,3 +192,115 @@ describe('registerPanel — botón de ayuda por sección (RF-52)', () => {
     expect(actions.querySelector('[data-panel-close]')).not.toBeNull();
   });
 });
+
+// RF-118 (Issue #3): apilamiento dinámico en banda 10..19, exclusividad entre
+// menús de cabecera y navegación por teclado en `role="menu"`.
+describe('registerPanel — apilamiento z-index y menús (RF-118)', () => {
+  function crearFlotante(role = 'dialog') {
+    const panel = document.createElement('div');
+    panel.className = 'floating-panel hidden';
+    panel.setAttribute('role', role);
+    panel.tabIndex = -1;
+    document.body.append(panel);
+    return panel;
+  }
+
+  it('el último panel abierto sube al frente dentro de la banda 11..19 y cede al enfocar otro', () => {
+    const first = crearFlotante();
+    const second = crearFlotante();
+    const firstCtrl = registerPanel(first);
+    const secondCtrl = registerPanel(second);
+
+    firstCtrl.open();
+    secondCtrl.open();
+    const zFirstBefore = Number(first.style.zIndex);
+    const zSecondBefore = Number(second.style.zIndex);
+    expect(zFirstBefore).toBeGreaterThanOrEqual(10);
+    expect(zSecondBefore).toBeLessThanOrEqual(19);
+    expect(zSecondBefore).toBeGreaterThan(zFirstBefore);
+
+    first.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+    expect(Number(first.style.zIndex)).toBeGreaterThan(Number(second.style.zIndex));
+    expect(Number(first.style.zIndex)).toBeLessThanOrEqual(19);
+
+    firstCtrl.close();
+    secondCtrl.close();
+    expect(first.style.zIndex).toBe('');
+  });
+
+  it('un modal (.modal) conserva su capa CSS por encima de los flotantes', () => {
+    const modal = crearFlotante();
+    modal.classList.add('modal');
+    const modalCtrl = registerPanel(modal);
+
+    modalCtrl.open();
+    expect(modal.style.zIndex).toBe('');
+    modalCtrl.close();
+  });
+
+  it('dos menús del mismo exclusiveGroup y closeOnOutsideClick se cierran mutuamente al hacer clic en otro disparador', () => {
+    const btnA = document.createElement('button');
+    btnA.setAttribute('aria-expanded', 'false');
+    const caretA = document.createElement('span');
+    btnA.append(caretA);
+    const btnB = document.createElement('button');
+    btnB.setAttribute('aria-expanded', 'false');
+    document.body.append(btnA, btnB);
+
+    const menuA = crearFlotante('menu');
+    const menuB = crearFlotante('menu');
+    registerPanel(menuA, { trigger: btnA, toggle: true, closeOnOutsideClick: true, exclusiveGroup: 'hdr' });
+    registerPanel(menuB, { trigger: btnB, toggle: true, closeOnOutsideClick: true, exclusiveGroup: 'hdr' });
+
+    caretA.click();
+    expect(menuA.classList.contains('hidden')).toBe(false);
+    expect(btnA.getAttribute('aria-expanded')).toBe('true');
+
+    btnB.click();
+    expect(menuA.classList.contains('hidden')).toBe(true);
+    expect(btnA.getAttribute('aria-expanded')).toBe('false');
+    expect(menuB.classList.contains('hidden')).toBe(false);
+    expect(btnB.getAttribute('aria-expanded')).toBe('true');
+  });
+
+  it('un menú role="menu" navega con flechas, Inicio/Fin, Esc devuelve el foco y Tab fuera cierra', () => {
+    const trigger = document.createElement('button');
+    const menu = crearFlotante('menu');
+    menu.innerHTML = `
+      <button class="menu-item" role="menuitem">Uno</button>
+      <button class="menu-item" role="menuitem" disabled>Deshabilitado</button>
+      <button class="menu-item" role="menuitem">Dos</button>
+      <button class="menu-item" role="menuitem">Tres</button>
+    `;
+    const outside = document.createElement('button');
+    document.body.append(trigger, outside);
+
+    const ctrl = registerPanel(menu, { trigger, toggle: true, closeOnOutsideClick: true });
+    const [uno, , dos, tres] = menu.querySelectorAll('.menu-item');
+
+    ctrl.open();
+    menu.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+    expect(document.activeElement).toBe(uno);
+
+    menu.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+    expect(document.activeElement).toBe(dos);
+
+    menu.dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true }));
+    expect(document.activeElement).toBe(tres);
+
+    menu.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true }));
+    expect(document.activeElement).toBe(uno);
+
+    menu.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true }));
+    expect(document.activeElement).toBe(tres);
+
+    menu.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(menu.classList.contains('hidden')).toBe(true);
+    expect(document.activeElement).toBe(trigger);
+
+    ctrl.open();
+    tres.focus();
+    menu.dispatchEvent(new FocusEvent('focusout', { relatedTarget: outside, bubbles: true }));
+    expect(menu.classList.contains('hidden')).toBe(true);
+  });
+});

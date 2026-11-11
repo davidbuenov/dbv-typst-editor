@@ -40,6 +40,7 @@
         <a href="#videos">Videos</a>
         <a href="#gallery">Screenshots</a>
         <a href="#templates">Templates</a>
+        <a href="#manual">Manual</a>
         <a href="#download">Download</a>
         <a href="https://github.com/davidbuenov/dbv-typst-editor" class="nav-github" target="_blank" rel="noopener">
           <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
@@ -73,11 +74,14 @@
           <a href="#videos" class="btn btn-ghost btn-lg">
             ▶️ Watch demo videos
           </a>
+          <a href="../manual/manual-en.pdf" class="btn btn-ghost btn-lg" target="_blank" rel="noopener">
+            📘 User manual (PDF)
+          </a>
           <a href="https://github.com/davidbuenov/dbv-typst-editor" class="btn btn-ghost btn-lg" target="_blank" rel="noopener">
             View code on GitHub
           </a>
         </div>
-        <p class="hero-note">Recommended on Windows: Microsoft Store (auto-updating) or .exe installer · macOS (universal .dmg) · Linux (.AppImage, .deb) · No account, no ads, no telemetry · A project created here is an ordinary Typst project, no lock-in</p>
+        <p class="hero-note">Windows: Microsoft Store (official auto-updates) · macOS (universal .dmg &amp; Homebrew) · Linux (.AppImage, .deb &amp; Homebrew) · No account, no ads, no telemetry · A project created here is an ordinary Typst project, no lock-in</p>
       </div>
 
       <div class="hero-shot">
@@ -87,8 +91,8 @@
             <span class="window-title">main.typ — DBV Typst Editor</span>
           </div>
           <img
-            src="../screenshots/01-editor-live-preview.png"
-            alt="DBV Typst Editor — Real-time workspace with Typst code editor and live PDF thesis preview"
+            src="../screenshots/01-editor-live-preview_en.png"
+            alt="DBV Typst Editor — Real-time workspace with Typst code editor and live PDF preview"
             class="hero-screenshot zoomable"
             width="1906"
             height="1073"
@@ -278,14 +282,26 @@
 
           <article class="feature-card">
             <div class="feature-icon">🎨</div>
-            <h3>Three visual themes</h3>
-            <p>Light, Dark and Sepia for long writing sessions — your choice is remembered.</p>
+            <h3>10 themes &amp; custom palette</h3>
+            <p>Light, refined Dark, Sepia, High contrast, Nord, Dracula, Catppuccin and more — 3 assignable quick buttons plus custom theme with WCAG contrast feedback.</p>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-icon">⌨️</div>
+            <h3>Vim mode &amp; status bar</h3>
+            <p>Optional on-demand Vim modal editing, live bottom status bar (<code>Ln/Col</code>), relative line numbers, and popup-safe <code>Escape</code> handling.</p>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-icon">⚡</div>
+            <h3>Snippets with shortcuts &amp; context menu</h3>
+            <p>Reads <code>.vscode/*.code-snippets</code> and <code>keybindings.json</code> directly, wraps selections with <code>$TM_SELECTED_TEXT</code>, and inserts on right-click.</p>
           </article>
 
           <article class="feature-card">
             <div class="feature-icon">🌍</div>
             <h3>English and Spanish</h3>
-            <p>Full interface in both languages, including the built-in help.</p>
+            <p>Full interface in both languages, including the built-in help and the Typst-typeset PDF user manual.</p>
           </article>
 
         </div>
@@ -306,8 +322,8 @@
           </article>
           <article class="feature-card">
             <div class="feature-icon">🤖</div>
-            <h3>Use your subscription</h3>
-            <p>Connect the agent you already have installed (Claude Code, Codex, Gemini CLI or Copilot) and use your account. DBV never sees your credentials and every agent permission is asked of you with its diff.</p>
+            <h3>Use your subscription &amp; pick models</h3>
+            <p>Connect Claude Code, Codex, Gemini CLI, Copilot, or Antigravity from the tripartite AI modal, tune model and reasoning effort, and approve every edit with its diff.</p>
           </article>
           <article class="feature-card">
             <div class="feature-icon">✅</div>
@@ -371,31 +387,31 @@
         <div class="showcase-grid">
 
           <article class="showcase-card">
-            <img src="../screenshots/01-editor-live-preview.png" alt="Split view with Typst code editor and real-time live PDF preview" class="zoomable" loading="lazy" />
+            <img src="../screenshots/01-editor-live-preview_en.png" alt="Split view with Typst code editor and real-time live PDF preview" class="zoomable" loading="lazy" />
             <div class="showcase-body">
               <h3>Real-Time Split View</h3>
-              <p>Write with native syntax highlighting and watch your document, algorithms, and math formulas typeset page by page without pressing a single button.</p>
+              <p>Write with native syntax highlighting and watch your document, equations, and CSV tables typeset page by page without pressing a single button.</p>
             </div>
           </article>
 
           <article class="showcase-card">
-            <img src="../screenshots/02-outline-navigation-cover.png" alt="Structural outline navigation panel and official institutional cover page" class="zoomable" loading="lazy" />
+            <img src="../screenshots/02-outline-navigation-cover_en.png" alt="Structural outline navigation panel showing live Typst headings" class="zoomable" loading="lazy" />
             <div class="showcase-body">
-              <h3>Structural Outline & Institutional Covers</h3>
-              <p>Jump directly to any section of the live preview using the sidebar outline panel, and compose professional university covers effortlessly.</p>
+              <h3>Structural Outline Navigation</h3>
+              <p>Jump directly to any section of the live preview using the sidebar outline panel, synchronized across modular chapters.</p>
             </div>
           </article>
 
           <article class="showcase-card">
-            <img src="../screenshots/03-launcher-academic-templates.png" alt="Task launcher with 8 academic templates in Dark theme" class="zoomable" loading="lazy" />
+            <img src="../screenshots/03-launcher-academic-templates_en.png" alt="Task launcher with academic templates, folder import, .dbvt archive import and Git cloning" class="zoomable" loading="lazy" />
             <div class="showcase-body">
-              <h3>Task Launcher with 8 Academic Templates</h3>
-              <p>Start your bachelor thesis, master thesis, dissertation, research paper, technical report, 16:9 presentation, CV, or blank project in one click.</p>
+              <h3>Task Launcher with Academic Templates</h3>
+              <p>Start a bachelor thesis, master thesis, dissertation, paper, technical report, 16:9 presentation, CV, blank project, or clone a Git repo in one click.</p>
             </div>
           </article>
 
           <article class="showcase-card">
-            <img src="../screenshots/05-toolbar-citations-autocomplete.png" alt="Citation assistant with BibTeX autocomplete and insertion toolbar" class="zoomable" loading="lazy" />
+            <img src="../screenshots/05-toolbar-citations-autocomplete_en.png" alt="Citation assistant with BibTeX autocomplete and insertion toolbar" class="zoomable" loading="lazy" />
             <div class="showcase-body">
               <h3>BibTeX Citations Autocomplete & Toolbar</h3>
               <p>Filter keys from your <code>.bib</code> file in real time, and insert equations, math symbols (Σ), tables, and figures without memorizing syntax.</p>
@@ -403,15 +419,15 @@
           </article>
 
           <article class="showcase-card">
-            <img src="../screenshots/07-universe-packages.png" alt="Typst Universe packages catalog (cetz, touying, fletcher, codly...)" class="zoomable" loading="lazy" />
+            <img src="../screenshots/07-universe-packages_en.png" alt="Typst Universe packages catalog (cetz, touying, fletcher, codly...)" class="zoomable" loading="lazy" />
             <div class="showcase-body">
               <h3>Typst Universe: Over 1,500 Packages</h3>
-              <p>Explore and import community packages (cetz for charts, touying for slides, codly for code snippets) with clear open-source license visibility.</p>
+              <p>Explore and import community packages (<code>cetz</code> for charts, <code>touying</code> for slides, <code>codly</code> for code snippets) with clear open-source license visibility.</p>
             </div>
           </article>
 
           <article class="showcase-card">
-            <img src="../screenshots/06-universe-templates.png" alt="Typst Universe community templates (IEEE, ACM, Springer...)" class="zoomable" loading="lazy" />
+            <img src="../screenshots/06-universe-templates_en.png" alt="Typst Universe community templates (IEEE, ACM, Springer...)" class="zoomable" loading="lazy" />
             <div class="showcase-body">
               <h3>Typst Universe: Community Templates</h3>
               <p>Bootstrap conference and journal papers formatted for IEEE, ACM acmart, and Springer with pre-configured layouts in a single click.</p>
@@ -419,7 +435,7 @@
           </article>
 
           <article class="showcase-card">
-            <img src="../screenshots/04-launcher-sepia-theme.png" alt="Warm Sepia theme for eye comfort and bilingual UI selector" class="zoomable" loading="lazy" />
+            <img src="../screenshots/04-launcher-sepia-theme_en.png" alt="Warm Sepia theme for eye comfort and bilingual ES/EN selector" class="zoomable" loading="lazy" />
             <div class="showcase-body">
               <h3>Warm Sepia Theme & Bilingual UI</h3>
               <p>Rest your eyes during long writing sessions with our custom Sepia or Dark themes, and switch smoothly between English and Spanish.</p>
@@ -427,7 +443,7 @@
           </article>
 
           <article class="showcase-card">
-            <img src="../screenshots/08-embedded-project-fonts.png" alt="Project file tree with self-contained typefaces in fonts/ directory" class="zoomable" loading="lazy" />
+            <img src="../screenshots/08-embedded-project-fonts_en.png" alt="Project file tree with self-contained typefaces in fonts/ directory" class="zoomable" loading="lazy" />
             <div class="showcase-body">
               <h3>Self-Contained Project Fonts</h3>
               <p>A dedicated <code>fonts/</code> folder travels inside your project and <code>.dbvt</code> archive: your document renders with identical typography everywhere.</p>
@@ -435,10 +451,74 @@
           </article>
 
           <article class="showcase-card">
-            <img src="../screenshots/09-typst-cli-terminal.png" alt="Integrated floating CLI terminal running Typst compiler commands" class="zoomable" loading="lazy" />
+            <img src="../screenshots/09-typst-cli-terminal_en.png" alt="Integrated floating CLI terminal running Typst compiler commands" class="zoomable" loading="lazy" />
             <div class="showcase-body">
               <h3>Integrated Typst CLI Terminal</h3>
               <p>An optional escape hatch for advanced users wanting to run direct Typst subcommands and custom flags without leaving the application.</p>
+            </div>
+          </article>
+
+          <article class="showcase-card">
+            <img src="../screenshots/10-themes-colors-dialog_en.png" alt="Themes and colors dialog featuring 10 curated palettes, 3 quick buttons and WCAG AA contrast check" class="zoomable" loading="lazy" />
+            <div class="showcase-body">
+              <h3>10 Curated Themes & WCAG Customizer</h3>
+              <p>Pick from Light, Dark, Sepia, High contrast, Nord, Dracula, Catppuccin, Solarized, or Gruvbox, assign 3 header quick slots, and tune custom colors with WCAG AA checks.</p>
+            </div>
+          </article>
+
+          <article class="showcase-card">
+            <img src="../screenshots/11-ai-connect-modal_en.png" alt="Connect an AI wizard for Local AI, subscription CLI agents, or Cloud API keys" class="zoomable" loading="lazy" />
+            <div class="showcase-body">
+              <h3>Optional AI Setup: Local, CLI Agents, or Cloud</h3>
+              <p>Run private models locally via Ollama/LM Studio, use subscription CLI agents (Claude Code, Gemini CLI, Codex, Copilot), or store cloud API keys safely in the OS keychain.</p>
+            </div>
+          </article>
+
+          <article class="showcase-card">
+            <img src="../screenshots/12-ai-assistant-panel_en.png" alt="AI Assistant panel showing compiler-verified proposed changes" class="zoomable" loading="lazy" />
+            <div class="showcase-body">
+              <h3>Compiler-Verified AI Proposals</h3>
+              <p>Every AI edit runs through the bundled Typst compiler before appearing as an interactive diff card you can preview, apply selectively, or reject.</p>
+            </div>
+          </article>
+
+          <article class="showcase-card">
+            <img src="../screenshots/13-git-collaboration_en.png" alt="Git collaboration popover with conflicted, modified, untracked files, Commit, Pull and Push" class="zoomable" loading="lazy" />
+            <div class="showcase-body">
+              <h3>Built-in Git Collaboration</h3>
+              <p>Track branch status, ahead/behind counts, modified/conflicted files, and push commits from the header pill—with pre-pull guards against accidental overwrites.</p>
+            </div>
+          </article>
+
+          <article class="showcase-card">
+            <img src="../screenshots/14-git-merge-conflict_en.png" alt="Visual block-by-block Git merge conflict resolver comparing Mine vs Theirs" class="zoomable" loading="lazy" />
+            <div class="showcase-body">
+              <h3>Visual Block-by-Block Conflict Resolver</h3>
+              <p>Resolve merge conflicts cleanly by picking <em>Mine</em> or <em>Theirs</em> per hunk while leaving surrounding Typst markup completely untouched.</p>
+            </div>
+          </article>
+
+          <article class="showcase-card">
+            <img src="../screenshots/15-diagram-editor_en.png" alt="Visual CeTZ Diagram editor seeded with Flowchart nodes" class="zoomable" loading="lazy" />
+            <div class="showcase-body">
+              <h3>Visual Diagram Editor (CeTZ)</h3>
+              <p>Build flowcharts, LaTeX-converted equations, sequence diagrams, Gantt charts, Kanban boards, and DOT graphs outputting clean editable Typst code.</p>
+            </div>
+          </article>
+
+          <article class="showcase-card">
+            <img src="../screenshots/16-csv-data-viewer_en.png" alt="Interactive CSV/TSV Data viewer generating live csv() Typst tables" class="zoomable" loading="lazy" />
+            <div class="showcase-body">
+              <h3>CSV / TSV Data Viewer & Python Runner</h3>
+              <p>Sort and filter scientific datasets, bind tables live with <code>csv()</code>, or run Python scripts to regenerate plots and metrics without leaving the editor.</p>
+            </div>
+          </article>
+
+          <article class="showcase-card">
+            <img src="../screenshots/17-vim-statusbar-preferences_en.png" alt="Preferences menu with Vim mode and Relative line numbers enabled plus live NORMAL footer badge" class="zoomable" loading="lazy" />
+            <div class="showcase-body">
+              <h3>Optional Vim Mode, Relative Lines & Manual Sync</h3>
+              <p>Enable modal Vim editing on demand, inspect cursor-relative line numbers, and toggle Manual Refresh for zero typing latency on huge manuscripts.</p>
             </div>
           </article>
 
@@ -473,7 +553,7 @@
           <div class="step">
             <span class="step-num">1</span>
             <h3>Download and install</h3>
-            <p>Get it from Microsoft Store or download ready-to-run installers for Windows (.exe), macOS (universal .dmg), and Linux (.AppImage, .deb) from GitHub Releases. No compiling or configuring dependencies.</p>
+            <p>Get it from Microsoft Store for Windows or download ready-to-run packages for macOS (universal .dmg) and Linux (.AppImage, .deb) via GitHub Releases or Homebrew. No compiling or configuring dependencies.</p>
           </div>
           <div class="step">
             <span class="step-num">2</span>
@@ -485,6 +565,34 @@
             <h3>Write</h3>
             <p>The PDF composes itself as you type. Save with <kbd>Ctrl</kbd> + <kbd>S</kbd>, export whenever you like.</p>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── User manual ──────────────────────────────────────────────────── -->
+    <section class="features" id="manual">
+      <div class="features-inner">
+        <h2>Complete user manual — typeset in Typst itself</h2>
+        <p class="section-sub">Browse the full DBV Typst Editor reference in English or Spanish, or grab the <code>.typ</code> source files to compile and explore them right inside the app.</p>
+        <div class="feature-grid">
+          <article class="feature-card">
+            <div class="feature-icon">📘</div>
+            <h3>User Manual (English · PDF)</h3>
+            <p>Full File, Tools & Preferences menu reference, Git collaboration & conflict resolver, visual assistants with Typst examples, Vim mode, 10 WCAG themes, AI, and MCP.</p>
+            <p><a href="../manual/manual-en.pdf" class="btn btn-primary" target="_blank" rel="noopener">Open English manual (PDF)</a></p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon">📗</div>
+            <h3>Manual de Usuario (Español · PDF)</h3>
+            <p>Guía completa en español con todos los menús, flujo colaborativo con Git, herramientas visuales con ejemplos Typst, Modo Vim, 10 temas WCAG, IA y MCP.</p>
+            <p><a href="../manual/manual-es.pdf" class="btn btn-ghost" target="_blank" rel="noopener">Abrir manual en español (PDF)</a></p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon">📝</div>
+            <h3>Typst source files (<code>.typ</code>)</h3>
+            <p>Built with DBV's own bundled Typst compiler. Inspect the editorial template and open it directly as a real project in the editor.</p>
+            <p><a href="https://github.com/davidbuenov/dbv-typst-editor/tree/master/docs/manual" class="btn btn-ghost" target="_blank" rel="noopener">View Typst source on GitHub</a></p>
+          </article>
         </div>
       </div>
     </section>
@@ -524,6 +632,7 @@
           <a href="https://github.com/davidbuenov/dbv-typst-editor" target="_blank" rel="noopener">Source code</a>
           <a href="https://github.com/davidbuenov/dbv-typst-editor/releases" target="_blank" rel="noopener">Releases</a>
           <a href="https://github.com/davidbuenov/dbv-typst-editor/issues" target="_blank" rel="noopener">Report an issue</a>
+          <a href="../manual/manual-en.pdf" target="_blank" rel="noopener">User manual (PDF)</a>
           <a href="https://github.com/davidbuenov/dbv-typst-editor/blob/master/dbv-specs-ops/CHANGELOG.en.md" target="_blank" rel="noopener">Changelog</a>
         </div>
         <div class="footer-col">
@@ -591,3 +700,4 @@
 
 </body>
 </html>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              

@@ -22,6 +22,27 @@ export function previewBody(body) {
 }
 
 /**
+ * Inserta un snippet sobre `[from, to]` (por defecto la selección actual),
+ * resolviendo `$TM_SELECTED_TEXT` y demás variables de VS Code (RF-81.3 / RF-119).
+ */
+export function applySnippetTemplate(
+  view,
+  item,
+  {
+    from = view.state.selection.main.from,
+    to = view.state.selection.main.to,
+    path = null,
+    completion = null,
+  } = {},
+) {
+  const selection = view.state.selection.main;
+  const selectedText = selection.empty ? '' : view.state.sliceDoc(selection.from, selection.to);
+  const fileName = (path ?? '').split(/[\\/]/).pop() ?? '';
+  const body = resolveVariables(item.body, { selectedText, fileName });
+  snippet(lspSnippetToCodeMirror(body))(view, completion ?? { label: item.prefix || item.name || '' }, from, to);
+}
+
+/**
  * @param {() => import('./model.js').Snippet[]} [getSnippets]
  * @param {() => string | null} [getPath] Fichero abierto (para `TM_FILENAME`).
  * @returns {import('@codemirror/autocomplete').CompletionSource}
@@ -31,7 +52,6 @@ export function createSnippetCompletionSource(getSnippets = () => snippetStore.a
     const snippets = getSnippets();
     const word = context.matchBefore(/[#@]?[\p{L}\p{N}_\-.:]*/u);
     if (snippets.length === 0 || !word || (word.from === word.to && !context.explicit)) return null;
-    const fileName = (getPath() ?? '').split(/[\\/]/).pop() ?? '';
     return {
       from: word.from,
       options: snippets.map((item) => ({
@@ -42,10 +62,7 @@ export function createSnippetCompletionSource(getSnippets = () => snippetStore.a
         // Debajo de Tinymist cuando empatan: los propios se ven, sin tapar.
         boost: item.origin === 'project' ? -1 : -2,
         apply(view, completion, from, to) {
-          const selection = view.state.selection.main;
-          const selectedText = selection.empty ? '' : view.state.sliceDoc(selection.from, selection.to);
-          const body = resolveVariables(item.body, { selectedText, fileName });
-          snippet(lspSnippetToCodeMirror(body))(view, completion, from, to);
+          applySnippetTemplate(view, item, { from, to, path: getPath(), completion });
         },
       })),
     };

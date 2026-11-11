@@ -63,6 +63,14 @@ export function createTabBar({ containerEl, onActivate, onClose, onMove }) {
   /** Arrastre en curso: pestaña, punto de partida y si ya superó el umbral. */
   let drag = null;
 
+  function createDirtyDot() {
+    const dot = document.createElement('span');
+    dot.className = 'tab__dirty';
+    dot.title = t('doc.unsaved');
+    dot.setAttribute('aria-label', t('doc.unsaved'));
+    return dot;
+  }
+
   /** @param {{path: string, label: string, active: boolean, dirty: boolean, readOnly: boolean}} tab */
   function renderTab(tab) {
     const el = document.createElement('div');
@@ -86,13 +94,7 @@ export function createTabBar({ containerEl, onActivate, onClose, onMove }) {
       el.append(badge);
     }
     // RF-64.3: el punto de modificado, con su texto para el lector de pantalla.
-    if (tab.dirty) {
-      const dot = document.createElement('span');
-      dot.className = 'tab__dirty';
-      dot.title = t('doc.unsaved');
-      dot.setAttribute('aria-label', t('doc.unsaved'));
-      el.append(dot);
-    }
+    if (tab.dirty) el.append(createDirtyDot());
     const close = document.createElement('button');
     close.type = 'button';
     close.className = 'tab__close';
@@ -195,5 +197,20 @@ export function createTabBar({ containerEl, onActivate, onClose, onMove }) {
     onActivate(target.dataset.path);
   });
 
-  return { render };
+  /** Actualiza solo el punto *dirty* de la pestaña sin recrear el DOM (RF-121). */
+  function setTabDirty(path, dirty) {
+    const tabEl = tabEls().find((item) => item.dataset.path === path);
+    if (!tabEl) return;
+    const existing = tabEl.querySelector('.tab__dirty');
+    if (dirty && !existing) {
+      const dot = createDirtyDot();
+      const closeBtn = tabEl.querySelector('.tab__close');
+      if (closeBtn) tabEl.insertBefore(dot, closeBtn);
+      else tabEl.append(dot);
+    } else if (!dirty && existing) {
+      existing.remove();
+    }
+  }
+
+  return { render, setTabDirty };
 }

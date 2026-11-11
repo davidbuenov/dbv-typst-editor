@@ -53,6 +53,7 @@ export function createGitManager({
   const panel = registerPanel(panelEl, {
     trigger: triggerBtn,
     toggle: true,
+    closeOnOutsideClick: true,
     onOpen: () => {
       refresh();
     },

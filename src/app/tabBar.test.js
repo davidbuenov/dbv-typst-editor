@@ -101,4 +101,24 @@ describe('atajos y posición al soltar', () => {
     expect(dropIndex([50, 150, 250], 2, 10)).toBe(0);
     expect(dropIndex([50, 150, 250], 1, 160)).toBe(1);
   });
+
+  it('setTabDirty actualiza el indicador sin reconstruir los nodos DOM de las pestañas (RF-121)', () => {
+    const c = document.createElement('div');
+    document.body.replaceChildren(c);
+    const bar = createTabBar({ containerEl: c, onActivate: vi.fn(), onClose: vi.fn(), onMove: vi.fn() });
+    bar.render([
+      { path: 'D:/a.typ', label: 'a.typ', active: true, dirty: false, readOnly: false },
+      { path: 'D:/b.typ', label: 'b.typ', active: false, dirty: false, readOnly: false },
+    ]);
+    const tabBefore = c.querySelector('.tab[data-path="D:/a.typ"]');
+    expect(tabBefore.querySelector('.tab__dirty')).toBeNull();
+
+    bar.setTabDirty('D:/a.typ', true);
+    expect(c.querySelector('.tab[data-path="D:/a.typ"]')).toBe(tabBefore);
+    expect(tabBefore.querySelector('.tab__dirty')).not.toBeNull();
+
+    bar.setTabDirty('D:/a.typ', false);
+    expect(c.querySelector('.tab[data-path="D:/a.typ"]')).toBe(tabBefore);
+    expect(tabBefore.querySelector('.tab__dirty')).toBeNull();
+  });
 });

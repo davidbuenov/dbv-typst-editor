@@ -95,4 +95,25 @@ describe('createHelp', () => {
       setLanguage(previous);
     }
   });
+
+  it('cubre las novedades de v0.15.0 y enlaza al manual de usuario PDF en el idioma activo (RF-124)', async () => {
+    const previous = getLanguage();
+    try {
+      for (const [language, manualFile, expectedText] of [
+        ['es', 'manual-es.pdf', '10 temas curados'],
+        ['en', 'manual-en.pdf', '10 curated themes'],
+      ]) {
+        setLanguage(language);
+        await createHelp({ contentEl, navEl }).ensureRendered();
+        expect(document.getElementById('help-section-snippets')).not.toBeNull();
+        expect(contentEl.textContent).toContain(expectedText);
+        expect(contentEl.textContent).toContain('Antigravity');
+        expect(contentEl.textContent).toContain('Vim');
+        const hrefs = [...contentEl.querySelectorAll('.help__doc-link')].map((node) => node.getAttribute('href'));
+        expect(hrefs.some((href) => href.endsWith(`/manual/${manualFile}`)), `${language}: falta el enlace a ${manualFile}`).toBe(true);
+      }
+    } finally {
+      setLanguage(previous);
+    }
+  });
 });

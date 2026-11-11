@@ -5,6 +5,8 @@
 // Built with dbv-specs-ops · https://github.com/davidbuenov/dbv-specs-ops
 // =============================================================================
 //
+
+import { applySnippetTemplate } from '../snippets/completion.js';
 // Botón derecho (o Mayús+F10 / tecla de menú) sobre el editor: la acción propia
 // "Ir a la vista previa" y las de portapapeles de siempre. Reutiliza el aspecto
 // del menú contextual del árbol (`.tree-context-menu` / `.menu-item`).
@@ -70,8 +72,24 @@ export function buildMenuItems({ hasSelection, canGoToPreview, readOnly = false,
  * @param {(view: any) => Array<{id: string, label: string, run: () => void, enabled?: boolean}>} [deps.getExtraItems]
  *   Entradas que añaden otros módulos al final del menú, con su propio texto:
  *   «Ver documentación de…» (RF-96.6) y las acciones de la IA (RF-95).
+ * @param {() => Array<import('../snippets/model.js').Snippet>} [deps.getContextSnippets]
+ * @param {() => string | null} [deps.getDocumentPath]
  */
-export function createEditorContextMenu({ hostEl, getView, canGoToPreview, onGoToPreview, notify, t, canShowHistory, onShowHistory, navigation, onSaveSnippet, getExtraItems }) {
+export function createEditorContextMenu({
+  hostEl,
+  getView,
+  canGoToPreview,
+  onGoToPreview,
+  notify,
+  t,
+  canShowHistory,
+  onShowHistory,
+  navigation,
+  onSaveSnippet,
+  getExtraItems,
+  getContextSnippets,
+  getDocumentPath,
+}) {
   let menuEl = null;
 
   function close() {
@@ -136,8 +154,13 @@ export function createEditorContextMenu({ hostEl, getView, canGoToPreview, onGoT
     menu.className = 'tree-context-menu editor-context-menu';
     menu.setAttribute('role', 'menu');
 
+    const contextSnippets = getContextSnippets?.() ?? [];
+    if (contextSnippets.length > 0) {
+      appendSnippetSubmenu(menu, view, contextSnippets);
+    }
+
     const extras = getExtraItems?.(view) ?? [];
-    if (extras.length) items.at(-1).separatorAfter = true;
+    if (extras.length && items.length > 0) items.at(-1).separatorAfter = true;
     for (const entry of [...items, ...extras.map((extra) => ({ ...extra, enabled: extra.enabled ?? true, extra: true }))]) {
       const item = document.createElement('button');
       item.type = 'button';
@@ -166,6 +189,97 @@ export function createEditorContextMenu({ hostEl, getView, canGoToPreview, onGoT
     menu.style.top = `${Math.max(4, Math.min(y, window.innerHeight - height - 4))}px`;
     menuEl = menu;
     menu.querySelector('.menu-item:not(:disabled)')?.focus();
+  }
+
+  function appendSnippetSubmenu(menu, view, contextSnippets) {
+    const rule = document.createElement('div');
+    rule.className = 'menu-separator';
+    rule.setAttribute('role', 'separator');
+    menu.append(rule);
+
+    const wrap = document.createElement('div');
+    wrap.className = 'editor-context-submenu-wrap';
+
+    const trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.className = 'menu-item editor-context-submenu-trigger';
+    trigger.setAttribute('role', 'menuitem');
+    trigger.setAttribute('aria-haspopup', 'menu');
+    trigger.setAttribute('aria-expanded', 'false');
+    trigger.dataset.action = 'insertSnippetSubmenu';
+    trigger.disabled = view.state.readOnly;
+    const labelSpan = document.createElement('span');
+    labelSpan.textContent = t('snippets.contextMenu');
+    const arrowSpan = document.createElement('span');
+    arrowSpan.setAttribute('aria-hidden', 'true');
+    arrowSpan.textContent = '›';
+    trigger.append(labelSpan, arrowSpan);
+
+    const sub = document.createElement('div');
+    sub.className = 'tree-context-menu editor-context-submenu hidden';
+    sub.setAttribute('role', 'menu');
+
+    for (const entry of contextSnippets) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'menu-item editor-context-snippet-item';
+      btn.setAttribute('role', 'menuitem');
+      btn.dataset.snippetName = entry.name;
+      const nameSpan = document.createElement('span');
+      nameSpan.textContent = entry.name;
+      btn.append(nameSpan);
+      if (entry.key) {
+        const keyHint = document.createElement('kbd');
+        keyHint.className = 'menu-item__shortcut';
+        keyHint.textContent = entry.key;
+        btn.append(keyHint);
+      }
+      btn.addEventListener('click', () => {
+        close();
+        if (!view.state.readOnly) {
+          applySnippetTemplate(view, entry, { path: getDocumentPath?.() ?? null });
+        }
+        view.focus();
+      });
+      sub.append(btn);
+    }
+
+    const openSub = (focusFirst = false) => {
+      if (trigger.disabled) return;
+      sub.classList.remove('hidden');
+      trigger.setAttribute('aria-expanded', 'true');
+      const rect = sub.getBoundingClientRect();
+      sub.classList.toggle('editor-context-submenu--left', rect.right > window.innerWidth - 4);
+      if (focusFirst) sub.querySelector('.menu-item')?.focus();
+    };
+    const closeSub = (focusTrigger = false) => {
+      sub.classList.add('hidden');
+      trigger.setAttribute('aria-expanded', 'false');
+      if (focusTrigger) trigger.focus();
+    };
+
+    wrap.addEventListener('mouseenter', () => openSub(false));
+    wrap.addEventListener('mouseleave', () => closeSub(false));
+    trigger.addEventListener('click', (event) => {
+      event.stopPropagation();
+      if (sub.classList.contains('hidden')) openSub(true);
+      else closeSub(false);
+    });
+    trigger.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowRight' || event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        openSub(true);
+      }
+    });
+    sub.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        closeSub(true);
+      }
+    });
+
+    wrap.append(trigger, sub);
+    menu.append(wrap);
   }
 
   hostEl.addEventListener('contextmenu', (event) => {

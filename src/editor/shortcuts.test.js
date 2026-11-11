@@ -143,6 +143,15 @@ describe('registro único de atajos (RF-80)', () => {
     expect(formatCombo('Mod-Alt-\\', 'en', false)).toBe('Ctrl + Alt + \\');
     expect(formatCombo('Mod--', 'en', false)).toBe('Ctrl + -');
   });
+
+  it('shortcutHelpGroups incluye los atajos de snippets de usuario si hay activos (RF-119b)', () => {
+    const groups = shortcutHelpGroups('es', false, [
+      { key: 'Ctrl-Alt-j', snippet: { name: 'Nota', description: 'Insertar nota al pie' } },
+    ]);
+    const snippetGroup = groups.find((g) => g.scope === 'snippets');
+    expect(snippetGroup).toBeDefined();
+    expect(snippetGroup.rows).toEqual([['Ctrl + Alt + J', 'Insertar nota al pie']]);
+  });
 });
 
 describe('atajos en un editor real', () => {

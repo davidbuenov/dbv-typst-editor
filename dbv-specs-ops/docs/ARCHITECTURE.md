@@ -794,6 +794,18 @@ Principio común: **una sola maquinaria de edición en varios ficheros** para re
 | Agente del panel | `ai/acpSession.js` (`mcpServers`), `ai/acp.rs` (`kill_tree`) | El agente recibe el servidor de DBV al abrir la sesión; cerrar el agente cierra todo su árbol de procesos |
 | Evaluación | `scripts/evalUniverse.mjs`, `testfiles/ai-evals/tasks.json` | 46 tareas; Universe y bibliografía con el catálogo real y `packagesValid` |
 
+**Lo que añadió v0.15.0 (slices 161 a 171; `SPECIFICATIONS.md` §5q, `ADR-V0150-001` y `-002`):**
+
+| Pieza | Dónde | Qué decide |
+| --- | --- | --- |
+| Apilamiento y menús (RF-118) | `panels/registerPanel.js`, `app/gitManager.js`, `main.js` | Banda dinámica `z-index` `11..19` al abrir/clic/foco, `exclusiveGroup: 'header-menu'`, `closeOnOutsideClick: true` en Git y navegación por teclado en `role="menu"` |
+| Cero latencia manual (RF-121) | `editor/editor.js`, `editor/lspClient.js`, `app/workspace.js`, `app/tabBar.js` | Debounce de 180 ms con `flush()` previo a consultas/guardado/compilación, `onModified` sin `doc.toString()`, `setTabDirty()` incremental, `toolbar.refresh()` coalescido a 60 ms y eliminación de `typstLezerLinter` |
+| Temas WCAG y contraste oscuro (RF-122) | `themes/tokens.css`, `themes/theme.js`, `themes/themeDialog.js`, `editor/editor.js` | `typstTokenHighlightStyle` sobre `--code-*`, `isDarkTheme()`, 10 temas curados, 3 slots rápidos configurables y tema personalizado editable con auditoría WCAG en vivo |
+| Modo Vim y micro-barra (RF-120) | `editor/editor.js`, `app/workspace.js`, `app/prefs.js` | Carga diferida de `@replit/codemirror-vim` en `Compartment`, `#editor-statusbar` (`Ln/Col` + insignia Vim), números relativos y `shouldClosePanelsOnEscape()` |
+| Atajos y menú de snippets (RF-119) | `src-tauri/src/snippets.rs`, `snippets/{model,keybindings,loader,completion}.js`, `editorContextMenu.js` | Parser JSONC de `keybindings.json` (global/proyecto), prioridad de `APP_SHORTCUTS`, `snippetKeymapCompartment`, `$TM_SELECTED_TEXT` y submenú «Insertar snippet ›» |
+| Nueva UI/backend de IA (RF-123) | `ai/{detect,connections,acp,commands}.rs`, `src/ai/{aiApp,connectWizard,acpSession,guide,guideContent,appInfo,i18nBridge}.js`, `themes/assist.css` | Sincronización canónica con `dbv-tauri-starter` + mejoras `acp.rs` de `dbv-unreal-ai`, detección de Google Antigravity (`agy`), selector `⚙️` de modelo/esfuerzo y guía integrada |
+| Manual PDF y ayuda v0.15.0 (RF-124) | `src/help/helpContent.js`, `docs/manual/{common,manual-es,manual-en}.typ`, `docs/{index,en/index}.html` | Secciones completas de menús/Git/Python/jogs, manual bilingüe en PDF compilado con Typst `0.15.1`, 34 capturas ES/EN reales y web actualizada |
+
 ## 🔑 Decisiones Técnicas Clave (resumen)
 
 ### Seguridad

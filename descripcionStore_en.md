@@ -21,7 +21,7 @@ Key features:
 • Structural outline panel with click-to-jump to that page
 • Built-in Typst Universe: community templates and packages, with the license shown before installing
 • Export to PDF and PNG, and packing the whole project into a single file (.dbvt) to share it
-• Optional AI assistant: local (Ollama, LM Studio or any OpenAI-compatible server), cloud with your own API key (Anthropic, OpenAI, Gemini, OpenRouter), or your subscription through your installed agent (Claude Code, Codex, Gemini CLI, Copilot)
+• Optional AI assistant: local (Ollama, LM Studio or any OpenAI-compatible server), cloud with your own API key (Anthropic, OpenAI, Gemini, OpenRouter), or your subscription through your installed agent (Claude Code, Codex, Gemini CLI, Copilot CLI, Google Antigravity) with a model and reasoning selector
 • The AI proposes changes, across several files too; the app checks they compile before showing them and you review them hunk by hunk, with Undo
 • AI on the selection (Ctrl+Shift+I) and "Explain and fix" on every compile error
 • Official Typst documentation offline, searchable (also in Spanish)
@@ -29,8 +29,9 @@ Key features:
 • The AI searches real Typst Universe templates and packages, sees the rendered pages and lends its tools to other agents (MCP server, read-only)
 • Problems panel with every error in the project, and a CSV/TSV data viewer with "Insert as table"
 • Optional advanced terminal for anyone who prefers the Typst CLI directly
-• Three themes: Light, Dark, and Sepia
-• Interface available in English and Spanish
+• 10 curated visual themes and a WCAG custom theme editor with 3 customizable quick-switch slots
+• Optional Vim mode, bottom status bar (Ln/Col), relative line numbers, and snippet keybindings + context submenu
+• Interface available in English and Spanish, with complete in-app help
 • Single instance: opening a second document focuses the existing window
 
 No internet connection required to compile or edit. Typst Universe, the manual update check and the AI you connect are the only connections, and only when you ask for them. With a local AI nothing leaves your computer; if you connect a cloud AI or an agent, what you send goes straight from your machine to the provider you chose, and you are asked first. API keys are stored in the Windows Credential Manager, never in a file.
@@ -39,15 +40,14 @@ No internet connection required to compile or edit. Typst Universe, the manual u
 
 ## What's new in this version
 
-Version 0.14.0 — "AI Native": the AI knows Typst Universe, sees your pages and connects to other agents.
+Version 0.15.0: smoother and faster editing, 10 WCAG themes, optional Vim mode, snippet keybindings, and refreshed AI dialog.
 
-• Apply template…: turn a document you already have into IEEE, Springer or any format you choose from the template gallery; you review the proposal before anything is applied.
-• The AI uses Typst Universe for real: it searches real templates and packages with their exact version, without inventing names. If a package is missing, it asks before downloading it.
-• It sees the result: with a model that accepts images it looks at the rendered pages; with the cloud it can offer a missing typeface (you confirm).
-• MCP server (Tools › MCP server…): Claude Code, Cursor or Codex use DBV's exact compiler, see the pages and query Universe. Read-only, no network.
-• More useful local models: configurable response cap, visible progress and retry when they do not answer.
-• Import Sublime Text snippets; fonts you add to fonts/ are picked up without a restart.
-• Expanded help and AI guide.
+• 10 curated themes + custom theme: fixed dark-mode syntax contrast and expanded catalog (Nord, Dracula, Catppuccin, Solarized Dark, Gruvbox Dark, High Contrast…), with 3 assignable quick-switch buttons and a custom color editor with live WCAG contrast check.
+• Optional Vim mode (Preferences): modal editing via @replit/codemirror-vim, live mode badge in the new bottom status bar (Ln/Col & selection), relative line numbers, and panel-friendly Escape handling.
+• Zero typing latency in Manual Refresh: typing long documents with manual preview refresh no longer re-serializes or rebuilds the UI on every keystroke.
+• Snippet keybindings & context menu: supports "key" in .vscode/*.code-snippets and keybindings.json (with $TM_SELECTED_TEXT) plus an "Insert snippet ›" right-click submenu.
+• Refined windows & menus: floating panels stack dynamically to the front and header menus support full keyboard navigation.
+• Unified AI & expanded docs: tripartite connection modal with model/reasoning selector and Google Antigravity support, plus bilingual User Manual and expanded Help.
 
 ---
 
@@ -69,11 +69,11 @@ Version 0.14.0 — "AI Native": the AI knows Typst Universe, sees your pages and
 13. Outline and Problems panels with direct navigation to the preview and to the error
 14. Two-way editor↔preview sync, and a pin to keep the window always on top
 15. Export to PDF and PNG, and packing the project into a single file (.dbvt)
-16. Three themes (Light, Dark, Sepia) and an English/Spanish interface
-17. Optional AI: local (Ollama, LM Studio), cloud with your API key, or your subscription through an agent (Claude Code, Codex, Gemini CLI, Copilot)
-18. The AI proposes, the app checks it compiles, and you decide hunk by hunk, with Undo
-19. AI on the selection (Ctrl+Shift+I), "Explain and fix" on every error, offline Typst documentation and a CSV/TSV viewer
-20. "Apply template…" (IEEE, Springer…), an AI that uses Typst Universe and sees the pages, and an MCP server for other agents
+16. 10 curated themes and WCAG custom theme editor, with 3 customizable quick-switch slots
+17. Optional Vim mode, bottom status bar (Ln/Col), relative line numbers, and snippet keybindings + context menu
+18. Optional AI (local, cloud, or your subscription: Claude Code, Codex, Gemini CLI, Copilot CLI, Antigravity) with model & reasoning selector
+19. AI proposes compiled changes you review hunk by hunk (Ctrl+Shift+I inline actions and "Explain and fix" on errors)
+20. Offline Typst docs, CSV/TSV viewer, "Apply template…", Universe/page-aware AI, and read-only MCP server
 
 ---
 
@@ -87,7 +87,7 @@ DBV Typst Editor
 ### Short description
 *(recommended max. 270 characters)*
 
-Native desktop editor for Typst: fast, lightweight, and local by default. Academic templates, real-time PDF preview, insertion toolbar and offline compiling. Optional AI assistant (local, cloud or your subscription). Light/Dark/Sepia themes. No telemetry.
+Native desktop editor for Typst: fast, lightweight, and local by default. Academic templates, real-time PDF preview, 10 WCAG themes, optional Vim mode, offline compiling, and optional AI (local, cloud, or subscription). No telemetry.
 
 ---
 

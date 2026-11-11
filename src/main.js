@@ -31,6 +31,7 @@ import { createTemplateGalleryModal } from './launcher/templateGalleryModal.js';
 import { createOutline } from './outline/outline.js';
 import { createEngineNotice } from './preview/engineNotice.js';
 import { closeAllPanels, registerPanel } from './panels/registerPanel.js';
+import { shouldClosePanelsOnEscape } from './editor/editor.js';
 import { createPreview } from './preview/preview.js';
 import { createTerminal } from './terminal/terminal.js';
 import { createPythonRunnerPanel } from './panels/pythonRunnerPanel.js';
@@ -60,6 +61,7 @@ import {
   snippetsEnsureProject,
   snippetsGlobalPath,
   snippetsImportTarget,
+  snippetsKeybindingsPaths,
   snippetsPickSublime,
   snippetsProjectFiles,
   snippetsReadSublime,
@@ -113,7 +115,16 @@ import { rangeForEditor, rangeForRender } from './preview/syncRange.js';
 import { createChangeTracker } from './preview/changeTracker.js';
 import { createSplitter } from './ui/splitter.js';
 import { createToast } from './ui/toast.js';
-import { cycleTheme, getTheme, initTheme, setTheme } from './themes/theme.js';
+import {
+  cycleTheme,
+  getTheme,
+  getThemeDescriptor,
+  getThemeSlots,
+  initTheme,
+  onThemeChanged as subscribeThemeChanged,
+  setTheme,
+} from './themes/theme.js';
+import { createThemeDialog } from './themes/themeDialog.js';
 import { getLastDocumentDir, rememberDocumentPath } from './app/lastDocumentDir.js';
 import { createNewDocumentFlow, isNewDocumentShortcut } from './app/newDocument.js';
 import { getPref, onPrefsChanged, setPref, togglePref } from './app/prefs.js';
@@ -154,32 +165,37 @@ async function renderAbout() {
 }
 
 /**
- * Selector segmentado Claro/Oscuro/Sepia. Cada botón fija su propio tema
- * directamente (no hay "alternar" con tres opciones); `cycle()` sí hace falta
- * para el atajo del menú nativo de macOS (Slice 24), que solo puede pedir
- * "el siguiente", no uno concreto.
+ * Selector segmentado de 3 botones rápidos en cabecera (RF-122): cada botón
+ * muestra el tema asignado en Preferencias (`getThemeSlots()`).
  */
-function wireThemeSwitcher(onThemeChanged) {
-  const buttons = {
-    dark: el('btn-theme-dark'),
-    light: el('btn-theme-light'),
-    sepia: el('btn-theme-sepia'),
-  };
+function wireThemeSwitcher(onThemeApplied) {
+  const buttons = [el('btn-theme-light'), el('btn-theme-dark'), el('btn-theme-sepia')];
   function refresh(theme) {
-    for (const [name, button] of Object.entries(buttons)) {
-      button.classList.toggle('active', name === theme);
-    }
+    const slots = getThemeSlots();
+    buttons.forEach((button, index) => {
+      if (!button) return;
+      const slotTheme = slots[index];
+      const descriptor = getThemeDescriptor(slotTheme);
+      const label = descriptor ? t(descriptor.labelKey) : slotTheme;
+      button.textContent = descriptor?.icon ?? '🎨';
+      button.title = label;
+      button.setAttribute('aria-label', label);
+      button.classList.toggle('active', slotTheme === theme);
+    });
   }
-  function apply(theme) {
-    setTheme(theme);
+  buttons.forEach((button, index) => {
+    button?.addEventListener('click', () => {
+      const slotTheme = getThemeSlots()[index];
+      if (slotTheme) setTheme(slotTheme);
+    });
+  });
+  subscribeThemeChanged((theme) => {
     refresh(theme);
-    onThemeChanged(theme);
-  }
-  for (const [name, button] of Object.entries(buttons)) {
-    button.addEventListener('click', () => apply(name));
-  }
+    onThemeApplied(theme);
+  });
+  document.addEventListener('dbv-lang-changed', () => refresh(getTheme()));
   refresh(getTheme());
-  return { cycle: () => apply(cycleTheme()) };
+  return { cycle: () => cycleTheme() };
 }
 
 /** Paneles del espacio de trabajo (Beta, §7.9): tres interruptores independientes. */
@@ -426,8 +442,12 @@ function wireLanguageSwitcher() {
  * botones "?" de cada asistente (RF-52) — `registerPanel.js` no importa
  * `help.js` directamente para evitar un ciclo de imports.
  */
-function wireHelpPanel(docsViewer) {
-  const help = createHelp({ contentEl: el('help-content'), navEl: el('help-nav') });
+function wireHelpPanel(docsViewer, getSnippetKeybindings = () => []) {
+  const help = createHelp({
+    contentEl: el('help-content'),
+    navEl: el('help-nav'),
+    getSnippetKeybindings,
+  });
   el('btn-help-docs').addEventListener('click', () => docsViewer.open());
   // El contenido de la ayuda se importa y se pinta al abrirla, no al arrancar (ver `help/help.js`).
   el('btn-help').addEventListener('click', () => help.ensureRendered());
@@ -554,7 +574,8 @@ async function bootstrap() {
   wireLanguageSwitcher();
   wireAboutPanel();
   const docsViewer = wireDocsPanel();
-  wireHelpPanel(docsViewer);
+  let getActiveSnippetBindings = () => [];
+  wireHelpPanel(docsViewer, () => getActiveSnippetBindings());
 
   const toast = createToast(el('toast'));
   const dialog = createChoiceDialog({
@@ -654,6 +675,8 @@ async function bootstrap() {
     notify: toast.show,
     elements: {
       editorHost: el('editor-host'),
+      editorCursorPos: el('editor-cursor-pos'),
+      editorVimBadge: el('editor-vim-mode'),
       editorToolbar: el('editor-toolbar'),
       citationPanel: el('citation-panel'),
       citationList: el('citation-list'),
@@ -1037,10 +1060,12 @@ async function bootstrap() {
   // RF-81: snippets de usuario. Se recargan al guardarlos, cuando el
   // observador avisa de un cambio en `.vscode` y (el global) al volver el foco.
   const snippetLoader = createSnippetLoader({
-    backend: { readFile, snippetsGlobalPath, snippetsProjectFiles },
+    backend: { readFile, snippetsGlobalPath, snippetsProjectFiles, snippetsKeybindingsPaths },
     notify: toast.show,
     t,
   });
+  getActiveSnippetBindings = () => snippetLoader.getKeybindings();
+  snippetLoader.subscribe((bindings) => workspace.setSnippetKeybindings?.(bindings));
   snippetLoader.loadGlobal();
   window.addEventListener('focus', () => snippetLoader.loadGlobal());
   workspace.setListener('projectOpened', (project) => {
@@ -1358,6 +1383,7 @@ async function bootstrap() {
     trigger: el('btn-file-menu'),
     toggle: true,
     closeOnOutsideClick: true,
+    exclusiveGroup: 'header-menu',
   });
   el('file-menu').addEventListener('click', (event) => {
     if (event.target.closest('.menu-item')) fileMenu.close();
@@ -1371,6 +1397,7 @@ async function bootstrap() {
     trigger: el('btn-tools-menu'),
     toggle: true,
     closeOnOutsideClick: true,
+    exclusiveGroup: 'header-menu',
   });
   el('tools-menu').addEventListener('click', (event) => {
     if (event.target.closest('.menu-item')) toolsMenu.close();
@@ -1381,14 +1408,33 @@ async function bootstrap() {
   // tocar más de un ajuste seguido. `getPref`/`togglePref`/`onPrefsChanged`
   // viven en `app/prefs.js`; aquí solo se pinta `aria-checked` (el CSS del
   // check cuelga de ese atributo, nunca de una clase aparte).
-  registerPanel(el('preferences-menu'), {
+  const preferencesMenu = registerPanel(el('preferences-menu'), {
     trigger: el('btn-preferences-menu'),
     toggle: true,
     closeOnOutsideClick: true,
+    exclusiveGroup: 'header-menu',
+  });
+  const themeDialog = createThemeDialog({
+    bodyEl: el('theme-dialog-body'),
+    t,
+  });
+  const themePanel = registerPanel(el('theme-panel'), {
+    trigger: el('pref-theme-dialog'),
+    toggle: true,
+    onOpen: () => {
+      preferencesMenu.close();
+      themeDialog.render();
+    },
+  });
+  el('btn-theme-close')?.addEventListener('click', themePanel.close);
+  document.addEventListener('dbv-lang-changed', () => {
+    if (!el('theme-panel').classList.contains('hidden')) themeDialog.render();
   });
   const prefCheckboxes = {
     showHiddenFiles: el('pref-show-hidden'),
     showLineNumbers: el('pref-line-numbers'),
+    relativeLineNumbers: el('pref-relative-lines'),
+    vimMode: el('pref-vim-mode'),
     autoSave: el('pref-auto-save'),
     showFullPath: el('pref-full-path'),
     askBeforeUpdatingRefs: el('pref-ask-refs'),
@@ -1978,6 +2024,8 @@ async function bootstrap() {
 
   createEditorContextMenu({
     onSaveSnippet: (view) => saveSelectionAsSnippet?.(view),
+    getContextSnippets: () => snippetLoader.getContextSnippets(),
+    getDocumentPath: () => workspace.getDocumentPath(),
     navigation: {
       canNavigate: () => navigation.unavailableReason() === null,
       goToDefinition: navigation.goToDefinition,
@@ -2079,7 +2127,9 @@ async function bootstrap() {
   });
 
   document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') closeAllPanels();
+    if (event.key === 'Escape' && shouldClosePanelsOnEscape(event, workspace.getEditorView?.())) {
+      closeAllPanels();
+    }
   });
 
   // RF-79: Ctrl+W cierra la pestaña y Ctrl+Tab / Ctrl+Mayús+Tab las recorren.

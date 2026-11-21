@@ -13,6 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Sin publicar] / [Unreleased]
 
+### Changed
+
+- **Dependencias de Tauri actualizadas a la última versión y verificadas en macOS.** `Cargo.lock` y `package-lock.json` suben `tauri` 2.11.5 → 2.12.7, `tauri-build`/`tauri-codegen`/`tauri-macros` 2.6.3 → 2.7.6, `tauri-runtime-wry` 2.12.5, `wry` 0.57.3, `tao` 0.37.3, los plugins (`dialog` 2.8.4, `fs` 2.7.1, `process` 2.4.0, `shell` 2.6.0, `single-instance` 2.5.5, `updater` 2.14.1) y `@tauri-apps/api` 2.12.5 / `@tauri-apps/cli` 2.12.6. Con `tauri-build` 2.6.3 la compilación fallaba en un Mac con Rust 1.100 (Homebrew): el nuevo layout de `target/debug/build/<paquete>/<hash>/out` de Cargo hacía que el copiado de sidecars apuntase a `target/debug/build/` en lugar de `target/debug/`, chocando con el directorio `build/typst` (`Operation not permitted`). 2.7.6 lo resuelve. Verificado en macOS Apple Silicon con Rust 1.100: Vitest 1580/1580 y `cargo test --lib` 632 OK (6 ignorados).
+
+### Documentation
+
+- **Instalación en macOS por Homebrew: pasos `brew trust` y `xattr -cr`.** `README.md` incorpora `brew trust davidbuenov/dbv-typst-editor` (autoriza el tap no oficial) tras `brew tap`, y `xattr -cr "/Applications/DBV Typst Editor.app"` como último paso de la instalación, que evita los bloqueos de Gatekeeper al primer arranque.
+
 ---
 
 ## [0.15.0] - 2026-11-11

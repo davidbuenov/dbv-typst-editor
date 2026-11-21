@@ -127,10 +127,12 @@ El instalador `.exe` de GitHub Releases queda **descontinuado**. Si ya lo tenía
 
 ```bash
 brew tap davidbuenov/dbv-typst-editor
+brew trust davidbuenov/dbv-typst-editor
 brew install --cask dbv-typst-editor
+xattr -cr "/Applications/DBV Typst Editor.app"   # solo macOS: último paso de la instalación
 ```
 
-Sirve para **macOS** (Intel y Apple Silicon) y para **Linux x86_64**. En Linux necesita Homebrew 6.0.0 o posterior (la versión que admite AppImage en los casks) y FUSE 2 para ejecutar AppImages (`libfuse2` en Debian/Ubuntu). El tap ([davidbuenov/homebrew-dbv-typst-editor](https://github.com/davidbuenov/homebrew-dbv-typst-editor)) se actualiza solo en cada Release nueva y se actualiza con `brew upgrade --cask dbv-typst-editor`. En macOS no sustituye el aviso de Gatekeeper de más abajo: el `.dmg` sigue sin firma ni notarización de Apple.
+Sirve para **macOS** (Intel y Apple Silicon) y para **Linux x86_64**. En Linux necesita Homebrew 6.0.0 o posterior (la versión que admite AppImage en los casks) y FUSE 2 para ejecutar AppImages (`libfuse2` en Debian/Ubuntu). El tap ([davidbuenov/homebrew-dbv-typst-editor](https://github.com/davidbuenov/homebrew-dbv-typst-editor)) se actualiza solo en cada Release nueva y se actualiza con `brew upgrade --cask dbv-typst-editor`. `brew trust` autoriza el tap, que no es oficial, para que Homebrew pueda cargar el Cask. En macOS el `.dmg` sigue sin firma ni notarización de Apple, y el último paso (`xattr -cr`) quita la marca de cuarentena de la `.app` instalada para que Gatekeeper no la bloquee: con él se evitan casi todos los problemas al abrirla por primera vez.
 
 **Desde la consola:** el Cask instala también el comando `typs`, para abrir la aplicación sin soltar el teclado:
 

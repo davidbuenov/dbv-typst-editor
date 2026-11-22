@@ -15,11 +15,17 @@ label = "Titulo del informe"
 type = "text"
 validation = { required = true, max_length = 200 }
 
+[fields.localization.en]
+label = "Report title"
+
 [[fields]]
 key = "autor"
 label = "Autor"
 type = "text"
 validation = { required = true, max_length = 120 }
+
+[fields.localization.en]
+label = "Author"
 
 [[fields]]
 key = "departamento"
@@ -27,14 +33,23 @@ label = "Departamento u organizacion"
 type = "text"
 validation = { max_length = 160 }
 
+[fields.localization.en]
+label = "Department or organisation"
+
 [[fields]]
 key = "correo"
 label = "Correo de contacto"
 type = "text"
 validation = { max_length = 120 }
 
+[fields.localization.en]
+label = "Contact email"
+
 [[fields]]
 key = "resumen"
 label = "Resumen ejecutivo"
 type = "text"
 validation = { max_length = 1200 }
+
+[fields.localization.en]
+label = "Executive summary"

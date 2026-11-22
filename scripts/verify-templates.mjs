@@ -20,7 +20,7 @@
 // Sin dependencias externas: solo Node y el sidecar ya vendorizado.
 
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -88,20 +88,29 @@ const record = (ok, message) => {
   console.log(`${ok ? '  OK  ' : ' FALLO'}  ${message}`);
 };
 
-function verifyTemplate(typst, name, version) {
+/**
+ * RF-126: con `language`, el proyecto se crea como en `templates.rs`: `typst init`
+ * desde `template/` y después la variante `template.<idioma>/` lo sustituye entero.
+ */
+function verifyTemplate(typst, name, version, language = null) {
   const workdir = mkdtempSync(join(tmpdir(), 'dbv-tpl-'));
   const target = join(workdir, 'proyecto');
+  const label = language ? `${name}:${version} [${language}]` : `${name}:${version}`;
   try {
     execFileSync(
       typst,
       ['init', '--package-path', TEMPLATES_DIR, `@local/${name}:${version}`, target],
       { stdio: 'pipe' }
     );
-    record(true, `${name}:${version} — typst init crea el proyecto`);
+    if (language) {
+      for (const entry of readdirSync(target)) rmSync(join(target, entry), { recursive: true, force: true });
+      cpSync(join(NAMESPACE_DIR, name, version, `template.${language}`), target, { recursive: true });
+    }
+    record(true, `${label} — typst init crea el proyecto`);
 
     const files = walkFiles(target);
     const entrypoint = join(target, 'main.typ');
-    record(existsSync(entrypoint), `${name}:${version} — el proyecto tiene main.typ`);
+    record(existsSync(entrypoint), `${label} — el proyecto tiene main.typ`);
 
     for (const file of files) {
       if (!/\.(typ|bib|toml)$/i.test(file)) continue;
@@ -114,8 +123,8 @@ function verifyTemplate(typst, name, version) {
     record(
       leftovers.length === 0,
       leftovers.length === 0
-        ? `${name}:${version} — no quedan marcadores sin sustituir`
-        : `${name}:${version} — marcadores huérfanos en ${leftovers.join(', ')}`
+        ? `${label} — no quedan marcadores sin sustituir`
+        : `${label} — marcadores huérfanos en ${leftovers.join(', ')}`
     );
 
     const pdf = join(workdir, 'salida.pdf');
@@ -123,7 +132,7 @@ function verifyTemplate(typst, name, version) {
       stdio: ['pipe', 'pipe', 'pipe'],
     });
     const size = statSync(pdf).size;
-    record(size > 1000, `${name}:${version} — compila a PDF (${size} bytes)`);
+    record(size > 1000, `${label} — compila a PDF (${size} bytes)`);
 
     // Una plantilla curada no debe dejar avisos del compilador: el usuario los
     // vería en la banda de la vista previa en cada recompilación, y aprendería
@@ -132,12 +141,12 @@ function verifyTemplate(typst, name, version) {
     record(
       warnings === '',
       warnings === ''
-        ? `${name}:${version} — compila sin avisos`
-        : `${name}:${version} — avisos del compilador: ${warnings.split(String.fromCharCode(10))[0]}`
+        ? `${label} — compila sin avisos`
+        : `${label} — avisos del compilador: ${warnings.split(String.fromCharCode(10))[0]}`
     );
   } catch (error) {
     const detail = error.stderr ? error.stderr.toString().trim().split('\n')[0] : error.message;
-    record(false, `${name}:${version} — ${detail}`);
+    record(false, `${label} — ${detail}`);
   } finally {
     rmSync(workdir, { recursive: true, force: true });
   }
@@ -171,6 +180,7 @@ function main() {
       continue;
     }
     verifyTemplate(typst, name, version);
+    if (existsSync(join(NAMESPACE_DIR, name, version, 'template.en'))) verifyTemplate(typst, name, version, 'en');
   }
 
   const failed = results.filter((entry) => !entry.ok).length;

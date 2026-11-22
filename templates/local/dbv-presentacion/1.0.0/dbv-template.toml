@@ -15,11 +15,17 @@ label = "Titulo de la presentacion"
 type = "text"
 validation = { required = true, max_length = 160 }
 
+[fields.localization.en]
+label = "Presentation title"
+
 [[fields]]
 key = "subtitulo"
 label = "Subtitulo"
 type = "text"
 validation = { max_length = 200 }
+
+[fields.localization.en]
+label = "Subtitle"
 
 [[fields]]
 key = "autor"
@@ -27,11 +33,17 @@ label = "Autor o autores"
 type = "text"
 validation = { required = true, max_length = 160 }
 
+[fields.localization.en]
+label = "Author or authors"
+
 [[fields]]
 key = "institucion"
 label = "Institucion o empresa"
 type = "text"
 validation = { max_length = 160 }
+
+[fields.localization.en]
+label = "Institution or company"
 
 [[fields]]
 key = "curso"
@@ -39,3 +51,7 @@ label = "Fecha o evento"
 type = "text"
 placeholder = "Marzo 2026"
 validation = { max_length = 60 }
+
+[fields.localization.en]
+label = "Date or event"
+placeholder = "March 2026"

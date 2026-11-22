@@ -15,6 +15,9 @@ label = "Nombre completo"
 type = "text"
 validation = { required = true, max_length = 120 }
 
+[fields.localization.en]
+label = "Full name"
+
 [[fields]]
 key = "titulo"
 label = "Titular profesional"
@@ -22,11 +25,18 @@ type = "text"
 placeholder = "Ingeniera de software"
 validation = { max_length = 120 }
 
+[fields.localization.en]
+label = "Professional headline"
+placeholder = "Software engineer"
+
 [[fields]]
 key = "correo"
 label = "Correo electronico"
 type = "text"
 validation = { max_length = 120 }
+
+[fields.localization.en]
+label = "Email"
 
 [[fields]]
 key = "telefono"
@@ -34,9 +44,16 @@ label = "Telefono"
 type = "text"
 validation = { max_length = 40 }
 
+[fields.localization.en]
+label = "Phone"
+
 [[fields]]
 key = "web"
 label = "Web o perfil"
 type = "text"
 placeholder = "https://..."
 validation = { max_length = 160 }
+
+[fields.localization.en]
+label = "Website or profile"
+placeholder = "https://..."

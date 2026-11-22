@@ -598,25 +598,72 @@ mod tests {
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../templates");
         for template in scan_catalog(&root) {
             let Some(dbv) = template.dbv.as_ref() else { continue };
-            let dir = root
-                .join(LOCAL_NAMESPACE)
-                .join(&template.name)
-                .join(&template.version)
-                .join("template");
-            let contenido: String = walk(&dir)
-                .into_iter()
-                .filter_map(|file| fs::read_to_string(file).ok())
-                .collect();
+            let package = root.join(LOCAL_NAMESPACE).join(&template.name).join(&template.version);
+            // RF-126: la variante inglesa tiene que pedir y usar los mismos campos.
+            let mut dirs = vec![package.join("template")];
+            dirs.extend(language_variant_dir(&package, Some("en")));
+            for dir in dirs {
+                let contenido: String = walk(&dir)
+                    .into_iter()
+                    .filter_map(|file| fs::read_to_string(file).ok())
+                    .collect();
 
-            for field in &dbv.fields {
+                for field in &dbv.fields {
+                    assert!(
+                        contenido.contains(&format!("{{{{{}}}}}", field.key)),
+                        "el campo '{}' de {} no aparece en ningún fichero de {}",
+                        field.key,
+                        template.name,
+                        dir.display()
+                    );
+                }
+            }
+        }
+    }
+
+    /// Las plantillas genéricas que traen variante inglesa (RF-126.1).
+    const GENERICAS: [&str; 5] = ["dbv-articulo", "dbv-blank", "dbv-cv", "dbv-informe-tecnico", "dbv-presentacion"];
+
+    /// @spec RF-126 — las cinco genéricas tienen variante inglesa y etiquetas inglesas; TFG, TFM y Tesis, no.
+    #[test]
+    fn las_plantillas_genericas_tienen_variante_y_etiquetas_en_ingles() {
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../templates");
+        for template in scan_catalog(&root) {
+            let package = root.join(LOCAL_NAMESPACE).join(&template.name).join(&template.version);
+            let variante = language_variant_dir(&package, Some("en"));
+            if !GENERICAS.contains(&template.name.as_str()) {
+                assert!(variante.is_none(), "{} no debería tener variante inglesa", template.name);
+                continue;
+            }
+            let variante = variante.unwrap_or_else(|| panic!("{} sin template.en/", template.name));
+            assert!(variante.join("main.typ").is_file(), "{} sin main.typ en inglés", template.name);
+            let texto: String = walk(&variante).into_iter().filter_map(|f| fs::read_to_string(f).ok()).collect();
+            assert!(!texto.contains("lang: \"es\""), "{}: la variante inglesa no puede fijar lang es", template.name);
+            for field in &template.dbv.as_ref().unwrap().fields {
+                let en = field.localization.get("en");
                 assert!(
-                    contenido.contains(&format!("{{{{{}}}}}", field.key)),
-                    "el campo '{}' de {} no aparece en ningún fichero de la plantilla",
+                    en.is_some_and(|en| !en.label.is_empty()),
+                    "el campo '{}' de {} no tiene etiqueta en inglés",
                     field.key,
                     template.name
                 );
             }
         }
+    }
+
+    /// @spec RF-126 — el caso del Issue #5: el artículo en inglés no lleva textos en español.
+    #[test]
+    fn el_articulo_en_ingles_no_lleva_textos_en_espanol() {
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../templates");
+        let package = root.join(LOCAL_NAMESPACE).join("dbv-articulo").join("1.0.0");
+        let variante = language_variant_dir(&package, Some("en")).unwrap();
+        let texto: String = walk(&variante).into_iter().filter_map(|f| fs::read_to_string(f).ok()).collect();
+        assert!(texto.contains("lang: \"en\""));
+        for espanol in ["Introducción", "Resumen", "Palabras clave", "Referencias", "Método", "Resultados"] {
+            assert!(!texto.contains(espanol), "queda «{espanol}» en la variante inglesa");
+        }
+        // En español no hay variante: el proyecto sale de `template/`, igual que en la 0.15.0.
+        assert!(language_variant_dir(&package, Some("es")).is_none());
     }
 
     fn walk(dir: &Path) -> Vec<PathBuf> {

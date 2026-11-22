@@ -53,6 +53,21 @@ export function validateFields(fields, values) {
  * @param {(message: string, tone?: 'info'|'error') => void} deps.notify
  * @param {(project: object) => void} deps.onCreated
  */
+/**
+ * Etiqueta y ejemplo de un campo en el idioma de la aplicación (RF-126.3): la
+ * localización del sidecar (`[fields.localization.en]`) si la trae y no está vacía;
+ * si no, la etiqueta de siempre (en español) o, en último caso, la clave.
+ * @param {{key: string, label?: string, placeholder?: string|null, localization?: Record<string, {label?: string, placeholder?: string|null}>}} field
+ * @param {string} language
+ * @returns {{label: string, placeholder: string}}
+ * @spec RF-126
+ */
+export function localizeField(field, language) {
+  const localized = field.localization?.[language];
+  if (localized?.label) return { label: localized.label, placeholder: localized.placeholder ?? '' };
+  return { label: field.label || field.key, placeholder: field.placeholder ?? '' };
+}
+
 export function createWizard(deps) {
   const {
     dialogEl,
@@ -69,6 +84,8 @@ export function createWizard(deps) {
   } = deps;
 
   let template = null;
+  /** RF-126: idioma de la app al abrir el asistente; elige etiquetas y variante de plantilla. */
+  let templateLanguage = null;
   let parentDir = null;
   let busy = false;
 
@@ -174,6 +191,8 @@ export function createWizard(deps) {
           parentDir,
           projectName,
           fields,
+          // RF-126: el idioma con el que se abrió el asistente (sus etiquetas).
+          language: templateLanguage,
         });
     busy = false;
     createButton.disabled = false;
@@ -209,6 +228,7 @@ export function createWizard(deps) {
       formEl.replaceChildren();
 
       const language = getLanguage();
+      templateLanguage = language;
       const { name, description } = localizeTemplate(selected, language);
       titleEl.textContent = name;
       descriptionEl.textContent = description;
@@ -222,8 +242,7 @@ export function createWizard(deps) {
       for (const field of selected.dbv?.fields ?? []) {
         buildField({
           key: field.key,
-          label: field.label || field.key,
-          placeholder: field.placeholder ?? '',
+          ...localizeField(field, language),
           value: field.default ?? '',
         });
       }

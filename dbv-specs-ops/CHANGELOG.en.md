@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **Generic templates in English when the app is in English (RF-126, [Issue #5](https://github.com/davidbuenov/dbv-typst-editor/issues/5)).** With the interface in English, "Academic paper", "Curriculum vitae", "Technical report", "Presentation" and "Blank project" now create an English project: sample text, the style's fixed labels (*Abstract*, *Keywords*, *References*, *Executive summary*…), `set text(lang: "en")` and file names (`style.typ`, `sections/01-introduction.typ`). The wizard asks in English too (*Paper title*, *Authors*…). In Spanish the result is exactly as before; the Undergraduate thesis, Master's thesis and Doctoral thesis stay Spanish-only. It works through a `template.<language>/` folder next to `template/`, which replaces the Spanish one entirely, and per-language labels in `[fields.localization.<language>]` of `dbv-template.toml`. Field keys do not change, so existing projects stay compatible. `create_project` receives the language validated as two lowercase letters (it never builds a path from an arbitrary value) and rejects template names containing path components. `verify:templates` also compiles the five variants (65/65).
+
 ### Changed
 
 - **Tauri dependencies updated to the latest versions and verified on macOS.** `Cargo.lock` and `package-lock.json` bump `tauri` 2.11.5 → 2.12.7, `tauri-build`/`tauri-codegen`/`tauri-macros` 2.6.3 → 2.7.6, `tauri-runtime-wry` 2.12.5, `wry` 0.57.3, `tao` 0.37.3, the plugins (`dialog` 2.8.4, `fs` 2.7.1, `process` 2.4.0, `shell` 2.6.0, `single-instance` 2.5.5, `updater` 2.14.1) and `@tauri-apps/api` 2.12.5 / `@tauri-apps/cli` 2.12.6. With `tauri-build` 2.6.3 the build failed on a Mac with Rust 1.100 (Homebrew): Cargo's new `target/debug/build/<package>/<hash>/out` layout made the sidecar copy target `target/debug/build/` instead of `target/debug/`, colliding with the `build/typst` directory (`Operation not permitted`). 2.7.6 fixes it. Verified on macOS Apple Silicon with Rust 1.100: Vitest 1580/1580 and `cargo test --lib` 632 OK (6 ignored).

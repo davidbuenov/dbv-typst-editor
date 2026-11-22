@@ -10,8 +10,17 @@
 // incluido el caso que ninguna prueba manual cubre — una plantilla comunitaria
 // sin sidecar `dbv-template.toml`, que no trae bloque `validation`.
 
-import { describe, expect, it } from 'vitest';
-import { validateFields } from './wizard.js';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+vi.mock('../services/backend.js', () => ({
+  createProject: vi.fn(async () => ({ ok: true, value: { root: '/tmp/p', name: 'p' } })),
+  createProjectFromUniverse: vi.fn(),
+  pickProjectFolder: vi.fn(async () => ({ ok: true, value: '/tmp' })),
+}));
+
+import { createProject } from '../services/backend.js';
+import { setLanguage } from '../i18n/i18n.js';
+import { createWizard, localizeField, validateFields } from './wizard.js';
 
 const REQUERIDO = { key: 'titulo', validation: { required: true } };
 const CON_LIMITE = { key: 'autor', validation: { maxLength: 10 } };
@@ -58,5 +67,66 @@ describe('validateFields', () => {
 
   it('acepta un formulario sin campos', () => {
     expect(validateFields([], {})).toEqual([]);
+  });
+});
+
+// RF-126 (Issue #5a): con la interfaz en inglés, el asistente pregunta en inglés y
+// crea el proyecto con la variante inglesa de la plantilla.
+const CAMPO_TITULO = {
+  key: 'titulo',
+  label: 'Titulo del articulo',
+  placeholder: 'Mi articulo',
+  validation: { required: true },
+  localization: { en: { label: 'Paper title', placeholder: 'My paper' } },
+};
+
+describe('localizeField (RF-126)', () => {
+  it('usa la etiqueta y el ejemplo del idioma si existen', () => {
+    expect(localizeField(CAMPO_TITULO, 'en')).toEqual({ label: 'Paper title', placeholder: 'My paper' });
+  });
+
+  it('en español, o sin localización, deja la etiqueta de siempre', () => {
+    expect(localizeField(CAMPO_TITULO, 'es')).toEqual({ label: 'Titulo del articulo', placeholder: 'Mi articulo' });
+    expect(localizeField({ key: 'notas' }, 'en')).toEqual({ label: 'notas', placeholder: '' });
+  });
+
+  it('no mezcla una etiqueta inglesa con el ejemplo en español', () => {
+    const campo = { ...CAMPO_TITULO, localization: { en: { label: 'Paper title' } } };
+    expect(localizeField(campo, 'en').placeholder).toBe('');
+  });
+});
+
+describe('asistente en inglés (RF-126)', () => {
+  afterEach(() => setLanguage('es'));
+
+  function montar() {
+    document.body.innerHTML = `
+      <div id="d" class="hidden"><h2 id="t"></h2><p id="desc"></p><form id="f"></form>
+      <span id="loc"></span><button id="b"></button><button id="c"></button><button id="x"></button><p id="e"></p></div>`;
+    const $ = (id) => document.getElementById(id);
+    return createWizard({
+      dialogEl: $('d'), titleEl: $('t'), descriptionEl: $('desc'), formEl: $('f'), locationEl: $('loc'),
+      browseButton: $('b'), createButton: $('c'), cancelButton: $('x'), errorEl: $('e'),
+      notify: () => {}, onCreated: () => {},
+    });
+  }
+
+  const ARTICULO = { name: 'dbv-articulo', version: '1.0.0', dbv: { fields: [CAMPO_TITULO], localization: {} } };
+
+  it('muestra las etiquetas en inglés y envía el idioma a createProject', async () => {
+    setLanguage('en');
+    const wizard = montar();
+    wizard.open(ARTICULO);
+    const etiquetas = [...document.querySelectorAll('.form-row__label')].map((el) => el.textContent);
+    expect(etiquetas).toContain('Paper title');
+    expect(etiquetas).not.toContain('Titulo del articulo');
+
+    document.querySelector('input[name="__projectName"]').value = 'paper';
+    document.querySelector('input[name="titulo"]').value = 'On things';
+    document.getElementById('b').click();
+    await vi.waitFor(() => expect(document.getElementById('loc').textContent).toBe('/tmp'));
+    document.getElementById('c').click();
+    await vi.waitFor(() => expect(createProject).toHaveBeenCalled());
+    expect(createProject.mock.calls.at(-1)[0]).toMatchObject({ templateName: 'dbv-articulo', language: 'en' });
   });
 });

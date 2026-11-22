@@ -544,6 +544,24 @@
 - **Contradice el plan en un punto.** El canal local nacía solo con «compartir el estado del editor» activado (RF-117.4). Para poder pedir instalaciones nace **con un proyecto abierto**, pero el estado sigue sin compartirse mientras el ajuste esté apagado, y la instalación nunca es silenciosa: la protección es el diálogo, no el ajuste. Coste: con un proyecto abierto existe el canal (tubería con nombre / socket 0600 + testigo de 256 bits), como el resto de la interfaz local.
 - **Además.** Las instrucciones de los agentes y de las conexiones directas dicen que, si un paquete no está instalado, no se paren: `install_package` o, si no se puede, el `#import` en la propuesta.
 
+### ADR-V0151-001 — v0.15.1: menús en la barra de macOS descritos por el DOM, plantillas genéricas en inglés y «Mostrar en el explorador» en Windows (2026-11-22)
+
+*Alcance acordado con el usuario al preparar `/spec`, en el primer Mac del proyecto, sobre el Issue #5 (`@minhtanz1`).*
+
+- **Contexto y causas comprobadas en el código antes de especificar:**
+  1. **Menús de macOS:** Archivo, Herramientas y Preferencias solo existen como `.header-menu` HTML. `macos_menu.rs` monta un File y un Vista escritos a mano en Rust que reemiten eventos `menu-*` (`main.js`). Es la misma situación que DBV Markdown Reader resolvió en su 0.20.1 (RF-65, `ADR-054` de ese repositorio).
+  2. **Issue #5a:** `templates/local/dbv-articulo/1.0.0/` está entero en español (texto, `lang: "es"`, rótulos del estilo y etiquetas de `[[fields]]`). `create_project` no recibe el idioma. Las miniaturas de la galería (`templateThumbnails.js`) son formas sin texto: no hay que tocarlas.
+  3. **Issue #5b:** `reveal_command` en Windows construye `/select,<ruta>` y lo pasa con `Command::args`, que entrecomilla el argumento entero si hay espacios; Explorer no lo entiende. Lo llaman `projectTree.js` (fichero) y `workspace.revealProject` (carpeta).
+- **Decisiones fijadas con el usuario:**
+  1. **Se porta el esquema de md-reader (RF-125):** el DOM es la única fuente; JS lo describe, Rust lo sanea y lo pinta, y en macOS se ocultan los tres menús de la ventana. Aquí sale más simple: las entradas del menú son los propios botones de acción (un clic nativo se traduce en `click()` sobre el id) y solo hay una ventana (`main`), así que no hace falta saber cuál tiene el foco.
+  2. **Se conservan los atajos actuales del menú nativo**, ahora sobre entradas del DOM. ⌘N pasa de «volver al lanzador» a «Proyecto en blanco» (cambio declarado en RF-125.6).
+  3. **«Cerrar pestaña»** entra en el menú Archivo de la ventana en todas las plataformas, para que ⌘W tenga su entrada en el DOM.
+  4. **«Ajustes… ⌘,»** despliega el mismo menú Preferencias como menú emergente (`popup_menu`). Alternativas descartadas: abrir el diálogo de Temas (no son «los ajustes») y no poner la entrada (en un Mac es la que se busca).
+  5. **Plantillas en inglés solo para las genéricas** (Artículo, CV, Informe técnico, Presentación y Blank), con un mecanismo genérico de variante por idioma. TFG, TFM y Tesis doctoral se quedan en español porque responden al sistema universitario español.
+  6. **La tanda de tests tiene que pasar en el Mac (RF-128)**, aplicando la Lección 45 de md-reader: un banco en rojo se investiga aunque «ya fallara».
+  7. **Rama `release/0.15.1`** (mismo flujo que el `ADR-055` de md-reader); el `/ship` y la Store se hacen desde el PC con Windows (`ADR-WORKFLOW-001`, decisión 6), donde también se verifica RF-127 a mano.
+- **Consecuencias:** RF-125 y RF-127 tienen partes que solo se pueden verificar a mano, cada una en una plataforma (el Mac y el PC respectivamente), y se declaran «sin verificar» hasta entonces.
+
 ### ADR-V0150-001 — v0.15.0: feedback comunitario, cero latencia al teclear, Vim opcional, 10 temas e interfaz de IA de `dbv-unreal-ai` / `dbv-tauri-starter` (2026-11-11)
 
 *Alcance acordado con el usuario al preparar `/spec` sobre Issues #3 y #4 de GitHub (`@rgranc`), feedback de Fediscience y evolución de la UI de IA en `dbv-unreal-ai`.*

@@ -721,8 +721,15 @@
   - [x] **S171** *(RF-124)* Completar Ayuda integrada bilingüe (`helpContent.js` + `help.test.js`), redactar y compilar en Typst los manuales `docs/manual/{common.typ, manual-es.typ, manual-en.typ, manual-es.pdf, manual-en.pdf}` e integrarlos en `docs/index.html` y `docs/en/index.html`.
 - [x] **Fase 74: `/ship` de v0.15.0 — 2026-11-11.** Minor sobre `v0.14.0`. Versión `0.15.0` en `package.json`, `package-lock.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml` y `Cargo.lock`; `[0.15.0]` publicado en `CHANGELOG.md` y `CHANGELOG.en.md`; documentación actualizada (`README.md`, `README.en.md` con agradecimientos a `@rgranc` y Víctor Buendía, `docs/index.html`, `docs/en/index.html`, `docs/privacidad.html`, `docs/privacy.html`, `descripcionStore_es.md`, `descripcionStore_en.md`, `ARCHITECTURE.md` y ficha `web/_projects/dbv-typst-editor.md` sin commit); `notasActualizacionStore_v0.15.0.md` y `walkthrough.md`. **`.msixbundle`: `src-tauri\target\msix\dbv-typst-editor_0.15.0.0.msixbundle` (`78,79 MB` / `82.613.523` bytes, verificado según `MICROSOFT_STORE.md` §6 con `typst.exe`, `tinymist.exe`, 53 ficheros en `templates\`, `resources\typst-docs.json.gz`, `Version="0.15.0.0"` y alias `dbv-typst-editor.exe`).** Empuje a GitHub (`master` → CI verde → tag `v0.15.0` → Actions de Linux/macOS/Homebrew).
 
+- [x] **Fase 75: `/spec` de v0.15.1 (parche) — cerrado el 2026-11-22 en el Mac (`SPECIFICATIONS.md` v1.21, §5r, RF-125 a RF-128; `ADR-V0151-001`), rama `release/0.15.1`.** Menús Archivo/Herramientas/Preferencias en la barra de macOS, con «Cerrar pestaña» y «Ajustes… ⌘,» (RF-125); plantillas genéricas en inglés (RF-126, Issue #5a); «Mostrar en el explorador» en Windows (RF-127, Issue #5b); y tests en verde en macOS (RF-128). **Recordatorio para `/ship`: agradecer a `@minhtanz1` en los README, y responder y cerrar el Issue #5.**
+- [ ] **Fase 76: `/plan` de v0.15.1** — resolver las preguntas abiertas del final de §5r.
+
 ## 🔄 Context Snapshot / Snapshot de Contexto
 
+> ### 👉 RETOMAR AQUÍ (2026-11-22): `/spec` de v0.15.1 CERRADO en la rama `release/0.15.1` — siguiente: `/plan`
+>
+> Especificación en `SPECIFICATIONS.md` §5r (RF-125 a RF-128) y `ADR-V0151-001`. Referencia para portar RF-125: `dbv-md-reader`, commit `2d4b11a` (`src/nativemenu.js`, `src/headermenu.js`, `src-tauri/src/native_menu.rs`, `set_native_menu` en `lib.rs`). La verificación manual es en el Mac para RF-125 y en el PC para RF-127; el `/ship` se hace en el PC.
+>
 > ### 👉 RETOMAR AQUÍ (2026-11-11): `v0.15.0` PUBLICADA EN GIT (`/ship` cerrado) — pendiente externo de Store y web
 >
 > **Para retomar (pendiente del usuario tras `/ship`):**

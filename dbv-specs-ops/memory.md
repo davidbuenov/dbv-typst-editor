@@ -1014,6 +1014,18 @@ Cuando el usuario pide "algo más limpio" tras un primer arreglo que solo atajó
 - **Slice 122 (límite declarado de RF-82.2): la selección de la vista previa es de una sola página.** Arrastrar hasta otra página selecciona hasta el principio o el final de la de partida. Seleccionar entre páginas exigiría pedir y unir la capa de texto de varias; se deja para cuando se pida.
 - **Slice 111: abrir un fichero ya abierto ya no lo relee del disco.** Antes, `openDocument` sobre el documento abierto sin `force` lo recargaba del disco sin preguntar, aunque tuviera cambios sin guardar. Con pestañas, solo activa la suya; recargar sigue siendo `force: true` (cambio externo, conflicto de git).
 
+### ADR-WORKFLOW-001 — Trabajo con dos ordenadores (Windows y macOS) desde 2026-11-21
+
+- **Contexto.** El proyecto se desarrolla ahora en un PC con Windows y en un Mac mini (Apple Silicon). Al compilar por primera vez en el Mac apareció un fallo que no existía en Windows ni en el CI: `tauri-build` 2.6.3 asumía el layout antiguo de `target/debug/build/` de Cargo, y con Rust 1.100 (Homebrew) copiaba el sidecar `typst` sobre el directorio `build/typst` (`Operation not permitted`). Se resolvió subiendo a `tauri-build` 2.7.6 (commit `fef5500`). La causa de fondo fue que `Cargo.lock` llevaba versiones antiguas y cada máquina tiene su propio Rust.
+- **Decisión 1 — GitHub es la única fuente de verdad; los dos equipos son clones intercambiables.** Antes de empezar en cualquier máquina, `git pull`; al terminar, `commit` y `push` (basta una rama de trabajo). Nada queda sin subir en el otro equipo.
+- **Decisión 2 — el contexto vive en el repositorio, no en la memoria local de Claude.** `CLAUDE.md`, `memory.md` y `task.md` (Snapshot de Contexto) son lo que une las dos máquinas. La memoria local de Claude no se sincroniza entre equipos.
+- **Decisión 3 — sin rutas absolutas ni específicas de un sistema en el repositorio** (scripts, documentación, configuración): rutas relativas.
+- **Decisión 4 — mismas versiones en ambos equipos.** `Cargo.lock` y `package-lock.json` se versionan; no se actualizan dependencias en una máquina sin probar en la otra. El Rust local puede diferir, pero se fija con `rust-toolchain.toml` si vuelve a dar problemas (hoy no se fija: el proyecto exige Rust ≥ 1.92 por `typst` 0.15.1).
+- **Decisión 5 — reparto de pruebas.** `npm test` en cada máquina tras un `pull` grande. A mano, lo específico de plataforma: menú nativo y atajos en macOS; Store, instalador y rutas en Windows. El CI de GitHub cubre Linux y debe mirarse tras tocar dependencias.
+- **Decisión 6 — las releases se publican siempre desde la misma máquina** (la de Windows/Store) para no duplicar ni descoordinar versiones y etiquetas; el build de macOS sale del CI.
+- **Decisión 7 — instalación de macOS por Homebrew.** Orden documentado: `brew tap`, `brew trust davidbuenov/dbv-typst-editor`, `brew install --cask dbv-typst-editor` y, como último paso, `xattr -cr "/Applications/DBV Typst Editor.app"` (el `.dmg` no está firmado ni notarizado).
+- **Disparador de reevaluación:** si vuelve a aparecer un fallo de compilación que solo ocurre en una de las máquinas, se fija el toolchain de Rust con `rust-toolchain.toml` y se registra aquí.
+
 ## 🗺️ Mapa del Producto (Áreas de Foco)
 
 - **Producto:** "El entorno de escritorio más accesible para el ecosistema Typst" (posicionamiento oficial) — no editor de código con soporte Typst. Herramienta orientada a documento/proyecto ("Obsidian for Typst"): lanzador por tareas, asistente de creación de proyecto, plantillas como funcionalidad de primer nivel.

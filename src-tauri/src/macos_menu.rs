@@ -53,33 +53,58 @@ pub fn setup<R: Runtime>(app: &App<R>) -> tauri::Result<()> {
     Ok(())
 }
 
-/// Reparte un clic del menú: entradas del DOM, «Ajustes…» o el menú de respaldo.
-fn on_menu_event<R: Runtime>(app: &AppHandle<R>, id: &str) {
+/// Eventos `menu-*` que la webview sigue escuchando: los del File de arranque y el menú Vista.
+const FORWARDED: [&str; 13] = [
+    "menu-new-project",
+    "menu-new-document",
+    "menu-open-folder",
+    "menu-open-file",
+    "menu-save",
+    "menu-save-as",
+    "menu-export-pdf",
+    "menu-reveal",
+    "menu-close-tab",
+    "menu-close-project",
+    "menu-toggle-theme",
+    "menu-outline",
+    "menu-terminal",
+];
+
+/// Destino de un clic del menú nativo.
+#[derive(Debug, PartialEq, Eq)]
+enum Route<'a> {
+    /// Entrada descrita por el DOM: se devuelve su id (`file:btn-save`) a la webview.
+    Dom(&'a str),
+    /// «Ajustes… ⌘,»: desplegar Preferencias.
+    Settings,
+    /// Evento `menu-*` de siempre.
+    Forward(&'static str),
+    /// Ids de Tauri (Acerca de, Salir…) o desconocidos: nada que hacer aquí.
+    Ignore,
+}
+
+/// Decide a dónde va un clic sin tocar Tauri, para poder probarlo (RF-125.3, RF-125.8).
+fn route(id: &str) -> Route<'_> {
     if let Some(dom_id) = id.strip_prefix(DOM_PREFIX) {
-        let _ = app.emit_to(MAIN_WINDOW, "menu-item", dom_id.to_string());
-        return;
+        return if dom_id.is_empty() { Route::Ignore } else { Route::Dom(dom_id) };
     }
     if id == SETTINGS_ID {
-        popup_preferences(app);
-        return;
+        return Route::Settings;
     }
-    const FORWARDED: [&str; 13] = [
-        "menu-new-project",
-        "menu-new-document",
-        "menu-open-folder",
-        "menu-open-file",
-        "menu-save",
-        "menu-save-as",
-        "menu-export-pdf",
-        "menu-reveal",
-        "menu-close-tab",
-        "menu-close-project",
-        "menu-toggle-theme",
-        "menu-outline",
-        "menu-terminal",
-    ];
-    if let Some(name) = FORWARDED.iter().find(|name| **name == id) {
-        let _ = app.emit_to(MAIN_WINDOW, name, ());
+    FORWARDED.iter().find(|name| **name == id).map_or(Route::Ignore, |name| Route::Forward(name))
+}
+
+/// Reparte un clic del menú: entradas del DOM, «Ajustes…» o el menú de respaldo.
+fn on_menu_event<R: Runtime>(app: &AppHandle<R>, id: &str) {
+    match route(id) {
+        Route::Dom(dom_id) => {
+            let _ = app.emit_to(MAIN_WINDOW, "menu-item", dom_id.to_string());
+        }
+        Route::Settings => popup_preferences(app),
+        Route::Forward(name) => {
+            let _ = app.emit_to(MAIN_WINDOW, name, ());
+        }
+        Route::Ignore => {}
     }
 }
 
@@ -256,4 +281,35 @@ pub fn publish<R: Runtime>(app: &AppHandle<R>, state: &NativeMenuState, spec: Na
     }
     *current = Some(crate::native_menu::Published { signature, spec });
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn las_entradas_del_dom_vuelven_a_la_webview_con_su_id() {
+        assert_eq!(route("nm:file:btn-save"), Route::Dom("file:btn-save"));
+        assert_eq!(route("nm:prefs:pref-vim-mode"), Route::Dom("prefs:pref-vim-mode"));
+        assert_eq!(route("nm:"), Route::Ignore);
+    }
+
+    #[test]
+    fn ajustes_despliega_preferencias() {
+        assert_eq!(route("menu-settings"), Route::Settings);
+    }
+
+    #[test]
+    fn el_menu_de_arranque_y_vista_reemiten_su_evento() {
+        for name in FORWARDED {
+            assert_eq!(route(name), Route::Forward(name));
+        }
+    }
+
+    #[test]
+    fn lo_desconocido_no_hace_nada() {
+        for id in ["", "quit", "menu-borrar-todo", "file:btn-save", "NM:file:btn-save"] {
+            assert_eq!(route(id), Route::Ignore, "{id}");
+        }
+    }
 }

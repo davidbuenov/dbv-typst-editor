@@ -126,4 +126,43 @@ describe('claves de i18n usadas en index.html', () => {
   it('⌘N del menú de arranque de macOS abre «Proyecto en blanco» (RF-125.6)', () => {
     expect(main).toContain("on('menu-new-project', () => el('btn-new-blank-project').click())");
   });
+
+});
+
+describe('menú nativo de macOS ↔ index.html y main.js (RF-125)', () => {
+  // El File de arranque (RF-125.9) vive en Rust y el Archivo del DOM en index.html:
+  // si un atajo cambia en uno y no en el otro, ⌘S haría cosas distintas según el
+  // instante. Se comparan aquí, y que cada evento del menú nativo tenga oyente.
+  it('el File de arranque de macOS usa los mismos atajos que el Archivo del DOM (RF-125.9)', () => {
+    const rust = read('src-tauri/src/macos_menu.rs');
+    const fallback = rust.slice(rust.indexOf('fn fallback_file_menu'));
+    const entries = [...fallback.matchAll(/entry\("(menu-[a-z-]+)",[^)]*?Some\("([^"]+)"\)\)/g)];
+    const BUTTON = {
+      'menu-new-project': 'btn-new-blank-project',
+      'menu-new-document': 'btn-new-document',
+      'menu-open-folder': 'btn-open-folder',
+      'menu-open-file': 'btn-open-file',
+      'menu-save': 'btn-save',
+      'menu-save-as': 'btn-save-as',
+      'menu-close-tab': 'btn-close-tab',
+      'menu-close-project': 'btn-close-project',
+    };
+    const domAccel = (id) => html.match(new RegExp(`id="${id}"[^>]*data-accel="([^"]+)"`))?.[1];
+    // `Mod-Alt-n` y `Cmd+Alt+N` describen lo mismo en macOS.
+    const canon = (combo) => combo.replace(/^Mod/, 'Cmd').replace(/[-+]/g, '+').toLowerCase().split('+').sort().join('+');
+
+    expect(entries.map(([, event]) => event).sort()).toEqual(Object.keys(BUTTON).sort());
+    for (const [, event, accel] of entries) {
+      expect(canon(domAccel(BUTTON[event]) ?? ''), event).toBe(canon(accel));
+    }
+  });
+
+  it('cada evento que reemite el menú nativo tiene oyente en main.js', () => {
+    const rust = read('src-tauri/src/macos_menu.rs');
+    const forwarded = rust.slice(rust.indexOf('const FORWARDED'), rust.indexOf('];', rust.indexOf('const FORWARDED')));
+    const events = [...forwarded.matchAll(/"(menu-[a-z-]+)"/g)].map((match) => match[1]);
+
+    expect(events.length).toBeGreaterThan(10);
+    expect(events.filter((event) => !main.includes(`on('${event}'`))).toEqual([]);
+  });
 });

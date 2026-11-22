@@ -18,9 +18,12 @@ use tokio::sync::oneshot;
 
 pub const SIDECAR: &str = "tinymist";
 
+/// Peticiones LSP en vuelo: id → canal por el que vuelve su respuesta.
+type PendingRequests = Arc<Mutex<HashMap<u64, oneshot::Sender<Result<Value, String>>>>>;
+
 pub struct TinymistProcess {
     child: Arc<Mutex<Option<CommandChild>>>,
-    pending: Arc<Mutex<HashMap<u64, oneshot::Sender<Result<Value, String>>>>>,
+    pending: PendingRequests,
 }
 
 #[derive(Default)]

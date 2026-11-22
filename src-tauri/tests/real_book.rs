@@ -63,7 +63,7 @@ fn apply(root: &Path, result: &dbv_typst_editor_lib::search::SearchResult) {
             .iter()
             .map(|m| (byte_at(&text, m.start.line, m.start.character), byte_at(&text, m.end.line, m.end.character), m.replacement.clone().unwrap()))
             .collect();
-        edits.sort_by(|a, b| b.0.cmp(&a.0));
+        edits.sort_by_key(|edit| std::cmp::Reverse(edit.0));
         for (from, to, insert) in edits {
             text.replace_range(from..to, &insert);
         }

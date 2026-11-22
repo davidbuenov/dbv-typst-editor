@@ -157,10 +157,10 @@ pub fn parse_git_status_output(output: &str) -> GitStatusResult {
             let ab_part = trimmed.trim_start_matches("# branch.ab ");
             let parts: Vec<&str> = ab_part.split_whitespace().collect();
             for part in parts {
-                if part.starts_with('+') {
-                    ahead = part[1..].parse::<u32>().unwrap_or(0);
-                } else if part.starts_with('-') {
-                    behind = part[1..].parse::<u32>().unwrap_or(0);
+                if let Some(count) = part.strip_prefix('+') {
+                    ahead = count.parse::<u32>().unwrap_or(0);
+                } else if let Some(count) = part.strip_prefix('-') {
+                    behind = count.parse::<u32>().unwrap_or(0);
                 }
             }
         } else if trimmed.starts_with("1 ") || trimmed.starts_with("2 ") {
@@ -171,8 +171,8 @@ pub fn parse_git_status_output(output: &str) -> GitStatusResult {
             if let Some(path) = parse_entry_path(trimmed) {
                 conflicted_files.push(path);
             }
-        } else if trimmed.starts_with("? ") {
-            let path = trimmed[2..].trim();
+        } else if let Some(rest) = trimmed.strip_prefix("? ") {
+            let path = rest.trim();
             if !path.is_empty() {
                 untracked_files.push(path.to_string());
             }

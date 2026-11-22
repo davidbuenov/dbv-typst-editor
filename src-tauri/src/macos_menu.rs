@@ -54,15 +54,13 @@ pub fn setup<R: Runtime>(app: &App<R>) -> tauri::Result<()> {
 }
 
 /// Eventos `menu-*` que la webview sigue escuchando: los del File de arranque y el menú Vista.
-const FORWARDED: [&str; 13] = [
+const FORWARDED: [&str; 11] = [
     "menu-new-project",
     "menu-new-document",
     "menu-open-folder",
     "menu-open-file",
     "menu-save",
     "menu-save-as",
-    "menu-export-pdf",
-    "menu-reveal",
     "menu-close-tab",
     "menu-close-project",
     "menu-toggle-theme",

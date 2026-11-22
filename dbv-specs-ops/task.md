@@ -725,6 +725,7 @@
 - [x] **Fase 76: `/plan` de v0.15.1 — 2026-11-22 (`implementation_plan.md` local, `ADR-V0151-002`).** Enmienda RF-126.4 (la variante sustituye a `template/` por completo).
 - [x] **Fase 77: `/build` de v0.15.1 — 2026-11-22, en el Mac.** Ocho slices, un commit por slice. Tanda en el Mac: Vitest 1 609, Rust 649, `verify:frontend` 12/12, `verify:layout` 20/20, `verify:templates` 65/65, `verify:typst` 8/8. La app arranca con `tauri dev` sin errores. **Sin verificar a mano:** el menú real en la barra de macOS (RF-125.11) y «Mostrar en el explorador» en Windows (RF-127.5; la rama `cfg(windows)` no se ha podido compilar desde el Mac). Avisos de clippy de Rust 1.100 anteriores a esta versión (7, en ficheros no tocados) para `/code-simplify`.
 - [x] **Fase 78: `/test` de v0.15.1 — 2026-11-22, en el Mac.** `macos_menu.rs` no tenía ningún test: el reparto de clics pasa a una función pura `route()` con 4 tests (DOM, «Ajustes…», eventos reemitidos, ids desconocidos). Dos tests de cableado en `mainWiring.test.js`: el File de arranque de Rust y el Archivo del DOM usan los mismos atajos (RF-125.9; comprobado con una mutación `Cmd+S`→`Cmd+D`, que falla), y cada evento reemitido tiene oyente en `main.js`. Sin bugs nuevos. Tanda: Vitest 1 611, Rust 653, `verify:frontend` 12/12, `verify:layout` 20/20, `verify:templates` 65/65, `verify:typst` 8/8.
+- [x] **Fase 79: `/code-simplify` de v0.15.1 — 2026-11-22, en el Mac.** Tres pases de `REVIEW.md` sobre `master..release/0.15.1`: **0 Críticos, 0 Importantes.** Comprobado que Exportar PDF y Mostrar en el Finder, que el File nativo de la 0.15.0 tenía, siguen en el Archivo del DOM (no hay regresión). Simplificado: fuera los reenvíos muertos `menu-export-pdf`/`menu-reveal` (Rust y `main.js`), `io_error` compartido en `templates.rs`, y los 8 avisos de clippy de Rust 1.100 a 0. Tanda igual que en la Fase 78.
   - [x] **S172** *(RF-127)* `windows_select_arg` pura y multiplataforma + `raw_arg` en Windows.
   - [x] **S173** *(RF-126)* `language` en `create_project`, variante `template.<idioma>/`, `FieldLocalization`.
   - [x] **S174** *(RF-126)* Variantes `template.en/` de las 5 plantillas genéricas + etiquetas en inglés; `verify:templates` las compila.
@@ -736,7 +737,20 @@
 
 ## 🔄 Context Snapshot / Snapshot de Contexto
 
-> ### 👉 RETOMAR AQUÍ (2026-11-22): `/build` de v0.15.1 CERRADO en la rama `release/0.15.1` — siguiente: prueba manual en el Mac (RF-125) y `/test`
+> ### 👉 RETOMAR AQUÍ (2026-11-22, para el PC): v0.15.1 con `/build`, `/test` y `/code-simplify` CERRADOS en la rama `release/0.15.1` (subida a GitHub) — siguiente: `/ship` en el PC
+>
+> **En el PC, antes de nada:**
+> 1. `git fetch && git switch release/0.15.1 && git pull`.
+> 2. **Igualar Rust con el Mac: 1.100.0** (Mac: `rustc 1.100.0 (0ef1bc386 2026-11-09)`, Homebrew). En el PC: `rustup update stable` y comprobar `rustc --version` → 1.100.0 o superior. Con Rust más antiguo `cargo clippy` no ve los mismos avisos (en el Mac quedan en 0). El CI usa `dtolnay/rust-toolchain@stable`, ya al día.
+> 3. `npm ci`, y compilar: `cargo build` en `src-tauri` — **es la primera compilación de la rama `cfg(windows)` de RF-127** (`raw_arg` en `reveal_in_file_manager`), que desde el Mac no se pudo compilar.
+> 4. Tanda completa: `npx vitest run` (1 611), `cargo test` (653 en el Mac; en Windows cambian los `cfg`), `cargo clippy --all-targets` (0 avisos), `verify:frontend|layout|templates|typst`.
+> 5. **Prueba manual RF-127.5:** «Mostrar en el explorador» sobre un `.typ` dentro de una carpeta con espacios → Explorer abre esa carpeta con el fichero seleccionado; y sobre una carpeta → la abre por dentro.
+> 6. Prueba rápida de RF-126 en Windows: app en inglés → nuevo «Academic paper» → proyecto en inglés (`style.typ`, etiquetas del asistente en inglés).
+> 7. `/ship` de 0.15.1: subir versión, cerrar la sección en los DOS changelogs, **agradecer a `@minhtanz1` en `README.md` y `README.en.md`**, responder y cerrar el Issue #5, `notasActualizacionStore_v0.15.1.md`, y luego Store.
+>
+> **Sin confirmar todavía por el usuario en el Mac (RF-125.11):** los tres menús en la barra, apagados sin proyecto, casillas de Preferencias, atajos, ⌘, (despliega Preferencias), cambio de idioma en caliente y editores de Herramientas centrados. Si al volver al Mac algo falla, es un `/maintain` sobre 0.15.1 o un 0.15.2.
+>
+> *(Historial)* `/build` de v0.15.1 cerrado el mismo día:
 >
 > Especificación en `SPECIFICATIONS.md` §5r (RF-125 a RF-128) y `ADR-V0151-001`. Referencia para portar RF-125: `dbv-md-reader`, commit `2d4b11a` (`src/nativemenu.js`, `src/headermenu.js`, `src-tauri/src/native_menu.rs`, `set_native_menu` en `lib.rs`). La verificación manual es en el Mac para RF-125 y en el PC para RF-127; el `/ship` se hace en el PC.
 >

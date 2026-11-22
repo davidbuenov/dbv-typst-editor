@@ -179,7 +179,7 @@ pub fn list_directory_entries(dir: &Path) -> Vec<DirEntryInfo> {
             let is_typst = !is_dir && has_extension(&name, &TYPST_EXTENSIONS);
             Some(DirEntryInfo {
                 is_typst,
-                is_editable: is_typst || (!is_dir && has_extension(&name, &COMPANION_EXTENSIONS)),
+                is_editable: is_typst || (!is_dir && has_extension(&name, COMPANION_EXTENSIONS)),
                 name,
                 path: path_to_string(&entry.path()),
                 is_dir,

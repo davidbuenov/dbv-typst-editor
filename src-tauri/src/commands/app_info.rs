@@ -24,7 +24,7 @@ pub struct AppInfo {
 /// `AppHandle` real — el patrón de tests heredado de DBV Markdown Reader
 /// (ARCHITECTURE.md §3 fila 10).
 pub fn platform_name() -> &'static str {
-    let name = if cfg!(target_os = "windows") {
+    if cfg!(target_os = "windows") {
         "windows"
     } else if cfg!(target_os = "linux") {
         "linux"
@@ -32,8 +32,7 @@ pub fn platform_name() -> &'static str {
         "macos"
     } else {
         "unknown"
-    };
-    name
+    }
 }
 
 /// Devuelve versión y plataforma. Es el "hola mundo" del puente Tauri↔frontend

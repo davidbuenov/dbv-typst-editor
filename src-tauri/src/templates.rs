@@ -328,28 +328,31 @@ pub fn language_variant_dir(package_dir: &Path, language: Option<&str>) -> Optio
 /// init` (`create_project` rechaza un destino que ya existía), así que vaciarlo
 /// no toca nada del usuario.
 fn apply_language_variant(target: &Path, variant: &Path) -> Result<(), AppError> {
-    let io = |error: std::io::Error| AppError::Io(error.to_string());
-    for entry in fs::read_dir(target).map_err(io)?.filter_map(|entry| entry.ok()) {
+    for entry in fs::read_dir(target).map_err(io_error)?.filter_map(|entry| entry.ok()) {
         let path = entry.path();
         if path.is_dir() {
-            fs::remove_dir_all(&path).map_err(io)?;
+            fs::remove_dir_all(&path).map_err(io_error)?;
         } else {
-            fs::remove_file(&path).map_err(io)?;
+            fs::remove_file(&path).map_err(io_error)?;
         }
     }
     copy_tree(variant, target)
 }
 
+/// Error de E/S de `apply_language_variant` y `copy_tree`, con su texto.
+fn io_error(error: std::io::Error) -> AppError {
+    AppError::Io(error.to_string())
+}
+
 fn copy_tree(from: &Path, to: &Path) -> Result<(), AppError> {
-    let io = |error: std::io::Error| AppError::Io(error.to_string());
-    fs::create_dir_all(to).map_err(io)?;
-    for entry in fs::read_dir(from).map_err(io)?.filter_map(|entry| entry.ok()) {
+    fs::create_dir_all(to).map_err(io_error)?;
+    for entry in fs::read_dir(from).map_err(io_error)?.filter_map(|entry| entry.ok()) {
         let source = entry.path();
         let destination = to.join(entry.file_name());
         if source.is_dir() {
             copy_tree(&source, &destination)?;
         } else {
-            fs::copy(&source, &destination).map_err(io)?;
+            fs::copy(&source, &destination).map_err(io_error)?;
         }
     }
     Ok(())
@@ -484,7 +487,7 @@ mod tests {
     #[test]
     fn substitute_tokens_reemplaza_los_marcadores_presentes() {
         let source = "= {{titulo}}\nAutor: {{autor}}";
-        let rendered = substitute_tokens(&source, &values(&[("titulo", "Mi TFG"), ("autor", "David")]));
+        let rendered = substitute_tokens(source, &values(&[("titulo", "Mi TFG"), ("autor", "David")]));
         assert_eq!(rendered, "= Mi TFG\nAutor: David");
     }
 

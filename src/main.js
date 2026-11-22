@@ -2315,8 +2315,6 @@ async function bootstrap() {
   on('menu-open-file', openFile);
   on('menu-save', () => el('btn-save').click());
   on('menu-save-as', () => el('btn-save-as').click());
-  on('menu-export-pdf', () => el('btn-export-pdf').click());
-  on('menu-reveal', () => el('btn-reveal').click());
   on('menu-toggle-theme', () => themeSwitcher.cycle());
   on('menu-outline', () => sidebarTabs.showOutline());
   on('menu-terminal', () => el('btn-terminal').click());

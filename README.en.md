@@ -393,6 +393,11 @@ Copyright (c) 2026 David Bueno Vallejo
 
 This app wouldn't exist without a good number of open-source projects. Thanks to their authors and maintainers:
 
+### Community & Feedback (v0.15.1)
+
+- **Eduardo Martos Naya** — found that exporting to PDF failed with `<dbv-sync>` errors on a slides project that `typst compile` exported fine, and reported it with the screenshot that made it reproducible: fixed in RF-129 (export no longer uses the sync anchors).
+- **[@minhtanz1](https://github.com/minhtanz1)** (Issue [#5](https://github.com/davidbuenov/dbv-typst-editor/issues/5)) — reported that the "Academic paper" template came out in Spanish with the app in English, and that "Show in file manager" did not select the file on Windows: English generic templates (RF-126) and a correct Explorer `/select` (RF-127).
+
 ### Community & Feedback (v0.15.0)
 
 - **[@rgranc](https://github.com/rgranc)** (Issues [#3](https://github.com/davidbuenov/dbv-typst-editor/issues/3) and [#4](https://github.com/davidbuenov/dbv-typst-editor/issues/4)) — detailed workflow proposals covering floating-panel stacking order, header menu exclusivity, snippet keybindings, and project export/file flows.

@@ -388,6 +388,15 @@ impl Depth {
                 index += 1;
                 continue;
             }
+            // Fuera de una cadena, una barra invertida solo aparece en markup y
+            // escapa el carácter siguiente: `\]` o `\(` son texto, no delimitadores.
+            // Contarlos bajaba la profundidad a 0 dentro de una función y el ancla
+            // caía en código (correo de un usuario, 2026-11-22; ver el test
+            // `un_corchete_o_parentesis_escapado_no_cuenta_para_la_profundidad`).
+            if current == '\\' {
+                index += 2;
+                continue;
+            }
             if current == '`' {
                 self.raw_fence_len = run_length(&bytes, index, '`');
                 index += self.raw_fence_len;
@@ -685,6 +694,28 @@ Fin.
         // Lo que sí está en nivel superior sigue anclado, antes y después.
         assert!(seeded.contains("l: 3"), "{seeded}");
         assert!(seeded.contains("l: 11"), "{seeded}");
+    }
+
+    /// Correo de un usuario (2026-11-22): exportar a PDF fallaba con «the character `#`
+    /// is not valid in code» en la plantilla de sus transparencias, y compilar a mano
+    /// funcionaba. Un corchete escapado (`\]`) en el contenido de una función se
+    /// contaba como cierre: la profundidad bajaba a 0 DENTRO del bloque `{ … }` y el
+    /// ancla se sembraba entre dos líneas de código.
+    #[test]
+    fn un_corchete_o_parentesis_escapado_no_cuenta_para_la_profundidad() {
+        let source = "#let diapositiva(titulo, cuerpo) = {
+  [== #titulo \\]]
+  [Intervalo \\[0, 1\\) y \\(nota\\]]
+
+  cuerpo
+}
+
+Fin.
+";
+        let seeded = seed_anchors(source, "plantilla.typ");
+
+        assert!(!seeded.contains("l: 5"), "ancla dentro de la función:\n{seeded}");
+        assert!(seeded.contains("l: 8"), "{seeded}");
     }
 
     #[test]

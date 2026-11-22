@@ -393,6 +393,11 @@ Copyright (c) 2026 David Bueno Vallejo
 
 Esta aplicación no existiría sin el trabajo de un buen número de proyectos de código abierto. Gracias a sus autores y mantenedores:
 
+### Comunidad y feedback (v0.15.1)
+
+- **Eduardo Martos Naya** — encontró que exportar a PDF fallaba con errores `<dbv-sync>` en un proyecto de transparencias que `typst compile` sí exportaba, y lo contó con la captura que permitió reproducirlo: corregido en RF-129 (la exportación ya no usa las anclas de sincronización).
+- **[@minhtanz1](https://github.com/minhtanz1)** (Issue [#5](https://github.com/davidbuenov/dbv-typst-editor/issues/5)) — avisó de que la plantilla «Artículo académico» salía en español con la app en inglés y de que «Mostrar en el explorador» no seleccionaba el fichero en Windows: plantillas genéricas en inglés (RF-126) y Explorer con `/select` correcto (RF-127).
+
 ### Comunidad y feedback (v0.15.0)
 
 - **[@rgranc](https://github.com/rgranc)** (Issues [#3](https://github.com/davidbuenov/dbv-typst-editor/issues/3) y [#4](https://github.com/davidbuenov/dbv-typst-editor/issues/4)) — propuestas detalladas sobre apilamiento al frente de ventanas flotantes, exclusividad de menús de cabecera, atajos de teclado en snippets y flujo de exportación/gestión de archivos.

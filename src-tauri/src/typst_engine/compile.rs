@@ -133,16 +133,20 @@ pub(crate) fn prepare_input(target: &CompileTarget) -> Result<PreparedInput, Typ
 
 /// Igual que `prepare_input`, pero sin sembrar anclas de sincronización.
 ///
-/// Solo la usa `typst_compile_preview` como reintento (ver más abajo): el
-/// escaneo ligero de `shadow::seed_anchors` no es un parser (`shadow.rs`) y un
-/// `(`/`)` suelto en texto plano —fuera de un tramo `raw`, p. ej. "Missing )"
-/// en una celda de tabla— desincroniza su conteo de profundidad para el resto
-/// del fichero, hasta el punto de sembrar una ancla DENTRO de una llamada de
-/// código. El síntoma real (hallado 2026-09-15 con un proyecto de un usuario):
-/// un error de Typst que no existe en el documento y que no desaparece por
-/// mucho que se edite el fichero, porque la réplica sembrada vuelve a
-/// romperse igual en cada recompilación.
-fn prepare_input_unseeded(target: &CompileTarget) -> Result<PreparedInput, TypstError> {
+/// Las anclas solo sirven para la tabla de sincronización de la vista previa
+/// (`sync.rs`). Todo lo demás compila sin ellas, porque el escaneo ligero de
+/// `shadow::seed_anchors` no es un parser (`shadow.rs`) y puede sembrar un ancla
+/// DENTRO de una llamada o de un bloque de código: un `(`/`)` suelto en texto
+/// plano (hallado 2026-09-15) o, antes de 0.15.1, un `\]` escapado (correo de un
+/// usuario, 2026-11-22). El síntoma es un error de Typst que el documento no
+/// tiene («the character `#` is not valid in code»):
+///
+/// - En la vista previa, como reintento (`retry_without_anchors`).
+/// - En la exportación a PDF y a PNG, SIEMPRE: el resultado no se sincroniza
+///   con nada, y antes de 0.15.1 un fallo del sembrado impedía exportar un
+///   documento que `typst compile` exportaba sin problema.
+/// - En el esquema (`outline.rs`), que tampoco las consulta.
+pub(crate) fn prepare_input_unseeded(target: &CompileTarget) -> Result<PreparedInput, TypstError> {
     prepare_input_with_seed(target, false)
 }
 
@@ -735,7 +739,7 @@ pub async fn typst_export_pdf(
     output: String,
 ) -> Result<String, TypstError> {
     let generation = state.next_generation();
-    let prepared = prepare_input(&target)?;
+    let prepared = prepare_input_unseeded(&target)?;
 
     let mut args = vec![
         "compile".to_string(),
@@ -784,7 +788,7 @@ pub async fn typst_export_png(
     page: usize,
 ) -> Result<String, TypstError> {
     let generation = state.next_generation();
-    let prepared = prepare_input(&target)?;
+    let prepared = prepare_input_unseeded(&target)?;
 
     let mut args = vec![
         "compile".to_string(),
@@ -1014,6 +1018,23 @@ warning: unknown font family: flux\n\
             .collect();
         assert_eq!(en_disco, vec!["main.typ".to_string()]);
         assert_eq!(fs::read_to_string(dir.path().join("main.typ")).unwrap(), "= Hola");
+    }
+
+    /// Correo de un usuario (2026-11-22): exportar a PDF fallaba por un ancla mal
+    /// sembrada y `typst compile` a mano no. Exportar (y el esquema) compila SIEMPRE
+    /// sin anclas; solo la vista previa las siembra. Los comandos necesitan un
+    /// `AppHandle`, así que se comprueba en su código.
+    #[test]
+    fn exportar_y_el_esquema_compilan_sin_anclas_de_sincronizacion() {
+        let source = include_str!("compile.rs");
+        for command in ["pub async fn typst_export_pdf(", "pub async fn typst_export_png("] {
+            let start = source.find(command).unwrap();
+            let body = &source[start..start + source[start..].find("\n}\n").unwrap()];
+            assert!(body.contains("prepare_input_unseeded(&target)"), "{command} debe compilar sin anclas");
+            assert!(!body.contains("prepare_input(&target)"), "{command} no puede sembrar anclas");
+        }
+        let outline = include_str!("outline.rs");
+        assert!(outline.contains("prepare_input_unseeded(&target)") && !outline.contains("prepare_input(&target)"));
     }
 
     #[test]

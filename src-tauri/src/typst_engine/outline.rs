@@ -23,7 +23,7 @@ use std::path::Path;
 use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
 
-use super::compile::{prepare_input, CompileTarget};
+use super::compile::{prepare_input_unseeded, CompileTarget};
 use super::{run, TypstError};
 
 /// Encabezado de un documento, listo para pintar en el panel y para
@@ -100,8 +100,9 @@ pub async fn typst_outline(
 ) -> Result<Vec<OutlineEntry>, TypstError> {
     // Mismo documento objetivo y misma raíz sombra que la vista previa (RF-14):
     // si el outline mirase otro fichero, el panel enseñaría los encabezados de
-    // algo distinto de lo que se está viendo compilado.
-    let prepared = prepare_input(&target)?;
+    // algo distinto de lo que se está viendo compilado. Sin anclas de
+    // sincronización: el esquema no las usa (ver `prepare_input_unseeded`).
+    let prepared = prepare_input_unseeded(&target)?;
 
     // Las fuentes propias del proyecto también hacen falta aquí: `eval`
     // compone el documento para resolver `h.location()`, así que sin ellas

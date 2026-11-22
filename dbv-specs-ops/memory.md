@@ -562,6 +562,14 @@
   7. **Rama `release/0.15.1`** (mismo flujo que el `ADR-055` de md-reader); el `/ship` y la Store se hacen desde el PC con Windows (`ADR-WORKFLOW-001`, decisión 6), donde también se verifica RF-127 a mano.
 - **Consecuencias:** RF-125 y RF-127 tienen partes que solo se pueden verificar a mano, cada una en una plataforma (el Mac y el PC respectivamente), y se declaran «sin verificar» hasta entonces.
 
+### ADR-V0151-002 — `/plan` de v0.15.1: decisiones técnicas de RF-125 y RF-126 (2026-11-22)
+
+- **Menú nativo (RF-125):** la lógica pura va en `src/app/nativeMenu.js` (ESM) y el cableado en `src/app/nativeMenuDom.js`. El estado se republica con un `MutationObserver` sobre los tres paneles en vez del sondeo de 500 ms de md-reader: el estado ya lo escribe el código existente (`renderProjectBar`, `renderPrefCheckbox`), así que basta con observarlo. Los atajos se declaran con `data-accel` en el HTML. En la ventana solo se pinta el de «Cerrar pestaña», porque Ctrl+O, Ctrl+N… no existen en Windows y pintarlos sería mentir.
+- **«Ajustes… ⌘,»:** se construye un `Menu` nuevo con la definición `prefs` de la última descripción y se despliega con `popup_menu`. No se reutiliza el submenú de la barra, para no dar dos padres a un `NSMenu`.
+- **Riesgo encontrado en la revisión adversarial:** los seis editores de Herramientas se colocan con `positionPanelNear(panel, botón)`, y en macOS el botón estará en un menú con `display:none` (rectángulo 0×0): el panel acabaría en la esquina superior izquierda. Se corrige en `positionPanelNear`: si el disparador no se ve, el panel se centra bajo la cabecera.
+- **Plantillas (RF-126), enmienda de RF-126.4:** la variante `template.<idioma>/` **sustituye por completo** a `template/` en vez de superponerse, para que los nombres de fichero también estén en inglés. `language` se valida como `^[a-z]{2}$` antes de formar la ruta.
+- **Riesgo aceptado:** las dos versiones de cada plantilla genérica (ES y EN) pueden divergir con el tiempo. Lo mitigan `verify:templates`, que compila las dos, y el test de marcadores, que exige los mismos campos en ambas.
+
 ### ADR-V0150-001 — v0.15.0: feedback comunitario, cero latencia al teclear, Vim opcional, 10 temas e interfaz de IA de `dbv-unreal-ai` / `dbv-tauri-starter` (2026-11-11)
 
 *Alcance acordado con el usuario al preparar `/spec` sobre Issues #3 y #4 de GitHub (`@rgranc`), feedback de Fediscience y evolución de la UI de IA en `dbv-unreal-ai`.*

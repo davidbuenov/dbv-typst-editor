@@ -722,11 +722,20 @@
 - [x] **Fase 74: `/ship` de v0.15.0 — 2026-11-11.** Minor sobre `v0.14.0`. Versión `0.15.0` en `package.json`, `package-lock.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml` y `Cargo.lock`; `[0.15.0]` publicado en `CHANGELOG.md` y `CHANGELOG.en.md`; documentación actualizada (`README.md`, `README.en.md` con agradecimientos a `@rgranc` y Víctor Buendía, `docs/index.html`, `docs/en/index.html`, `docs/privacidad.html`, `docs/privacy.html`, `descripcionStore_es.md`, `descripcionStore_en.md`, `ARCHITECTURE.md` y ficha `web/_projects/dbv-typst-editor.md` sin commit); `notasActualizacionStore_v0.15.0.md` y `walkthrough.md`. **`.msixbundle`: `src-tauri\target\msix\dbv-typst-editor_0.15.0.0.msixbundle` (`78,79 MB` / `82.613.523` bytes, verificado según `MICROSOFT_STORE.md` §6 con `typst.exe`, `tinymist.exe`, 53 ficheros en `templates\`, `resources\typst-docs.json.gz`, `Version="0.15.0.0"` y alias `dbv-typst-editor.exe`).** Empuje a GitHub (`master` → CI verde → tag `v0.15.0` → Actions de Linux/macOS/Homebrew).
 
 - [x] **Fase 75: `/spec` de v0.15.1 (parche) — cerrado el 2026-11-22 en el Mac (`SPECIFICATIONS.md` v1.21, §5r, RF-125 a RF-128; `ADR-V0151-001`), rama `release/0.15.1`.** Menús Archivo/Herramientas/Preferencias en la barra de macOS, con «Cerrar pestaña» y «Ajustes… ⌘,» (RF-125); plantillas genéricas en inglés (RF-126, Issue #5a); «Mostrar en el explorador» en Windows (RF-127, Issue #5b); y tests en verde en macOS (RF-128). **Recordatorio para `/ship`: agradecer a `@minhtanz1` en los README, y responder y cerrar el Issue #5.**
-- [ ] **Fase 76: `/plan` de v0.15.1** — resolver las preguntas abiertas del final de §5r.
+- [x] **Fase 76: `/plan` de v0.15.1 — 2026-11-22 (`implementation_plan.md` local, `ADR-V0151-002`).** Enmienda RF-126.4 (la variante sustituye a `template/` por completo).
+- [ ] **Fase 77: `/build` de v0.15.1**
+  - [ ] **S172** *(RF-127)* `windows_select_arg` pura y multiplataforma + `raw_arg` en Windows.
+  - [ ] **S173** *(RF-126)* `language` en `create_project`, variante `template.<idioma>/`, `FieldLocalization`.
+  - [ ] **S174** *(RF-126)* Variantes `template.en/` de las 5 plantillas genéricas + etiquetas en inglés; `verify:templates` las compila.
+  - [ ] **S175** *(RF-126)* El asistente muestra las etiquetas en el idioma de la app y envía `language`.
+  - [ ] **S176** *(RF-125)* `src/app/nativeMenu.js` puro + tests (choques con `APP_SHORTCUTS`).
+  - [ ] **S177** *(RF-125)* `native_menu.rs`, `macos_menu.rs` reescrito, `set_native_menu`, «Ajustes… ⌘,».
+  - [ ] **S178** *(RF-125)* `btn-close-tab`, `data-accel`, `nativeMenuDom.js`, CSS `native-menus`, `positionPanelNear` con el disparador oculto, ayuda.
+  - [ ] **S179** *(RF-128)* Tanda completa en el Mac; `verify-layout` con las rutas de macOS.
 
 ## 🔄 Context Snapshot / Snapshot de Contexto
 
-> ### 👉 RETOMAR AQUÍ (2026-11-22): `/spec` de v0.15.1 CERRADO en la rama `release/0.15.1` — siguiente: `/plan`
+> ### 👉 RETOMAR AQUÍ (2026-11-22): `/spec` de v0.15.1 CERRADO en la rama `release/0.15.1` — `/plan` hecho; `/build` en curso (S172–S179)
 >
 > Especificación en `SPECIFICATIONS.md` §5r (RF-125 a RF-128) y `ADR-V0151-001`. Referencia para portar RF-125: `dbv-md-reader`, commit `2d4b11a` (`src/nativemenu.js`, `src/headermenu.js`, `src-tauri/src/native_menu.rs`, `set_native_menu` en `lib.rs`). La verificación manual es en el Mac para RF-125 y en el PC para RF-127; el `/ship` se hace en el PC.
 >

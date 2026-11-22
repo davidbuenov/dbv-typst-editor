@@ -725,7 +725,7 @@
 - [x] **Fase 76: `/plan` de v0.15.1 — 2026-11-22 (`implementation_plan.md` local, `ADR-V0151-002`).** Enmienda RF-126.4 (la variante sustituye a `template/` por completo).
 - [ ] **Fase 77: `/build` de v0.15.1**
   - [x] **S172** *(RF-127)* `windows_select_arg` pura y multiplataforma + `raw_arg` en Windows.
-  - [ ] **S173** *(RF-126)* `language` en `create_project`, variante `template.<idioma>/`, `FieldLocalization`.
+  - [x] **S173** *(RF-126)* `language` en `create_project`, variante `template.<idioma>/`, `FieldLocalization`.
   - [ ] **S174** *(RF-126)* Variantes `template.en/` de las 5 plantillas genéricas + etiquetas en inglés; `verify:templates` las compila.
   - [ ] **S175** *(RF-126)* El asistente muestra las etiquetas en el idioma de la app y envía `language`.
   - [ ] **S176** *(RF-125)* `src/app/nativeMenu.js` puro + tests (choques con `APP_SHORTCUTS`).

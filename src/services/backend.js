@@ -184,8 +184,9 @@ export const importProjectArchive = (archivePath, targetDir) =>
 // ─── Plantillas y creación de proyecto ───────────────────────────────────────
 
 export const listTemplates = () => call('list_templates');
-export const createProject = ({ templateName, templateVersion, parentDir, projectName, fields }) =>
-  call('create_project', { templateName, templateVersion, parentDir, projectName, fields });
+/** RF-126: `language` elige la variante `template.<idioma>/` de la plantilla, si la trae. */
+export const createProject = ({ templateName, templateVersion, parentDir, projectName, fields, language = null }) =>
+  call('create_project', { templateName, templateVersion, parentDir, projectName, fields, language });
 
 // ─── Proyectos recientes ─────────────────────────────────────────────────────
 

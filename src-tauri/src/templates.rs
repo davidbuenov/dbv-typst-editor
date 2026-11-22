@@ -113,6 +113,19 @@ pub struct TemplateField {
     pub placeholder: Option<String>,
     #[serde(default)]
     pub validation: FieldValidation,
+    /// RF-126: etiqueta y ejemplo por idioma (`[fields.localization.en]`). La
+    /// clave del campo no cambia, así que el manifiesto es el mismo en todos.
+    #[serde(default)]
+    pub localization: BTreeMap<String, FieldLocalization>,
+}
+
+/// Etiqueta y ejemplo de un campo en otro idioma (RF-126.3).
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+pub struct FieldLocalization {
+    #[serde(default)]
+    pub label: String,
+    #[serde(default)]
+    pub placeholder: Option<String>,
 }
 
 fn default_field_type() -> String {
@@ -288,6 +301,60 @@ fn substitute_in_tree(dir: &Path, values: &BTreeMap<String, String>) -> Result<(
     Ok(())
 }
 
+/// Un componente de ruta que no puede salirse de su carpeta: ni vacío, ni `.`/`..`,
+/// ni con separadores. Protege las rutas que se forman con datos del frontend.
+fn is_plain_component(value: &str) -> bool {
+    !value.is_empty() && value != "." && value != ".." && !value.contains(['/', '\\', ':'])
+}
+
+/// RF-126: carpeta `template.<idioma>/` de la variante de una plantilla, si existe.
+///
+/// El idioma se valida como dos letras minúsculas (`en`) antes de formar la ruta:
+/// cualquier otro valor (`../x`, `EN`, vacío) se trata como «sin variante». En
+/// español no hay carpeta `template.es/`, así que el resultado es el de siempre.
+pub fn language_variant_dir(package_dir: &Path, language: Option<&str>) -> Option<PathBuf> {
+    let language = language?;
+    let valid = language.len() == 2 && language.bytes().all(|b| b.is_ascii_lowercase());
+    if !valid {
+        return None;
+    }
+    let dir = package_dir.join(format!("template.{language}"));
+    dir.is_dir().then_some(dir)
+}
+
+/// RF-126.4: la variante **sustituye por completo** al contenido que `typst init`
+/// acaba de copiar de `template/`, para que también los nombres de fichero estén en
+/// su idioma (`style.typ` y no `estilo.typ`). `target` lo acaba de crear `typst
+/// init` (`create_project` rechaza un destino que ya existía), así que vaciarlo
+/// no toca nada del usuario.
+fn apply_language_variant(target: &Path, variant: &Path) -> Result<(), AppError> {
+    let io = |error: std::io::Error| AppError::Io(error.to_string());
+    for entry in fs::read_dir(target).map_err(io)?.filter_map(|entry| entry.ok()) {
+        let path = entry.path();
+        if path.is_dir() {
+            fs::remove_dir_all(&path).map_err(io)?;
+        } else {
+            fs::remove_file(&path).map_err(io)?;
+        }
+    }
+    copy_tree(variant, target)
+}
+
+fn copy_tree(from: &Path, to: &Path) -> Result<(), AppError> {
+    let io = |error: std::io::Error| AppError::Io(error.to_string());
+    fs::create_dir_all(to).map_err(io)?;
+    for entry in fs::read_dir(from).map_err(io)?.filter_map(|entry| entry.ok()) {
+        let source = entry.path();
+        let destination = to.join(entry.file_name());
+        if source.is_dir() {
+            copy_tree(&source, &destination)?;
+        } else {
+            fs::copy(&source, &destination).map_err(io)?;
+        }
+    }
+    Ok(())
+}
+
 /// Carpetas de la estructura de proyecto (SPECIFICATIONS.md §4) que se crean
 /// vacías si la plantilla no las trae, para que el usuario tenga desde el
 /// primer momento dónde poner sus imágenes y recursos.
@@ -314,8 +381,12 @@ pub async fn create_project(
     parent_dir: String,
     project_name: String,
     fields: BTreeMap<String, String>,
+    language: Option<String>,
 ) -> Result<Project, AppError> {
     let templates_root = templates_dir(&app)?;
+    if !is_plain_component(&template_name) || !is_plain_component(&template_version) {
+        return Err(AppError::InvalidPath(format!("{template_name}:{template_version}")));
+    }
     let folder = project::slugify(&project_name);
     let target = PathBuf::from(&parent_dir).join(&folder);
 
@@ -342,6 +413,12 @@ pub async fn create_project(
     typst_engine::run(&app, &borrowed)
         .await
         .map_err(|error| AppError::Io(describe_typst_error(&error)))?;
+
+    // RF-126: la variante en el idioma de la aplicación, si la plantilla la trae.
+    let package_dir = templates_root.join(LOCAL_NAMESPACE).join(&template_name).join(&template_version);
+    if let Some(variant) = language_variant_dir(&package_dir, language.as_deref()) {
+        apply_language_variant(&target, &variant)?;
+    }
 
     substitute_in_tree(&target, &fields)?;
 
@@ -556,6 +633,61 @@ mod tests {
             }
         }
         found
+    }
+
+    /// @spec RF-126
+    #[test]
+    fn language_variant_dir_solo_acepta_dos_letras_y_carpetas_que_existen() {
+        let package = tempfile::tempdir().unwrap();
+        fs::create_dir_all(package.path().join("template.en")).unwrap();
+        assert_eq!(language_variant_dir(package.path(), Some("en")), Some(package.path().join("template.en")));
+        // Sin variante en español: el proyecto sale de `template/`, como siempre.
+        assert_eq!(language_variant_dir(package.path(), Some("es")), None);
+        assert_eq!(language_variant_dir(package.path(), None), None);
+        for malo in ["../en", "EN", "e", "eng", "", "e/"] {
+            assert_eq!(language_variant_dir(package.path(), Some(malo)), None, "{malo:?}");
+        }
+    }
+
+    /// @spec RF-126
+    #[test]
+    fn la_variante_sustituye_por_completo_lo_que_copio_typst_init() {
+        let target = tempfile::tempdir().unwrap();
+        fs::create_dir_all(target.path().join("sections")).unwrap();
+        fs::write(target.path().join("main.typ"), "= Introducción").unwrap();
+        fs::write(target.path().join("estilo.typ"), "// es").unwrap();
+        fs::write(target.path().join("sections/01-introduccion.typ"), "es").unwrap();
+        let variant = tempfile::tempdir().unwrap();
+        fs::create_dir_all(variant.path().join("sections")).unwrap();
+        fs::write(variant.path().join("main.typ"), "= Introduction {{titulo}}").unwrap();
+        fs::write(variant.path().join("sections/01-introduction.typ"), "en").unwrap();
+
+        apply_language_variant(target.path(), variant.path()).unwrap();
+
+        assert_eq!(fs::read_to_string(target.path().join("main.typ")).unwrap(), "= Introduction {{titulo}}");
+        assert!(!target.path().join("estilo.typ").exists());
+        assert!(!target.path().join("sections/01-introduccion.typ").exists());
+        assert!(target.path().join("sections/01-introduction.typ").is_file());
+    }
+
+    /// @spec RF-126
+    #[test]
+    fn un_nombre_de_plantilla_con_ruta_no_es_un_componente_valido() {
+        assert!(is_plain_component("dbv-articulo"));
+        assert!(is_plain_component("1.0.0"));
+        for malo in ["", ".", "..", "../x", "a/b", "a\\b", "C:"] {
+            assert!(!is_plain_component(malo), "{malo:?}");
+        }
+    }
+
+    /// @spec RF-126
+    #[test]
+    fn las_etiquetas_de_campo_por_idioma_se_leen_del_sidecar() {
+        let raw = "[[fields]]\nkey = \"titulo\"\nlabel = \"Título\"\n\n[fields.localization.en]\nlabel = \"Title\"\nplaceholder = \"My paper\"\n";
+        let dbv: DbvTemplate = toml::from_str(raw).unwrap();
+        let en = &dbv.fields[0].localization["en"];
+        assert_eq!(en.label, "Title");
+        assert_eq!(en.placeholder.as_deref(), Some("My paper"));
     }
 
     #[test]

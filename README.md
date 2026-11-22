@@ -3,9 +3,9 @@
 **🇪🇸 Español · [🇬🇧 English](./README.en.md)**
 
 [![Sitio Web](https://img.shields.io/badge/Sitio%20Web-davidbuenov.github.io%2Fdbv--typst--editor-2563eb?style=flat&logo=googlechrome&logoColor=white)](https://davidbuenov.github.io/dbv-typst-editor/)
-[![Releases](https://img.shields.io/badge/Releases-v0.15.0-brightgreen?logo=github)](https://github.com/davidbuenov/dbv-typst-editor/releases)
+[![Releases](https://img.shields.io/badge/Releases-v0.15.1-brightgreen?logo=github)](https://github.com/davidbuenov/dbv-typst-editor/releases)
 [![Microsoft Store](https://img.shields.io/badge/Microsoft%20Store-9PCPSVTNJMP0-0078D6?logo=microsoft&logoColor=white)](https://apps.microsoft.com/store/detail/9PCPSVTNJMP0?cid=DevShareMCLPCB)
-![Status](https://img.shields.io/badge/status-estable%20%7C%20v0.15.0-success)
+![Status](https://img.shields.io/badge/status-estable%20%7C%20v0.15.1-success)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
 ![Windows](https://img.shields.io/badge/Windows-10%20%2F%2011%20(Microsoft%20Store)-0078D6?logo=windows&logoColor=white)
 ![macOS](https://img.shields.io/badge/macOS-Universal%20(.dmg)-000000?logo=apple&logoColor=white)
@@ -67,7 +67,7 @@ Sigue la misma filosofía que su proyecto hermano [DBV Markdown Reader](https://
 
 ## 🚦 Estado actual
 
-**Versión actual:** `v0.15.0` · **Estado:** 🟢 Estable y listo para producción
+**Versión actual:** `v0.15.1` · **Estado:** 🟢 Estable y listo para producción
 
 - 🌐 **Sitio Web Oficial:** [https://davidbuenov.github.io/dbv-typst-editor/](https://davidbuenov.github.io/dbv-typst-editor/) (con galería interactiva de capturas en alta resolución y selector bilingüe ES/EN).
 - 📘 **Manual de Usuario en Typst (PDF):** [Español](./docs/manual/manual-es.pdf) · [English](./docs/manual/manual-en.pdf) (código fuente en [`docs/manual/`](./docs/manual/)).
@@ -76,8 +76,9 @@ Sigue la misma filosofía que su proyecto hermano [DBV Markdown Reader](https://
   - 🍎 **macOS**: Archivo `.dmg` universal (compatible con Apple Silicon e Intel).
   - 🐧 **Linux**: Paquetes `.AppImage` (portable) y `.deb` (Debian/Ubuntu/Mint).
 - 🏬 **Microsoft Store:** disponible en la tienda oficial. [🛒 Consíguelo en Microsoft Store (ID 9PCPSVTNJMP0)](https://apps.microsoft.com/store/detail/9PCPSVTNJMP0?cid=DevShareMCLPCB). Si instalaste una versión previa desde la Store, asegúrate de contar con `v0.3.1` o superior (ver [`CHANGELOG.md`](./dbv-specs-ops/CHANGELOG.md)).
-- 🧪 **Calidad y estabilidad:** 2.209 pruebas automatizadas pasando al 100% (1.580 tests de frontend + 629 tests de backend en Rust), evaluación de la IA con modelos locales reales y validación de layout en motor Chromium/WebKit real.
+- 🧪 **Calidad y estabilidad:** 2.259 pruebas automatizadas pasando al 100% (1.611 tests de frontend + 648 tests de backend en Rust), evaluación de la IA con modelos locales reales y validación de layout en motor Chromium/WebKit real.
 - 🚀 **Novedades de las últimas versiones** (lo que hace la aplicación, agrupado por temas, está en [«Qué puede hacer»](#-qué-puede-hacer)):
+  - **Exportar a PDF sin errores de anclas, plantillas en inglés y «Mostrar en el explorador» que selecciona (v0.15.1):** exportar PDF/PNG y el esquema compilan ya el documento exacto, sin las anclas de sincronización que rompían plantillas con funciones (`the character # is not valid in code`); con la aplicación en inglés, las cinco plantillas genéricas se crean en inglés; en Windows, «Mostrar en el explorador» selecciona el fichero aunque la ruta tenga espacios; y en macOS **Archivo, Herramientas y Preferencias pasan a la barra de menús del sistema** (⌘,, ⌘W…), con «Cerrar pestaña» nuevo en Archivo.
   - **Edición profesional, 10 temas WCAG, Modo Vim, snippets con atajos y nueva UI de IA (v0.15.0):** corrección completa del contraste sintáctico en modo oscuro y catálogo ampliado a **10 temas curados + tema personalizado** (con 3 botones rápidos configurables); **Modo Vim** opcional (con carga diferida, insignia de modo en la micro-barra `Ln/Col` y números de línea relativos); **cero latencia de tecleo** en refresco manual; atajos de teclado en **snippets** (`.vscode/*.code-snippets` + `keybindings.json`) y submenú **«Insertar snippet ›»**; apilamiento dinámico de paneles flotantes y navegación por teclado en menús de cabecera; **nueva interfaz tripartita de IA** con selector `⚙️` de modelo y esfuerzo de razonamiento y soporte para **Google Antigravity** (`agy`); y **manual de usuario bilingüe compuesto en Typst** junto con ayuda integrada completa.
   - **AI Native: la IA conoce Typst Universe, ve tus páginas y se conecta con otros agentes (v0.14.0):** «Aplicar plantilla…» pasa un documento al formato IEEE o Springer desde la misma galería de «Nuevo documento»; la IA busca plantillas y paquetes **reales** (nunca inventa un nombre ni una versión), mira las **páginas renderizadas**, cita solo referencias de tu `.bib` y, con la nube, ofrece una tipografía que falte (tú confirmas); un **servidor MCP** presta a Claude Code, Cursor o Codex el compilador exacto de DBV (solo lectura, sin red; instalar un paquete te lo pregunta); los modelos locales ganan tope de salida, progreso visible y reintento; y se pueden importar snippets de Sublime Text. Las fuentes que añades a `fonts/` se recogen sin reiniciar.
   - **La IA con modelos locales y con Gemini, más honesta (v0.13.1):** el asistente ya no anuncia propuestas que no existen, enseña **lo que piensa el modelo** (bloque plegable), **qué está haciendo y a qué velocidad**, y avisa de un **modelo demasiado pequeño o un contexto demasiado corto**; el razonamiento viene **desactivado** y se activa por conexión; al escribir **separa presentación de contenido** (el estilo, en ficheros de estilo); **Gemini 3 vuelve a poder usar herramientas**. Nuevo **«Nuevo .typ vacío…»** para crear un documento suelto sin crear un proyecto (la IA solo ve su fichero). La guía incluye por fin **números medidos** de los modelos locales (`qwen3:8b` resuelve poco más de 1 de cada 3 tareas: revisa siempre lo que propone) y una referencia en la nube, y `eval:ai` mide también IAs en la nube.
@@ -369,7 +370,7 @@ Preparación para Microsoft Store documentada en [`dbv-specs-ops/docs/MICROSOFT_
 
 ## 📋 Changelog
 
-`v0.15.0` y el historial completo desde la `v0.1.0` viven en [`dbv-specs-ops/CHANGELOG.md`](./dbv-specs-ops/CHANGELOG.md) (contraste oscuro + 10 temas WCAG, Modo Vim opcional, latencia cero en refresco manual, atajos y menú contextual para snippets, apilamiento de paneles y navegación por teclado, interfaz tripartita de IA con Google Antigravity y manual bilingüe en PDF compuesto en Typst).
+`v0.15.1` y el historial completo desde la `v0.1.0` viven en [`dbv-specs-ops/CHANGELOG.md`](./dbv-specs-ops/CHANGELOG.md) (exportación a PDF sin anclas, plantillas en inglés, «Mostrar en el explorador» que selecciona y menús en la barra de macOS; y antes: contraste oscuro + 10 temas WCAG, Modo Vim opcional, latencia cero en refresco manual, atajos y menú contextual para snippets, apilamiento de paneles y navegación por teclado, interfaz tripartita de IA con Google Antigravity y manual bilingüe en PDF compuesto en Typst).
 
 El changelog se mantiene en los dos idiomas: [Español](./dbv-specs-ops/CHANGELOG.md) · [English](./dbv-specs-ops/CHANGELOG.en.md).
 

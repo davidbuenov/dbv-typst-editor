@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+---
+
+## [0.15.1] - 2026-11-22
+
 ### Added
 
 - **Generic templates in English when the app is in English (RF-126, [Issue #5](https://github.com/davidbuenov/dbv-typst-editor/issues/5)).** With the interface in English, "Academic paper", "Curriculum vitae", "Technical report", "Presentation" and "Blank project" now create an English project: sample text, the style's fixed labels (*Abstract*, *Keywords*, *References*, *Executive summary*…), `set text(lang: "en")` and file names (`style.typ`, `sections/01-introduction.typ`). The wizard asks in English too (*Paper title*, *Authors*…). In Spanish the result is exactly as before; the Undergraduate thesis, Master's thesis and Doctoral thesis stay Spanish-only. It works through a `template.<language>/` folder next to `template/`, which replaces the Spanish one entirely, and per-language labels in `[fields.localization.<language>]` of `dbv-template.toml`. Field keys do not change, so existing projects stay compatible. `create_project` receives the language validated as two lowercase letters (it never builds a path from an arbitrary value) and rejects template names containing path components. `verify:templates` also compiles the five variants (65/65).
@@ -37,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Documentation
 
+- **0.15.1 documentation reviewed (`/ship`).** In-app help: the "Start" topic explains that the five generic templates follow the app language and that the bachelor, master and doctoral theses are Spanish only. `README.md` and `README.en.md`: version `v0.15.1`, badges, 2,259 tests (1,611 Vitest + 648 Rust) and the release's highlight. `descripcionStore_es.md` and `descripcionStore_en.md`: 0.15.1 "What's new" (under 1,000 characters each) and feature 4 now mentions English. No changes needed in `docs/index.html`, `docs/en/index.html` or `docs/IA*.md` (they carry no version or figures that change). Pending: the PDF manual (`docs/manual/`) is still at `v0.15.0`; it is regenerated with new screenshots in its own cycle.
 - **macOS install via Homebrew: `brew trust` and `xattr -cr` steps.** `README.en.md` adds `brew trust davidbuenov/dbv-typst-editor` (authorises the unofficial tap) after `brew tap`, and `xattr -cr "/Applications/DBV Typst Editor.app"` as the last installation step, which avoids Gatekeeper blocks on first launch.
 
 ---

@@ -40,14 +40,13 @@ No internet connection required to compile or edit. Typst Universe, the manual u
 
 ## What's new in this version
 
-Version 0.15.0: smoother and faster editing, 10 WCAG themes, optional Vim mode, snippet keybindings, and refreshed AI dialog.
+Version 0.15.1: export and template fixes, plus improvements for people who use the app in English.
 
-• 10 curated themes + custom theme: fixed dark-mode syntax contrast and expanded catalog (Nord, Dracula, Catppuccin, Solarized Dark, Gruvbox Dark, High Contrast…), with 3 assignable quick-switch buttons and a custom color editor with live WCAG contrast check.
-• Optional Vim mode (Preferences): modal editing via @replit/codemirror-vim, live mode badge in the new bottom status bar (Ln/Col & selection), relative line numbers, and panel-friendly Escape handling.
-• Zero typing latency in Manual Refresh: typing long documents with manual preview refresh no longer re-serializes or rebuilds the UI on every keystroke.
-• Snippet keybindings & context menu: supports "key" in .vscode/*.code-snippets and keybindings.json (with $TM_SELECTED_TEXT) plus an "Insert snippet ›" right-click submenu.
-• Refined windows & menus: floating panels stack dynamically to the front and header menus support full keyboard navigation.
-• Unified AI & expanded docs: tripartite connection modal with model/reasoning selector and Google Antigravity support, plus bilingual User Manual and expanded Help.
+• Exporting to PDF no longer fails on projects that import a template with functions (the "the character # is not valid in code" errors that appeared on export even though the preview worked). PDF export, PNG export and the outline now compile exactly your document.
+• "Reveal in file manager" selects the file in Windows Explorer, also when the path contains spaces (it used to open the default folder instead).
+• Templates in your language: with the app in English, paper, technical report, presentation, CV and blank project are created in English (texts, file names, form labels and document language).
+• Close tab in the File menu (Ctrl+W), to close the active document without touching the tab bar.
+• The app engine (Tauri) was updated to the latest version.
 
 ---
 
@@ -57,7 +56,7 @@ Version 0.15.0: smoother and faster editing, 10 WCAG themes, optional Vim mode, 
 1. Native Typst editor with real-time PDF preview
 2. 100% local by default: no accounts, no telemetry, no ads (AI is optional)
 3. Semantic autocomplete, live diagnostics (tinymist) and one-click formatting (Typstyle)
-4. 8 academic templates: bachelor thesis, master thesis, doctoral thesis, paper, technical report, presentation, CV, blank project
+4. 8 academic templates: bachelor thesis, master thesis, doctoral thesis, paper, technical report, presentation, CV, blank project (the five generic ones also in English)
 5. Visual template gallery with full-size rendered previews
 6. Built-in Typst Universe: browse, preview, and use community templates and packages
 7. Project creation assistant with a data form (title, author, institution...)

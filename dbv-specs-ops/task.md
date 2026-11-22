@@ -739,7 +739,16 @@
 
 ## 🔄 Context Snapshot / Snapshot de Contexto
 
-> ### 👉 RETOMAR AQUÍ (2026-11-22, para el PC): v0.15.1 con `/build`, `/test` y `/code-simplify` CERRADOS en la rama `release/0.15.1` (subida a GitHub) — siguiente: `/ship` en el PC
+> ### 👉 RETOMAR AQUÍ (2026-11-22, tarde): `v0.15.1` con `/ship` hecho en el PC (unida a `master`, push y tag según el registro de abajo)
+>
+> **Para retomar (pendiente del usuario):**
+> 1. Instalar y probar `src-tauri\target\msix\dbv-typst-editor_0.15.1.0.msixbundle` (**78,96 MB**, verificado) y subirlo a Partner Center con `notasActualizacionStore_v0.15.1.md` + `descripcionStore_{es,en}.md` (la 0.15.0 ya está en la Store).
+> 2. Probar a mano en la ventana real: RF-126 (app en inglés → «Academic paper») y RF-129 (exportar PDF con una plantilla con funciones).
+> 3. Desplegar `davidbuenov.com` con DBV Control Center (la ficha `web/_projects/dbv-typst-editor.md` queda editada sin commit, ya en `v0.15.1`).
+> 4. En el Mac: confirmar RF-125.11 (menús en la barra). Si falla algo, `/maintain` o 0.15.2.
+> 5. **Backlog:** manual PDF `docs/manual/` (sigue en `v0.15.0`, regenerar con capturas nuevas); «Archivo ▸ Salir»; `temp/tinymist-estilos-compartidos.md`.
+>
+> ### (anterior) 2026-11-22, para el PC: v0.15.1 con `/build`, `/test` y `/code-simplify` CERRADOS en la rama `release/0.15.1` — luego `/ship` en el PC
 >
 > **En el PC, antes de nada:**
 > 1. `git fetch && git switch release/0.15.1 && git pull`.

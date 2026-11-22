@@ -3,9 +3,9 @@
 **[🇪🇸 Español](./README.md) · 🇬🇧 English**
 
 [![Website](https://img.shields.io/badge/Website-davidbuenov.github.io%2Fdbv--typst--editor-2563eb?style=flat&logo=googlechrome&logoColor=white)](https://davidbuenov.github.io/dbv-typst-editor/en/)
-[![Releases](https://img.shields.io/badge/Releases-v0.15.0-brightgreen?logo=github)](https://github.com/davidbuenov/dbv-typst-editor/releases)
+[![Releases](https://img.shields.io/badge/Releases-v0.15.1-brightgreen?logo=github)](https://github.com/davidbuenov/dbv-typst-editor/releases)
 [![Microsoft Store](https://img.shields.io/badge/Microsoft%20Store-9PCPSVTNJMP0-0078D6?logo=microsoft&logoColor=white)](https://apps.microsoft.com/store/detail/9PCPSVTNJMP0?cid=DevShareMCLPCB)
-![Status](https://img.shields.io/badge/status-stable%20%7C%20v0.15.0-success)
+![Status](https://img.shields.io/badge/status-stable%20%7C%20v0.15.1-success)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
 ![Windows](https://img.shields.io/badge/Windows-10%20%2F%2011%20(Microsoft%20Store)-0078D6?logo=windows&logoColor=white)
 ![macOS](https://img.shields.io/badge/macOS-Universal%20(.dmg)-000000?logo=apple&logoColor=white)
@@ -67,7 +67,7 @@ It follows the same philosophy as its sibling project [DBV Markdown Reader](http
 
 ## 🚦 Current status
 
-**Current version:** `v0.15.0` · **Status:** 🟢 Stable and production ready
+**Current version:** `v0.15.1` · **Status:** 🟢 Stable and production ready
 
 - 🌐 **Official Website:** [https://davidbuenov.github.io/dbv-typst-editor/en/](https://davidbuenov.github.io/dbv-typst-editor/en/) (featuring full-resolution interactive screenshot gallery and bilingual ES/EN switch).
 - 📘 **Typst-typeset User Manual (PDF):** [English](./docs/manual/manual-en.pdf) · [Español](./docs/manual/manual-es.pdf) (source files in [`docs/manual/`](./docs/manual/)).
@@ -76,8 +76,9 @@ It follows the same philosophy as its sibling project [DBV Markdown Reader](http
   - 🍎 **macOS**: Universal `.dmg` (compatible with Apple Silicon & Intel).
   - 🐧 **Linux**: `.AppImage` (portable) and `.deb` (Debian/Ubuntu/Mint) packages.
 - 🏬 **Microsoft Store:** published on the official store. [🛒 Get it from Microsoft Store (ID 9PCPSVTNJMP0)](https://apps.microsoft.com/store/detail/9PCPSVTNJMP0?cid=DevShareMCLPCB). If you installed an earlier Store package, make sure you get `v0.3.1` or later (see [`CHANGELOG.en.md`](./dbv-specs-ops/CHANGELOG.en.md)).
-- 🧪 **Quality & Stability:** 2,209 automated tests passing at 100% (1,580 frontend tests + 629 Rust backend tests), AI evaluation with real local models and layout verification in real rendering engines.
+- 🧪 **Quality & Stability:** 2,259 automated tests passing at 100% (1,611 frontend tests + 648 Rust backend tests), AI evaluation with real local models and layout verification in real rendering engines.
 - 🚀 **Key Highlights:**
+  - **PDF export without anchor errors, English templates and a "Reveal in file manager" that selects (v0.15.1):** PDF/PNG export and the outline now compile the exact document, without the sync anchors that broke templates with functions (`the character # is not valid in code`); with the app in English, the five generic templates are created in English; on Windows, "Reveal in file manager" selects the file even when the path contains spaces; and on macOS **File, Tools and Preferences move to the system menu bar** (⌘,, ⌘W…), with a new "Close tab" in File.
   - **Polished editing, 10 WCAG themes, Vim mode, snippet keybindings & refreshed AI UI (v0.15.0):** full dark-mode syntax contrast fix and **10 curated themes + WCAG custom theme** (with 3 customizable quick-switch slots); optional **Vim mode** (lazy-loaded `@replit/codemirror-vim`, bottom `Ln/Col` + mode badge status bar, relative line numbers); **zero typing latency** in Manual Refresh mode; VS Code snippet keybindings (`"key"` / `keybindings.json`) and **"Insert snippet ›"** context submenu; dynamic floating-panel stacking and keyboard navigation across header menus; **tripartite AI connect dialog** with `⚙️` model/reasoning selector and **Google Antigravity** (`agy`) support; plus a complete **bilingual Typst-typeset PDF User Manual** and expanded in-app Help.
   - **AI Native: the AI knows Typst Universe, sees your pages and connects to other agents (v0.14.0):** "Apply template…" turns a document into IEEE or Springer from the same gallery as "New document"; the AI searches **real** templates and packages (it never invents a name or version), looks at the **rendered pages**, cites only references from your `.bib` and, with the cloud, offers a missing typeface (you confirm); an **MCP server** lends Claude Code, Cursor or Codex DBV's exact compiler (read-only, no network; installing a package asks you first); local models gain an output cap, visible progress and retry; and Sublime Text snippets can be imported. Fonts you add to `fonts/` are picked up without a restart.
   - **The AI with local models and with Gemini, more honest (v0.13.1):** the assistant no longer announces proposals that do not exist, shows **what the model is thinking** (collapsible block), **what it is doing and how fast**, and warns about a **model that is too small or a context that is too short**; reasoning ships **off** and is turned on per connection; when it writes it **separates presentation from content** (the look goes in style files); **Gemini 3 can use tools again**. New **"New empty .typ…"** to create a loose document without creating a project (the AI only sees its own file). The guide finally includes **measured numbers** for local models (`qwen3:8b` solves a little over 1 in 3 tasks: always review what it proposes) and a cloud reference, and `eval:ai` also measures cloud AIs.
@@ -369,7 +370,7 @@ Microsoft Store preparation checklist documented in [`dbv-specs-ops/docs/MICROSO
 
 ## 📋 Changelog
 
-`v0.15.0` and the full version history since `v0.1.0` are documented in [`dbv-specs-ops/CHANGELOG.en.md`](./dbv-specs-ops/CHANGELOG.en.md) (dark contrast + 10 WCAG themes, optional Vim mode, zero typing latency in Manual Refresh, snippet keybindings & context menu, floating panel stacking & keyboard navigation, tripartite AI UI with Google Antigravity, and bilingual Typst-typeset PDF User Manual).
+`v0.15.1` and the full version history since `v0.1.0` are documented in [`dbv-specs-ops/CHANGELOG.en.md`](./dbv-specs-ops/CHANGELOG.en.md) (PDF export without anchors, English templates, a "Reveal in file manager" that selects, and macOS menu-bar menus; and before: dark contrast + 10 WCAG themes, optional Vim mode, zero typing latency in Manual Refresh, snippet keybindings & context menu, floating panel stacking & keyboard navigation, tripartite AI UI with Google Antigravity, and bilingual Typst-typeset PDF User Manual).
 
 The changelog is maintained in both languages: [English](./dbv-specs-ops/CHANGELOG.en.md) · [Español](./dbv-specs-ops/CHANGELOG.md).
 

@@ -34,12 +34,12 @@ export const HELP_SECTIONS = [
       {
         list: {
           es: [
-            'Plantillas incluidas: proyecto en blanco, TFG, TFM, tesis doctoral, artículo académico, informe técnico, presentación y currículum.',
+            'Plantillas incluidas: proyecto en blanco, TFG, TFM, tesis doctoral, artículo académico, informe técnico, presentación y currículum. Las cinco genéricas (en blanco, artículo, informe técnico, presentación y currículum) salen en el idioma de la aplicación: con la interfaz en inglés, el proyecto nuevo trae textos, ficheros, etiquetas del formulario e idioma del documento en inglés. TFG, TFM y tesis doctoral son solo en español.',
             'Al elegir una plantilla se abre un formulario (título, autor, institución, tutor, curso...) y esos datos se escriben ya dentro del documento: no hay que buscarlos luego en el código.',
             'Los proyectos recientes aparecen en el lanzador para volver a ellos de un clic; al pasar el ratón por encima puedes eliminar de la lista con una cruz los que ya no necesites.',
           ],
           en: [
-            'Bundled templates: blank project, bachelor thesis, master thesis, doctoral thesis, academic paper, technical report, presentation and CV.',
+            'Bundled templates: blank project, bachelor thesis, master thesis, doctoral thesis, academic paper, technical report, presentation and CV. The five generic ones (blank, paper, technical report, presentation and CV) follow the app language: with the interface in English, the new project comes with English texts, file names, form labels and document language. The bachelor, master and doctoral theses are Spanish only.',
             'Choosing a template opens a form (title, author, institution, supervisor, academic year...) and those values are written into the document itself: no need to hunt for them in the code later.',
             'Recent projects are listed in the launcher so you can reopen them with one click; hovering over an entry lets you remove it with a cross if no longer needed.',
           ],

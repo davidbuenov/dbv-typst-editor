@@ -40,14 +40,13 @@ Sin conexión a internet requerida para compilar ni editar. Typst Universe, la c
 
 ## Novedades de esta versión
 
-Versión 0.15.0: edición más cómoda y veloz, 10 temas WCAG, Modo Vim opcional, snippets con atajos y nueva interfaz de IA.
+Versión 0.15.1: arreglos de exportación y de plantillas, y mejoras para quien usa la aplicación en inglés.
 
-• 10 temas curados + tema personalizado: contraste sintáctico corregido en modo oscuro y catálogo ampliado (Nord, Dracula, Catppuccin, Solarized Dark, Gruvbox Dark, Alto contraste…), con 3 botones rápidos asignables y editor de colores propio con comprobación WCAG.
-• Modo Vim opcional (Preferencias): edición modal con @replit/codemirror-vim, insignia en la nueva micro-barra inferior (Ln/Col y selección), números de línea relativos y Escape respetuoso con los paneles.
-• Refresco manual con latencia cero: escribir documentos largos con vista previa manual ya no recalcula ni reconstruye la interfaz por tecla.
-• Snippets con atajos y menú contextual: admite "key" en .vscode/*.code-snippets y keybindings.json (también $TM_SELECTED_TEXT) y añade «Insertar snippet ›» en el clic derecho.
-• Ventanas y menús pulidos: paneles flotantes con apilamiento dinámico al frente y navegación por teclado en menús.
-• IA unificada y ayuda ampliada: nueva vista tripartita de conexión con selector de modelo/esfuerzo y soporte para Google Antigravity, más manual de usuario bilingüe y ayuda ampliada.
+• Exportar a PDF ya no falla con proyectos que importan una plantilla con funciones (los errores «the character # is not valid in code» que aparecían al exportar, aunque la vista previa funcionara). Exportar PDF, PNG y el esquema compilan ahora exactamente tu documento.
+• «Mostrar en el explorador» selecciona el fichero en el Explorador de Windows, también cuando la ruta tiene espacios (antes abría la carpeta por defecto).
+• Plantillas en tu idioma: con la aplicación en inglés, artículo, informe técnico, presentación, currículum y proyecto en blanco se crean en inglés (textos, ficheros, etiquetas del formulario e idioma del documento).
+• Cerrar pestaña en el menú Archivo (Ctrl+W), para cerrar el documento activo sin tocar la barra de pestañas.
+• Motor de la aplicación (Tauri) actualizado a la última versión.
 
 ---
 
@@ -57,7 +56,7 @@ Versión 0.15.0: edición más cómoda y veloz, 10 temas WCAG, Modo Vim opcional
 1. Editor Typst nativo con vista previa PDF en tiempo real
 2. 100% local por defecto: sin cuentas, sin telemetría, sin publicidad (la IA es opcional)
 3. Autocompletado semántico, diagnósticos en vivo (tinymist) y formateo con un clic (Typstyle)
-4. 8 plantillas académicas: TFG, TFM, tesis doctoral, artículo, informe técnico, presentación, CV, proyecto en blanco
+4. 8 plantillas académicas: TFG, TFM, tesis doctoral, artículo, informe técnico, presentación, CV, proyecto en blanco (las cinco genéricas, también en inglés)
 5. Galería visual de plantillas con previsualización maquetada a tamaño completo
 6. Typst Universe integrado: explora, previsualiza y usa plantillas y paquetes de la comunidad
 7. Asistente de creación de proyecto con formulario de datos (título, autor, institución...)

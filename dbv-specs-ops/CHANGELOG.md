@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Sin publicar] / [Unreleased]
 
+---
+
+## [0.15.1] - 2026-11-22
+
 ### Added
 
 - **Plantillas genéricas en inglés cuando la aplicación está en inglés (RF-126, [Issue #5](https://github.com/davidbuenov/dbv-typst-editor/issues/5)).** Con la interfaz en inglés, «Artículo académico», «Curriculum vitae», «Informe técnico», «Presentación» y «Proyecto en blanco» crean ahora un proyecto en inglés: textos de ejemplo, rótulos del estilo (*Abstract*, *Keywords*, *References*, *Executive summary*…), `set text(lang: "en")` y nombres de fichero (`style.typ`, `sections/01-introduction.typ`). El asistente también pregunta en inglés (*Paper title*, *Authors*…). En español se crea exactamente lo mismo que antes; TFG, TFM y Tesis doctoral siguen solo en español. Funciona con una carpeta `template.<idioma>/` junto a `template/`, que sustituye por completo a la española, y con etiquetas por idioma en `[fields.localization.<idioma>]` del `dbv-template.toml`. Las claves de los campos no cambian, así que los proyectos ya creados siguen siendo compatibles. `create_project` recibe el idioma validado como dos letras minúsculas (nunca forma una ruta con un valor arbitrario) y rechaza nombres de plantilla con componentes de ruta. `verify:templates` compila también las cinco variantes (65/65).
@@ -37,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Documentation
 
+- **Documentación de la 0.15.1 revisada (`/ship`).** Ayuda integrada: el tema «Inicio» explica que las cinco plantillas genéricas salen en el idioma de la aplicación y que TFG, TFM y tesis doctoral son solo en español. `README.md` y `README.en.md`: versión `v0.15.1`, insignias, 2 259 pruebas (1 611 Vitest + 648 Rust) y la novedad de la versión. `descripcionStore_es.md` y `descripcionStore_en.md`: «Novedades» de la 0.15.1 (menos de 1 000 caracteres cada una) y la característica 4 menciona el inglés. Sin cambios necesarios en `docs/index.html`, `docs/en/index.html` ni `docs/IA*.md` (no llevan versión ni cifras que cambien). Pendiente: el manual en PDF (`docs/manual/`) sigue en la `v0.15.0`; se regenera con capturas nuevas en un ciclo propio.
 - **Instalación en macOS por Homebrew: pasos `brew trust` y `xattr -cr`.** `README.md` incorpora `brew trust davidbuenov/dbv-typst-editor` (autoriza el tap no oficial) tras `brew tap`, y `xattr -cr "/Applications/DBV Typst Editor.app"` como último paso de la instalación, que evita los bloqueos de Gatekeeper al primer arranque.
 
 ---

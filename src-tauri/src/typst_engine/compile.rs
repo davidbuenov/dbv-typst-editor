@@ -1026,7 +1026,9 @@ warning: unknown font family: flux\n\
     /// `AppHandle`, así que se comprueba en su código.
     #[test]
     fn exportar_y_el_esquema_compilan_sin_anclas_de_sincronizacion() {
-        let source = include_str!("compile.rs");
+        // En Windows git deja los fuentes con CRLF (`core.autocrlf`): se normaliza
+        // para que `"\n}\n"` encuentre el final de la función en cualquier sistema.
+        let source = include_str!("compile.rs").replace("\r\n", "\n");
         for command in ["pub async fn typst_export_pdf(", "pub async fn typst_export_png("] {
             let start = source.find(command).unwrap();
             let body = &source[start..start + source[start..].find("\n}\n").unwrap()];
@@ -1035,6 +1037,52 @@ warning: unknown font family: flux\n\
         }
         let outline = include_str!("outline.rs");
         assert!(outline.contains("prepare_input_unseeded(&target)") && !outline.contains("prepare_input(&target)"));
+    }
+
+    /// RF-129 de extremo a extremo, con el Typst real: el proyecto del usuario (un
+    /// `main.typ` con una plantilla de funciones y corchetes escapados) compila a PDF
+    /// tanto en la réplica de exportar (sin anclas) como en la de la vista previa
+    /// (con anclas). Es la prueba que faltaba: los otros tests miran el código o la
+    /// siembra, no que `typst compile` acepte el resultado.
+    #[test]
+    fn un_proyecto_con_plantilla_de_funciones_se_exporta_a_pdf_con_el_typst_real() {
+        let sidecar = fs::read_dir(Path::new(env!("CARGO_MANIFEST_DIR")).join("binaries"))
+            .ok()
+            .and_then(|entries| {
+                entries
+                    .flatten()
+                    .map(|entry| entry.path())
+                    .find(|path| path.file_name().is_some_and(|name| name.to_string_lossy().starts_with("typst-")))
+            });
+        let Some(sidecar) = sidecar else {
+            eprintln!("sin sidecar de typst (npm run vendor:typst): se omite");
+            return;
+        };
+
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(
+            dir.path().join("plantilla.typ"),
+            "#let diapositiva(titulo, cuerpo) = {\n  [== #titulo \\]]\n  [Intervalo \\[0, 1\\) y \\(nota\\]]\n\n  cuerpo\n}\n\n#let portada(autor) = {\n  align(center)[#autor]\n\n  pagebreak()\n}\n",
+        )
+        .unwrap();
+        fs::write(
+            dir.path().join("main.typ"),
+            "#import \"plantilla.typ\": diapositiva, portada\n\n#portada(\"Ana\")\n\n#diapositiva(\"Uno\")[Texto de la diapositiva.]\n\nFin :)\n",
+        )
+        .unwrap();
+
+        let objetivo = target(dir.path(), "main.typ");
+        for (nombre, prepared) in [
+            ("sin anclas (exportar)", prepare_input_unseeded(&objetivo).unwrap()),
+            ("con anclas (vista previa)", prepare_input(&objetivo).unwrap()),
+        ] {
+            let salida = std::process::Command::new(&sidecar)
+                .args(["compile", "--root", prepared.root(), "--format", "pdf", prepared.input(), "-"])
+                .output()
+                .unwrap();
+            assert!(salida.status.success(), "{nombre}: {}", String::from_utf8_lossy(&salida.stderr));
+            assert!(salida.stdout.starts_with(b"%PDF"), "{nombre}: no es un PDF");
+        }
     }
 
     #[test]

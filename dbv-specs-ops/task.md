@@ -723,7 +723,7 @@
 
 - [x] **Fase 75: `/spec` de v0.15.1 (parche) — cerrado el 2026-11-22 en el Mac (`SPECIFICATIONS.md` v1.21, §5r, RF-125 a RF-128; `ADR-V0151-001`), rama `release/0.15.1`.** Menús Archivo/Herramientas/Preferencias en la barra de macOS, con «Cerrar pestaña» y «Ajustes… ⌘,» (RF-125); plantillas genéricas en inglés (RF-126, Issue #5a); «Mostrar en el explorador» en Windows (RF-127, Issue #5b); y tests en verde en macOS (RF-128). **Recordatorio para `/ship`: agradecer a `@minhtanz1` en los README, y responder y cerrar el Issue #5.**
 - [x] **Fase 76: `/plan` de v0.15.1 — 2026-11-22 (`implementation_plan.md` local, `ADR-V0151-002`).** Enmienda RF-126.4 (la variante sustituye a `template/` por completo).
-- [ ] **Fase 77: `/build` de v0.15.1**
+- [x] **Fase 77: `/build` de v0.15.1 — 2026-11-22, en el Mac.** Ocho slices, un commit por slice. Tanda en el Mac: Vitest 1 609, Rust 649, `verify:frontend` 12/12, `verify:layout` 20/20, `verify:templates` 65/65, `verify:typst` 8/8. La app arranca con `tauri dev` sin errores. **Sin verificar a mano:** el menú real en la barra de macOS (RF-125.11) y «Mostrar en el explorador» en Windows (RF-127.5; la rama `cfg(windows)` no se ha podido compilar desde el Mac). Avisos de clippy de Rust 1.100 anteriores a esta versión (7, en ficheros no tocados) para `/code-simplify`.
   - [x] **S172** *(RF-127)* `windows_select_arg` pura y multiplataforma + `raw_arg` en Windows.
   - [x] **S173** *(RF-126)* `language` en `create_project`, variante `template.<idioma>/`, `FieldLocalization`.
   - [x] **S174** *(RF-126)* Variantes `template.en/` de las 5 plantillas genéricas + etiquetas en inglés; `verify:templates` las compila.
@@ -735,7 +735,7 @@
 
 ## 🔄 Context Snapshot / Snapshot de Contexto
 
-> ### 👉 RETOMAR AQUÍ (2026-11-22): `/spec` de v0.15.1 CERRADO en la rama `release/0.15.1` — `/plan` hecho; `/build` en curso (S172–S179)
+> ### 👉 RETOMAR AQUÍ (2026-11-22): `/build` de v0.15.1 CERRADO en la rama `release/0.15.1` — siguiente: prueba manual en el Mac (RF-125) y `/test`
 >
 > Especificación en `SPECIFICATIONS.md` §5r (RF-125 a RF-128) y `ADR-V0151-001`. Referencia para portar RF-125: `dbv-md-reader`, commit `2d4b11a` (`src/nativemenu.js`, `src/headermenu.js`, `src-tauri/src/native_menu.rs`, `set_native_menu` en `lib.rs`). La verificación manual es en el Mac para RF-125 y en el PC para RF-127; el `/ship` se hace en el PC.
 >

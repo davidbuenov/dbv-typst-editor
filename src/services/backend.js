@@ -153,6 +153,8 @@ export const chapterLink = (root, mainPath, openContent, chapterPath) =>
   call('chapter_link', { root, mainPath, openContent, chapterPath });
 export const listDirectory = (path) => call('list_directory', { path });
 export const revealInFileManager = (path) => call('reveal_in_file_manager', { path });
+/** RF-125: publica la descripción de los menús de la cabecera para la barra de macOS (no hace nada en otras plataformas). */
+export const setNativeMenu = (spec) => call('set_native_menu', { spec });
 
 // ─── Diálogos nativos ────────────────────────────────────────────────────────
 

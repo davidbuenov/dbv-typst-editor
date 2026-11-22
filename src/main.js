@@ -48,6 +48,7 @@ import { createChapterDialog, createChapterFlow } from './project-explorer/chapt
 import { createHistoryPanel } from './history/historyPanel.js';
 import { createWizard } from './project-wizard/wizard.js';
 import {
+  setNativeMenu,
   copyAssetIntoProject,
   copyFontIntoProject,
   engineDiagnostics,
@@ -132,6 +133,9 @@ import { initMcpBridge } from './mcp/mcpBridge.js';
 import { createMcpDialog } from './mcp/mcpDialog.js';
 import { getCurrentWebview } from '@tauri-apps/api/webview';
 import { getCurrentWindow } from '@tauri-apps/api/window';
+import { isTauri } from '@tauri-apps/api/core';
+import { initNativeMenu, paintMenuKeys } from './app/nativeMenuDom.js';
+import { detectMac } from './editor/shortcuts.js';
 
 const el = (id) => document.getElementById(id);
 
@@ -736,6 +740,7 @@ async function bootstrap() {
         el('btn-reveal'),
         el('btn-close-project'),
       ],
+      documentMenuItems: [el('btn-close-tab')],
     },
   });
 
@@ -1648,6 +1653,8 @@ async function bootstrap() {
     await gitManager.refresh();
   };
   el('btn-close-project').addEventListener('click', closeProject);
+  // RF-125.7: el mismo camino que la ✕ de la pestaña y que Ctrl+W (`tabBar.js`).
+  el('btn-close-tab').addEventListener('click', () => workspace.closeDocument());
 
   // Guardado: botones, Ctrl/Cmd+S desde el editor y refresco de la vista previa.
   workspace.setListener('saveRequested', () => workspace.save());
@@ -2299,7 +2306,8 @@ async function bootstrap() {
   // reimplementa (`NATIVE_DESKTOP_APPS.md` §6.10). No tiene efecto alguno en
   // Windows/Linux: el backend nunca emite estos eventos ahí, al no montarse
   // el menú.
-  on('menu-new-project', closeProject);
+  // RF-125.6: ⌘N abre «Proyecto en blanco», igual que en el menú Archivo del DOM.
+  on('menu-new-project', () => el('btn-new-blank-project').click());
   on('menu-close-project', closeProject);
   on('menu-close-tab', () => workspace.closeDocument());
   on('menu-open-folder', openFolder);
@@ -2312,6 +2320,20 @@ async function bootstrap() {
   on('menu-toggle-theme', () => themeSwitcher.cycle());
   on('menu-outline', () => sidebarTabs.showOutline());
   on('menu-terminal', () => el('btn-terminal').click());
+
+  // RF-125: en macOS, Archivo, Herramientas y Preferencias pasan a la barra del
+  // sistema. Solo dentro de Tauri: en un navegador de pruebas sobre un Mac
+  // (`verify-layout`) los menús tienen que seguir en la ventana.
+  const isMac = detectMac();
+  paintMenuKeys(document, getLanguage(), isMac);
+  document.addEventListener('dbv-lang-changed', () => paintMenuKeys(document, getLanguage(), isMac));
+  initNativeMenu({
+    enabled: isMac && isTauri(),
+    publish: setNativeMenu,
+    listen: on,
+    t,
+    onError: (message) => console.warn('[native-menu]', message),
+  });
 }
 
 bootstrap();

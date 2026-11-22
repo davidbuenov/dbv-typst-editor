@@ -91,6 +91,12 @@
   color: var(--text-muted);
 }
 
+/* RF-125: en macOS los tres menús viven en la barra del sistema. Los paneles
+   siguen en el DOM, ocultos, porque son la fuente de las entradas y su estado. */
+body.native-menus .header-menu {
+  display: none !important;
+}
+
 /* Sobrescribe el anclaje arriba-derecha de `.floating-panel`, que sirve para los
    paneles grandes de la cabecera pero no para un menú, que debe salir de su
    propio botón. */
@@ -136,6 +142,14 @@
 .menu-item:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+/* RF-125.7: atajo pintado a la derecha de la entrada (solo «Cerrar pestaña»). */
+.menu-item__keys {
+  margin-left: auto;
+  padding-left: 24px;
+  font-size: 12px;
+  color: var(--text-muted);
 }
 
 .menu-item__icon {

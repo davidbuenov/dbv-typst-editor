@@ -145,7 +145,7 @@ const onDisk = (contentHash) => ({ ok: true, value: { missing: false, modifiedMs
 
 function mount({ lspClient } = {}) {
   const elements = new Proxy(
-    { projectMenuItems: [] },
+    { projectMenuItems: [], documentMenuItems: [] },
     {
       get(target, key) {
         if (!(key in target)) target[key] = document.createElement('div');
@@ -187,6 +187,21 @@ beforeEach(() => {
   localStorage.clear();
   setPref('autoSave', false);
   setPref('localHistory', true);
+});
+
+describe('«Cerrar pestaña» del menú Archivo (RF-125.7)', () => {
+  it('se enciende con un documento abierto y se apaga al cerrarlo con closeDocument()', async () => {
+    const { workspace, elements } = await openedWorkspace();
+    const closeTab = document.createElement('button');
+    elements.documentMenuItems.push(closeTab);
+
+    workspace.renderDocumentBar();
+    expect(closeTab.disabled).toBe(false);
+
+    expect(await workspace.closeDocument()).toBe(true);
+    expect(workspace.state.document).toBeNull();
+    expect(closeTab.disabled).toBe(true);
+  });
 });
 
 describe('cambio externo decidido por contenido (RF-68)', () => {

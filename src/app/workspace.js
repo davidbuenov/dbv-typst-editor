@@ -520,6 +520,8 @@ export function createWorkspace({ tree, elements, notify, dialog, diffModal, lsp
     updateCursorStatusBar(editor.getView());
     if (!hasDocument) updateVimStatusBadge(null);
     elements.documentPath.textContent = hasDocument && getPref('showFullPath') ? state.document.path : '';
+    // RF-125.7: lo que necesita un documento abierto (Cerrar pestaña) se apaga sin él.
+    for (const item of elements.documentMenuItems ?? []) item.disabled = !hasDocument;
 
     // Insignia del lenguaje (RF-60.5): solo para lo que no es Typst, que es
     // lo que el usuario da por supuesto en esta aplicación.

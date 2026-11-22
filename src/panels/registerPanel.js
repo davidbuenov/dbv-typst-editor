@@ -294,6 +294,17 @@ export function closeAllPanels() {
  */
 export function positionPanelNear(panelEl, triggerEl, { width = 420 } = {}) {
   const rect = triggerEl.getBoundingClientRect();
+  // RF-125: en macOS el menú Herramientas está en la barra del sistema y su botón,
+  // oculto (`display: none`, rectángulo 0×0). Sin esto el editor se abriría en la
+  // esquina superior izquierda, encima de la cabecera: se centra bajo ella.
+  if (rect.width === 0 && rect.height === 0) {
+    const header = document.querySelector('.app-header')?.getBoundingClientRect();
+    panelEl.style.top = `${(header?.bottom ?? 0) + 6}px`;
+    panelEl.style.left = `${Math.max(10, (window.innerWidth - width) / 2)}px`;
+    panelEl.style.right = 'auto';
+    panelEl.style.transform = 'none';
+    return;
+  }
   panelEl.style.top = `${rect.bottom + 6}px`;
   panelEl.style.left = `${Math.max(10, Math.min(window.innerWidth - width, rect.left))}px`;
   panelEl.style.right = 'auto';

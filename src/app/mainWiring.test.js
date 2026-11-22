@@ -38,7 +38,8 @@ describe('main.js ↔ index.html', () => {
     expect(main).toContain("el('btn-new-document').addEventListener");
     expect(main).toContain("el('btn-empty-new-document').addEventListener");
     expect(main).toContain("on('menu-new-document', newDocument)");
-    expect(read('src-tauri/src/macos_menu.rs')).toContain('"menu-new-document" => forward');
+    // Menú de arranque de macOS (RF-125.9): su entrada se reenvía como `menu-new-document`.
+    expect(read('src-tauri/src/macos_menu.rs')).toMatch(/FORWARDED[\s\S]*"menu-new-document"/);
   });
 
   it('el menú de documento principal está en el HTML y cableado', () => {
@@ -110,5 +111,19 @@ describe('claves de i18n usadas en index.html', () => {
       expect(es.has(key), `falta en español: ${key}`).toBe(true);
       expect(en.has(key), `falta en inglés: ${key}`).toBe(true);
     }
+  });
+
+  it('«Cerrar pestaña» (RF-125.7) está en el menú Archivo, antes de «Cerrar proyecto», y cableada', () => {
+    const fileMenu = html.slice(html.indexOf('id="file-menu"'), html.indexOf('id="tools-menu"'));
+    expect(fileMenu.indexOf('id="btn-close-tab"')).toBeGreaterThan(-1);
+    expect(fileMenu.indexOf('id="btn-close-tab"')).toBeLessThan(fileMenu.indexOf('id="btn-close-project"'));
+    expect(main).toContain("el('btn-close-tab').addEventListener('click', () => workspace.closeDocument())");
+    expect(main).toContain("documentMenuItems: [el('btn-close-tab')]");
+    expect(i18n).toContain("'action.closeTab': 'Cerrar pestaña'");
+    expect(i18n).toContain("'action.closeTab': 'Close tab'");
+  });
+
+  it('⌘N del menú de arranque de macOS abre «Proyecto en blanco» (RF-125.6)', () => {
+    expect(main).toContain("on('menu-new-project', () => el('btn-new-blank-project').click())");
   });
 });

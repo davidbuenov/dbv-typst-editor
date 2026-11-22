@@ -95,18 +95,18 @@ export const HELP_SECTIONS = [
     title: { es: 'Menús: Archivo, Herramientas y Preferencias', en: 'Menus: File, Tools and Preferences' },
     blocks: [
       {
-        es: 'Los tres menús de la cabecera agrupan todas las operaciones del espacio de trabajo. Cambian entre sí con un clic y admiten navegación por teclado (↑, ↓, Inicio, Fin y Escape).',
-        en: 'The three header menus group every workspace command. They switch between each other in one click and support full keyboard navigation (↑, ↓, Home, End, and Escape).',
+        es: 'Los tres menús de la cabecera agrupan todas las operaciones del espacio de trabajo. Cambian entre sí con un clic y admiten navegación por teclado (↑, ↓, Inicio, Fin y Escape). En macOS no están en la ventana: salen en la barra de menús del sistema, arriba del todo, con sus atajos (⌘N, ⌘O, ⌘S, ⌘W…), y «Ajustes… ⌘,» del menú de la aplicación despliega Preferencias.',
+        en: 'The three header menus group every workspace command. They switch between each other in one click and support full keyboard navigation (↑, ↓, Home, End, and Escape). On macOS they are not in the window: they live in the system menu bar at the top of the screen, with their shortcuts (⌘N, ⌘O, ⌘S, ⌘W…), and "Settings… ⌘," in the app menu pops up Preferences.',
       },
       {
         list: {
           es: [
-            'Archivo (14 acciones): Nuevo proyecto en blanco, Nuevo documento… (plantillas locales y Typst Universe), Guardar, Guardar como…, Exportar PDF…, Exportar PNG…, Fijar como documento principal (guarda el raíz en settings/dbv-project.toml), Añadir capítulo…, Abrir carpeta de proyecto…, Abrir documento .typ…, Importar proyecto (.dbvt)…, Exportar proyecto (.dbvt)…, Mostrar en el Explorador / Finder y Cerrar proyecto.',
+            'Archivo (15 acciones): Nuevo proyecto en blanco, Nuevo documento… (plantillas locales y Typst Universe), Guardar, Guardar como…, Exportar PDF…, Exportar PNG…, Fijar como documento principal (guarda el raíz en settings/dbv-project.toml), Añadir capítulo…, Abrir carpeta de proyecto…, Abrir documento .typ…, Importar proyecto (.dbvt)…, Exportar proyecto (.dbvt)…, Mostrar en el Explorador / Finder, Cerrar pestaña (Ctrl+W, ⌘W en Mac) y Cerrar proyecto.',
             'Herramientas (17 acciones): Conectar una IA…, Aplicar plantilla…, Servidor MCP…, Terminal de Typst…, Ejecutar script Python…, Editor de diagramas…, Editor de ecuaciones…, Diagrama de secuencia…, Diagrama de Gantt…, Tablero Kanban…, Visor de datos (CSV/TSV)…, DOT / Graphviz…, Editar snippets globales…, Importar snippets de Sublime…, Editar snippets del proyecto…, Insertar script JS (jogs)… y Clonar repositorio Git….',
             'Preferencias (11 acciones): Mostrar ficheros ocultos, Números de línea, Números de línea relativos, Modo Vim, Guardado automático, Mostrar ruta completa, Preguntar antes de actualizar referencias, Historial local de versiones, Compartir el estado del editor con agentes MCP, Temas y colores… y Vaciar historial local….',
           ],
           en: [
-            'File (14 actions): New blank project, New document… (local and Typst Universe templates), Save, Save as…, Export PDF…, Export PNG…, Set as main document (persists entrypoint in settings/dbv-project.toml), Add chapter…, Open project folder…, Open .typ document…, Import project (.dbvt)…, Export project (.dbvt)…, Reveal in Explorer / Finder and Close project.',
+            'File (15 actions): New blank project, New document… (local and Typst Universe templates), Save, Save as…, Export PDF…, Export PNG…, Set as main document (persists entrypoint in settings/dbv-project.toml), Add chapter…, Open project folder…, Open .typ document…, Import project (.dbvt)…, Export project (.dbvt)…, Reveal in Explorer / Finder, Close tab (Ctrl+W, ⌘W on Mac) and Close project.',
             'Tools (17 actions): Connect an AI…, Apply template…, MCP server…, Typst terminal…, Run Python script…, Diagram editor…, Equation editor…, Sequence diagram…, Gantt chart…, Kanban board…, Data viewer (CSV/TSV)…, DOT / Graphviz…, Edit global snippets…, Import Sublime snippets…, Edit project snippets…, Insert JS script (jogs)… and Clone Git repository….',
             'Preferences (11 actions): Show hidden files, Line numbers, Relative line numbers, Vim mode, Auto-save, Show full path, Ask before updating references, Local version history, Share editor state with MCP agents, Themes & colors… and Clear local history….',
           ],

@@ -102,17 +102,17 @@
             <!-- Atajo al asistente con la plantilla «Proyecto en blanco»: es el
                  mismo camino que «Usar plantilla» en la galería, para quien está
                  acostumbrado a empezar por el menú Archivo. -->
-            <button id="btn-new-blank-project" class="menu-item" type="button" role="menuitem">
+            <button id="btn-new-blank-project" class="menu-item" type="button" role="menuitem" data-accel="Mod-n">
               <svg class="menu-item__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6.3 2.5h5l3.4 3.4V16a1 1 0 0 1-1 1H6.3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1Z"/><path d="M11.3 2.5V6h3.4"/><path d="M10 9.2v5M7.5 11.7h5"/></svg><span data-i18n="action.newBlankProject"></span>
             </button>
-            <button id="btn-new-document" class="menu-item" type="button" role="menuitem">
+            <button id="btn-new-document" class="menu-item" type="button" role="menuitem" data-accel="Mod-Alt-n">
               <svg class="menu-item__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6.3 2.5h5l3.4 3.4V16a1 1 0 0 1-1 1H6.3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1Z"/><path d="M11.3 2.5V6h3.4"/><path d="M10 9.2v5M7.5 11.7h5"/></svg><span data-i18n="action.newDocument"></span>
             </button>
             <div class="menu-separator" role="separator"></div>
-            <button id="btn-save" class="menu-item" type="button" role="menuitem">
+            <button id="btn-save" class="menu-item" type="button" role="menuitem" data-accel="Mod-s">
               <svg class="menu-item__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 3h9l3.5 3.5V16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M6.3 3v4h6.4V3"/><path d="M6 12h8v4.7H6z"/></svg><span data-i18n="action.save"></span>
             </button>
-            <button id="btn-save-as" class="menu-item" type="button" role="menuitem">
+            <button id="btn-save-as" class="menu-item" type="button" role="menuitem" data-accel="Mod-Shift-s">
               <svg class="menu-item__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 3h9l3.5 3.5V16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M6.3 3v4h6.4V3"/><path d="M6 12h8v4.7H6z"/></svg><span data-i18n="action.saveAs"></span>
             </button>
             <button id="btn-export-pdf" class="menu-item" type="button" role="menuitem">
@@ -128,10 +128,10 @@
               <svg class="menu-item__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 3.5h8.5a1.5 1.5 0 0 1 1.5 1.5v4"/><path d="M4 3.5v12a1 1 0 0 0 1 1h5"/><path d="M6.5 7h5M6.5 9.8h3"/><path d="M14.5 12.5v5M12 15h5"/></svg><span data-i18n="tree.newChapter"></span>
             </button>
             <div class="menu-separator" role="separator"></div>
-            <button id="btn-open-folder" class="menu-item" type="button" role="menuitem">
+            <button id="btn-open-folder" class="menu-item" type="button" role="menuitem" data-accel="Mod-o">
               <svg class="menu-item__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2.5 6.2c0-.7.6-1.3 1.3-1.3h3.5l1.5 1.8h7.2c.7 0 1.3.6 1.2 1.3l-.9 6.2c-.1.7-.7 1.2-1.3 1.2H4.1c-.7 0-1.2-.5-1.3-1.2L2.5 6.2Z"/></svg><span data-i18n="action.openFolder"></span>
             </button>
-            <button id="btn-open-file" class="menu-item" type="button" role="menuitem">
+            <button id="btn-open-file" class="menu-item" type="button" role="menuitem" data-accel="Mod-Shift-o">
               <svg class="menu-item__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6.3 2.5h5l3.4 3.4V16a1 1 0 0 1-1 1H6.3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1Z"/><path d="M11.3 2.5V6h3.4"/><path d="M7.3 10h5.4M7.3 12.6h5.4"/></svg><span data-i18n="action.openFile"></span>
             </button>
             <button id="btn-menu-import-archive" class="menu-item" type="button" role="menuitem">
@@ -144,7 +144,13 @@
             <button id="btn-reveal" class="menu-item" type="button" role="menuitem">
               <svg class="menu-item__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2.3 6.5c0-.7.5-1.2 1.2-1.2h3.1l1.3 1.6h5.4"/><path d="M2.3 6.5h11.4c.7 0 1.3.6 1.2 1.3l-.8 5.6c-.1.7-.7 1.2-1.3 1.2H3.9c-.7 0-1.2-.5-1.3-1.2L2.3 8.1"/><path d="M12.8 7.6 16.5 4M16.5 4h-3M16.5 4v3"/></svg><span data-i18n="action.reveal"></span>
             </button>
-            <button id="btn-close-project" class="menu-item" type="button" role="menuitem">
+            <!-- RF-125.7: cerrar la pestaña activa, igual que su ✕ y que Ctrl+W
+                 (`tabBar.js`). Es la única entrada que pinta su atajo en la
+                 ventana: es el único que funciona igual en todas las plataformas. -->
+            <button id="btn-close-tab" class="menu-item" type="button" role="menuitem" data-accel="Mod-w" disabled>
+              <svg class="menu-item__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6.3 2.5h5l3.4 3.4V16a1 1 0 0 1-1 1H6.3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1Z"/><path d="M11.3 2.5V6h3.4"/><path d="M8.3 10.3l3.4 3.4M11.7 10.3l-3.4 3.4"/></svg><span data-i18n="action.closeTab"></span><span class="menu-item__keys" data-keys="Mod-w"></span>
+            </button>
+            <button id="btn-close-project" class="menu-item" type="button" role="menuitem" data-accel="Mod-Shift-w">
               <svg class="menu-item__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2.3 6.5c0-.7.5-1.2 1.2-1.2h3.4l1.4 1.7h7.1c.7 0 1.3.6 1.2 1.3l-.8 5.4c-.1.7-.7 1.2-1.3 1.2H3.9c-.7 0-1.2-.5-1.3-1.2L2.3 8Z"/><path d="M8.3 9.3l3 3M11.3 9.3l-3 3"/></svg><span data-i18n="action.closeProject"></span>
             </button>
           </div>

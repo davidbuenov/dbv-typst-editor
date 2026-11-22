@@ -28,6 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - **"Show in file manager" selects the file on Windows (RF-127, [Issue #5](https://github.com/davidbuenov/dbv-typst-editor/issues/5)).** With a path containing spaces, Explorer opened its default folder without selecting anything: `Command::args` quoted the whole argument (`"/select,C:\My Documents\x.typ"`), a form Explorer does not understand. The argument is now built already quoted (`/select,"C:\My Documents\x.typ"`), with slashes normalised to `\`, and passed with `raw_arg`. A path containing `"` is rejected instead of being inserted into the argument. Applies to the tree context menu and to File ▸ Show in file manager; macOS and Linux are unchanged. The function that builds the argument (`windows_explorer_arg`) is pure and its tests run on every platform.
 
+- **The test suite passes on macOS (RF-128).** First full run on a Mac (Apple Silicon, Homebrew Rust 1.100): Vitest 1,609, Rust 649, `verify:frontend` 12/12, `verify:layout` 20/20, `verify:templates` 65/65 and `verify:typst` 8/8. `verify-layout` was silently skipped ("OMITIDA") because it only knew the Edge and Chrome paths on Windows and Linux; it now also looks for the macOS ones. No other bench depended on Windows. The `native-menus` class is only enabled inside Tauri, so a test browser on a Mac does not hide the menus that the RF-30 and RF-118 benches check.
+
 ### Documentation
 
 - **macOS install via Homebrew: `brew trust` and `xattr -cr` steps.** `README.en.md` adds `brew trust davidbuenov/dbv-typst-editor` (authorises the unofficial tap) after `brew tap`, and `xattr -cr "/Applications/DBV Typst Editor.app"` as the last installation step, which avoids Gatekeeper blocks on first launch.

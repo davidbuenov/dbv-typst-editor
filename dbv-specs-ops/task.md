@@ -731,7 +731,7 @@
   - [x] **S176** *(RF-125)* `src/app/nativeMenu.js` puro + tests (choques con `APP_SHORTCUTS`).
   - [x] **S177** *(RF-125)* `native_menu.rs`, `macos_menu.rs` reescrito, `set_native_menu`, «Ajustes… ⌘,».
   - [x] **S178** *(RF-125)* `btn-close-tab`, `data-accel`, `nativeMenuDom.js`, CSS `native-menus`, `positionPanelNear` con el disparador oculto, ayuda.
-  - [ ] **S179** *(RF-128)* Tanda completa en el Mac; `verify-layout` con las rutas de macOS.
+  - [x] **S179** *(RF-128)* Tanda completa en el Mac; `verify-layout` con las rutas de macOS.
 
 ## 🔄 Context Snapshot / Snapshot de Contexto
 

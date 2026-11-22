@@ -42,6 +42,9 @@ const CANDIDATES = [
   'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
   'C:/Program Files/Microsoft/Edge/Application/msedge.exe',
   'C:/Program Files/Google/Chrome/Application/chrome.exe',
+  // RF-128: en macOS el banco se saltaba (OMITIDA) por no conocer estas rutas.
+  '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
+  '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
   '/usr/bin/microsoft-edge',
   '/usr/bin/google-chrome',
   '/usr/bin/chromium',

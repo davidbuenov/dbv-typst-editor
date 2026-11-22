@@ -1,5 +1,5 @@
 // =============================================================================
-// DBV Typst Editor — Manual de Usuario en Español (v0.15.0)
+// DBV Typst Editor — Manual de Usuario en Español (v0.15.1)
 // Copyright (c) 2026 David Bueno Vallejo · Licencia MIT
 // Compilar desde la raíz del repositorio:
 //   typst compile --root docs docs/manual/manual-es.typ docs/manual/manual-es.pdf
@@ -11,7 +11,7 @@
   lang: "es",
   title: "DBV Typst Editor",
   subtitle: "Manual completo de usuario: redacción académica y técnica, menús, colaboración con Git, herramientas visuales, asistentes e IA opcional",
-  version: "v0.15.0",
+  version: "v0.15.1",
   badge-label: "Manual de Usuario · Español",
   author-label: "Autor",
   license-label: "Licencia",
@@ -28,7 +28,14 @@ A diferencia de un editor de código genérico, la aplicación integra el compil
   Todo proyecto creado con DBV Typst Editor es un proyecto Typst estándar. Puedes compilarlo con el binario oficial `typst compile main.typ` desde cualquier terminal, compartirlo por Git con usuarios de otros editores o empaquetarlo completo en un archivo `.dbvt` con sus fuentes propias incluidas.
 ]
 
-#shot("01-editor-live-preview.png", caption: "Vista principal dividida de DBV Typst Editor v0.15.0: árbol de proyecto, editor con sintaxis Typst y vista previa SVG compuesta en tiempo real.")
+#shot("01-editor-live-preview.png", caption: "Vista principal dividida de DBV Typst Editor v0.15.1: árbol de proyecto, editor con sintaxis Typst y vista previa SVG compuesta en tiempo real.")
+
+== Novedades de la versión v0.15.1
+
+- *Exportar a PDF sin errores de anclas:* exportar PDF, exportar PNG y el esquema compilan ahora exactamente tu documento, sin las anclas `<dbv-sync>` que usa la vista previa para sincronizarse. Antes, una plantilla con funciones podía hacer que la exportación fallara con «the character \# is not valid in code» aunque la vista previa funcionara.
+- *«Mostrar en el explorador» que selecciona el fichero (Windows):* abre el Explorador con el fichero seleccionado, también cuando la ruta tiene espacios.
+- *Plantillas en el idioma de la aplicación:* con la interfaz en inglés, las cinco plantillas genéricas (proyecto en blanco, artículo, informe técnico, presentación y currículum) se crean en inglés: textos, ficheros, etiquetas del formulario e idioma del documento. TFG, TFM y tesis doctoral siguen solo en español.
+- *Menús en la barra de macOS y «Cerrar pestaña»:* en macOS, Archivo, Herramientas y Preferencias salen en la barra de menús del sistema (con ⌘, para abrir Preferencias); en todas las plataformas, Archivo incluye ahora «Cerrar pestaña» (`Ctrl/Cmd+W`).
 
 == Novedades principales de la versión v0.15.0
 
@@ -48,7 +55,7 @@ Al abrir la aplicación sin carpeta cargada aparece el *lanzador de proyectos* (
   columns: (auto, 1fr),
   headers: ("Acción del lanzador", "Cuándo conviene usarla"),
   rows: (
-    ([*Nuevo documento*], [Abre la galería con las *8 plantillas académicas propias* (Artículo científico, TFG, TFM, Tesis doctoral, Informe técnico, Presentación 16:9, Currículum vítae y Proyecto en blanco) junto al catálogo comunitario de Typst Universe. Cada plantilla propia muestra un formulario para nombre, autoría, institución, idioma y portada normalizada.]),
+    ([*Nuevo documento*], [Abre la galería con las *8 plantillas académicas propias* (Artículo científico, TFG, TFM, Tesis doctoral, Informe técnico, Presentación 16:9, Currículum vítae y Proyecto en blanco) junto al catálogo comunitario de Typst Universe. Cada plantilla propia muestra un formulario para nombre, autoría, institución, idioma y portada normalizada. Las cinco genéricas (en blanco, artículo, informe técnico, presentación y currículum) salen en inglés cuando la aplicación está en inglés.]),
     ([*Abrir carpeta*], [Carga cualquier directorio que ya contenga ficheros `.typ` (por ejemplo, un repositorio Git clonado o una memoria empezada en otro ordenador). Si existe `settings/dbv-project.toml`, respeta su documento principal.]),
     ([*Nuevo .typ vacío*], [Crea un único fichero suelto fuera de proyecto para pruebas rápidas o notas matemáticas.]),
     ([*Abrir .typ*], [Edita y previsualiza un documento individual sin necesidad de carpeta de proyecto.]),
@@ -100,7 +107,8 @@ Toda la funcionalidad de DBV Typst Editor está accesible de forma ordenada desd
     ([*Abrir documento .typ…*], [Abre un fichero `.typ` individual sin necesidad de carpeta de proyecto.]),
     ([*Importar proyecto (.dbvt)…*], [Extrae un paquete `.dbvt` completo en la carpeta que elijas y lo abre inmediatamente.]),
     ([*Exportar proyecto (.dbvt)…*], [Empaqueta capítulos, imágenes, bibliografía, configuración `settings/dbv-project.toml` y la carpeta `fonts/` en un único archivo `.dbvt`.]),
-    ([*Mostrar en el Explorador / Finder*], [Abre la carpeta del proyecto actual en el gestor de archivos del sistema operativo.]),
+    ([*Mostrar en el Explorador / Finder*], [Abre la carpeta del proyecto actual en el gestor de archivos del sistema operativo; si hay un fichero activo, lo deja seleccionado.]),
+    ([*Cerrar pestaña* (`Ctrl/Cmd+W`)], [Cierra el documento activo igual que la ✕ de su pestaña; pregunta si tiene cambios sin guardar y se apaga si no hay ninguno abierto.]),
     ([*Cerrar proyecto*], [Cierra el proyecto activo tras comprobar cambios pendientes y vuelve al lanzador inicial.]),
   ),
 )
@@ -504,7 +512,10 @@ Expone las herramientas `compile_project`, `render_page` (hasta 3 PNGs), `search
 - *Juan Falgueras Cano:* colaborador del proyecto.
 - *Alberto Corbi:* colaborador del proyecto y coautor del artículo de referencia sobre el ecosistema científico de Typst (Voynov, Corbi, López-Oliver & Gil, 2026, *IJIMAI*).
 
-== Agradecimientos de la comunidad (`v0.15.0`)
+== Agradecimientos de la comunidad (`v0.15.0` y `v0.15.1`)
+
+- *Eduardo Martos Naya* (`v0.15.1`), que descubrió que exportar a PDF fallaba con errores `<dbv-sync>` en un proyecto de transparencias que `typst compile` sí exportaba, y lo contó con la captura que permitió arreglarlo.
+- *`@minhtanz1`* (GitHub Issue \#5, `v0.15.1`), que avisó de que la plantilla «Artículo académico» salía en español y de que «Mostrar en el explorador» no seleccionaba el fichero en Windows.
 
 - *`@rgranc`* (GitHub Issues \#3 y \#4), por sus propuestas detalladas sobre apilamiento de ventanas flotantes, exclusividad de menús, atajos en snippets y flujo de exportación/gestión de archivos.
 - *Víctor Buendía* (Fediscience), cuyas pruebas reales e ideas inspiraron la optimización de latencia en el *refresco manual*, la incorporación opcional del *Modo Vim*, la mejora de contraste sintáctico en modo oscuro y la galería ampliada de temas y colores.

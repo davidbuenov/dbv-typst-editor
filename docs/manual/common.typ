@@ -89,7 +89,7 @@
   lang: "es",
   title: "DBV Typst Editor",
   subtitle: "",
-  version: "v0.15.0",
+  version: "v0.15.1",
   badge-label: "Manual de Usuario",
   author-label: "Autor",
   license-label: "Licencia",

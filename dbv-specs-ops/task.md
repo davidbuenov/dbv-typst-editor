@@ -746,7 +746,7 @@
 > 2. Probar a mano en la ventana real: RF-126 (app en inglés → «Academic paper») y RF-129 (exportar PDF con una plantilla con funciones).
 > 3. Desplegar `davidbuenov.com` con DBV Control Center (la ficha `web/_projects/dbv-typst-editor.md` queda editada sin commit, ya en `v0.15.1`).
 > 4. En el Mac: confirmar RF-125.11 (menús en la barra). Si falla algo, `/maintain` o 0.15.2.
-> 5. **Backlog:** manual PDF `docs/manual/` (sigue en `v0.15.0`, regenerar con capturas nuevas); «Archivo ▸ Salir»; `temp/tinymist-estilos-compartidos.md`.
+> 5. **Backlog:** «Archivo ▸ Salir»; `temp/tinymist-estilos-compartidos.md`. (Los manuales PDF y la insignia de versión de la web ya van en `v0.15.1`; `src/app/landingVersion.test.js` los vigila en cada release.)
 >
 > ### (anterior) 2026-11-22, para el PC: v0.15.1 con `/build`, `/test` y `/code-simplify` CERRADOS en la rama `release/0.15.1` — luego `/ship` en el PC
 >

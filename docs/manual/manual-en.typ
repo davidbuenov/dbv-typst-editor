@@ -1,5 +1,5 @@
 // =============================================================================
-// DBV Typst Editor — English User Manual (v0.15.0)
+// DBV Typst Editor — English User Manual (v0.15.1)
 // Copyright (c) 2026 David Bueno Vallejo · MIT License
 // Compile from repository root:
 //   typst compile --root docs docs/manual/manual-en.typ docs/manual/manual-en.pdf
@@ -11,7 +11,7 @@
   lang: "en",
   title: "DBV Typst Editor",
   subtitle: "Complete User Manual: academic & technical authoring, full menu reference, Git collaboration, visual tools, assistants, and optional AI",
-  version: "v0.15.0",
+  version: "v0.15.1",
   badge-label: "User Manual · English",
   author-label: "Author",
   license-label: "License",
@@ -31,7 +31,14 @@ Unlike a generic code IDE, the application embeds the official Typst compiler in
   Every project created in DBV Typst Editor is an ordinary Typst project. You can compile it with `typst compile main.typ` from any terminal, collaborate over Git with authors using any other editor, or package the entire workspace including custom fonts into a portable `.dbvt` file.
 ]
 
-#shot("01-editor-live-preview_en.png", caption: "Main split workspace in DBV Typst Editor v0.15.0: project tree, syntax-highlighted Typst editor, and real-time SVG preview.")
+#shot("01-editor-live-preview_en.png", caption: "Main split workspace in DBV Typst Editor v0.15.1: project tree, syntax-highlighted Typst editor, and real-time SVG preview.")
+
+== What is new in v0.15.1
+
+- *PDF export without anchor errors:* PDF export, PNG export and the outline now compile exactly your document, without the `<dbv-sync>` anchors the live preview uses to stay in sync. Before, a template containing functions could make export fail with "the character \# is not valid in code" even though the preview worked.
+- *"Reveal in file manager" that selects the file (Windows):* it opens Explorer with the file selected, also when the path contains spaces.
+- *Templates in the app language:* with the interface in English, the five generic templates (blank project, paper, technical report, presentation and CV) are created in English: texts, file names, form labels and document language. The bachelor, master and doctoral theses stay Spanish only.
+- *macOS menu-bar menus and "Close tab":* on macOS, File, Tools and Preferences live in the system menu bar (with ⌘, to open Preferences); on every platform, File now includes "Close tab" (`Ctrl/Cmd+W`).
 
 == What is new in v0.15.0
 
@@ -51,7 +58,7 @@ Opening the application without an active workspace shows the *project launcher*
   columns: (auto, 1fr),
   headers: ("Launcher action", "When to use it"),
   rows: (
-    ([*New document*], [Opens the gallery featuring *8 built-in academic templates* (Scientific paper, Bachelor Thesis, Master Thesis, PhD Dissertation, Technical report, Presentation 16:9, Curriculum Vitae, and Blank project) alongside curated *Typst Universe* community templates. Built-in templates collect author, institution, language, and cover metadata through a guided form.]),
+    ([*New document*], [Opens the gallery featuring *8 built-in academic templates* (Scientific paper, Bachelor Thesis, Master Thesis, PhD Dissertation, Technical report, Presentation 16:9, Curriculum Vitae, and Blank project) alongside curated *Typst Universe* community templates. Built-in templates collect author, institution, language, and cover metadata through a guided form. The five generic ones (blank, paper, technical report, presentation and CV) are created in English when the app is in English.]),
     ([*Open folder*], [Loads any existing folder containing `.typ` files (such as a cloned Git repo or hand-crafted project). If `settings/dbv-project.toml` is present, its shared main entrypoint is respected automatically.]),
     ([*New empty .typ*], [Creates a standalone scratch `.typ` document outside a project folder for quick experiments or notes.]),
     ([*Open .typ*], [Opens and previews an individual `.typ` file without requiring a project directory.]),
@@ -103,7 +110,8 @@ Every capability of DBV Typst Editor is organized across three header menus that
     ([*Open .typ document…*], [Opens a standalone `.typ` document outside a project workspace.]),
     ([*Import project (.dbvt)…*], [Unpacks a portable `.dbvt` archive into a chosen destination directory and opens it.]),
     ([*Export project (.dbvt)…*], [Bundles chapters, images, bibliography, `settings/dbv-project.toml`, and `fonts/` into a single `.dbvt` ZIP archive.]),
-    ([*Reveal in Explorer / Finder*], [Opens the active project folder in the OS file manager.]),
+    ([*Reveal in Explorer / Finder*], [Opens the active project folder in the OS file manager; if a file is active, it is left selected.]),
+    ([*Close tab* (`Ctrl/Cmd+W`)], [Closes the active document the same way as the tab's ✕; it asks first if there are unsaved changes and is disabled when nothing is open.]),
     ([*Close project*], [Prompts for any unsaved changes, closes the workspace, and returns to the launcher.]),
   ),
 )
@@ -507,7 +515,10 @@ Available tools include `compile_project`, `render_page` (up to 3 PNGs), `search
 - *Juan Falgueras Cano:* project collaborator.
 - *Alberto Corbi:* project collaborator and co-author of the reference survey on the scientific Typst ecosystem (Voynov, Corbi, López-Oliver & Gil, 2026, *IJIMAI*).
 
-== Community Contributors (`v0.15.0`)
+== Community Contributors (`v0.15.0` and `v0.15.1`)
+
+- *Eduardo Martos Naya* (`v0.15.1`), who found that exporting to PDF failed with `<dbv-sync>` errors on a slides project that `typst compile` exported fine, and reported it with the screenshot that made the fix possible.
+- *`@minhtanz1`* (GitHub Issue \#5, `v0.15.1`), who reported that the "Academic paper" template came out in Spanish and that "Reveal in file manager" did not select the file on Windows.
 
 - *`@rgranc`* (GitHub Issues \#3 and \#4), for detailed workflow proposals covering floating-panel stacking, menu exclusivity, user snippet keybindings, and project export behavior.
 - *Víctor Buendía* (Fediscience), whose real-world testing and suggestions inspired zero-latency *Manual Refresh* optimizations, optional *Vim mode*, improved dark-theme syntax contrast, and expanded curated theme customization.

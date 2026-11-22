@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - **Dependencias de Tauri actualizadas a la última versión y verificadas en macOS.** `Cargo.lock` y `package-lock.json` suben `tauri` 2.11.5 → 2.12.7, `tauri-build`/`tauri-codegen`/`tauri-macros` 2.6.3 → 2.7.6, `tauri-runtime-wry` 2.12.5, `wry` 0.57.3, `tao` 0.37.3, los plugins (`dialog` 2.8.4, `fs` 2.7.1, `process` 2.4.0, `shell` 2.6.0, `single-instance` 2.5.5, `updater` 2.14.1) y `@tauri-apps/api` 2.12.5 / `@tauri-apps/cli` 2.12.6. Con `tauri-build` 2.6.3 la compilación fallaba en un Mac con Rust 1.100 (Homebrew): el nuevo layout de `target/debug/build/<paquete>/<hash>/out` de Cargo hacía que el copiado de sidecars apuntase a `target/debug/build/` en lugar de `target/debug/`, chocando con el directorio `build/typst` (`Operation not permitted`). 2.7.6 lo resuelve. Verificado en macOS Apple Silicon con Rust 1.100: Vitest 1580/1580 y `cargo test --lib` 632 OK (6 ignorados).
 
+### Fixed
+
+- **«Mostrar en el explorador» selecciona el fichero en Windows (RF-127, [Issue #5](https://github.com/davidbuenov/dbv-typst-editor/issues/5)).** Con una ruta con espacios, Explorer abría su carpeta por defecto sin seleccionar nada: `Command::args` entrecomillaba el argumento entero (`"/select,C:\Mis documentos\x.typ"`) y Explorer no entiende esa forma. Ahora el argumento se construye ya entrecomillado (`/select,"C:\Mis documentos\x.typ"`), con las barras normalizadas a `\`, y se pasa con `raw_arg`. Una ruta con `"` se rechaza en vez de insertarse en el argumento. Afecta al menú contextual del árbol y a «Mostrar en el explorador» del menú Archivo; macOS y Linux no cambian. La función que construye el argumento (`windows_explorer_arg`) es pura y sus tests corren en todas las plataformas.
+
 ### Documentation
 
 - **Instalación en macOS por Homebrew: pasos `brew trust` y `xattr -cr`.** `README.md` incorpora `brew trust davidbuenov/dbv-typst-editor` (autoriza el tap no oficial) tras `brew tap`, y `xattr -cr "/Applications/DBV Typst Editor.app"` como último paso de la instalación, que evita los bloqueos de Gatekeeper al primer arranque.

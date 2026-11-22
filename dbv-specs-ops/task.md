@@ -724,7 +724,7 @@
 - [x] **Fase 75: `/spec` de v0.15.1 (parche) — cerrado el 2026-11-22 en el Mac (`SPECIFICATIONS.md` v1.21, §5r, RF-125 a RF-128; `ADR-V0151-001`), rama `release/0.15.1`.** Menús Archivo/Herramientas/Preferencias en la barra de macOS, con «Cerrar pestaña» y «Ajustes… ⌘,» (RF-125); plantillas genéricas en inglés (RF-126, Issue #5a); «Mostrar en el explorador» en Windows (RF-127, Issue #5b); y tests en verde en macOS (RF-128). **Recordatorio para `/ship`: agradecer a `@minhtanz1` en los README, y responder y cerrar el Issue #5.**
 - [x] **Fase 76: `/plan` de v0.15.1 — 2026-11-22 (`implementation_plan.md` local, `ADR-V0151-002`).** Enmienda RF-126.4 (la variante sustituye a `template/` por completo).
 - [ ] **Fase 77: `/build` de v0.15.1**
-  - [ ] **S172** *(RF-127)* `windows_select_arg` pura y multiplataforma + `raw_arg` en Windows.
+  - [x] **S172** *(RF-127)* `windows_select_arg` pura y multiplataforma + `raw_arg` en Windows.
   - [ ] **S173** *(RF-126)* `language` en `create_project`, variante `template.<idioma>/`, `FieldLocalization`.
   - [ ] **S174** *(RF-126)* Variantes `template.en/` de las 5 plantillas genéricas + etiquetas en inglés; `verify:templates` las compila.
   - [ ] **S175** *(RF-126)* El asistente muestra las etiquetas en el idioma de la app y envía `language`.

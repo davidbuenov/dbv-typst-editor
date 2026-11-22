@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - **Tauri dependencies updated to the latest versions and verified on macOS.** `Cargo.lock` and `package-lock.json` bump `tauri` 2.11.5 → 2.12.7, `tauri-build`/`tauri-codegen`/`tauri-macros` 2.6.3 → 2.7.6, `tauri-runtime-wry` 2.12.5, `wry` 0.57.3, `tao` 0.37.3, the plugins (`dialog` 2.8.4, `fs` 2.7.1, `process` 2.4.0, `shell` 2.6.0, `single-instance` 2.5.5, `updater` 2.14.1) and `@tauri-apps/api` 2.12.5 / `@tauri-apps/cli` 2.12.6. With `tauri-build` 2.6.3 the build failed on a Mac with Rust 1.100 (Homebrew): Cargo's new `target/debug/build/<package>/<hash>/out` layout made the sidecar copy target `target/debug/build/` instead of `target/debug/`, colliding with the `build/typst` directory (`Operation not permitted`). 2.7.6 fixes it. Verified on macOS Apple Silicon with Rust 1.100: Vitest 1580/1580 and `cargo test --lib` 632 OK (6 ignored).
 
+### Fixed
+
+- **"Show in file manager" selects the file on Windows (RF-127, [Issue #5](https://github.com/davidbuenov/dbv-typst-editor/issues/5)).** With a path containing spaces, Explorer opened its default folder without selecting anything: `Command::args` quoted the whole argument (`"/select,C:\My Documents\x.typ"`), a form Explorer does not understand. The argument is now built already quoted (`/select,"C:\My Documents\x.typ"`), with slashes normalised to `\`, and passed with `raw_arg`. A path containing `"` is rejected instead of being inserted into the argument. Applies to the tree context menu and to File ▸ Show in file manager; macOS and Linux are unchanged. The function that builds the argument (`windows_explorer_arg`) is pure and its tests run on every platform.
+
 ### Documentation
 
 - **macOS install via Homebrew: `brew trust` and `xattr -cr` steps.** `README.en.md` adds `brew trust davidbuenov/dbv-typst-editor` (authorises the unofficial tap) after `brew tap`, and `xattr -cr "/Applications/DBV Typst Editor.app"` as the last installation step, which avoids Gatekeeper blocks on first launch.

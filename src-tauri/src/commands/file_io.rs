@@ -194,32 +194,46 @@ pub fn list_directory_entries(dir: &Path) -> Vec<DirEntryInfo> {
     entries
 }
 
+/// RF-127: argumento de `explorer` para revelar `path`, **ya entrecomillado** y
+/// pensado para `CommandExt::raw_arg`. `Command::args` entrecomilla el argumento
+/// entero (`"/select,C:\Mis documentos\x.typ"`) y Explorer no lo entiende:
+/// abre su carpeta por defecto sin seleccionar nada (Issue #5). `/select` exige
+/// además barras invertidas, y una ruta unida en el frontend puede traer `/`.
+/// Una `"` no es válida en un nombre de Windows; si llega, se rechaza en vez de
+/// insertarla en un argumento en bruto. Función pura y sin `cfg`, para que sus
+/// tests corran también en macOS y en el CI de Linux.
+#[cfg_attr(not(windows), allow(dead_code))]
+pub fn windows_explorer_arg(path: &str, is_dir: bool) -> Result<String, AppError> {
+    if path.contains('"') {
+        return Err(AppError::InvalidPath(path.to_string()));
+    }
+    let native = path.replace('/', "\\");
+    Ok(if is_dir { format!("\"{native}\"") } else { format!("/select,\"{native}\"") })
+}
+
 /// Construye el `(programa, argumentos)` para revelar `path` en el gestor de
 /// ficheros del sistema, sin llegar a lanzar el proceso — separado del comando
-/// para poder testearlo sin depender de un binario externo real.
+/// para poder testearlo sin depender de un binario externo real. En Windows los
+/// argumentos van ya entrecomillados y se pasan con `raw_arg` (RF-127).
 #[cfg(windows)]
-pub fn reveal_command(path: &str, is_dir: bool) -> (&'static str, Vec<String>) {
-    if is_dir {
-        ("explorer", vec![path.to_string()])
-    } else {
-        ("explorer", vec![format!("/select,{path}")])
-    }
+pub fn reveal_command(path: &str, is_dir: bool) -> Result<(&'static str, Vec<String>), AppError> {
+    Ok(("explorer", vec![windows_explorer_arg(path, is_dir)?]))
 }
 
 #[cfg(target_os = "macos")]
-pub fn reveal_command(path: &str, is_dir: bool) -> (&'static str, Vec<String>) {
-    if is_dir {
+pub fn reveal_command(path: &str, is_dir: bool) -> Result<(&'static str, Vec<String>), AppError> {
+    Ok(if is_dir {
         ("open", vec![path.to_string()])
     } else {
         ("open", vec!["-R".to_string(), path.to_string()])
-    }
+    })
 }
 
 /// Linux, alcance reducido: no existe un comando universal de "seleccionar el
 /// fichero exacto" entre gestores (Nautilus/Dolphin/...), así que se abre la
 /// carpeta contenedora sin selección — limitación de plataforma documentada.
 #[cfg(target_os = "linux")]
-pub fn reveal_command(path: &str, is_dir: bool) -> (&'static str, Vec<String>) {
+pub fn reveal_command(path: &str, is_dir: bool) -> Result<(&'static str, Vec<String>), AppError> {
     let target = if is_dir {
         path.to_string()
     } else {
@@ -228,7 +242,7 @@ pub fn reveal_command(path: &str, is_dir: bool) -> (&'static str, Vec<String>) {
             .map(path_to_string)
             .unwrap_or_else(|| path.to_string())
     };
-    ("xdg-open", vec![target])
+    Ok(("xdg-open", vec![target]))
 }
 
 fn is_typst_path(path: &Path) -> bool {
@@ -527,11 +541,18 @@ pub fn reveal_in_file_manager(path: String) -> Result<(), AppError> {
     if !target.exists() {
         return Err(AppError::NotFound(path));
     }
-    let (program, args) = reveal_command(&path, target.is_dir());
-    Command::new(program)
-        .args(&args)
-        .spawn()
-        .map_err(|e| AppError::Io(e.to_string()))?;
+    let (program, args) = reveal_command(&path, target.is_dir())?;
+    let mut command = Command::new(program);
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        for arg in &args {
+            command.raw_arg(arg);
+        }
+    }
+    #[cfg(not(windows))]
+    command.args(&args);
+    command.spawn().map_err(|e| AppError::Io(e.to_string()))?;
     Ok(())
 }
 
@@ -745,15 +766,36 @@ mod tests {
 
     #[test]
     fn reveal_command_produce_programa_y_argumentos_para_un_fichero() {
-        let (program, args) = reveal_command("/tmp/proyecto/main.typ", false);
+        let (program, args) = reveal_command("/tmp/proyecto/main.typ", false).unwrap();
         assert!(!program.is_empty());
         assert!(!args.is_empty());
     }
 
+    #[cfg(not(windows))]
     #[test]
     fn reveal_command_abre_la_carpeta_directamente() {
-        let (_, args) = reveal_command("/tmp/proyecto", true);
+        let (_, args) = reveal_command("/tmp/proyecto", true).unwrap();
         assert_eq!(args, vec!["/tmp/proyecto".to_string()]);
+    }
+
+    /// @spec RF-127 — el caso del Issue #5: carpeta con espacios.
+    #[test]
+    fn windows_explorer_arg_entrecomilla_solo_la_ruta_tras_select() {
+        let arg = windows_explorer_arg(r"C:\Mis documentos\tesis\main.typ", false).unwrap();
+        assert_eq!(arg, r#"/select,"C:\Mis documentos\tesis\main.typ""#);
+    }
+
+    /// @spec RF-127
+    #[test]
+    fn windows_explorer_arg_normaliza_las_barras_y_abre_carpetas_por_dentro() {
+        assert_eq!(windows_explorer_arg("C:/Mis documentos/x.typ", false).unwrap(), r#"/select,"C:\Mis documentos\x.typ""#);
+        assert_eq!(windows_explorer_arg("C:/Mis documentos/tesis", true).unwrap(), r#""C:\Mis documentos\tesis""#);
+    }
+
+    /// @spec RF-127
+    #[test]
+    fn windows_explorer_arg_rechaza_una_comilla_en_la_ruta() {
+        assert!(matches!(windows_explorer_arg(r#"C:\a" & calc\x.typ"#, false), Err(AppError::InvalidPath(_))));
     }
 
     #[test]

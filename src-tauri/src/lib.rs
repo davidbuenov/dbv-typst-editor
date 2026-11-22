@@ -23,6 +23,8 @@ pub mod mcp_bridge;
 pub mod engine;
 #[cfg(target_os = "macos")]
 pub mod macos_menu;
+// RF-125: descripción y saneado del menú nativo (la parte pura; pintarlo está en `macos_menu`).
+pub mod native_menu;
 pub mod platform;
 pub mod project;
 pub mod refs;
@@ -90,6 +92,7 @@ pub fn run() {
         .manage(ai::AiState::default())
         .manage(mcp_bridge::McpBridgeState::default())
         .manage(ai::acp::AcpState::default())
+        .manage(native_menu::NativeMenuState::default())
         .setup(|app| {
             // Historial local (RF-73): en la carpeta de datos de la aplicación,
             // nunca dentro del proyecto.
@@ -105,6 +108,7 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            native_menu::set_native_menu,
             mcp::mcp_server_spec,
             mcp::mcp_launch_info,
             mcp_bridge::mcp_bridge_configure,
